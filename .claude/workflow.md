@@ -141,13 +141,14 @@ Closes #<issue#>
 
 ## 자동 리뷰 봇 통합
 
-메인 리뷰어는 **Gemini Code Assist**. CodeRabbit은 선택 사항(설치 시 추가 의견 제공).
-머지 게이트는 Gemini의 APPROVED만 강제 — CodeRabbit은 봐도 좋고 안 봐도 좋음.
+메인 리뷰어는 **CodeRabbit** (`.coderabbit.yaml`). PR APPROVED 받아야 머지 게이트 통과.
+Gemini Code Assist는 베타 상태에서 `APPROVED` 리뷰 상태를 안 줘서 게이트에 못 씀
+(2026년 5월 기준). 설치돼있으면 보조 의견용 OK.
 
-### CodeRabbit (옵션 — 설치 시)
+### CodeRabbit (메인 — 머지 게이트)
 
 - **설치**: GitHub Marketplace → CodeRabbit 앱 → 레포 권한 부여 (무료 티어)
-- **설정 파일**: `.coderabbit.yaml` (레포 루트)
+- **설정 파일**: `.coderabbit.yaml` (레포 루트) — `request_changes_workflow: true` 로 APPROVE/REQUEST_CHANGES 리뷰 상태 강제
 - **트리거**: PR 열리면 자동 리뷰
 - **상호작용**: `@coderabbitai resolve`, `@coderabbitai pause`, `@coderabbitai full review`
 
@@ -195,9 +196,9 @@ Code Reviewer / 개발자 에이전트가 따름:
 PR이 main에 머지되려면 **아래 4개 모두** 통과해야 함:
 
 1. **CI 그린** — `format / lint / test / build` GitHub Actions workflow 성공
-2. **Gemini Code Assist APPROVED** — `gemini-code-assist approved` workflow 통과 (`.github/workflows/gemini-approval-gate.yml`)
-   - Gemini가 COMMENTED만 남기면 통과 X. `APPROVED` 리뷰 state 필요.
-   - 개선 적용 후 `@gemini-code-assist /review` 댓글로 재리뷰 요청 가능.
+2. **CodeRabbit APPROVED** — `coderabbitai approved` workflow 통과 (`.github/workflows/coderabbit-approval-gate.yml`)
+   - CodeRabbit이 COMMENTED만 남기면 통과 X. `APPROVED` 리뷰 state 필요.
+   - 개선 적용 후 `@coderabbitai full review` 댓글로 재리뷰 요청 가능.
 3. **모든 review thread resolved** — `required_conversation_resolution: true`. 미해결 코멘트 1개라도 있으면 머지 X.
 4. **PR 필수** — `main`에 직접 push 금지. self-PR도 OK (`required_approving_review_count: 0`).
 
@@ -207,11 +208,17 @@ PR이 main에 머지되려면 **아래 4개 모두** 통과해야 함:
 - `allow_force_pushes: false`, `allow_deletions: false`
 - admin은 긴급 시 `gh pr merge --admin` 으로 bypass 가능 (`enforce_admins: false`).
 
-### Gemini Code Assist 운영
+### CodeRabbit 운영
 
-- 설정: `.gemini/config.yaml` — 한국어 톤, MEDIUM threshold, lockfile/dist/design HTML 무시.
-- 리뷰 흐름: PR opened → Gemini가 summary + 라인 코멘트 → 개발자가 fix + 코멘트 resolve → `@gemini-code-assist /review`로 재리뷰 → APPROVED 받으면 머지 게이트 통과.
-- **Gemini approve 권한**: GitHub App "Pull request reviews: write" 권한 필요. Settings → Apps → Gemini Code Assist → Configure에서 확인.
+- 설정: `.coderabbit.yaml` — 한국어 반말 톤, chill profile, JS/api/web path_instructions, lockfile/dist/coverage 등 path_filter 무시.
+- 리뷰 흐름: PR opened → CodeRabbit 자동 리뷰 → 개발자가 fix + 코멘트 resolve (`@coderabbitai resolve`) → `@coderabbitai full review`로 재리뷰 → APPROVED 받으면 머지 게이트 통과.
+- `request_changes_workflow: true` 로 APPROVE/REQUEST_CHANGES 리뷰 상태 강제.
+- **사용자 액션 (한 번)**: CodeRabbit GitHub App 설치 → 본 레포에 권한 부여.
+
+### Gemini Code Assist (보조, 옵션)
+
+- 설치되면 추가 의견 제공. 베타라 `APPROVED` 상태 미지원 — 머지 게이트엔 안 들어감.
+- 무시 또는 보조 시각 정도로 활용.
 
 ## 에이전트별 GitHub 책임
 
