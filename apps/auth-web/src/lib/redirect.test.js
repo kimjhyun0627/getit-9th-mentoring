@@ -11,8 +11,12 @@ import { redirectAfterAuth } from './redirect.js';
 describe('redirectAfterAuth', () => {
   /** @type {ReturnType<typeof vi.fn>} */
   let replaceSpy;
+  /** @type {PropertyDescriptor | undefined} */
+  let originalLocationDescriptor;
 
   beforeEach(() => {
+    // 원본 window.location descriptor 보존 (afterEach 에서 복원)
+    originalLocationDescriptor = Object.getOwnPropertyDescriptor(window, 'location');
     replaceSpy = vi.fn();
     Object.defineProperty(window, 'location', {
       configurable: true,
@@ -23,6 +27,10 @@ describe('redirectAfterAuth', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // window.location 원복 — 후속 테스트 격리 보장
+    if (originalLocationDescriptor) {
+      Object.defineProperty(window, 'location', originalLocationDescriptor);
+    }
   });
 
   const run = (redirect) => {
