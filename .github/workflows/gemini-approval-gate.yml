@@ -1,0 +1,65 @@
+name: gemini approval gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  gemini-approved:
+    name: gemini-code-assist approved
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: PR에 gemini-code-assist[bot]의 APPROVED 리뷰가 있는지 확인
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed('pull_request 컨텍스트가 없음');
+              return;
+            }
+
+            // PR의 모든 리뷰 가져옴
+            const reviews = await github.paginate(
+              github.rest.pulls.listReviews,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                per_page: 100,
+              }
+            );
+
+            // gemini-code-assist 봇의 가장 최신 리뷰만 추림
+            const geminiReviews = reviews.filter(
+              (r) => r.user && r.user.login === 'gemini-code-assist[bot]'
+            );
+            geminiReviews.sort(
+              (a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)
+            );
+
+            if (geminiReviews.length === 0) {
+              core.setFailed(
+                'gemini-code-assist의 리뷰가 아직 없음 — Gemini가 PR을 리뷰할 때까지 대기.'
+              );
+              return;
+            }
+
+            const latest = geminiReviews[0];
+            core.info(`Gemini 마지막 리뷰: state=${latest.state}, submitted_at=${latest.submitted_at}`);
+
+            if (latest.state === 'APPROVED') {
+              core.info('✅ Gemini Code Assist APPROVED — 게이트 통과');
+              return;
+            }
+
+            core.setFailed(
+              `Gemini 리뷰 state=${latest.state}. APPROVED 필요. (개선 적용 후 \`@gemini-code-assist /review\` 로 재리뷰 요청 가능)`
+            );

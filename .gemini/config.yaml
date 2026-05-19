@@ -1,0 +1,31 @@
+# Gemini Code Assist - GitHub App 설정
+# Docs: https://developers.google.com/gemini-code-assist/docs/customize-gemini-behavior-github
+#
+# 목적: Gemini가 PR 리뷰 시 충분히 깨끗하다고 판단하면 `APPROVE` 를 남기게
+# (단순 COMMENT가 아니라). 이 APPROVE는 .github/workflows/gemini-approval-gate.yml
+# 의 status check에서 검증.
+
+# 한국어 코드 리뷰
+have_fun: false
+
+code_review:
+  # 자동 리뷰 on
+  disable: false
+
+  # 댓글 톤
+  comment_severity_threshold: MEDIUM
+
+  # PR이 열리면 자동으로 요약 + 리뷰
+  pull_request_opened:
+    help: false
+    summary: true
+    code_review: true
+
+ignore_patterns:
+  - "*.lock"
+  - "pnpm-lock.yaml"
+  - "node_modules/**"
+  - "dist/**"
+  - ".turbo/**"
+  - ".gstack/**"
+  - "docs/design/**/*.html"
