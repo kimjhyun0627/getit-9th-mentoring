@@ -62,6 +62,10 @@ CLAUDE.md만 매 세션 자동 로드된다. 아래 문서들은 **해당 작업
 - **[`.claude/agents/index.md`](.claude/agents/index.md)** — 10 역할 카탈로그, 프로젝트별 매핑 매트릭스, 호출 패턴, 프롬프트 템플릿
 - **[`.claude/agents/designer.md`](.claude/agents/designer.md)** — 디자이너 5 페르소나 (Minimalist/Playful/Warm/Tech-Dark/Editorial), shotgun 패턴
 
+### 사용자 액션 (Claude 권한 밖)
+
+- **[`.claude/user-actions.md`](.claude/user-actions.md)** — Phase별 PM이 직접 해야 할 액션 체크리스트 (CodeRabbit 설치, GCP/DNS, GitHub Secrets 등)
+
 ### 프로젝트별 spec
 
 - **[`.claude/projects/landing.md`](.claude/projects/landing.md)** — 9기 허브
