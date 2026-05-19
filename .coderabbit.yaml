@@ -3,17 +3,31 @@
 
 language: ko-KR
 early_access: false
-tone_instructions: "한국어 반말로 간결하고 직설적으로 리뷰. 친절보다는 실용 우선. 근거 없는 칭찬 금지."
+tone_instructions: >
+  무조건 한국어 반말로 답변. 영어 출력 절대 금지(코드 식별자 외).
+  간결하고 직설적으로 — 친절·격식·근거 없는 칭찬 금지.
+  코드 인용 블록(blockquote `>` 또는 ``` 인용)은 최소화. 라인 번호와 짧은 설명으로 충분하면 인용 생략.
+  Summary 섹션은 짧게 요약만, 변경 walkthrough 표 형식 피하기.
 
 reviews:
   profile: chill
   # 머지 게이트: CodeRabbit이 깨끗하다고 판단하면 APPROVED 리뷰 남김.
   # .github/workflows/coderabbit-approval-gate.yml 가 이 APPROVE를 검증.
   request_changes_workflow: true
-  high_level_summary: true
+  # Summary / walkthrough 노이즈 최소화 — 라인 코멘트가 메인.
+  high_level_summary: false
+  high_level_summary_in_walkthrough: false
   poem: false
-  review_status: true
-  collapse_walkthrough: false
+  review_status: false
+  collapse_walkthrough: true
+  # 라인 코멘트가 충분하므로 sequence-diagram / 변경 표 생략
+  sequence_diagrams: false
+  changed_files_summary: false
+  assess_linked_issues: true
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
   auto_review:
     enabled: true
     drafts: false
