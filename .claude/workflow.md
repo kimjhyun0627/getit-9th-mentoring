@@ -154,9 +154,10 @@ Gemini Code Assist는 베타 상태에서 `APPROVED` 리뷰 상태를 안 줘서
 
 ### 봇 제안 apply 자동화 (Claude가 직접 처리)
 
-Claude(주로 개발자 에이전트)가 Gemini/CodeRabbit 제안을 자동 적용 가능. 두 가지 방식:
+Claude(주로 개발자 에이전트)가 Gemini/CodeRabbit 제안을 자동 적용 가능. 두 가지 방식.
+**방식 A는 CodeRabbit 전용** — Gemini는 슬래시 명령 미지원, 방식 B로만 처리.
 
-#### 방식 A — 코멘트 trigger 명령
+#### 방식 A — 코멘트 trigger 명령 (CodeRabbit 전용)
 
 ```bash
 gh pr comment <PR#> --body "@coderabbitai apply"
@@ -184,6 +185,18 @@ Code Reviewer / 개발자 에이전트가 따름:
 - 🟢 **자동 적용**: 명백한 버그, 사소한 스타일, 누락된 import, 안전한 리팩토링
 - 🟡 **검토 후 적용**: 로직 변경 제안, 새 의존성 추가, 테스트 추가
 - 🔴 **무시 + 사유 코멘트**: CLAUDE.md 컨벤션 위반, 프로젝트 스코프 밖, 의도된 동작
+
+#### Thread resolve 규칙 (강제)
+
+**모든 봇 코멘트는 답글 + resolve로 닫아야 함**. PM이 직접 하지 말고 **개발자 에이전트**에게 위임:
+
+- **적용한 코멘트** → 답글 예: `PR #N에서 적용 완료. <짧은 요약>` → resolve
+- **보류한 코멘트** → 답글 예: `보류 사유: <YAGNI / scope 밖 / 의도된 동작 등>` → resolve
+- 보류는 반드시 사유를 명시 (검수자가 "왜 안 했지?" 물을 때 즉답 가능)
+- GraphQL `addPullRequestReviewThreadReply` + `resolveReviewThread` 활용 (Bash로)
+- 머지된 PR도 unresolved 있으면 follow-up PR 만들고 thread 정리
+
+지표: `unresolved threads` count가 0이 될 때까지 닫음. 본 정책 도입 후 19건을 14 적용 + 5 보류로 닫음 (참고 사례).
 
 ## 머지 정책
 

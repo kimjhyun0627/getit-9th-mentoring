@@ -34,3 +34,21 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
   value: memoryStorage(),
 });
+
+// jsdom은 window.matchMedia 미구현. 시스템 다크모드 감지 코드가 throw하지 않게 stub.
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+}

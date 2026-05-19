@@ -23,7 +23,6 @@ export const ProjectCard = ({ eyebrow, title, href, emoji, description, hostLabe
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`${title} — 새 탭에서 열림`}
         className="flex h-full flex-col p-8 transition duration-200 hover:bg-foreground/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <div className="mb-10 flex items-center justify-between">
@@ -38,7 +37,10 @@ export const ProjectCard = ({ eyebrow, title, href, emoji, description, hostLabe
           </span>
         </div>
 
-        <h3 className="text-xl font-semibold tracking-tight text-foreground">{title}</h3>
+        <h3 className="text-xl font-semibold tracking-tight text-foreground">
+          {title}
+          <span className="sr-only"> — 새 탭에서 열림</span>
+        </h3>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
 
         <div className="mt-10 flex items-center justify-between border-t border-hairline pt-4 text-xs text-muted-foreground">

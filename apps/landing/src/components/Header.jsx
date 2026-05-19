@@ -1,10 +1,12 @@
 import { ThemeToggle } from '@getit/theme';
 
-const AUTH_ORIGIN = 'https://auth.get-it.cloud';
+const AUTH_ORIGIN = import.meta.env.VITE_AUTH_ORIGIN || 'https://auth.get-it.cloud';
 
 const buildLoginUrl = () => {
   const back =
-    typeof window !== 'undefined' && window.location ? window.location.href : 'https://get-it.cloud';
+    typeof window !== 'undefined' && window.location
+      ? window.location.href
+      : 'https://get-it.cloud';
   return `${AUTH_ORIGIN}/login?redirect=${encodeURIComponent(back)}`;
 };
 
@@ -45,10 +47,10 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-foreground transition hover:bg-foreground/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-foreground transition hover:bg-foreground/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" />
           <a
             href={buildLoginUrl()}
-            className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-foreground/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+            className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-foreground/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:text-sm"
           >
             Sign in
             <svg
