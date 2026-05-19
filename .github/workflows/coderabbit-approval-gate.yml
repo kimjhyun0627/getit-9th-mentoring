@@ -1,0 +1,65 @@
+name: coderabbit approval gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  coderabbit-approved:
+    name: coderabbitai approved
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: PR에 coderabbitai[bot]의 APPROVED 리뷰가 있는지 확인
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed('pull_request 컨텍스트가 없음');
+              return;
+            }
+
+            // PR의 모든 리뷰 가져옴
+            const reviews = await github.paginate(
+              github.rest.pulls.listReviews,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+                per_page: 100,
+              },
+            );
+
+            // coderabbitai 봇의 가장 최신 리뷰만 추림 (coderabbitai[bot] 또는 coderabbitai-staging[bot])
+            const cr = reviews.filter(
+              (r) => r.user && /^coderabbitai(-staging)?\[bot\]$/.test(r.user.login),
+            );
+            cr.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+
+            if (cr.length === 0) {
+              core.setFailed(
+                'coderabbitai 리뷰가 아직 없음 — CodeRabbit이 PR을 리뷰할 때까지 대기.',
+              );
+              return;
+            }
+
+            const latest = cr[0];
+            core.info(
+              `CodeRabbit 마지막 리뷰: state=${latest.state}, submitted_at=${latest.submitted_at}`,
+            );
+
+            if (latest.state === 'APPROVED') {
+              core.info('✅ CodeRabbit APPROVED — 게이트 통과');
+              return;
+            }
+
+            core.setFailed(
+              `CodeRabbit 리뷰 state=${latest.state}. APPROVED 필요. (개선 적용 후 \`@coderabbitai full review\` 로 재리뷰 요청 가능)`,
+            );

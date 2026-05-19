@@ -7,7 +7,9 @@ tone_instructions: "한국어 반말로 간결하고 직설적으로 리뷰. 친
 
 reviews:
   profile: chill
-  request_changes_workflow: false
+  # 머지 게이트: CodeRabbit이 깨끗하다고 판단하면 APPROVED 리뷰 남김.
+  # .github/workflows/coderabbit-approval-gate.yml 가 이 APPROVE를 검증.
+  request_changes_workflow: true
   high_level_summary: true
   poem: false
   review_status: true

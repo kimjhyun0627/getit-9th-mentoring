@@ -139,20 +139,22 @@ Closes #<issue#>
 - [ ] README 또는 도큐멘트 업데이트
 ```
 
-## CodeRabbit 통합
+## 자동 리뷰 봇 통합
+
+메인 리뷰어는 **CodeRabbit** (`.coderabbit.yaml`). PR APPROVED 받아야 머지 게이트 통과.
+Gemini Code Assist는 베타 상태에서 `APPROVED` 리뷰 상태를 안 줘서 게이트에 못 씀
+(2026년 5월 기준). 설치돼있으면 보조 의견용 OK.
+
+### CodeRabbit (메인 — 머지 게이트)
 
 - **설치**: GitHub Marketplace → CodeRabbit 앱 → 레포 권한 부여 (무료 티어)
-- **설정 파일**: `.coderabbit.yaml` (레포 루트)
-  - JS 모드 강제
-  - 한국어 리뷰 코멘트
-  - 무시 패턴: `*.lock`, `node_modules/`, `dist/`
+- **설정 파일**: `.coderabbit.yaml` (레포 루트) — `request_changes_workflow: true` 로 APPROVE/REQUEST_CHANGES 리뷰 상태 강제
 - **트리거**: PR 열리면 자동 리뷰
 - **상호작용**: `@coderabbitai resolve`, `@coderabbitai pause`, `@coderabbitai full review`
-- **CI 게이트**: CodeRabbit "Approved" 라벨 + 사람 1명 리뷰 필요
 
-### CodeRabbit apply 자동화 (Claude가 직접 처리)
+### 봇 제안 apply 자동화 (Claude가 직접 처리)
 
-Claude(주로 개발자 에이전트)가 CodeRabbit 제안을 자동 적용 가능. 두 가지 방식:
+Claude(주로 개발자 에이전트)가 Gemini/CodeRabbit 제안을 자동 적용 가능. 두 가지 방식:
 
 #### 방식 A — 코멘트 trigger 명령
 
@@ -187,8 +189,36 @@ Code Reviewer / 개발자 에이전트가 따름:
 
 - **Squash merge 기본** (히스토리 깔끔)
 - main 브랜치 보호: 직접 push 금지, PR만 가능
-- 필수 체크: GitHub Actions CI 통과 + CodeRabbit OK + 리뷰어 1명 승인
 - 머지 후 브랜치 자동 삭제
+
+### 필수 머지 게이트 (Branch Protection)
+
+PR이 main에 머지되려면 **아래 4개 모두** 통과해야 함:
+
+1. **CI 그린** — `format / lint / test / build` GitHub Actions workflow 성공
+2. **CodeRabbit APPROVED** — `coderabbitai approved` workflow 통과 (`.github/workflows/coderabbit-approval-gate.yml`)
+   - CodeRabbit이 COMMENTED만 남기면 통과 X. `APPROVED` 리뷰 state 필요.
+   - 개선 적용 후 `@coderabbitai full review` 댓글로 재리뷰 요청 가능.
+3. **모든 review thread resolved** — `required_conversation_resolution: true`. 미해결 코멘트 1개라도 있으면 머지 X.
+4. **PR 필수** — `main`에 직접 push 금지. self-PR도 OK (`required_approving_review_count: 0`).
+
+추가 보호:
+
+- `required_linear_history: true` (squash 만 허용)
+- `allow_force_pushes: false`, `allow_deletions: false`
+- admin은 긴급 시 `gh pr merge --admin` 으로 bypass 가능 (`enforce_admins: false`).
+
+### CodeRabbit 운영
+
+- 설정: `.coderabbit.yaml` — 한국어 반말 톤, chill profile, JS/api/web path_instructions, lockfile/dist/coverage 등 path_filter 무시.
+- 리뷰 흐름: PR opened → CodeRabbit 자동 리뷰 → 개발자가 fix + 코멘트 resolve (`@coderabbitai resolve`) → `@coderabbitai full review`로 재리뷰 → APPROVED 받으면 머지 게이트 통과.
+- `request_changes_workflow: true` 로 APPROVE/REQUEST_CHANGES 리뷰 상태 강제.
+- **사용자 액션 (한 번)**: CodeRabbit GitHub App 설치 → 본 레포에 권한 부여.
+
+### Gemini Code Assist (보조, 옵션)
+
+- 설치되면 추가 의견 제공. 베타라 `APPROVED` 상태 미지원 — 머지 게이트엔 안 들어감.
+- 무시 또는 보조 시각 정도로 활용.
 
 ## 에이전트별 GitHub 책임
 
