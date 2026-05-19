@@ -73,14 +73,14 @@ CLAUDE.md만 매 세션 자동 로드된다. 아래 문서들은 **해당 작업
 
 ### Read 가이드
 
-| 작업 유형 | Read 해야 할 문서 |
-| :--- | :--- |
-| 새 기능 기획/PRD 보완 | `agents/index.md` + 해당 `projects/<X>.md` |
-| 디자인 작업 | `agents/designer.md` + 해당 `projects/<X>.md` |
-| FE/BE 구현 | `architecture.md` + 해당 `projects/<X>.md` |
-| GitHub Issue/PR 작업 | `workflow.md` |
-| 인프라/배포 | `architecture.md` + `projects/infra.md` |
-| CodeRabbit 응답 | `workflow.md` (CodeRabbit apply 섹션) |
+| 작업 유형             | Read 해야 할 문서                             |
+| :-------------------- | :-------------------------------------------- |
+| 새 기능 기획/PRD 보완 | `agents/index.md` + 해당 `projects/<X>.md`    |
+| 디자인 작업           | `agents/designer.md` + 해당 `projects/<X>.md` |
+| FE/BE 구현            | `architecture.md` + 해당 `projects/<X>.md`    |
+| GitHub Issue/PR 작업  | `workflow.md`                                 |
+| 인프라/배포           | `architecture.md` + `projects/infra.md`       |
+| CodeRabbit 응답       | `workflow.md` (CodeRabbit apply 섹션)         |
 
 ---
 
