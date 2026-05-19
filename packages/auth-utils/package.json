@@ -1,0 +1,26 @@
+{
+  "name": "@getit/auth-utils",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "JWT 검증 미들웨어 + 클라이언트 훅 - 5 BE + 6 FE 공유",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./server": "./src/server.js",
+    "./client": "./src/client.js"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@getit/schemas": "workspace:*",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@getit/config-eslint": "workspace:*",
+    "eslint": "^9.18.0",
+    "vitest": "^2.1.8"
+  }
+}

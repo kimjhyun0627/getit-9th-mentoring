@@ -1,0 +1,24 @@
+{
+  "name": "@getit/schemas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zod 스키마 + JSDoc typedef - FE/BE 공유 (런타임 타입 안전성)",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./auth": "./src/auth.js"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@getit/config-eslint": "workspace:*",
+    "eslint": "^9.18.0",
+    "vitest": "^2.1.8"
+  }
+}
