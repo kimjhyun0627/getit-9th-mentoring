@@ -56,16 +56,36 @@ jobs:
               pr: pr.number,
             });
 
+            // Gemini가 review를 최소 1번은 submit 했는지 확인 (리뷰 전 머지 방지).
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+            const geminiReviewed = reviews.some(
+              (r) => r.user && r.user.login === 'gemini-code-assist[bot]',
+            );
+
+            if (!geminiReviewed) {
+              core.setFailed(
+                'Gemini Code Assist 리뷰가 아직 없음. 리뷰 완료까지 대기 (~1-3분).',
+              );
+              return;
+            }
+
             const threads = data.repository.pullRequest.reviewThreads.nodes;
 
-            // Gemini가 *시작한* thread만 (첫 comment author == gemini-code-assist[bot])
+            // Gemini가 *시작한* thread만 (첫 comment author == gemini-code-assist)
             const geminiThreads = threads.filter((t) => {
               const first = t.comments.nodes[0];
               return first && first.author && first.author.login === 'gemini-code-assist';
             });
 
             if (geminiThreads.length === 0) {
-              core.info('Gemini가 남긴 thread 없음 → 게이트 통과 (vacuously true).');
+              core.info(
+                'Gemini 리뷰 완료 + 라인 thread 없음 → 게이트 통과 (clean review).',
+              );
               return;
             }
 

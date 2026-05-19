@@ -1,8 +1,14 @@
-name: coderabbit engagement gate
+name: coderabbit approval gate
 
-# CodeRabbit이 APPROVED를 잘 안 줘서 (보통 COMMENTED + 라인 코멘트) 게이트가 영구 FAIL.
-# 정책 변경: "CodeRabbit이 남긴 모든 thread가 resolved + 답글 1개 이상" 면 통과.
-# 즉 라인 코멘트를 적용하거나 보류 사유 답글로 닫으면 자동 통과 — Gemini engagement gate와 동일 모델.
+# CodeRabbit은 APPROVE/REQUEST_CHANGES 둘 다 줄 수 있음 (.coderabbit.yaml의
+# request_changes_workflow: true 설정으로 강제).
+# 게이트 정책: 마지막 CR 리뷰 state가 APPROVED 일 때만 통과.
+#
+# 흐름: PR opened → CR 자동 리뷰 → REQUEST_CHANGES(라인 코멘트) 또는 APPROVED
+#       → 라인 코멘트 적용/보류 답글 + resolve → `@coderabbitai full review` 로 재리뷰
+#       → CR이 clean하다고 판단하면 APPROVED → 게이트 통과
+#
+# Gemini는 별도 engagement gate (APPROVE 미지원이라 다른 모델).
 
 on:
   pull_request:
@@ -17,12 +23,12 @@ permissions:
   pull-requests: read
 
 jobs:
-  coderabbit-threads-handled:
-    name: coderabbitai threads handled
+  coderabbit-approved:
+    name: coderabbitai approved
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: CodeRabbit thread가 다 resolved + 답글 있는지 확인
+      - name: PR에 coderabbitai[bot] 의 가장 최신 리뷰가 APPROVED 인지 확인
         uses: actions/github-script@v7
         with:
           script: |
@@ -32,56 +38,36 @@ jobs:
               return;
             }
 
-            const query = `
-              query($owner:String!, $repo:String!, $pr:Int!) {
-                repository(owner:$owner, name:$repo) {
-                  pullRequest(number:$pr) {
-                    reviewThreads(first:100) {
-                      nodes {
-                        isResolved
-                        comments(first:20) {
-                          totalCount
-                          nodes { author { login } }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            `;
-            const data = await github.graphql(query, {
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pr: pr.number,
+              pull_number: pr.number,
+              per_page: 100,
             });
 
-            const threads = data.repository.pullRequest.reviewThreads.nodes;
-
-            // CodeRabbit(또는 coderabbitai-staging)이 시작한 thread만 필터
-            const crThreads = threads.filter((t) => {
-              const first = t.comments.nodes[0];
-              return first && first.author && /^coderabbitai(-staging)?$/.test(first.author.login);
-            });
-
-            if (crThreads.length === 0) {
-              core.info('CodeRabbit이 남긴 라인 thread 없음 → 게이트 통과 (vacuously true).');
-              return;
-            }
-
-            const offenders = crThreads.filter(
-              (t) => !t.isResolved || t.comments.totalCount < 2,
+            const cr = reviews.filter(
+              (r) => r.user && /^coderabbitai(-staging)?\[bot\]$/.test(r.user.login),
             );
+            cr.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
 
-            if (offenders.length === 0) {
-              core.info(
-                `✅ CodeRabbit thread ${crThreads.length}개 전부 처리됨 (resolved + 답글).`,
+            if (cr.length === 0) {
+              core.setFailed(
+                'CodeRabbit 리뷰가 아직 없음. PR opened 후 ~1-3분 대기. 강제 머지 금지.',
               );
               return;
             }
 
-            const unresolved = offenders.filter((t) => !t.isResolved).length;
-            const silent = offenders.filter((t) => t.isResolved && t.comments.totalCount < 2).length;
+            const latest = cr[0];
+            core.info(
+              `CodeRabbit 마지막 리뷰: state=${latest.state}, submitted_at=${latest.submitted_at}`,
+            );
+
+            if (latest.state === 'APPROVED') {
+              core.info('✅ CodeRabbit APPROVED — 게이트 통과');
+              return;
+            }
+
             core.setFailed(
-              `CodeRabbit thread 미처리: unresolved=${unresolved}, 답글없음=${silent}. ` +
-                `각 thread에 적용/보류 답글 + resolve 필요 (또는 @coderabbitai resolve).`,
+              `CodeRabbit 리뷰 state=${latest.state}. APPROVED 필요. ` +
+                `라인 코멘트 적용/보류 답글 + resolve 후 \`@coderabbitai full review\` 로 재리뷰 요청.`,
             );
