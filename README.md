@@ -5,13 +5,13 @@
 
 ## 프로젝트
 
-| 서비스 | URL | 설명 |
-| :--- | :--- | :--- |
-| 9기 허브 | [get-it.cloud](https://get-it.cloud) | 포트폴리오 랜딩 |
-| 통합 SSO | [auth.get-it.cloud](https://auth.get-it.cloud) | 로그인/회원가입 |
-| 🤲 취미메이트 | [hobby.get-it.cloud](https://hobby.get-it.cloud) | 학우 취미 매칭 |
-| 📚 스마트 서재 | [shelf.get-it.cloud](https://shelf.get-it.cloud) | 책 검색·기록 |
-| 💻 팀 칸반 | [board.get-it.cloud](https://board.get-it.cloud) | 칸반 보드 |
+| 서비스             | URL                                                | 설명             |
+| :----------------- | :------------------------------------------------- | :--------------- |
+| 9기 허브           | [get-it.cloud](https://get-it.cloud)               | 포트폴리오 랜딩  |
+| 통합 SSO           | [auth.get-it.cloud](https://auth.get-it.cloud)     | 로그인/회원가입  |
+| 🤲 취미메이트      | [hobby.get-it.cloud](https://hobby.get-it.cloud)   | 학우 취미 매칭   |
+| 📚 스마트 서재     | [shelf.get-it.cloud](https://shelf.get-it.cloud)   | 책 검색·기록     |
+| 💻 팀 칸반         | [board.get-it.cloud](https://board.get-it.cloud)   | 칸반 보드        |
 | 🎤 익명 롤링페이퍼 | [letter.get-it.cloud](https://letter.get-it.cloud) | 익명 메시지 보드 |
 
 ## 기술 스택

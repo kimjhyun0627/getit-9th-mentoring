@@ -31,7 +31,7 @@ describe('useTheme store', () => {
     vi.restoreAllMocks();
   });
 
-  it('setPreference(\'dark\') → <html>.dark + localStorage 저장', () => {
+  it("setPreference('dark') → <html>.dark + localStorage 저장", () => {
     useTheme.getState().setPreference('dark');
 
     expect(useTheme.getState().preference).toBe('dark');
@@ -40,7 +40,7 @@ describe('useTheme store', () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('dark');
   });
 
-  it('setPreference(\'light\') → .dark 제거', () => {
+  it("setPreference('light') → .dark 제거", () => {
     document.documentElement.classList.add('dark');
     useTheme.getState().setPreference('light');
 
@@ -57,7 +57,7 @@ describe('useTheme store', () => {
     expect(useTheme.getState().resolved).toBe('light');
   });
 
-  it('setPreference(\'system\') + 시스템 다크 → resolved = dark', () => {
+  it("setPreference('system') + 시스템 다크 → resolved = dark", () => {
     setSystemDark(true);
     useTheme.getState().setPreference('system');
 

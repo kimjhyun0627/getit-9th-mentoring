@@ -50,9 +50,7 @@ export const App = () => {
 
       <main className="container py-16">
         <section className="mb-12 max-w-2xl">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            9기 멘토링 프로젝트
-          </h1>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">9기 멘토링 프로젝트</h1>
           <p className="mt-4 text-lg text-muted-foreground">
             GETIT 9기 멘토링 프로젝트 4개를 한 곳에서 만나보세요.
           </p>
