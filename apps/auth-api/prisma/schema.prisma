@@ -1,0 +1,47 @@
+// auth-api Prisma schema
+// 5 BE 앱이 공유하는 통합 SSO Users 테이블 + Refresh Token 회전 테이블.
+// JwtPayload.sub === User.id (cuid 문자열) — @getit/schemas/auth 와 호환.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// 통합 SSO 사용자.
+/// - id: cuid 문자열 (다른 5개 BE 앱이 user_id FK로 참조)
+/// - email: 로그인 식별자, unique
+/// - passwordHash: bcrypt cost 12 해시 (raw password 절대 저장 X)
+/// - name: 표시 이름 (40자 이내, @getit/schemas/auth SignupInput 과 일치)
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+}
+
+/// Refresh token 회전용 저장소.
+/// - tokenHash: 평문 토큰의 SHA-256 해시 (DB 유출 시 토큰 재사용 방지)
+/// - expiresAt: 토큰 만료 시각 (보통 30일)
+/// - revokedAt: 로그아웃/회전 시 마킹 (null이면 유효)
+/// - onDelete: Cascade — 유저 삭제 시 토큰 자동 정리
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
