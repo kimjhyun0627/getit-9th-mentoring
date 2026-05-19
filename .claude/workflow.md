@@ -186,17 +186,66 @@ Code Reviewer / 개발자 에이전트가 따름:
 - 🟡 **검토 후 적용**: 로직 변경 제안, 새 의존성 추가, 테스트 추가
 - 🔴 **무시 + 사유 코멘트**: CLAUDE.md 컨벤션 위반, 프로젝트 스코프 밖, 의도된 동작
 
-#### Thread resolve 규칙 (강제)
+#### Thread resolve 규칙 (강제 — 모든 개발자 에이전트가 지킴)
 
-**모든 봇 코멘트는 답글 + resolve로 닫아야 함**. PM이 직접 하지 말고 **개발자 에이전트**에게 위임:
+**🚫 Silent resolve 금지**. 답글 없는 resolve는 검수자가 "왜 close됐는지" 알 수 없어 금지.
+**모든 봇 코멘트는 반드시 "답글 + resolve" 페어**로 닫음. PR이 머지된 후에도 동일.
 
-- **적용한 코멘트** → 답글 예: `PR #N에서 적용 완료. <짧은 요약>` → resolve
-- **보류한 코멘트** → 답글 예: `보류 사유: <YAGNI / scope 밖 / 의도된 동작 등>` → resolve
-- 보류는 반드시 사유를 명시 (검수자가 "왜 안 했지?" 물을 때 즉답 가능)
-- GraphQL `addPullRequestReviewThreadReply` + `resolveReviewThread` 활용 (Bash로)
-- 머지된 PR도 unresolved 있으면 follow-up PR 만들고 thread 정리
+##### 의무 동작 (예외 없음)
 
-지표: `unresolved threads` count가 0이 될 때까지 닫음. 본 정책 도입 후 19건을 14 적용 + 5 보류로 닫음 (참고 사례).
+| 케이스 | 답글 톤 (한국어 반말) | resolve |
+| :--- | :--- | :--- |
+| 적용함 (같은 PR) | `이 PR에서 적용 완료 (커밋 <SHA7>). <한 줄 요약>` | ✅ |
+| 적용함 (follow-up PR) | `PR #<N>에서 적용 완료. <한 줄 요약>` | ✅ |
+| 보류 — YAGNI | `보류 사유: 현재는 X 1곳뿐. 3+ 동일 패턴 등장 시 재검토.` | ✅ |
+| 보류 — scope 밖 | `보류 사유: 본 이슈/PR scope 밖. 별도 이슈로 분리 가능.` | ✅ |
+| 보류 — 의도된 동작 | `보류 사유: <왜 의도된 동작인지>.` | ✅ |
+| 보류 — 환경 미스매치 (예: SSR) | `보류 사유: 본 사이트는 <환경>. 해당 우려는 적용 안 됨.` | ✅ |
+
+##### GraphQL 코드 (그대로 복붙)
+
+```bash
+# 1) unresolved thread 목록
+gh api graphql -F owner=<OWNER> -F repo=<REPO> -F pr=<PR_NUM> -f query='
+query($owner:String!, $repo:String!, $pr:Int!) {
+  repository(owner:$owner, name:$repo) {
+    pullRequest(number:$pr) {
+      reviewThreads(first:50) {
+        nodes { id isResolved comments(first:1){ nodes{ path line body } } }
+      }
+    }
+  }
+}' | jq -r '.data.repository.pullRequest.reviewThreads.nodes[]
+  | select(.isResolved == false)
+  | "\(.id) | \(.comments.nodes[0].path):\(.comments.nodes[0].line)"'
+
+# 2) thread에 답글
+gh api graphql -F threadId="<THREAD_ID>" -f body="<답글>" -f query='
+mutation($threadId:ID!, $body:String!) {
+  addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$threadId, body:$body}) {
+    comment { id }
+  }
+}'
+
+# 3) thread resolve
+gh api graphql -F threadId="<THREAD_ID>" -f query='
+mutation($threadId:ID!) {
+  resolveReviewThread(input:{threadId:$threadId}) { thread { id isResolved } }
+}'
+
+# 4) 검증 (commentCount=1 인 thread 0개여야 함)
+gh api graphql -F owner=<OWNER> -F repo=<REPO> -F pr=<PR_NUM> -f query='
+query($owner:String!,$repo:String!,$pr:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$pr){reviewThreads(first:50){nodes{isResolved comments{totalCount}}}}}}' \
+  | jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.comments.totalCount == 1)] | length'
+```
+
+##### 머지 게이트 / 후속 PR
+
+- PR 머지 전: 모든 thread `isResolved=true` AND `commentCount >= 2` (답글 1개 이상).
+- 이미 머지된 PR에 미해결 thread 남으면: **follow-up PR로 fix 적용** → 같은 thread에 `PR #<N>에서 적용` 답글 + resolve.
+- 보류 사유는 코드/spec/architecture 근거로 (단순 "안 함" 금지).
+
+지표: 도입 첫 사례 — 19건을 14 적용 + 5 보류로 닫음. 답글 없는 silent resolve 9건은 follow-up으로 답글 추가 (학습된 안티 패턴 — 재발 금지).
 
 ## 머지 정책
 

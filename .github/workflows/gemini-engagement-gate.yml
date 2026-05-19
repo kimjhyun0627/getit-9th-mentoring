@@ -1,8 +1,8 @@
-name: coderabbit engagement gate
+name: gemini engagement gate
 
-# CodeRabbit이 APPROVED를 잘 안 줘서 (보통 COMMENTED + 라인 코멘트) 게이트가 영구 FAIL.
-# 정책 변경: "CodeRabbit이 남긴 모든 thread가 resolved + 답글 1개 이상" 면 통과.
-# 즉 라인 코멘트를 적용하거나 보류 사유 답글로 닫으면 자동 통과 — Gemini engagement gate와 동일 모델.
+# Gemini Code Assist는 베타라 APPROVED 못 줌. 대신:
+# "Gemini가 남긴 모든 thread가 resolved + 답글 1개 이상" 인지 검증.
+# 즉 코멘트를 적용하거나 보류 사유 답글로 닫으면 통과.
 
 on:
   pull_request:
@@ -17,12 +17,12 @@ permissions:
   pull-requests: read
 
 jobs:
-  coderabbit-threads-handled:
-    name: coderabbitai threads handled
+  gemini-threads-handled:
+    name: gemini-code-assist threads handled
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: CodeRabbit thread가 다 resolved + 답글 있는지 확인
+      - name: Gemini thread가 다 resolved + 답글 있는지 확인
         uses: actions/github-script@v7
         with:
           script: |
@@ -32,6 +32,7 @@ jobs:
               return;
             }
 
+            // GraphQL — reviewThreads + 작성자 정보
             const query = `
               query($owner:String!, $repo:String!, $pr:Int!) {
                 repository(owner:$owner, name:$repo) {
@@ -57,24 +58,25 @@ jobs:
 
             const threads = data.repository.pullRequest.reviewThreads.nodes;
 
-            // CodeRabbit(또는 coderabbitai-staging)이 시작한 thread만 필터
-            const crThreads = threads.filter((t) => {
+            // Gemini가 *시작한* thread만 (첫 comment author == gemini-code-assist[bot])
+            const geminiThreads = threads.filter((t) => {
               const first = t.comments.nodes[0];
-              return first && first.author && /^coderabbitai(-staging)?$/.test(first.author.login);
+              return first && first.author && first.author.login === 'gemini-code-assist';
             });
 
-            if (crThreads.length === 0) {
-              core.info('CodeRabbit이 남긴 라인 thread 없음 → 게이트 통과 (vacuously true).');
+            if (geminiThreads.length === 0) {
+              core.info('Gemini가 남긴 thread 없음 → 게이트 통과 (vacuously true).');
               return;
             }
 
-            const offenders = crThreads.filter(
+            // 모든 thread가 (resolved) AND (commentCount >= 2 = 답글 있음)
+            const offenders = geminiThreads.filter(
               (t) => !t.isResolved || t.comments.totalCount < 2,
             );
 
             if (offenders.length === 0) {
               core.info(
-                `✅ CodeRabbit thread ${crThreads.length}개 전부 처리됨 (resolved + 답글).`,
+                `✅ Gemini thread ${geminiThreads.length}개 전부 처리됨 (resolved + 답글).`,
               );
               return;
             }
@@ -82,6 +84,6 @@ jobs:
             const unresolved = offenders.filter((t) => !t.isResolved).length;
             const silent = offenders.filter((t) => t.isResolved && t.comments.totalCount < 2).length;
             core.setFailed(
-              `CodeRabbit thread 미처리: unresolved=${unresolved}, 답글없음=${silent}. ` +
-                `각 thread에 적용/보류 답글 + resolve 필요 (또는 @coderabbitai resolve).`,
+              `Gemini thread 미처리: unresolved=${unresolved}, 답글없음=${silent}. ` +
+                `각 thread에 적용/보류 답글 + resolve 필요.`,
             );
