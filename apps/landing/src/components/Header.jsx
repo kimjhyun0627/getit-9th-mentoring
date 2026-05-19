@@ -2,6 +2,12 @@ import { ThemeToggle } from '@getit/theme';
 
 const AUTH_ORIGIN = import.meta.env.VITE_AUTH_ORIGIN || 'https://auth.get-it.cloud';
 
+/**
+ * `auth.get-it.cloud/login?redirect=<현재 URL>` 빌더.
+ * SSR/JSDOM에서 window 가드.
+ *
+ * @returns {string}
+ */
 const buildLoginUrl = () => {
   const back =
     typeof window !== 'undefined' && window.location
@@ -11,60 +17,61 @@ const buildLoginUrl = () => {
 };
 
 /**
- * Sticky 상단 헤더. 1px hairline 하단 보더 + backdrop-blur.
- * - 좌: "G9" 모노그램 + "GETIT 9기" 로고 + nav (Projects, About, md+ only).
- * - 우: ThemeToggle + Sign in 버튼 (auth.get-it.cloud 로 redirect).
+ * Sticky 상단 헤더 (Tech-Dark).
+ * - 좌: G9 cyan 모노그램 + `GETIT/9` mono 로고 + mono nav (services, about)
+ * - 우: "all systems / nominal" pulse 도트 + ThemeToggle + `$ sign in` CTA
+ * - hairline 하단 보더 + backdrop-blur (라이트=white/80, 다크=ink-950/80)
  */
 export const Header = () => {
   return (
-    <header className="sticky top-0 z-30 border-b border-hairline bg-background/85 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-hairline bg-white/80 backdrop-blur dark:bg-ink-950/80">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
         <div className="flex items-center gap-8">
           <a href="/" className="group flex items-center gap-2" aria-label="GETIT 9기 홈">
             <span
               aria-hidden="true"
-              className="grid h-7 w-7 place-items-center rounded-md bg-foreground text-[11px] font-bold tracking-tight text-background"
+              className="grid h-7 w-7 place-items-center rounded-md border border-hairline bg-ink-950 font-mono text-[11px] font-bold text-cyan-neon dark:bg-cyan-neon dark:text-ink-950"
             >
               G9
             </span>
-            <span className="text-sm font-semibold tracking-tight">GETIT 9기</span>
+            <span className="font-mono text-sm font-semibold tracking-tight">
+              <span className="text-cyan-700 dark:text-cyan-neon">GETIT</span>
+              <span className="text-zinc-400 dark:text-zinc-500">/</span>9
+            </span>
           </a>
 
-          <nav aria-label="주요 섹션" className="hidden items-center gap-6 md:flex">
+          <nav aria-label="주요 섹션" className="hidden items-center gap-8 md:flex">
             <a
               href="#projects"
-              className="text-sm text-muted-foreground transition hover:text-foreground"
+              className="font-mono text-xs text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
             >
-              Projects
+              services
             </a>
             <a
               href="#about"
-              className="text-sm text-muted-foreground transition hover:text-foreground"
+              className="font-mono text-xs text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
             >
-              About
+              about
             </a>
           </nav>
         </div>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-foreground transition hover:bg-foreground/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" />
+          <div className="hidden items-center gap-2 rounded-md border border-hairline bg-white/60 px-2.5 py-1.5 font-mono text-[11px] text-zinc-600 sm:flex dark:bg-ink-900/60 dark:text-zinc-400">
+            <span
+              aria-hidden="true"
+              className="pulse-dot inline-block size-1.5 rounded-full bg-lime-600 text-lime-600 dark:bg-lime-neon dark:text-lime-neon"
+            />
+            <span>all systems / nominal</span>
+          </div>
+
+          <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-zinc-700 transition hover:border-cyan-700 hover:text-cyan-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:text-zinc-200 dark:hover:border-cyan-neon dark:hover:text-cyan-neon" />
+
           <a
             href={buildLoginUrl()}
-            className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-foreground/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:text-sm"
+            className="inline-flex items-center gap-1.5 rounded-md border border-hairline bg-white/70 px-3 py-1.5 font-mono text-xs font-medium text-zinc-800 transition hover:border-cyan-700 hover:text-cyan-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-ink-900/70 dark:text-zinc-200 dark:hover:border-cyan-neon dark:hover:text-cyan-neon"
           >
-            Sign in
-            <svg
-              className="h-3 w-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M5 12h14M13 5l7 7-7 7" />
-            </svg>
+            <span className="opacity-60">$</span> sign in
           </a>
         </div>
       </div>

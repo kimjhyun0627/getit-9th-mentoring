@@ -3,25 +3,27 @@
 @tailwind utilities;
 
 /**
- * Minimalist 시안 (zinc 베이스 + 인디고 단일 액센트).
- * - 라이트: white / zinc 뉴트럴
- * - 다크: zinc-950 베이스 (pure black 회피) + rgba(255,255,255,0.08) hairline
- * - primary 인디고 #4f46e5 는 본문에 안 씀 (eyebrow 도트 + hover 화살표 전용)
- * shadcn 호환 CSS variable 시스템 유지.
+ * Tech-Dark 시안 토큰 시스템.
+ * - 베이스: ink-950 (#08090b) 다크 기본
+ * - 라이트: stone-50 (#fafaf9) — 절제된 charcoal 액센트
+ * - 액센트 네온 4종: cyan / magenta / lime / amber (카드 분배 + caret + CTA)
+ * - 폰트 시스템: mono(JetBrains)=heading/meta, sans(Inter+Pretendard)=body
+ * shadcn 호환 CSS variable 시스템 유지 (--background/--foreground/...).
  */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 6% 10%;
+    --background: 60 9% 98%;
+    --foreground: 240 10% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 6% 10%;
+    --card-foreground: 240 10% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 10%;
+    --popover-foreground: 240 10% 4%;
 
-    --primary: 239 84% 58%;
-    --primary-foreground: 0 0% 100%;
+    /* 라이트 모드 primary: charcoal 잉크 + cyan glyph (시안 패턴) */
+    --primary: 240 10% 4%;
+    --primary-foreground: 187 92% 53%;
 
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 10%;
@@ -37,36 +39,35 @@
 
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 239 84% 58%;
+    --ring: 187 92% 30%;
 
     --radius: 0.5rem;
 
-    /* hairline (1px subtle 분리자). light: 검정 8%, dark: 흰 8%. */
-    --hairline: 0 0% 0% / 0.08;
-    --dot-grid: 0 0% 0% / 0.06;
+    /* hairline (1px subtle 분리자). light=검정 10%, dark=흰 8% */
+    --hairline: 0 0% 0% / 0.1;
   }
 
   .dark {
-    --background: 240 10% 4%;
+    --background: 220 12% 4%;
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 4%;
+    --card: 220 11% 7%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 4%;
+    --popover: 220 11% 7%;
     --popover-foreground: 0 0% 98%;
 
-    /* CTA 인버스 — 흰 버튼 + 검은 글씨 */
-    --primary: 0 0% 100%;
-    --primary-foreground: 240 10% 4%;
+    /* 다크 primary: cyan-neon CTA */
+    --primary: 187 92% 53%;
+    --primary-foreground: 220 12% 4%;
 
-    --secondary: 240 6% 10%;
+    --secondary: 220 11% 9%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 6% 10%;
+    --muted: 220 11% 9%;
     --muted-foreground: 240 5% 65%;
 
-    --accent: 240 6% 10%;
+    --accent: 220 11% 9%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 63% 31%;
@@ -74,21 +75,20 @@
 
     --border: 240 4% 16%;
     --input: 240 4% 16%;
-    --ring: 0 0% 100%;
+    --ring: 187 92% 53%;
 
     --hairline: 0 0% 100% / 0.08;
-    --dot-grid: 0 0% 100% / 0.05;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: 'ss01', 'tnum';
+    font-feature-settings: 'cv11', 'ss01', 'tnum';
     text-rendering: optimizeLegibility;
   }
 }
 
-/* 1px hairline + dot-grid. CSS 변수(--hairline, --dot-grid) 기반. */
 @layer utilities {
+  /* 1px hairline (border or bg fill). */
   .border-hairline {
     border-color: hsla(var(--hairline));
   }
@@ -96,9 +96,188 @@
     background-color: hsla(var(--hairline));
   }
 
-  /* Hero 배경 dot-grid. 24px 간격 + --dot-grid 변수 색. */
-  .dot-grid {
-    background-image: radial-gradient(hsla(var(--dot-grid)) 1px, transparent 1px);
-    background-size: 24px 24px;
+  /**
+   * Hero/Projects 섹션 배경: 라디얼 네온 글로우 + 48px 그리드.
+   * 다크: cyan/magenta 글로우 + 흰 3.5% 그리드.
+   * 라이트: 채도 낮은 cyan/magenta + 검정 5% 그리드.
+   */
+  .scene-dark {
+    background-color: #08090b;
+    background-image:
+      radial-gradient(900px 500px at 85% -10%, rgba(34, 211, 238, 0.12), transparent 60%),
+      radial-gradient(700px 400px at 5% 20%, rgba(232, 121, 249, 0.07), transparent 60%),
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size:
+      auto,
+      auto,
+      48px 48px,
+      48px 48px;
+  }
+  html:not(.dark) .scene-dark {
+    background-color: #fafaf9;
+    background-image:
+      radial-gradient(900px 500px at 85% -10%, rgba(8, 145, 178, 0.06), transparent 60%),
+      radial-gradient(700px 400px at 5% 20%, rgba(192, 38, 211, 0.05), transparent 60%),
+      linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+    background-size:
+      auto,
+      auto,
+      48px 48px,
+      48px 48px;
+  }
+
+  /* 다크에서만 보이는 미세 스캔라인 오버레이. */
+  .scanlines::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.012) 0,
+      rgba(255, 255, 255, 0.012) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .dark .scanlines::after {
+    opacity: 1;
+  }
+
+  /* dotted/dashed mono 디바이더 (헤더 우측 "04 modules" 등) */
+  .divider-mono {
+    background-image: repeating-linear-gradient(
+      90deg,
+      currentColor 0,
+      currentColor 6px,
+      transparent 6px,
+      transparent 12px
+    );
+    height: 1px;
+  }
+
+  /* hero 헤드라인 cyan caret 깜빡임 (단 1개). */
+  .caret {
+    display: inline-block;
+    width: 0.55ch;
+    height: 1em;
+    background: currentColor;
+    animation: blink 1.05s steps(1) infinite;
+    margin-left: 0.12em;
+    vertical-align: -0.12em;
+  }
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* "all systems / nominal" status pulse dot */
+  .pulse-dot {
+    animation: pulseDot 1.8s ease-in-out infinite;
+  }
+  @keyframes pulseDot {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 currentColor;
+    }
+    50% {
+      opacity: 0.55;
+      box-shadow: 0 0 0 6px transparent;
+    }
+  }
+
+  /**
+   * Card hover: 1px neon outline + accent glow.
+   * data-accent 속성으로 색 분배 (cyan / magenta / lime / amber).
+   * 라이트 모드는 charcoal 외곽선 (글로우 없음 — 절제).
+   */
+  .card-tech {
+    position: relative;
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background-color 180ms ease;
+  }
+  .card-tech:hover {
+    transform: translateY(-2px);
+  }
+  .dark .card-tech[data-accent='cyan']:hover {
+    border-color: rgba(34, 211, 238, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.3),
+      0 0 36px -8px rgba(34, 211, 238, 0.45),
+      0 14px 40px -20px rgba(0, 0, 0, 0.8);
+  }
+  .dark .card-tech[data-accent='magenta']:hover {
+    border-color: rgba(232, 121, 249, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(232, 121, 249, 0.3),
+      0 0 36px -8px rgba(232, 121, 249, 0.45),
+      0 14px 40px -20px rgba(0, 0, 0, 0.8);
+  }
+  .dark .card-tech[data-accent='lime']:hover {
+    border-color: rgba(163, 230, 53, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(163, 230, 53, 0.28),
+      0 0 36px -8px rgba(163, 230, 53, 0.4),
+      0 14px 40px -20px rgba(0, 0, 0, 0.8);
+  }
+  .dark .card-tech[data-accent='amber']:hover {
+    border-color: rgba(251, 191, 36, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.28),
+      0 0 36px -8px rgba(251, 191, 36, 0.4),
+      0 14px 40px -20px rgba(0, 0, 0, 0.8);
+  }
+  html:not(.dark) .card-tech[data-accent='cyan']:hover {
+    border-color: #0e7490;
+    box-shadow:
+      0 0 0 1px rgba(14, 116, 144, 0.25),
+      0 14px 32px -18px rgba(14, 116, 144, 0.4);
+  }
+  html:not(.dark) .card-tech[data-accent='magenta']:hover {
+    border-color: #a21caf;
+    box-shadow:
+      0 0 0 1px rgba(162, 28, 175, 0.22),
+      0 14px 32px -18px rgba(162, 28, 175, 0.4);
+  }
+  html:not(.dark) .card-tech[data-accent='lime']:hover {
+    border-color: #4d7c0f;
+    box-shadow:
+      0 0 0 1px rgba(77, 124, 15, 0.22),
+      0 14px 32px -18px rgba(77, 124, 15, 0.4);
+  }
+  html:not(.dark) .card-tech[data-accent='amber']:hover {
+    border-color: #b45309;
+    box-shadow:
+      0 0 0 1px rgba(180, 83, 9, 0.22),
+      0 14px 32px -18px rgba(180, 83, 9, 0.4);
+  }
+  .card-tech:hover .arrow-x {
+    transform: translateX(3px);
+  }
+  .arrow-x {
+    transition: transform 180ms ease;
+  }
+
+  /* 모션 감소 사용자 설정 존중 */
+  @media (prefers-reduced-motion: reduce) {
+    .caret,
+    .pulse-dot {
+      animation: none;
+    }
   }
 }

@@ -6,8 +6,8 @@ import { Hero } from './components/Hero.jsx';
 
 /**
  * Landing 앱 루트.
- * Minimalist 시안 (zinc 베이스 + 인디고 단일 액센트) 1:1 구현.
- * ThemeProvider는 main.jsx에서 마운트.
+ * Tech-Dark 시안 (ink-950 베이스 + cyan/magenta/lime/amber 네온 분배) 구현.
+ * 다크 모드 기본 + 라이트 토글 가능 (`packages/theme` 사용).
  *
  * 섹션 순서: Header → Hero → CardGrid(#projects) → About(#about) → Footer.
  */
