@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 
 import { App } from './App.jsx';
 
@@ -13,9 +13,7 @@ describe('App (landing)', () => {
     render(<App />);
     const titles = ['취미메이트', '스마트 서재', '팀 칸반', '익명 롤링페이퍼'];
     for (const title of titles) {
-      expect(
-        screen.getByRole('heading', { name: title, level: 2 }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: title, level: 2 })).toBeInTheDocument();
     }
   });
 

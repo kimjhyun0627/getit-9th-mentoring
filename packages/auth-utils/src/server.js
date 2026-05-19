@@ -1,6 +1,5 @@
-import jwt from 'jsonwebtoken';
-
 import { JwtPayload } from '@getit/schemas/auth';
+import jwt from 'jsonwebtoken';
 
 export const COOKIE_NAME = 'getit_jwt';
 
