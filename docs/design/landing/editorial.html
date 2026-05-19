@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GETIT — 9기 멘토링 프로젝트 · Editorial</title>
+
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Google Fonts: Playfair Display + Source Serif Pro -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+  rel="stylesheet"
+/>
+<!-- Pretendard (Korean body) -->
+<link
+  rel="stylesheet"
+  as="style"
+  crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+/>
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['"Playfair Display"', 'Georgia', 'serif'],
+          serif: ['"Source Serif Pro"', 'Georgia', 'serif'],
+          sans: [
+            'Pretendard Variable',
+            'Pretendard',
+            '-apple-system',
+            'BlinkMacSystemFont',
+            'system-ui',
+            'sans-serif',
+          ],
+        },
+        colors: {
+          paper: '#fafafa',
+          ink: '#0c0c0c',
+          hairline: '#0c0c0c',
+          wine: '#722F37',
+          'wine-soft': '#8a3a44',
+          charcoal: '#1a1816',
+          'charcoal-2': '#221f1c',
+          'paper-dim': '#e8e6e1',
+        },
+        letterSpacing: {
+          tightest: '-0.045em',
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    font-feature-settings: 'kern', 'liga', 'onum'; /* oldstyle figures where supported */
+  }
+  .font-display {
+    font-feature-settings: 'kern', 'liga', 'dlig', 'onum';
+  }
+  .num-display {
+    font-feature-settings: 'lnum', 'tnum';
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  /* Drop cap */
+  .dropcap::first-letter {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 800;
+    float: left;
+    font-size: 5.25rem;
+    line-height: 0.85;
+    padding: 0.35rem 0.65rem 0 0;
+    color: var(--accent, #722F37);
+  }
+
+  /* Hairline */
+  .hairline {
+    height: 1px;
+    background-color: #0c0c0c;
+  }
+  .dark .hairline {
+    background-color: #fafafa;
+  }
+
+  /* Subtle paper texture (light) */
+  .paper-grain {
+    background-image:
+      radial-gradient(rgba(12, 12, 12, 0.025) 1px, transparent 1px),
+      radial-gradient(rgba(12, 12, 12, 0.018) 1px, transparent 1px);
+    background-size: 22px 22px, 11px 11px;
+    background-position: 0 0, 11px 11px;
+  }
+  .dark .paper-grain {
+    background-image:
+      radial-gradient(rgba(250, 250, 250, 0.025) 1px, transparent 1px),
+      radial-gradient(rgba(250, 250, 250, 0.018) 1px, transparent 1px);
+  }
+
+  /* Reveal animation */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 700ms ease, transform 700ms ease;
+  }
+  .reveal.in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+
+  /* Accent underline link */
+  .ink-link {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 100% 1px;
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    padding-bottom: 2px;
+    transition: background-size 250ms ease, color 250ms ease;
+  }
+  .ink-link:hover {
+    background-size: 100% 2px;
+  }
+
+  /* Small caps utility */
+  .smallcaps {
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+  }
+
+  /* Pull quote */
+  .pullquote {
+    quotes: '\201C' '\201D';
+  }
+  .pullquote::before {
+    content: open-quote;
+    font-family: 'Playfair Display', serif;
+    font-weight: 800;
+    font-size: 4rem;
+    line-height: 0;
+    vertical-align: -0.35em;
+    margin-right: 0.15em;
+    color: var(--accent, #722F37);
+  }
+
+  /* Magazine card hover */
+  .mag-card {
+    transition: transform 400ms ease, background-color 400ms ease;
+  }
+  .mag-card:hover { transform: translateY(-2px); }
+  .mag-card:hover .mag-arrow { transform: translateX(6px); }
+  .mag-arrow { transition: transform 350ms ease; }
+
+  /* Section accent variable */
+  :root { --accent: #722F37; }
+  .dark { --accent: #722F37; }
+
+  /* Focus rings (WCAG) */
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+</style>
+</head>
+
+<body class="font-sans bg-paper text-ink antialiased selection:bg-wine selection:text-paper">
+
+<!-- ============================================== -->
+<!-- ============= LIGHT EDITION ================== -->
+<!-- ============================================== -->
+<section id="light" class="bg-paper text-ink paper-grain">
+
+  <!-- HEADER -->
+  <header class="max-w-7xl mx-auto px-6 md:px-10 pt-7 pb-5 flex items-center justify-between">
+    <a href="#" class="flex items-baseline gap-2">
+      <span class="font-display font-black text-2xl tracking-tightest">G</span>
+      <span class="font-serif italic text-sm opacity-70">/</span>
+      <span class="font-display font-black text-2xl tracking-tightest">9</span>
+      <span class="ml-3 smallcaps text-[11px] opacity-60 hidden sm:inline">getit · ninth issue</span>
+    </a>
+    <nav class="flex items-center gap-6 md:gap-8 text-[13px]">
+      <a href="#features" class="ink-link hidden sm:inline">Stories</a>
+      <a href="#projects" class="ink-link hidden sm:inline">Projects</a>
+      <a href="#colophon" class="ink-link hidden sm:inline">Colophon</a>
+      <button
+        id="themeToggle"
+        type="button"
+        aria-label="Toggle dark mode"
+        class="border border-ink/80 dark:border-paper/80 rounded-full px-3 py-1.5 text-[12px] smallcaps hover:bg-ink hover:text-paper dark:hover:bg-paper dark:hover:text-ink transition"
+      >
+        <span class="toggle-label">dark</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Top issue bar -->
+  <div class="max-w-7xl mx-auto px-6 md:px-10">
+    <div class="hairline"></div>
+    <div class="flex justify-between items-center py-2 text-[11px] smallcaps opacity-70">
+      <span>Vol. IX · Spring Issue</span>
+      <span class="hidden md:inline">경북대학교 GETIT</span>
+      <span>No. 0009 — 2026</span>
+    </div>
+    <div class="hairline"></div>
+  </div>
+
+  <!-- HERO -->
+  <div class="max-w-7xl mx-auto px-6 md:px-10 pt-14 md:pt-24 pb-16 md:pb-24">
+    <div class="grid grid-cols-12 gap-6 md:gap-10">
+      <!-- Kicker column -->
+      <div class="col-span-12 md:col-span-3 reveal">
+        <p class="smallcaps text-[12px] opacity-70 mb-3">The Feature</p>
+        <p class="font-serif italic text-[15px] leading-snug opacity-80 max-w-[20ch]">
+          네 개의 작품, 한 학기, 그리고 한 팀의 기록.
+        </p>
+      </div>
+
+      <!-- Headline column -->
+      <div class="col-span-12 md:col-span-9 reveal">
+        <h1 class="font-display font-black tracking-tightest leading-[0.92] text-[15vw] md:text-[8.5rem] lg:text-[9.5rem]">
+          9기<br />
+          <span class="italic font-normal">멘토링</span><br />
+          프로젝트<span class="text-wine">.</span>
+        </h1>
+        <div class="mt-10 grid grid-cols-12 gap-6 md:gap-10">
+          <p class="col-span-12 md:col-span-7 font-serif text-lg md:text-xl leading-[1.65] dropcap">
+            경북대학교 GETIT 9기가 한 학기 동안 손으로 빚은 네 개의 작은 인터넷.
+            취미를 잇고, 책장을 정리하고, 보드 위에서 협업하고, 익명의 말들을 모은다.
+            우리는 이것을 <em class="font-display italic">제품</em>이라 부르고, 동시에
+            <em class="font-display italic">편지</em>라고도 부른다.
+          </p>
+          <aside class="col-span-12 md:col-span-5">
+            <div class="hairline mb-4"></div>
+            <p class="smallcaps text-[11px] opacity-70 mb-2">In this issue</p>
+            <ul class="font-serif text-[15px] space-y-1.5">
+              <li class="flex justify-between gap-4">
+                <span>01 · 취미메이트</span>
+                <span class="opacity-60 num-display">p.04</span>
+              </li>
+              <li class="flex justify-between gap-4">
+                <span>02 · 스마트 서재</span>
+                <span class="opacity-60 num-display">p.08</span>
+              </li>
+              <li class="flex justify-between gap-4">
+                <span>03 · 팀 칸반</span>
+                <span class="opacity-60 num-display">p.12</span>
+              </li>
+              <li class="flex justify-between gap-4">
+                <span>04 · 익명 롤링페이퍼</span>
+                <span class="opacity-60 num-display">p.16</span>
+              </li>
+            </ul>
+            <div class="hairline mt-4"></div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PULL QUOTE -->
+  <div id="features" class="max-w-7xl mx-auto px-6 md:px-10 py-14 md:py-20">
+    <div class="hairline mb-12 md:mb-16"></div>
+    <div class="grid grid-cols-12 gap-6 md:gap-10 items-start">
+      <div class="col-span-12 md:col-span-3 reveal">
+        <p class="smallcaps text-[12px] opacity-70 mb-3">Editor's Note</p>
+        <p class="font-serif italic text-[15px] opacity-80 max-w-[22ch]">
+          큰 제품을 만드는 일은 작은 결정을 백 번 옳게 내리는 일이다.
+        </p>
+      </div>
+      <blockquote class="col-span-12 md:col-span-9 pullquote font-display text-3xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tightest reveal">
+        우리는 디자인을 외주한 적이 없고, 인프라를 빌린 적도 없다. 모든 픽셀과 모든 컨테이너는,
+        <span class="italic text-wine">우리의 손</span>으로부터 출발했다.
+      </blockquote>
+    </div>
+    <div class="hairline mt-12 md:mt-16"></div>
+  </div>
+
+  <!-- PROJECTS — MAGAZINE LAYOUT -->
+  <div id="projects" class="max-w-7xl mx-auto px-6 md:px-10 pt-4 pb-24">
+    <div class="flex items-end justify-between mb-8 md:mb-12 reveal">
+      <div>
+        <p class="smallcaps text-[12px] opacity-70 mb-2">The Portfolio</p>
+        <h2 class="font-display font-black text-5xl md:text-7xl tracking-tightest leading-none">
+          Four <span class="italic font-normal">Stories</span>.
+        </h2>
+      </div>
+      <p class="font-serif italic text-[14px] opacity-70 hidden md:block">— Curated by 9th cohort</p>
+    </div>
+
+    <!-- Asymmetric grid: big 01, then 3 smaller -->
+    <div class="grid grid-cols-12 gap-6 md:gap-10">
+
+      <!-- FEATURE STORY — 01 -->
+      <a
+        href="https://hobby.get-it.cloud"
+        target="_blank" rel="noopener"
+        class="mag-card col-span-12 md:col-span-7 group block border-t border-ink pt-8 reveal"
+      >
+        <div class="flex items-start justify-between">
+          <span class="font-display font-black num-display text-[8rem] md:text-[12rem] leading-[0.78] tracking-tightest text-wine">
+            01
+          </span>
+          <span class="smallcaps text-[11px] opacity-70 mt-3">Cover Story</span>
+        </div>
+        <div class="mt-6 flex items-center gap-3">
+          <span class="text-3xl" aria-hidden="true">🤲</span>
+          <h3 class="font-display font-bold text-4xl md:text-5xl tracking-tightest">
+            취미메이트
+          </h3>
+        </div>
+        <p class="font-serif italic text-lg mt-3 opacity-80">
+          관심사가 통하는 사람들과, 이번 주말의 모임을.
+        </p>
+        <p class="font-sans text-[15px] leading-[1.7] mt-5 max-w-[58ch] opacity-90">
+          취향을 키워드로 분해하고, 도시의 작은 소모임을 다시 엮는다.
+          영화, 등산, 보드게임, 코딩 — 다섯 명이 모이면 그것은 이미 하나의 동아리.
+        </p>
+        <div class="hairline mt-8 mb-3"></div>
+        <div class="flex items-center justify-between text-[13px]">
+          <span class="smallcaps opacity-70">hobby.get-it.cloud</span>
+          <span class="font-serif italic flex items-center gap-2">
+            Read story <span class="mag-arrow inline-block">→</span>
+          </span>
+        </div>
+      </a>
+
+      <!-- STORY — 02 -->
+      <a
+        href="https://shelf.get-it.cloud"
+        target="_blank" rel="noopener"
+        class="mag-card col-span-12 md:col-span-5 group block border-t border-ink pt-8 reveal"
+      >
+        <div class="flex items-start justify-between">
+          <span class="font-display font-black num-display text-[6rem] md:text-[8.5rem] leading-[0.78] tracking-tightest">
+            02
+          </span>
+          <span class="smallcaps text-[11px] opacity-70 mt-3">Feature</span>
+        </div>
+        <div class="mt-6 flex items-center gap-3">
+          <span class="text-2xl" aria-hidden="true">📚</span>
+          <h3 class="font-display font-bold text-3xl md:text-4xl tracking-tightest">
+            스마트 서재
+          </h3>
+        </div>
+        <p class="font-serif italic text-base mt-3 opacity-80">
+          읽은 페이지가 나를 닮아간다.
+        </p>
+        <p class="font-sans text-[14px] leading-[1.7] mt-5 opacity-90">
+          진행도, 추천, 메모를 한 권의 디지털 서가에. 책장 너머의 생각까지 함께 보관한다.
+        </p>
+        <div class="hairline mt-8 mb-3"></div>
+        <div class="flex items-center justify-between text-[13px]">
+          <span class="smallcaps opacity-70">shelf.get-it.cloud</span>
+          <span class="font-serif italic flex items-center gap-2">
+            Read story <span class="mag-arrow inline-block">→</span>
+          </span>
+        </div>
+      </a>
+
+      <!-- STORY — 03 -->
+      <a
+        href="https://board.get-it.cloud"
+        target="_blank" rel="noopener"
+        class="mag-card col-span-12 md:col-span-5 group block border-t border-ink pt-8 reveal"
+      >
+        <div class="flex items-start justify-between">
+          <span class="font-display font-black num-display text-[6rem] md:text-[8.5rem] leading-[0.78] tracking-tightest">
+            03
+          </span>
+          <span class="smallcaps text-[11px] opacity-70 mt-3">Feature</span>
+        </div>
+        <div class="mt-6 flex items-center gap-3">
+          <span class="text-2xl" aria-hidden="true">💻</span>
+          <h3 class="font-display font-bold text-3xl md:text-4xl tracking-tightest">
+            팀 칸반
+          </h3>
+        </div>
+        <p class="font-serif italic text-base mt-3 opacity-80">
+          할 일에도 편집장이 필요하다.
+        </p>
+        <p class="font-sans text-[14px] leading-[1.7] mt-5 opacity-90">
+          To-do, Doing, Done. 세 개의 칼럼이 한 팀의 한 주를 정리한다. 협업의 리듬, 부드럽게.
+        </p>
+        <div class="hairline mt-8 mb-3"></div>
+        <div class="flex items-center justify-between text-[13px]">
+          <span class="smallcaps opacity-70">board.get-it.cloud</span>
+          <span class="font-serif italic flex items-center gap-2">
+            Read story <span class="mag-arrow inline-block">→</span>
+          </span>
+        </div>
+      </a>
+
+      <!-- STORY — 04 -->
+      <a
+        href="https://letter.get-it.cloud"
+        target="_blank" rel="noopener"
+        class="mag-card col-span-12 md:col-span-7 group block border-t border-ink pt-8 reveal"
+      >
+        <div class="flex items-start justify-between">
+          <span class="font-display font-black num-display text-[6rem] md:text-[8.5rem] leading-[0.78] tracking-tightest text-wine">
+            04
+          </span>
+          <span class="smallcaps text-[11px] opacity-70 mt-3">Back Cover</span>
+        </div>
+        <div class="mt-6 flex items-center gap-3">
+          <span class="text-2xl" aria-hidden="true">🎤</span>
+          <h3 class="font-display font-bold text-3xl md:text-4xl tracking-tightest">
+            익명 롤링페이퍼
+          </h3>
+        </div>
+        <p class="font-serif italic text-base mt-3 opacity-80">
+          이름 없는 한 줄이, 누군가의 한 주가 된다.
+        </p>
+        <p class="font-sans text-[14px] leading-[1.7] mt-5 max-w-[58ch] opacity-90">
+          학기 말, GETIT 부원에게 띄우는 익명의 편지. 따뜻한 말 한 줄을 위해 한 페이지가 비어 있다.
+        </p>
+        <div class="hairline mt-8 mb-3"></div>
+        <div class="flex items-center justify-between text-[13px]">
+          <span class="smallcaps opacity-70">letter.get-it.cloud</span>
+          <span class="font-serif italic flex items-center gap-2">
+            Read story <span class="mag-arrow inline-block">→</span>
+          </span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- COLOPHON / FOOTER -->
+  <footer id="colophon" class="max-w-7xl mx-auto px-6 md:px-10 pb-20">
+    <div class="hairline mb-10"></div>
+    <div class="grid grid-cols-12 gap-6 md:gap-10">
+      <div class="col-span-12 md:col-span-5">
+        <p class="font-display font-black text-4xl md:text-5xl tracking-tightest leading-none">
+          Colophon<span class="text-wine">.</span>
+        </p>
+        <p class="font-serif italic text-[15px] mt-4 opacity-80 max-w-[34ch]">
+          이 매거진은 한 학기 동안 멘토 한 명과 멘티 여러 명의 손을 거쳐 인쇄되었습니다.
+        </p>
+      </div>
+      <div class="col-span-12 md:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-6 text-[13px]">
+        <div>
+          <p class="smallcaps opacity-70 mb-2">Typography</p>
+          <p class="font-serif">Playfair Display</p>
+          <p class="font-serif">Source Serif Pro</p>
+          <p class="font-sans">Pretendard</p>
+        </div>
+        <div>
+          <p class="smallcaps opacity-70 mb-2">Palette</p>
+          <p>Paper #fafafa</p>
+          <p>Ink #0c0c0c</p>
+          <p><span class="inline-block w-2.5 h-2.5 bg-wine align-middle mr-1.5"></span>Wine #722F37</p>
+        </div>
+        <div class="col-span-2 md:col-span-1">
+          <p class="smallcaps opacity-70 mb-2">Imprint</p>
+          <p>경북대학교 GETIT</p>
+          <p>9th Cohort · 2026</p>
+          <p class="opacity-70 mt-1">get-it.cloud</p>
+        </div>
+      </div>
+    </div>
+    <div class="hairline mt-10"></div>
+    <p class="font-serif italic text-[12.5px] opacity-70 mt-4 text-center">
+      Designed &amp; built by GETIT 9th cohort · 경북대학교 — All stories, our own.
+    </p>
+  </footer>
+
+</section>
+
+<!-- ============================================== -->
+<!-- ============== EDITION DIVIDER =============== -->
+<!-- ============================================== -->
+<div class="bg-paper">
+  <div class="max-w-7xl mx-auto px-6 md:px-10 py-12 text-center">
+    <div class="hairline"></div>
+    <p class="smallcaps text-[12px] tracking-[0.35em] opacity-70 my-4 font-serif">
+      — Dark Edition —
+    </p>
+    <div class="hairline"></div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- ============== DARK EDITION ================== -->
+<!-- ============================================== -->
+<section id="dark-preview" class="dark">
+  <div class="bg-charcoal text-paper paper-grain">
+
+    <!-- HEADER -->
+    <header class="max-w-7xl mx-auto px-6 md:px-10 pt-7 pb-5 flex items-center justify-between">
+      <a href="#" class="flex items-baseline gap-2">
+        <span class="font-display font-black text-2xl tracking-tightest">G</span>
+        <span class="font-serif italic text-sm opacity-70">/</span>
+        <span class="font-display font-black text-2xl tracking-tightest">9</span>
+        <span class="ml-3 smallcaps text-[11px] opacity-60 hidden sm:inline">getit · midnight edition</span>
+      </a>
+      <nav class="flex items-center gap-6 md:gap-8 text-[13px]">
+        <a href="#dark-preview" class="ink-link hidden sm:inline">Stories</a>
+        <a href="#dark-preview" class="ink-link hidden sm:inline">Projects</a>
+        <a href="#dark-preview" class="ink-link hidden sm:inline">Colophon</a>
+        <span
+          class="border border-paper/80 rounded-full px-3 py-1.5 text-[12px] smallcaps opacity-90"
+        >light</span>
+      </nav>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-6 md:px-10">
+      <div class="hairline"></div>
+      <div class="flex justify-between items-center py-2 text-[11px] smallcaps opacity-70">
+        <span>Vol. IX · Midnight</span>
+        <span class="hidden md:inline">경북대학교 GETIT</span>
+        <span>No. 0009 — 2026</span>
+      </div>
+      <div class="hairline"></div>
+    </div>
+
+    <!-- HERO -->
+    <div class="max-w-7xl mx-auto px-6 md:px-10 pt-14 md:pt-24 pb-16 md:pb-24">
+      <div class="grid grid-cols-12 gap-6 md:gap-10">
+        <div class="col-span-12 md:col-span-3">
+          <p class="smallcaps text-[12px] opacity-70 mb-3">The Feature</p>
+          <p class="font-serif italic text-[15px] leading-snug opacity-80 max-w-[20ch]">
+            네 개의 작품, 한 학기, 그리고 한 팀의 기록.
+          </p>
+        </div>
+        <div class="col-span-12 md:col-span-9">
+          <h1 class="font-display font-black tracking-tightest leading-[0.92] text-[15vw] md:text-[8.5rem] lg:text-[9.5rem]">
+            9기<br />
+            <span class="italic font-normal">멘토링</span><br />
+            프로젝트<span class="text-wine-soft">.</span>
+          </h1>
+          <div class="mt-10 grid grid-cols-12 gap-6 md:gap-10">
+            <p class="col-span-12 md:col-span-7 font-serif text-lg md:text-xl leading-[1.65] dropcap" style="--accent:#8a3a44">
+              경북대학교 GETIT 9기가 한 학기 동안 손으로 빚은 네 개의 작은 인터넷.
+              취미를 잇고, 책장을 정리하고, 보드 위에서 협업하고, 익명의 말들을 모은다.
+              우리는 이것을 <em class="font-display italic">제품</em>이라 부르고, 동시에
+              <em class="font-display italic">편지</em>라고도 부른다.
+            </p>
+            <aside class="col-span-12 md:col-span-5">
+              <div class="hairline mb-4"></div>
+              <p class="smallcaps text-[11px] opacity-70 mb-2">In this issue</p>
+              <ul class="font-serif text-[15px] space-y-1.5">
+                <li class="flex justify-between gap-4"><span>01 · 취미메이트</span><span class="opacity-60 num-display">p.04</span></li>
+                <li class="flex justify-between gap-4"><span>02 · 스마트 서재</span><span class="opacity-60 num-display">p.08</span></li>
+                <li class="flex justify-between gap-4"><span>03 · 팀 칸반</span><span class="opacity-60 num-display">p.12</span></li>
+                <li class="flex justify-between gap-4"><span>04 · 익명 롤링페이퍼</span><span class="opacity-60 num-display">p.16</span></li>
+              </ul>
+              <div class="hairline mt-4"></div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PULL QUOTE -->
+    <div class="max-w-7xl mx-auto px-6 md:px-10 py-14 md:py-20">
+      <div class="hairline mb-12 md:mb-16"></div>
+      <div class="grid grid-cols-12 gap-6 md:gap-10 items-start">
+        <div class="col-span-12 md:col-span-3">
+          <p class="smallcaps text-[12px] opacity-70 mb-3">Editor's Note</p>
+          <p class="font-serif italic text-[15px] opacity-80 max-w-[22ch]">
+            큰 제품을 만드는 일은 작은 결정을 백 번 옳게 내리는 일이다.
+          </p>
+        </div>
+        <blockquote
+          class="col-span-12 md:col-span-9 pullquote font-display text-3xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tightest"
+          style="--accent:#a64552"
+        >
+          우리는 디자인을 외주한 적이 없고, 인프라를 빌린 적도 없다. 모든 픽셀과 모든 컨테이너는,
+          <span class="italic" style="color:#c08a90">우리의 손</span>으로부터 출발했다.
+        </blockquote>
+      </div>
+      <div class="hairline mt-12 md:mt-16"></div>
+    </div>
+
+    <!-- PROJECTS — DARK -->
+    <div class="max-w-7xl mx-auto px-6 md:px-10 pt-4 pb-24">
+      <div class="flex items-end justify-between mb-8 md:mb-12">
+        <div>
+          <p class="smallcaps text-[12px] opacity-70 mb-2">The Portfolio</p>
+          <h2 class="font-display font-black text-5xl md:text-7xl tracking-tightest leading-none">
+            Four <span class="italic font-normal">Stories</span>.
+          </h2>
+        </div>
+        <p class="font-serif italic text-[14px] opacity-70 hidden md:block">— Curated by 9th cohort</p>
+      </div>
+
+      <div class="grid grid-cols-12 gap-6 md:gap-10">
+
+        <a href="https://hobby.get-it.cloud" target="_blank" rel="noopener"
+          class="mag-card col-span-12 md:col-span-7 group block border-t border-paper pt-8">
+          <div class="flex items-start justify-between">
+            <span class="font-display font-black num-display text-[8rem] md:text-[12rem] leading-[0.78] tracking-tightest" style="color:#c08a90">01</span>
+            <span class="smallcaps text-[11px] opacity-70 mt-3">Cover Story</span>
+          </div>
+          <div class="mt-6 flex items-center gap-3">
+            <span class="text-3xl" aria-hidden="true">🤲</span>
+            <h3 class="font-display font-bold text-4xl md:text-5xl tracking-tightest">취미메이트</h3>
+          </div>
+          <p class="font-serif italic text-lg mt-3 opacity-80">관심사가 통하는 사람들과, 이번 주말의 모임을.</p>
+          <p class="font-sans text-[15px] leading-[1.7] mt-5 max-w-[58ch] opacity-90">
+            취향을 키워드로 분해하고, 도시의 작은 소모임을 다시 엮는다.
+            영화, 등산, 보드게임, 코딩 — 다섯 명이 모이면 그것은 이미 하나의 동아리.
+          </p>
+          <div class="hairline mt-8 mb-3"></div>
+          <div class="flex items-center justify-between text-[13px]">
+            <span class="smallcaps opacity-70">hobby.get-it.cloud</span>
+            <span class="font-serif italic flex items-center gap-2">Read story <span class="mag-arrow inline-block">→</span></span>
+          </div>
+        </a>
+
+        <a href="https://shelf.get-it.cloud" target="_blank" rel="noopener"
+          class="mag-card col-span-12 md:col-span-5 group block border-t border-paper pt-8">
+          <div class="flex items-start justify-between">
+            <span class="font-display font-black num-display text-[6rem] md:text-[8.5rem] leading-[0.78] tracking-tightest">02</span>
+            <span class="smallcaps text-[11px] opacity-70 mt-3">Feature</span>
+          </div>
+          <div class="mt-6 flex items-center gap-3">
+            <span class="text-2xl" aria-hidden="true">📚</span>
+            <h3 class="font-display font-bold text-3xl md:text-4xl tracking-tightest">스마트 서재</h3>
+          </div>
+          <p class="font-serif italic text-base mt-3 opacity-80">읽은 페이지가 나를 닮아간다.</p>
+          <p class="font-sans text-[14px] leading-[1.7] mt-5 opacity-90">
+            진행도, 추천, 메모를 한 권의 디지털 서가에. 책장 너머의 생각까지 함께 보관한다.
+          </p>
+          <div class="hairline mt-8 mb-3"></div>
+          <div class="flex items-center justify-between text-[13px]">
+            <span class="smallcaps opacity-70">shelf.get-it.cloud</span>
+            <span class="font-serif italic flex items-center gap-2">Read story <span class="mag-arrow inline-block">→</span></span>
+          </div>
+        </a>
+
+        <a href="https://board.get-it.cloud" target="_blank" rel="noopener"
+          class="mag-card col-span-12 md:col-span-5 group block border-t border-paper pt-8">
+          <div class="flex items-start justify-between">
+            <span class="font-display font-black num-display text-[6rem] md:text-[8.5rem] leading-[0.78] tracking-tightest">03</span>
+            <span class="smallcaps text-[11px] opacity-70 mt-3">Feature</span>
+          </div>
+          <div class="mt-6 flex items-center gap-3">
+            <span class="text-2xl" aria-hidden="true">💻</span>
+            <h3 class="font-display font-bold text-3xl md:text-4xl tracking-tightest">팀 칸반</h3>
+          </div>
+          <p class="font-serif italic text-base mt-3 opacity-80">할 일에도 편집장이 필요하다.</p>
+          <p class="font-sans text-[14px] leading-[1.7] mt-5 opacity-90">
+            To-do, Doing, Done. 세 개의 칼럼이 한 팀의 한 주를 정리한다. 협업의 리듬, 부드럽게.
+          </p>
+          <div class="hairline mt-8 mb-3"></div>
+          <div class="flex items-center justify-between text-[13px]">
+            <span class="smallcaps opacity-70">board.get-it.cloud</span>
+            <span class="font-serif italic flex items-center gap-2">Read story <span class="mag-arrow inline-block">→</span></span>
+          </div>
+        </a>
+
+        <a href="https://letter.get-it.cloud" target="_blank" rel="noopener"
+          class="mag-card col-span-12 md:col-span-7 group block border-t border-paper pt-8">
+          <div class="flex items-start justify-between">
+            <span class="font-display font-black num-display text-[6rem] md:text-[8.5rem] leading-[0.78] tracking-tightest" style="color:#c08a90">04</span>
+            <span class="smallcaps text-[11px] opacity-70 mt-3">Back Cover</span>
+          </div>
+          <div class="mt-6 flex items-center gap-3">
+            <span class="text-2xl" aria-hidden="true">🎤</span>
+            <h3 class="font-display font-bold text-3xl md:text-4xl tracking-tightest">익명 롤링페이퍼</h3>
+          </div>
+          <p class="font-serif italic text-base mt-3 opacity-80">이름 없는 한 줄이, 누군가의 한 주가 된다.</p>
+          <p class="font-sans text-[14px] leading-[1.7] mt-5 max-w-[58ch] opacity-90">
+            학기 말, GETIT 부원에게 띄우는 익명의 편지. 따뜻한 말 한 줄을 위해 한 페이지가 비어 있다.
+          </p>
+          <div class="hairline mt-8 mb-3"></div>
+          <div class="flex items-center justify-between text-[13px]">
+            <span class="smallcaps opacity-70">letter.get-it.cloud</span>
+            <span class="font-serif italic flex items-center gap-2">Read story <span class="mag-arrow inline-block">→</span></span>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- COLOPHON -->
+    <footer class="max-w-7xl mx-auto px-6 md:px-10 pb-20">
+      <div class="hairline mb-10"></div>
+      <div class="grid grid-cols-12 gap-6 md:gap-10">
+        <div class="col-span-12 md:col-span-5">
+          <p class="font-display font-black text-4xl md:text-5xl tracking-tightest leading-none">
+            Colophon<span style="color:#c08a90">.</span>
+          </p>
+          <p class="font-serif italic text-[15px] mt-4 opacity-80 max-w-[34ch]">
+            이 매거진은 한 학기 동안 멘토 한 명과 멘티 여러 명의 손을 거쳐 인쇄되었습니다.
+          </p>
+        </div>
+        <div class="col-span-12 md:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-6 text-[13px]">
+          <div>
+            <p class="smallcaps opacity-70 mb-2">Typography</p>
+            <p class="font-serif">Playfair Display</p>
+            <p class="font-serif">Source Serif Pro</p>
+            <p class="font-sans">Pretendard</p>
+          </div>
+          <div>
+            <p class="smallcaps opacity-70 mb-2">Palette</p>
+            <p>Charcoal #1a1816</p>
+            <p>Paper #fafafa</p>
+            <p><span class="inline-block w-2.5 h-2.5 align-middle mr-1.5" style="background:#8a3a44"></span>Wine #722F37</p>
+          </div>
+          <div class="col-span-2 md:col-span-1">
+            <p class="smallcaps opacity-70 mb-2">Imprint</p>
+            <p>경북대학교 GETIT</p>
+            <p>9th Cohort · 2026</p>
+            <p class="opacity-70 mt-1">get-it.cloud</p>
+          </div>
+        </div>
+      </div>
+      <div class="hairline mt-10"></div>
+      <p class="font-serif italic text-[12.5px] opacity-70 mt-4 text-center">
+        Designed &amp; built by GETIT 9th cohort · 경북대학교 — All stories, our own.
+      </p>
+    </footer>
+  </div>
+</section>
+
+<script>
+  // ===== Dark mode toggle (controls <html> class) =====
+  (function () {
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    const label = btn.querySelector('.toggle-label');
+
+    function setMode(isDark) {
+      root.classList.toggle('dark', isDark);
+      if (label) label.textContent = isDark ? 'light' : 'dark';
+      btn.setAttribute('aria-pressed', String(isDark));
+    }
+
+    // Initial — respect system, default to light to show light edition first
+    setMode(false);
+
+    btn.addEventListener('click', () => {
+      setMode(!root.classList.contains('dark'));
+    });
+  })();
+
+  // ===== Intersection-observer reveal =====
+  (function () {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const els = document.querySelectorAll('.reveal');
+    if (reduce || !('IntersectionObserver' in window)) {
+      els.forEach((el) => el.classList.add('in'));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('in');
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+  })();
+</script>
+</body>
+</html>
