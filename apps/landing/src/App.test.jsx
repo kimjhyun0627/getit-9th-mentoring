@@ -8,6 +8,7 @@ import { PROJECTS } from './data/projects.js';
 /**
  * Minimalist 시안 1:1 구현 가드 테스트.
  * Issue #3 — TDD: Red → Green → Refactor.
+ * Issue #6 + #8 — Hero polish + Header nav + About 섹션 + Sign in + ThemeToggle SVG.
  */
 
 const renderApp = () =>
@@ -91,5 +92,108 @@ describe('App (landing · Minimalist 1:1)', () => {
     await waitFor(() => {
       expect(document.documentElement.classList.contains('dark')).toBe(true);
     });
+  });
+});
+
+describe('Hero polish (#8)', () => {
+  beforeEach(() => {
+    document.documentElement.classList.remove('dark');
+    window.localStorage.clear();
+  });
+
+  it('Hero 메타라인 <dl>이 4개 항목 (Projects/Cohort/SSO/Domain) 을 모두 렌더한다', () => {
+    renderApp();
+    const dl = screen.getByTestId('hero-meta');
+    expect(dl).toBeInTheDocument();
+    expect(within(dl).getByText('Projects')).toBeInTheDocument();
+    expect(within(dl).getByText('Cohort')).toBeInTheDocument();
+    expect(within(dl).getByText('SSO')).toBeInTheDocument();
+    expect(within(dl).getByText('Domain')).toBeInTheDocument();
+    expect(within(dl).getByText('04')).toBeInTheDocument();
+    expect(within(dl).getByText('9th')).toBeInTheDocument();
+    expect(within(dl).getByText('Unified')).toBeInTheDocument();
+    expect(within(dl).getByText('get-it.cloud')).toBeInTheDocument();
+  });
+
+  it('Hero CTA 두 개 (프로젝트 보기 → #projects, 9기 소개 → #about) 가 존재한다', () => {
+    renderApp();
+    const primary = screen.getByRole('link', { name: /프로젝트 보기/ });
+    const secondary = screen.getByRole('link', { name: /9기 소개/ });
+    expect(primary).toHaveAttribute('href', '#projects');
+    expect(secondary).toHaveAttribute('href', '#about');
+  });
+
+  it('Hero에 dot-grid 배경 노드가 존재한다 (data-testid="hero-dot-grid")', () => {
+    renderApp();
+    const grid = screen.getByTestId('hero-dot-grid');
+    expect(grid).toBeInTheDocument();
+    expect(grid.className).toMatch(/dot-grid/);
+  });
+});
+
+describe('Header nav + Sign in (#6)', () => {
+  beforeEach(() => {
+    document.documentElement.classList.remove('dark');
+    window.localStorage.clear();
+  });
+
+  it('Header 좌측 nav (Projects, About) 링크가 앵커를 가진다', () => {
+    renderApp();
+    const header = screen.getByRole('banner');
+    const projectsNav = within(header).getByRole('link', { name: /Projects/ });
+    const aboutNav = within(header).getByRole('link', { name: /About/ });
+    expect(projectsNav).toHaveAttribute('href', '#projects');
+    expect(aboutNav).toHaveAttribute('href', '#about');
+  });
+
+  it('Header 우측 Sign in 링크가 auth.get-it.cloud 로 향한다', () => {
+    renderApp();
+    const header = screen.getByRole('banner');
+    const signIn = within(header).getByRole('link', { name: /Sign in/i });
+    expect(signIn).toHaveAttribute('href', expect.stringContaining('auth.get-it.cloud'));
+  });
+});
+
+describe('About 섹션 (#6)', () => {
+  beforeEach(() => {
+    document.documentElement.classList.remove('dark');
+    window.localStorage.clear();
+  });
+
+  it('About 섹션 (data-testid="about-section") 이 렌더된다 + id="about" 앵커를 가진다', () => {
+    renderApp();
+    const about = screen.getByTestId('about-section');
+    expect(about).toBeInTheDocument();
+    expect(about).toHaveAttribute('id', 'about');
+  });
+
+  it('About 섹션이 H2 제목을 가진다', () => {
+    renderApp();
+    const about = screen.getByTestId('about-section');
+    const heading = within(about).getByRole('heading', { level: 2 });
+    expect(heading).toBeInTheDocument();
+  });
+});
+
+describe('CardGrid 앵커', () => {
+  it('CardGrid 섹션이 id="projects" 앵커를 가진다', () => {
+    renderApp();
+    const section = document.querySelector('section#projects');
+    expect(section).not.toBeNull();
+  });
+});
+
+describe('ThemeToggle SVG (#8)', () => {
+  beforeEach(() => {
+    document.documentElement.classList.remove('dark');
+    window.localStorage.clear();
+  });
+
+  it('ThemeToggle은 이모지가 아닌 인라인 SVG 아이콘을 렌더한다', () => {
+    renderApp();
+    const toggle = screen.getByRole('button', { name: /다크모드로 전환|라이트모드로 전환/ });
+    const svg = toggle.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(toggle.textContent).not.toMatch(/[☀🌙]/);
   });
 });

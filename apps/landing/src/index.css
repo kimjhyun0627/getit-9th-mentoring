@@ -94,4 +94,17 @@
   .dark .bg-hairline {
     background-color: rgba(255, 255, 255, 0.08);
   }
+
+  /*
+   * Hero 배경 dot-grid.
+   * 라이트: 검정 6% / 다크: 흰색 5% (다크에서 너무 두드러지지 않게 살짝 낮춤).
+   * 24px 간격.
+   */
+  .dot-grid {
+    background-image: radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .dark .dot-grid {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  }
 }
