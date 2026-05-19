@@ -1,0 +1,51 @@
+{
+  "name": "@getit/auth-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "auth.get-it.cloud/api - 통합 SSO BE (JWT 발급 + Users DB 단일 소스)",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "build": "echo \"JS only, skip build\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src",
+    "typecheck": "echo \"JS only, skip\"",
+    "clean": "rm -rf dist .turbo",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:seed": "node prisma/seed.js",
+    "prisma:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@getit/auth-utils": "workspace:*",
+    "@getit/schemas": "workspace:*",
+    "@prisma/client": "^6.2.1",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^3.24.1",
+    "zod-openapi": "^4.2.0"
+  },
+  "devDependencies": {
+    "@getit/config-eslint": "workspace:*",
+    "eslint": "^9.18.0",
+    "prisma": "^6.2.1",
+    "supertest": "^7.0.0",
+    "vitest": "^2.1.8"
+  }
+}
