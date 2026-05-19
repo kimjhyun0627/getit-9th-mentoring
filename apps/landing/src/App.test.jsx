@@ -194,6 +194,6 @@ describe('ThemeToggle SVG (#8)', () => {
     const toggle = screen.getByRole('button', { name: /다크모드로 전환|라이트모드로 전환/ });
     const svg = toggle.querySelector('svg');
     expect(svg).not.toBeNull();
-    expect(toggle.textContent).not.toMatch(/[☀🌙]/);
+    expect(toggle.textContent).not.toMatch(/[☀🌙]/u);
   });
 });
