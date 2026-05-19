@@ -37,7 +37,8 @@ describe('App (landing · Minimalist 1:1)', () => {
     renderApp();
     const titles = ['취미메이트', '스마트 서재', '팀 칸반', '익명 롤링페이퍼'];
     for (const title of titles) {
-      expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+      // 카드 제목 h3은 "{title} — 새 탭에서 열림" (sr-only) accessible name. partial 매치.
+      expect(screen.getByRole('heading', { name: new RegExp(title) })).toBeInTheDocument();
     }
   });
 
@@ -55,7 +56,8 @@ describe('App (landing · Minimalist 1:1)', () => {
   it('각 카드 링크가 올바른 href + target=_blank + rel=noopener noreferrer 를 갖는다', () => {
     renderApp();
     for (const project of PROJECTS) {
-      const heading = screen.getByRole('heading', { name: project.title });
+      // 제목 + sr-only "새 탭에서 열림" 이 accessible name에 포함됨 (정규식 partial match).
+      const heading = screen.getByRole('heading', { name: new RegExp(project.title) });
       const link = heading.closest('a');
       expect(link).not.toBeNull();
       expect(link).toHaveAttribute('href', project.href);

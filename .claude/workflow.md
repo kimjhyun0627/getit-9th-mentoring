@@ -154,9 +154,10 @@ Gemini Code Assist는 베타 상태에서 `APPROVED` 리뷰 상태를 안 줘서
 
 ### 봇 제안 apply 자동화 (Claude가 직접 처리)
 
-Claude(주로 개발자 에이전트)가 Gemini/CodeRabbit 제안을 자동 적용 가능. 두 가지 방식:
+Claude(주로 개발자 에이전트)가 Gemini/CodeRabbit 제안을 자동 적용 가능. 두 가지 방식.
+**방식 A는 CodeRabbit 전용** — Gemini는 슬래시 명령 미지원, 방식 B로만 처리.
 
-#### 방식 A — 코멘트 trigger 명령
+#### 방식 A — 코멘트 trigger 명령 (CodeRabbit 전용)
 
 ```bash
 gh pr comment <PR#> --body "@coderabbitai apply"

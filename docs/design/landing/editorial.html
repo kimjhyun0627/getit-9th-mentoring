@@ -743,11 +743,15 @@
       btn.setAttribute('aria-pressed', String(isDark));
     }
 
-    // Initial — respect system, default to light to show light edition first
-    setMode(false);
+    // Initial — respect system. localStorage 저장값 우선, 없으면 prefers-color-scheme.
+    const saved = localStorage.getItem('editorial-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setMode(saved === 'dark' || (saved === null && prefersDark));
 
     btn.addEventListener('click', () => {
-      setMode(!root.classList.contains('dark'));
+      const next = !root.classList.contains('dark');
+      setMode(next);
+      localStorage.setItem('editorial-theme', next ? 'dark' : 'light');
     });
   })();
 

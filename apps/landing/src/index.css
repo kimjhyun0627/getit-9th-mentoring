@@ -40,6 +40,10 @@
     --ring: 239 84% 58%;
 
     --radius: 0.5rem;
+
+    /* hairline (1px subtle 분리자). light: 검정 8%, dark: 흰 8%. */
+    --hairline: 0 0% 0% / 0.08;
+    --dot-grid: 0 0% 0% / 0.06;
   }
 
   .dark {
@@ -71,6 +75,9 @@
     --border: 240 4% 16%;
     --input: 240 4% 16%;
     --ring: 0 0% 100%;
+
+    --hairline: 0 0% 100% / 0.08;
+    --dot-grid: 0 0% 100% / 0.05;
   }
 
   body {
@@ -80,31 +87,18 @@
   }
 }
 
-/* 1px hairline: light 8% black, dark 8% white. shadcn --border 와 별개 운영. */
+/* 1px hairline + dot-grid. CSS 변수(--hairline, --dot-grid) 기반. */
 @layer utilities {
   .border-hairline {
-    border-color: rgba(0, 0, 0, 0.08);
-  }
-  .dark .border-hairline {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: hsla(var(--hairline));
   }
   .bg-hairline {
-    background-color: rgba(0, 0, 0, 0.08);
-  }
-  .dark .bg-hairline {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: hsla(var(--hairline));
   }
 
-  /*
-   * Hero 배경 dot-grid.
-   * 라이트: 검정 6% / 다크: 흰색 5% (다크에서 너무 두드러지지 않게 살짝 낮춤).
-   * 24px 간격.
-   */
+  /* Hero 배경 dot-grid. 24px 간격 + --dot-grid 변수 색. */
   .dot-grid {
-    background-image: radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+    background-image: radial-gradient(hsla(var(--dot-grid)) 1px, transparent 1px);
     background-size: 24px 24px;
-  }
-  .dark .dot-grid {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   }
 }

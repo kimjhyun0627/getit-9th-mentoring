@@ -720,10 +720,6 @@
         document.querySelectorAll("[data-local-toggle]").forEach((btn) => {
           btn.addEventListener("click", () => {
             apply(root.classList.contains("dark") ? "light" : "dark");
-            // also scroll to live section so user sees the change
-            document
-              .getElementById("live-toggle-section")
-              ?.scrollIntoView({ behavior: "smooth", block: "start" });
           });
         });
       })();
