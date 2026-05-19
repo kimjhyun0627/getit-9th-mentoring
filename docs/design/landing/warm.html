@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GETIT 9기 · 따뜻한 시작</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Pretendard -->
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<!-- Gaegu (손글씨 액센트) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"Pretendard Variable"', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+          hand: ['"Gaegu"', 'cursive'],
+        },
+        colors: {
+          // Light (cafe / paper)
+          cream:   '#FAF6F0',
+          cream2:  '#F3ECE0',
+          peach:   '#F4D7C8',
+          peachDk: '#E8B89F',
+          sage:    '#93A487',
+          sageDk:  '#6F8366',
+          ink:     '#3A2E27',
+          ink2:    '#5A4A3F',
+          // Dark (warm brown)
+          mocha:   '#2C2420',
+          mocha2:  '#3A2F29',
+          mocha3:  '#4A3D34',
+          beige:   '#E8D6C4',
+          beige2:  '#C9B49E',
+          rose:    '#D9A892',
+          sageW:   '#A8B89A',
+        },
+        boxShadow: {
+          paper: '0 1px 0 rgba(58,46,39,0.06), 0 8px 24px -12px rgba(58,46,39,0.18)',
+          paperLg: '0 2px 0 rgba(58,46,39,0.05), 0 20px 40px -20px rgba(58,46,39,0.25)',
+          paperDk: '0 1px 0 rgba(0,0,0,0.25), 0 12px 28px -14px rgba(0,0,0,0.55)',
+        },
+        borderRadius: {
+          'blob': '28px',
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Paper grain noise (subtle) */
+  .paper {
+    position: relative;
+    isolation: isolate;
+  }
+  .paper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.55;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.23 0 0 0 0 0.18 0 0 0 0 0.15 0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+  }
+  .paper-dark::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.75 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: screen;
+    opacity: 0.5;
+  }
+  .paper > * { position: relative; z-index: 1; }
+
+  /* Dotted soft grid for subtle background motif */
+  .dot-bg {
+    background-image: radial-gradient(rgba(58,46,39,0.07) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+  .dark .dot-bg, .dark-scope .dot-bg {
+    background-image: radial-gradient(rgba(232,214,196,0.08) 1px, transparent 1px);
+  }
+
+  /* Card hover puff */
+  .card {
+    transition: transform 350ms cubic-bezier(.4,.0,.2,1),
+                box-shadow 350ms cubic-bezier(.4,.0,.2,1),
+                background-color 250ms ease;
+    will-change: transform;
+  }
+  .card:hover {
+    transform: translateY(-6px) scale(1.012) rotate(-0.25deg);
+  }
+  .card:hover .arrow { transform: translateX(4px); }
+  .arrow { transition: transform 300ms ease; }
+
+  /* Tape sticker (washi tape feel) */
+  .tape {
+    position: absolute;
+    top: -10px; left: 18px;
+    width: 56px; height: 18px;
+    background: rgba(244,215,200,0.85);
+    border-radius: 2px;
+    transform: rotate(-4deg);
+    box-shadow: 0 2px 6px rgba(58,46,39,0.12);
+  }
+  .tape.sage { background: rgba(147,164,135,0.7); transform: rotate(3deg); left: auto; right: 22px; }
+  .tape.rose { background: rgba(232,184,159,0.85); }
+
+  /* Underline scribble (hand drawn) */
+  .scribble {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'><path d='M2 7 Q 50 1, 100 6 T 198 5' stroke='%23E8B89F' stroke-width='5' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    background-size: 100% 0.5em;
+  }
+  .dark .scribble, .dark-scope .scribble {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'><path d='M2 7 Q 50 1, 100 6 T 198 5' stroke='%23D9A892' stroke-width='5' fill='none' stroke-linecap='round'/></svg>");
+  }
+
+  /* Soft blob background shapes */
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* Toggle */
+  .toggle-track {
+    width: 56px; height: 30px;
+    background: #F3ECE0;
+    border-radius: 999px;
+    border: 1px solid rgba(58,46,39,0.12);
+    position: relative;
+    transition: background 250ms ease;
+  }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 22px; height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(58,46,39,0.2);
+    transition: transform 280ms cubic-bezier(.4,.0,.2,1), background 250ms ease;
+    display: grid; place-items: center;
+    font-size: 12px;
+  }
+  .dark .toggle-track { background: #4A3D34; border-color: rgba(232,214,196,0.15); }
+  .dark .toggle-thumb { transform: translateX(26px); background: #E8D6C4; }
+
+  /* Demo scoped dark section (so 다크 시안은 토글 무관하게 항상 보임) */
+  .dark-scope {
+    color-scheme: dark;
+  }
+
+  /* Section divider stitches */
+  .stitch {
+    background-image: linear-gradient(90deg, rgba(58,46,39,0.35) 50%, transparent 50%);
+    background-size: 12px 1px;
+    background-repeat: repeat-x;
+    background-position: center;
+    height: 1px;
+  }
+  .dark .stitch, .dark-scope .stitch {
+    background-image: linear-gradient(90deg, rgba(232,214,196,0.35) 50%, transparent 50%);
+  }
+
+  /* Focus ring (a11y) */
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid #E8B89F;
+    outline-offset: 3px;
+    border-radius: 8px;
+  }
+  .dark a:focus-visible, .dark button:focus-visible,
+  .dark-scope a:focus-visible, .dark-scope button:focus-visible {
+    outline-color: #D9A892;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card:hover { transform: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+
+<body class="bg-cream text-ink dark:bg-mocha dark:text-beige transition-colors duration-300">
+
+<!-- =========================================================
+     LIGHT MODE SECTION (실제 토글 동작 + 기본 라이트 시안 영역)
+     ========================================================= -->
+<section id="light-section" class="paper relative overflow-hidden">
+
+  <!-- Soft blobs -->
+  <div class="blob bg-peach" style="width:380px; height:380px; top:-120px; right:-80px;"></div>
+  <div class="blob bg-sage/40" style="width:300px; height:300px; bottom:-100px; left:-60px;"></div>
+
+  <!-- Header -->
+  <header class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-7 pb-4 flex items-center justify-between">
+    <a href="#" class="flex items-baseline gap-1.5 group">
+      <span class="font-hand text-3xl sm:text-4xl text-peachDk dark:text-rose leading-none">G</span>
+      <span class="text-lg sm:text-xl font-semibold tracking-tight">ETIT 9기</span>
+    </a>
+
+    <nav class="flex items-center gap-3 sm:gap-5">
+      <a href="#projects" class="hidden sm:inline text-sm text-ink2 dark:text-beige2 hover:text-ink dark:hover:text-beige transition-colors">프로젝트</a>
+      <a href="#about" class="hidden sm:inline text-sm text-ink2 dark:text-beige2 hover:text-ink dark:hover:text-beige transition-colors">소개</a>
+
+      <button id="themeToggle" type="button" aria-label="다크 모드 전환" class="toggle-track">
+        <span class="toggle-thumb">
+          <span class="sun text-amber-500">☀</span>
+        </span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <main class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-8 sm:pt-14 pb-16 sm:pb-24">
+
+    <div class="flex flex-col items-center text-center">
+      <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 dark:bg-mocha2/70 border border-peach/60 dark:border-mocha3 text-xs sm:text-sm text-ink2 dark:text-beige2 backdrop-blur">
+        <span class="w-1.5 h-1.5 rounded-full bg-sage dark:bg-sageW"></span>
+        경북대학교 IT 학회 GETIT · 9기 멘토링
+      </span>
+
+      <h1 class="mt-6 text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.1]">
+        <span class="font-hand text-peachDk dark:text-rose text-5xl sm:text-7xl md:text-[5.5rem] align-middle mr-1">9</span>기<br class="sm:hidden" />
+        <span class="sm:ml-3">멘토링 <span class="scribble">프로젝트</span></span>
+      </h1>
+
+      <p class="mt-7 max-w-xl text-base sm:text-lg text-ink2 dark:text-beige2 leading-relaxed">
+        한 학기 동안, 함께 만들고 함께 자라는 시간.<br />
+        4개의 작은 프로젝트로 우리만의 이야기를 써 내려가요.
+      </p>
+
+      <div class="mt-9 flex flex-col sm:flex-row items-center gap-3">
+        <a href="#projects"
+           class="px-6 py-3 rounded-full bg-ink text-cream font-semibold shadow-paper hover:shadow-paperLg hover:-translate-y-0.5 transition-all dark:bg-beige dark:text-mocha">
+          프로젝트 둘러보기 →
+        </a>
+        <a href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b" target="_blank" rel="noopener"
+           class="px-6 py-3 rounded-full bg-white/80 dark:bg-mocha2/80 border border-peach dark:border-mocha3 text-ink dark:text-beige font-medium hover:bg-white transition-colors">
+          노션 본부
+        </a>
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <div id="projects" class="mt-20 sm:mt-28">
+      <div class="flex items-end justify-between mb-8 sm:mb-10 px-1">
+        <div>
+          <p class="font-hand text-xl sm:text-2xl text-sageDk dark:text-sageW">우리가 만들고 있어요</p>
+          <h2 class="text-2xl sm:text-3xl font-bold mt-1 tracking-tight">4개의 프로젝트</h2>
+        </div>
+        <span class="hidden sm:block text-xs text-ink2 dark:text-beige2">차근차근, 정성껏</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-7">
+        <!-- Card 1: 취미메이트 -->
+        <a href="https://hobby.get-it.cloud" target="_blank" rel="noopener"
+           class="card group relative block p-7 sm:p-8 rounded-blob bg-white dark:bg-mocha2 border border-peach/70 dark:border-mocha3 shadow-paper hover:shadow-paperLg dark:shadow-paperDk">
+          <span class="tape"></span>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl bg-peach/60 dark:bg-rose/20 grid place-items-center text-2xl">🤲</div>
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">No. 01</span>
+          </div>
+          <h3 class="mt-5 text-xl sm:text-2xl font-bold tracking-tight">취미메이트</h3>
+          <p class="mt-2 text-sm sm:text-base text-ink2 dark:text-beige2 leading-relaxed">
+            관심사가 비슷한 사람들끼리 모이는 작은 소모임. 새로운 친구, 새로운 취미.
+          </p>
+          <div class="mt-6 flex items-center justify-between">
+            <span class="text-xs text-ink2/80 dark:text-beige2/80">hobby.get-it.cloud</span>
+            <span class="arrow inline-flex w-9 h-9 rounded-full bg-peach/70 dark:bg-rose/25 items-center justify-center text-ink dark:text-rose">→</span>
+          </div>
+        </a>
+
+        <!-- Card 2: 스마트 서재 -->
+        <a href="https://shelf.get-it.cloud" target="_blank" rel="noopener"
+           class="card group relative block p-7 sm:p-8 rounded-blob bg-white dark:bg-mocha2 border border-sage/40 dark:border-mocha3 shadow-paper hover:shadow-paperLg dark:shadow-paperDk">
+          <span class="tape sage"></span>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl bg-sage/30 dark:bg-sageW/15 grid place-items-center text-2xl">📚</div>
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">No. 02</span>
+          </div>
+          <h3 class="mt-5 text-xl sm:text-2xl font-bold tracking-tight">스마트 서재</h3>
+          <p class="mt-2 text-sm sm:text-base text-ink2 dark:text-beige2 leading-relaxed">
+            읽은 책, 읽고 싶은 책. 진행도와 메모를 한 권의 노트처럼.
+          </p>
+          <div class="mt-6 flex items-center justify-between">
+            <span class="text-xs text-ink2/80 dark:text-beige2/80">shelf.get-it.cloud</span>
+            <span class="arrow inline-flex w-9 h-9 rounded-full bg-sage/40 dark:bg-sageW/20 items-center justify-center text-sageDk dark:text-sageW">→</span>
+          </div>
+        </a>
+
+        <!-- Card 3: 팀 칸반 -->
+        <a href="https://board.get-it.cloud" target="_blank" rel="noopener"
+           class="card group relative block p-7 sm:p-8 rounded-blob bg-white dark:bg-mocha2 border border-peach/70 dark:border-mocha3 shadow-paper hover:shadow-paperLg dark:shadow-paperDk">
+          <span class="tape rose"></span>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl bg-peach/60 dark:bg-rose/20 grid place-items-center text-2xl">💻</div>
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">No. 03</span>
+          </div>
+          <h3 class="mt-5 text-xl sm:text-2xl font-bold tracking-tight">팀 칸반</h3>
+          <p class="mt-2 text-sm sm:text-base text-ink2 dark:text-beige2 leading-relaxed">
+            할 일을 카드에 적어 보드에 붙여요. 함께 일하는 게 조금 더 즐거워지도록.
+          </p>
+          <div class="mt-6 flex items-center justify-between">
+            <span class="text-xs text-ink2/80 dark:text-beige2/80">board.get-it.cloud</span>
+            <span class="arrow inline-flex w-9 h-9 rounded-full bg-peach/70 dark:bg-rose/25 items-center justify-center text-ink dark:text-rose">→</span>
+          </div>
+        </a>
+
+        <!-- Card 4: 익명 롤링페이퍼 -->
+        <a href="https://letter.get-it.cloud" target="_blank" rel="noopener"
+           class="card group relative block p-7 sm:p-8 rounded-blob bg-white dark:bg-mocha2 border border-sage/40 dark:border-mocha3 shadow-paper hover:shadow-paperLg dark:shadow-paperDk">
+          <span class="tape sage"></span>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl bg-sage/30 dark:bg-sageW/15 grid place-items-center text-2xl">🎤</div>
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">No. 04</span>
+          </div>
+          <h3 class="mt-5 text-xl sm:text-2xl font-bold tracking-tight">익명 롤링페이퍼</h3>
+          <p class="mt-2 text-sm sm:text-base text-ink2 dark:text-beige2 leading-relaxed">
+            GETIT 부원끼리 살며시 건네는 한 줄. 마음은 전하고, 이름은 숨기고.
+          </p>
+          <div class="mt-6 flex items-center justify-between">
+            <span class="text-xs text-ink2/80 dark:text-beige2/80">letter.get-it.cloud</span>
+            <span class="arrow inline-flex w-9 h-9 rounded-full bg-sage/40 dark:bg-sageW/20 items-center justify-center text-sageDk dark:text-sageW">→</span>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- About strip -->
+    <div id="about" class="mt-20 sm:mt-28 grid sm:grid-cols-3 gap-5">
+      <div class="p-6 rounded-3xl bg-cream2 dark:bg-mocha2 border border-peach/40 dark:border-mocha3">
+        <div class="font-hand text-2xl text-peachDk dark:text-rose">하나,</div>
+        <p class="mt-2 text-sm leading-relaxed text-ink2 dark:text-beige2">멘토와 멘티가 함께 짓는 프로젝트.</p>
+      </div>
+      <div class="p-6 rounded-3xl bg-cream2 dark:bg-mocha2 border border-sage/30 dark:border-mocha3">
+        <div class="font-hand text-2xl text-sageDk dark:text-sageW">둘,</div>
+        <p class="mt-2 text-sm leading-relaxed text-ink2 dark:text-beige2">학기 동안 차근차근, 매주 조금씩.</p>
+      </div>
+      <div class="p-6 rounded-3xl bg-cream2 dark:bg-mocha2 border border-peach/40 dark:border-mocha3">
+        <div class="font-hand text-2xl text-peachDk dark:text-rose">셋,</div>
+        <p class="mt-2 text-sm leading-relaxed text-ink2 dark:text-beige2">완성보다 성장. 코드보다 사람.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pb-10">
+    <div class="stitch mb-6"></div>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-ink2 dark:text-beige2">
+      <div class="flex items-center gap-2">
+        <span class="font-hand text-xl text-peachDk dark:text-rose">G</span>
+        <span>© 2026 GETIT 9기 멘토링 · 경북대학교 IT 학회</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b" target="_blank" rel="noopener" class="hover:text-ink dark:hover:text-beige">노션</a>
+        <a href="https://github.com/kimjhyun0627/getit-9th-mentoring" target="_blank" rel="noopener" class="hover:text-ink dark:hover:text-beige">GitHub</a>
+      </div>
+    </div>
+  </footer>
+</section>
+
+
+<!-- =========================================================
+     DIVIDER
+     ========================================================= -->
+<section class="bg-cream dark:bg-mocha py-10 sm:py-14">
+  <div class="max-w-3xl mx-auto px-5 text-center">
+    <div class="stitch mb-6 opacity-70"></div>
+    <p class="font-hand text-2xl sm:text-3xl text-ink2 dark:text-beige2">↓ 다크 모드 ↓</p>
+    <p class="mt-2 text-sm text-ink2/80 dark:text-beige2/80">짙은 브라운에 따뜻한 베이지를 더해 — 밤에도 포근하게.</p>
+    <div class="stitch mt-6 opacity-70"></div>
+  </div>
+</section>
+
+
+<!-- =========================================================
+     DARK MODE SECTION (강제 다크 스코프 — 토글 무관)
+     ========================================================= -->
+<section id="dark-section" class="dark-scope paper paper-dark relative overflow-hidden" style="background:#2C2420; color:#E8D6C4;">
+
+  <!-- Soft blobs (warm dark) -->
+  <div class="blob" style="background:#D9A892; width:380px; height:380px; top:-120px; right:-80px; opacity:.18;"></div>
+  <div class="blob" style="background:#A8B89A; width:300px; height:300px; bottom:-100px; left:-60px; opacity:.16;"></div>
+
+  <!-- Header -->
+  <header class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-7 pb-4 flex items-center justify-between">
+    <a href="#" class="flex items-baseline gap-1.5 group">
+      <span class="font-hand text-3xl sm:text-4xl leading-none" style="color:#D9A892;">G</span>
+      <span class="text-lg sm:text-xl font-semibold tracking-tight" style="color:#E8D6C4;">ETIT 9기</span>
+    </a>
+
+    <nav class="flex items-center gap-3 sm:gap-5">
+      <a href="#projects" class="hidden sm:inline text-sm hover:opacity-100" style="color:#C9B49E;">프로젝트</a>
+      <a href="#about" class="hidden sm:inline text-sm hover:opacity-100" style="color:#C9B49E;">소개</a>
+
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
+            style="background:#3A2F29; color:#C9B49E; border:1px solid #4A3D34;">
+        🌙 다크 시안
+      </span>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <main class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-8 sm:pt-14 pb-16 sm:pb-24">
+
+    <div class="flex flex-col items-center text-center">
+      <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs sm:text-sm backdrop-blur"
+            style="background:rgba(58,47,41,0.7); border:1px solid #4A3D34; color:#C9B49E;">
+        <span class="w-1.5 h-1.5 rounded-full" style="background:#A8B89A;"></span>
+        경북대학교 IT 학회 GETIT · 9기 멘토링
+      </span>
+
+      <h1 class="mt-6 text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.1]" style="color:#F4E8D9;">
+        <span class="font-hand align-middle mr-1" style="color:#D9A892; font-size:1.15em;">9</span>기<br class="sm:hidden" />
+        <span class="sm:ml-3">멘토링 <span class="scribble">프로젝트</span></span>
+      </h1>
+
+      <p class="mt-7 max-w-xl text-base sm:text-lg leading-relaxed" style="color:#C9B49E;">
+        한 학기 동안, 함께 만들고 함께 자라는 시간.<br />
+        4개의 작은 프로젝트로 우리만의 이야기를 써 내려가요.
+      </p>
+
+      <div class="mt-9 flex flex-col sm:flex-row items-center gap-3">
+        <a href="#projects"
+           class="px-6 py-3 rounded-full font-semibold transition-all hover:-translate-y-0.5"
+           style="background:#E8D6C4; color:#2C2420; box-shadow:0 12px 28px -14px rgba(0,0,0,0.6);">
+          프로젝트 둘러보기 →
+        </a>
+        <a href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b" target="_blank" rel="noopener"
+           class="px-6 py-3 rounded-full font-medium transition-colors"
+           style="background:rgba(58,47,41,0.8); color:#E8D6C4; border:1px solid #4A3D34;">
+          노션 본부
+        </a>
+      </div>
+    </div>
+
+    <!-- Projects (dark) -->
+    <div class="mt-20 sm:mt-28">
+      <div class="flex items-end justify-between mb-8 sm:mb-10 px-1">
+        <div>
+          <p class="font-hand text-xl sm:text-2xl" style="color:#A8B89A;">우리가 만들고 있어요</p>
+          <h2 class="text-2xl sm:text-3xl font-bold mt-1 tracking-tight" style="color:#F4E8D9;">4개의 프로젝트</h2>
+        </div>
+        <span class="hidden sm:block text-xs" style="color:#C9B49E;">차근차근, 정성껏</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-7">
+
+        <a href="https://hobby.get-it.cloud" target="_blank" rel="noopener"
+           class="card group relative block p-7 sm:p-8 rounded-blob"
+           style="background:#3A2F29; border:1px solid #4A3D34; box-shadow:0 12px 28px -14px rgba(0,0,0,0.55);">
+          <span class="tape" style="background:rgba(217,168,146,0.55);"></span>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl grid place-items-center text-2xl" style="background:rgba(217,168,146,0.15);">🤲</div>
+            <span class="text-[11px] tracking-wider uppercase" style="color:#C9B49E; opacity:.7;">No. 01</span>
+          </div>
+          <h3 class="mt-5 text-xl sm:text-2xl font-bold tracking-tight" style="color:#F4E8D9;">취미메이트</h3>
+          <p class="mt-2 text-sm sm:text-base leading-relaxed" style="color:#C9B49E;">
+            관심사가 비슷한 사람들끼리 모이는 작은 소모임. 새로운 친구, 새로운 취미.
+          </p>
+          <div class="mt-6 flex items-center justify-between">
+            <span class="text-xs" style="color:#C9B49E; opacity:.8;">hobby.get-it.cloud</span>
+            <span class="arrow inline-flex w-9 h-9 rounded-full items-center justify-center" style="background:rgba(217,168,146,0.2); color:#D9A892;">→</span>
+          </div>
+        </a>
+
+        <a href="https://shelf.get-it.cloud" target="_blank" rel="noopener"
+           class="card group relative block p-7 sm:p-8 rounded-blob"
+           style="background:#3A2F29; border:1px solid #4A3D34; box-shadow:0 12px 28px -14px rgba(0,0,0,0.55);">
+          <span class="tape" style="background:rgba(168,184,154,0.5); transform: rotate(3deg); left:auto; right:22px;"></span>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl grid place-items-center text-2xl" style="background:rgba(168,184,154,0.15);">📚</div>
+            <span class="text-[11px] tracking-wider uppercase" style="color:#C9B49E; opacity:.7;">No. 02</span>
+          </div>
+          <h3 class="mt-5 text-xl sm:text-2xl font-bold tracking-tight" style="color:#F4E8D9;">스마트 서재</h3>
+          <p class="mt-2 text-sm sm:text-base leading-relaxed" style="color:#C9B49E;">
+            읽은 책, 읽고 싶은 책. 진행도와 메모를 한 권의 노트처럼.
+          </p>
+          <div class="mt-6 flex items-center justify-between">
+            <span class="text-xs" style="color:#C9B49E; opacity:.8;">shelf.get-it.cloud</span>
+            <span class="arrow inline-flex w-9 h-9 rounded-full items-center justify-center" style="background:rgba(168,184,154,0.2); color:#A8B89A;">→</span>
+          </div>
+        </a>
+
+        <a href="https://board.get-it.cloud" target="_blank" rel="noopener"
+           class="card group relative block p-7 sm:p-8 rounded-blob"
+           style="background:#3A2F29; border:1px solid #4A3D34; box-shadow:0 12px 28px -14px rgba(0,0,0,0.55);">
+          <span class="tape" style="background:rgba(232,184,159,0.55);"></span>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl grid place-items-center text-2xl" style="background:rgba(217,168,146,0.15);">💻</div>
+            <span class="text-[11px] tracking-wider uppercase" style="color:#C9B49E; opacity:.7;">No. 03</span>
+          </div>
+          <h3 class="mt-5 text-xl sm:text-2xl font-bold tracking-tight" style="color:#F4E8D9;">팀 칸반</h3>
+          <p class="mt-2 text-sm sm:text-base leading-relaxed" style="color:#C9B49E;">
+            할 일을 카드에 적어 보드에 붙여요. 함께 일하는 게 조금 더 즐거워지도록.
+          </p>
+          <div class="mt-6 flex items-center justify-between">
+            <span class="text-xs" style="color:#C9B49E; opacity:.8;">board.get-it.cloud</span>
+            <span class="arrow inline-flex w-9 h-9 rounded-full items-center justify-center" style="background:rgba(217,168,146,0.2); color:#D9A892;">→</span>
+          </div>
+        </a>
+
+        <a href="https://letter.get-it.cloud" target="_blank" rel="noopener"
+           class="card group relative block p-7 sm:p-8 rounded-blob"
+           style="background:#3A2F29; border:1px solid #4A3D34; box-shadow:0 12px 28px -14px rgba(0,0,0,0.55);">
+          <span class="tape" style="background:rgba(168,184,154,0.5); transform: rotate(3deg); left:auto; right:22px;"></span>
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 rounded-2xl grid place-items-center text-2xl" style="background:rgba(168,184,154,0.15);">🎤</div>
+            <span class="text-[11px] tracking-wider uppercase" style="color:#C9B49E; opacity:.7;">No. 04</span>
+          </div>
+          <h3 class="mt-5 text-xl sm:text-2xl font-bold tracking-tight" style="color:#F4E8D9;">익명 롤링페이퍼</h3>
+          <p class="mt-2 text-sm sm:text-base leading-relaxed" style="color:#C9B49E;">
+            GETIT 부원끼리 살며시 건네는 한 줄. 마음은 전하고, 이름은 숨기고.
+          </p>
+          <div class="mt-6 flex items-center justify-between">
+            <span class="text-xs" style="color:#C9B49E; opacity:.8;">letter.get-it.cloud</span>
+            <span class="arrow inline-flex w-9 h-9 rounded-full items-center justify-center" style="background:rgba(168,184,154,0.2); color:#A8B89A;">→</span>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- About strip (dark) -->
+    <div class="mt-20 sm:mt-28 grid sm:grid-cols-3 gap-5">
+      <div class="p-6 rounded-3xl" style="background:#3A2F29; border:1px solid #4A3D34;">
+        <div class="font-hand text-2xl" style="color:#D9A892;">하나,</div>
+        <p class="mt-2 text-sm leading-relaxed" style="color:#C9B49E;">멘토와 멘티가 함께 짓는 프로젝트.</p>
+      </div>
+      <div class="p-6 rounded-3xl" style="background:#3A2F29; border:1px solid #4A3D34;">
+        <div class="font-hand text-2xl" style="color:#A8B89A;">둘,</div>
+        <p class="mt-2 text-sm leading-relaxed" style="color:#C9B49E;">학기 동안 차근차근, 매주 조금씩.</p>
+      </div>
+      <div class="p-6 rounded-3xl" style="background:#3A2F29; border:1px solid #4A3D34;">
+        <div class="font-hand text-2xl" style="color:#D9A892;">셋,</div>
+        <p class="mt-2 text-sm leading-relaxed" style="color:#C9B49E;">완성보다 성장. 코드보다 사람.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer (dark) -->
+  <footer class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pb-10">
+    <div class="stitch mb-6"></div>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm" style="color:#C9B49E;">
+      <div class="flex items-center gap-2">
+        <span class="font-hand text-xl" style="color:#D9A892;">G</span>
+        <span>© 2026 GETIT 9기 멘토링 · 경북대학교 IT 학회</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b" target="_blank" rel="noopener" class="hover:opacity-100" style="opacity:.85;">노션</a>
+        <a href="https://github.com/kimjhyun0627/getit-9th-mentoring" target="_blank" rel="noopener" class="hover:opacity-100" style="opacity:.85;">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+</section>
+
+
+<!-- Dark mode toggle JS -->
+<script>
+  (function () {
+    const root = document.documentElement;
+    const btn  = document.getElementById('themeToggle');
+    const KEY  = 'getit-warm-theme';
+
+    function apply(mode) {
+      if (mode === 'dark') root.classList.add('dark');
+      else root.classList.remove('dark');
+    }
+
+    // Initial: prefer saved, else light (시안 비교가 목적이라 라이트가 기본)
+    const saved = localStorage.getItem(KEY);
+    apply(saved === 'dark' ? 'dark' : 'light');
+
+    btn?.addEventListener('click', () => {
+      const next = root.classList.contains('dark') ? 'light' : 'dark';
+      apply(next);
+      localStorage.setItem(KEY, next);
+    });
+  })();
+</script>
+
+</body>
+</html>

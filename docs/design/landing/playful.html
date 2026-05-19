@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="ko" class="">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GETIT 9기 멘토링 · Playful</title>
+
+    <!-- Pretendard -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+    />
+    <!-- Display: Quicksand + Lexend (rounded, friendly) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Lexend:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: [
+                "Pretendard Variable",
+                "Pretendard",
+                "system-ui",
+                "sans-serif",
+              ],
+              display: ["Lexend", "Quicksand", "Pretendard Variable", "sans-serif"],
+              round: ["Quicksand", "Lexend", "Pretendard Variable", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      html.dark {
+        color-scheme: dark;
+      }
+
+      /* ----- background: dotted + soft blobs ----- */
+      .bg-dotted {
+        background-image: radial-gradient(
+          rgba(15, 23, 42, 0.08) 1.2px,
+          transparent 1.2px
+        );
+        background-size: 22px 22px;
+      }
+      .dark .bg-dotted {
+        background-image: radial-gradient(
+          rgba(255, 255, 255, 0.08) 1.2px,
+          transparent 1.2px
+        );
+      }
+
+      .blob {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(60px);
+        opacity: 0.55;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .dark .blob {
+        opacity: 0.35;
+        filter: blur(70px);
+      }
+
+      /* ----- card gradients (per card) ----- */
+      .card-coral {
+        background-image: linear-gradient(135deg, #ffb199 0%, #ff6a88 55%, #ff3d7f 100%);
+      }
+      .card-lime {
+        background-image: linear-gradient(135deg, #c8f284 0%, #6ee7b7 55%, #14b8a6 100%);
+      }
+      .card-violet {
+        background-image: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 55%, #6366f1 100%);
+      }
+      .card-sun {
+        background-image: linear-gradient(135deg, #fde68a 0%, #fb923c 55%, #f43f5e 100%);
+      }
+
+      /* dark variants — slightly desaturated + glow */
+      .dark .card-coral {
+        background-image: linear-gradient(135deg, #b86b6b 0%, #c0466a 55%, #b03070 100%);
+        box-shadow: 0 18px 50px -18px rgba(255, 61, 127, 0.45),
+          0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+      }
+      .dark .card-lime {
+        background-image: linear-gradient(135deg, #7fae5a 0%, #4fa78b 55%, #0f7a72 100%);
+        box-shadow: 0 18px 50px -18px rgba(110, 231, 183, 0.4),
+          0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+      }
+      .dark .card-violet {
+        background-image: linear-gradient(135deg, #8c79c4 0%, #6e44c8 55%, #4a4cc0 100%);
+        box-shadow: 0 18px 50px -18px rgba(139, 92, 246, 0.5),
+          0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+      }
+      .dark .card-sun {
+        background-image: linear-gradient(135deg, #c5a35e 0%, #c47238 55%, #b03350 100%);
+        box-shadow: 0 18px 50px -18px rgba(251, 146, 60, 0.45),
+          0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+      }
+
+      /* ----- rotation + hover micro-interactions ----- */
+      .tilt-l { transform: rotate(-2.2deg); }
+      .tilt-r { transform: rotate(2deg); }
+      .tilt-l2 { transform: rotate(-1deg); }
+      .tilt-r2 { transform: rotate(1.4deg); }
+
+      .card {
+        transition:
+          transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 280ms ease;
+        will-change: transform;
+      }
+      .card:hover {
+        transform: rotate(0deg) translateY(-8px) scale(1.025);
+        box-shadow:
+          0 32px 60px -22px rgba(0, 0, 0, 0.28),
+          0 0 0 1px rgba(255, 255, 255, 0.25) inset;
+      }
+      .dark .card:hover {
+        box-shadow:
+          0 32px 60px -22px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+          0 0 40px -10px rgba(255, 255, 255, 0.12);
+      }
+
+      .emoji {
+        display: inline-block;
+        transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .card:hover .emoji {
+        animation: bounce 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+      }
+      @keyframes bounce {
+        0%   { transform: translateY(0) rotate(0); }
+        30%  { transform: translateY(-12px) rotate(-8deg); }
+        60%  { transform: translateY(2px) rotate(6deg); }
+        100% { transform: translateY(0) rotate(0); }
+      }
+
+      .arrow {
+        transition: transform 240ms ease;
+      }
+      .card:hover .arrow {
+        transform: translateX(6px) rotate(-12deg);
+      }
+
+      /* ----- hero floaty bits ----- */
+      .float-slow {
+        animation: float 6s ease-in-out infinite;
+      }
+      .float-mid {
+        animation: float 4.5s ease-in-out infinite;
+        animation-delay: -1.2s;
+      }
+      .float-fast {
+        animation: float 3.5s ease-in-out infinite;
+        animation-delay: -2.4s;
+      }
+      @keyframes float {
+        0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+        50%      { transform: translateY(-10px) rotate(calc(var(--r, 0deg) + 4deg)); }
+      }
+
+      /* ----- divider ----- */
+      .divider-pill {
+        background-image: linear-gradient(135deg, #0f172a, #1e293b);
+      }
+
+      /* ----- focus a11y ----- */
+      a:focus-visible {
+        outline: 3px solid #6366f1;
+        outline-offset: 4px;
+        border-radius: 14px;
+      }
+
+      /* preview wrapper "phones" for top/bottom sections */
+      .preview {
+        border-radius: 28px;
+        overflow: hidden;
+        position: relative;
+      }
+    </style>
+  </head>
+  <body class="font-sans antialiased bg-slate-50 text-slate-900">
+    <!-- ============================================================ -->
+    <!-- LIGHT PREVIEW                                                 -->
+    <!-- ============================================================ -->
+    <section
+      id="light-preview"
+      class="bg-gradient-to-b from-amber-50 via-rose-50 to-violet-50"
+    >
+      <div class="max-w-[1280px] mx-auto px-6 lg:px-10 pt-8 pb-6">
+        <p
+          class="font-round font-bold text-xs tracking-[0.2em] text-slate-500 uppercase"
+        >
+          ☀️ Light Mode Preview
+        </p>
+      </div>
+      <div data-theme-scope="light">
+        <!-- inject landing for light -->
+        <div id="landing-light"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- DIVIDER                                                       -->
+    <!-- ============================================================ -->
+    <section class="bg-slate-100 py-10 relative overflow-hidden">
+      <div
+        class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent"
+      ></div>
+      <div class="max-w-[1280px] mx-auto px-6 flex items-center justify-center">
+        <div
+          class="divider-pill text-white px-7 py-3 rounded-full font-display font-bold tracking-wide shadow-lg shadow-slate-900/15 flex items-center gap-3"
+        >
+          <span class="text-amber-300">↓</span>
+          <span>다크 모드</span>
+          <span class="text-amber-300">↓</span>
+        </div>
+      </div>
+      <div
+        class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent"
+      ></div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- DARK PREVIEW                                                  -->
+    <!-- ============================================================ -->
+    <section id="dark-preview" class="bg-slate-950">
+      <div class="max-w-[1280px] mx-auto px-6 lg:px-10 pt-8 pb-6">
+        <p
+          class="font-round font-bold text-xs tracking-[0.2em] text-slate-400 uppercase"
+        >
+          🌙 Dark Mode Preview
+        </p>
+      </div>
+      <!-- Force dark via wrapper -->
+      <div class="dark">
+        <div
+          class="bg-slate-950 text-slate-100"
+          id="landing-dark-wrapper"
+        >
+          <div id="landing-dark"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- LIVE TOGGLE (real) — separate copy you can flip               -->
+    <!-- ============================================================ -->
+    <section
+      id="live-toggle-section"
+      class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
+    >
+      <div class="max-w-[1280px] mx-auto px-6 lg:px-10 pt-10 pb-6 flex items-center justify-between">
+        <p
+          class="font-round font-bold text-xs tracking-[0.2em] text-slate-500 dark:text-slate-400 uppercase"
+        >
+          🪄 Live Toggle — 실제 토글로 켜보기
+        </p>
+        <button
+          id="theme-toggle"
+          class="group inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-5 py-2.5 font-display font-bold text-sm shadow-md hover:scale-[1.04] transition"
+          aria-label="다크 모드 토글"
+        >
+          <span class="dark:hidden">🌙 다크로</span>
+          <span class="hidden dark:inline">☀️ 라이트로</span>
+        </button>
+      </div>
+      <div id="landing-live" class="pb-16"></div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TEMPLATE: landing fragment                                    -->
+    <!-- ============================================================ -->
+    <template id="landing-template">
+      <div class="relative overflow-hidden">
+        <!-- color blobs -->
+        <div
+          class="blob"
+          style="
+            width: 380px;
+            height: 380px;
+            top: -80px;
+            left: -60px;
+            background: radial-gradient(circle, #ff8aae 0%, transparent 65%);
+          "
+        ></div>
+        <div
+          class="blob"
+          style="
+            width: 320px;
+            height: 320px;
+            top: 40px;
+            right: -40px;
+            background: radial-gradient(circle, #a5b4fc 0%, transparent 65%);
+          "
+        ></div>
+        <div
+          class="blob"
+          style="
+            width: 360px;
+            height: 360px;
+            bottom: -80px;
+            left: 35%;
+            background: radial-gradient(circle, #86efac 0%, transparent 65%);
+          "
+        ></div>
+
+        <!-- dotted backdrop overlay -->
+        <div class="absolute inset-0 bg-dotted pointer-events-none"></div>
+
+        <!-- HEADER -->
+        <header
+          class="relative z-10 max-w-[1280px] mx-auto px-6 lg:px-10 pt-7 flex items-center justify-between"
+        >
+          <a href="#" class="group inline-flex items-center gap-2.5">
+            <span
+              class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 via-fuchsia-500 to-violet-500 text-white text-lg font-display font-extrabold shadow-lg shadow-fuchsia-500/30 group-hover:rotate-6 group-hover:scale-105 transition"
+              >G</span
+            >
+            <span
+              class="font-display text-lg font-extrabold tracking-tight text-slate-900 dark:text-white"
+              >GETIT <span class="text-rose-500 dark:text-rose-300">9기</span></span
+            >
+          </a>
+
+          <div class="flex items-center gap-3">
+            <span
+              class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-white/5 backdrop-blur px-3 py-1.5 text-xs font-round font-bold text-slate-700 dark:text-slate-200 ring-1 ring-slate-900/5 dark:ring-white/10"
+            >
+              <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              멘토링 진행 중
+            </span>
+            <button
+              data-local-toggle
+              class="inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 text-lg hover:rotate-12 hover:scale-110 transition shadow-sm"
+              aria-label="다크 모드 토글"
+            >
+              <span class="dark:hidden">🌙</span>
+              <span class="hidden dark:inline">☀️</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- HERO -->
+        <main
+          class="relative z-10 max-w-[1280px] mx-auto px-6 lg:px-10 pt-14 lg:pt-20 pb-10"
+        >
+          <div class="flex flex-col lg:flex-row items-start lg:items-center gap-10">
+            <div class="flex-1">
+              <span
+                class="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3.5 py-1.5 text-xs font-round font-bold text-rose-600 dark:text-rose-300 shadow-sm"
+              >
+                <span>🎉</span>
+                <span>2026 · KNU GETIT 9기</span>
+              </span>
+
+              <h1
+                class="mt-5 font-display font-extrabold tracking-tight text-5xl sm:text-6xl lg:text-7xl leading-[1.05] text-slate-900 dark:text-white"
+              >
+                <span class="block">9기 멘토링</span>
+                <span class="block">
+                  <span
+                    class="bg-clip-text text-transparent bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-600 dark:from-rose-300 dark:via-fuchsia-300 dark:to-violet-300"
+                    >프로젝트</span
+                  >
+                  <span class="inline-block float-fast" style="--r:-6deg">🚀</span>
+                </span>
+              </h1>
+
+              <p
+                class="mt-6 max-w-xl text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-round"
+              >
+                네 개의 미니 프로덕트, 한 번의 SSO. GETIT 9기가 같이
+                만들고 같이 굴리는
+                <span class="font-bold text-slate-900 dark:text-white"
+                  >작지만 진짜인</span
+                >
+                서비스들.
+              </p>
+
+              <div class="mt-8 flex flex-wrap items-center gap-3">
+                <a
+                  href="#projects"
+                  class="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 font-display font-bold shadow-lg shadow-slate-900/15 hover:scale-105 hover:-rotate-1 transition"
+                >
+                  프로젝트 둘러보기
+                  <span>↓</span>
+                </a>
+                <a
+                  href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b"
+                  target="_blank"
+                  rel="noopener"
+                  class="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 text-slate-800 dark:text-slate-100 px-5 py-3 font-display font-bold ring-1 ring-slate-900/5 dark:ring-white/10 hover:scale-105 hover:rotate-1 transition"
+                >
+                  📓 노션 본부
+                </a>
+              </div>
+            </div>
+
+            <!-- Hero playful collage -->
+            <div class="flex-1 relative h-[320px] sm:h-[380px] w-full">
+              <div
+                class="absolute top-2 left-6 h-24 w-24 rounded-3xl card-coral float-slow shadow-xl shadow-rose-400/30 grid place-items-center text-4xl"
+                style="--r:-8deg"
+              >
+                🤲
+              </div>
+              <div
+                class="absolute top-16 right-8 h-28 w-28 rounded-3xl card-lime float-mid shadow-xl shadow-emerald-400/30 grid place-items-center text-4xl"
+                style="--r:6deg"
+              >
+                📚
+              </div>
+              <div
+                class="absolute bottom-10 left-20 h-28 w-28 rounded-3xl card-violet float-fast shadow-xl shadow-violet-400/30 grid place-items-center text-4xl"
+                style="--r:-4deg"
+              >
+                💻
+              </div>
+              <div
+                class="absolute bottom-2 right-12 h-24 w-24 rounded-3xl card-sun float-slow shadow-xl shadow-orange-400/30 grid place-items-center text-4xl"
+                style="--r:10deg"
+              >
+                🎤
+              </div>
+              <!-- sparkles -->
+              <span class="absolute top-6 right-1/3 text-2xl float-mid" style="--r:0deg">✨</span>
+              <span class="absolute bottom-20 right-1/4 text-xl float-fast" style="--r:0deg">⭐</span>
+              <span class="absolute top-1/2 left-1/4 text-lg float-slow" style="--r:0deg">💫</span>
+            </div>
+          </div>
+
+          <!-- PROJECT GRID -->
+          <section id="projects" class="mt-16 lg:mt-24">
+            <div class="flex items-end justify-between flex-wrap gap-4 mb-8">
+              <div>
+                <p
+                  class="font-round font-bold text-sm uppercase tracking-[0.18em] text-fuchsia-500 dark:text-fuchsia-300"
+                >
+                  ✦ 4 Projects
+                </p>
+                <h2
+                  class="mt-2 font-display font-extrabold text-3xl sm:text-4xl text-slate-900 dark:text-white"
+                >
+                  골라서 놀러 가기
+                </h2>
+              </div>
+              <p
+                class="text-slate-500 dark:text-slate-400 max-w-md font-round"
+              >
+                각 카드를 눌러 서비스로 점프. 통합 SSO라 한 번만
+                로그인하면 끝.
+              </p>
+            </div>
+
+            <!-- 12-col grid; asymmetric -->
+            <div class="grid grid-cols-12 gap-5 lg:gap-7">
+              <!-- Card 1: 취미메이트 (coral) — large -->
+              <a
+                href="https://hobby.get-it.cloud"
+                class="card tilt-l col-span-12 sm:col-span-6 lg:col-span-7 rounded-[28px] card-coral text-white p-7 lg:p-9 relative overflow-hidden shadow-xl shadow-rose-400/30"
+              >
+                <div class="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/15"></div>
+                <div class="absolute top-10 right-14 h-16 w-16 rounded-full bg-white/15"></div>
+
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full bg-white/25 backdrop-blur px-3 py-1 text-[11px] font-round font-bold tracking-wider"
+                  >COMMUNITY</span
+                >
+
+                <div class="mt-6 flex items-start gap-4">
+                  <span class="emoji text-6xl drop-shadow-md">🤲</span>
+                  <div>
+                    <h3
+                      class="font-display font-extrabold text-2xl sm:text-3xl leading-tight"
+                    >
+                      취미메이트
+                    </h3>
+                    <p class="mt-1 text-white/90 font-round">
+                      hobby.get-it.cloud
+                    </p>
+                  </div>
+                </div>
+
+                <p
+                  class="mt-6 text-white/95 text-base sm:text-lg max-w-md leading-relaxed font-round"
+                >
+                  관심사 기반 모임/소모임 매칭. 비슷한 결의 사람을
+                  쉽게 발견하고, 가볍게 모이자.
+                </p>
+
+                <div
+                  class="mt-7 inline-flex items-center gap-2 rounded-full bg-white/95 text-rose-600 px-4 py-2 font-display font-bold text-sm shadow"
+                >
+                  놀러 가기
+                  <span class="arrow">→</span>
+                </div>
+              </a>
+
+              <!-- Card 2: 스마트 서재 (lime) — small -->
+              <a
+                href="https://shelf.get-it.cloud"
+                class="card tilt-r col-span-12 sm:col-span-6 lg:col-span-5 rounded-[28px] card-lime text-emerald-950 p-7 lg:p-9 relative overflow-hidden shadow-xl shadow-emerald-400/30"
+              >
+                <div
+                  class="absolute -bottom-10 -left-10 h-44 w-44 rounded-full bg-white/25"
+                ></div>
+                <div
+                  class="absolute top-6 right-6 h-12 w-12 rounded-2xl bg-white/40 rotate-12"
+                ></div>
+
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full bg-emerald-900/15 px-3 py-1 text-[11px] font-round font-bold tracking-wider"
+                  >READING</span
+                >
+
+                <div class="mt-6 flex items-start gap-4">
+                  <span class="emoji text-6xl drop-shadow-md">📚</span>
+                  <div>
+                    <h3
+                      class="font-display font-extrabold text-2xl sm:text-3xl leading-tight"
+                    >
+                      스마트 서재
+                    </h3>
+                    <p class="mt-1 text-emerald-900/80 font-round">
+                      shelf.get-it.cloud
+                    </p>
+                  </div>
+                </div>
+
+                <p
+                  class="mt-6 text-emerald-950/90 text-base sm:text-lg max-w-md leading-relaxed font-round"
+                >
+                  독서 진행도 + 책 추천 + 메모. 흩어진 독서 기록을
+                  한 권의 책처럼.
+                </p>
+
+                <div
+                  class="mt-7 inline-flex items-center gap-2 rounded-full bg-emerald-950 text-lime-200 px-4 py-2 font-display font-bold text-sm shadow"
+                >
+                  서가 열기
+                  <span class="arrow">→</span>
+                </div>
+              </a>
+
+              <!-- Card 3: 칸반 (violet) — small -->
+              <a
+                href="https://board.get-it.cloud"
+                class="card tilt-l2 col-span-12 sm:col-span-6 lg:col-span-5 rounded-[28px] card-violet text-white p-7 lg:p-9 relative overflow-hidden shadow-xl shadow-violet-500/30"
+              >
+                <div
+                  class="absolute top-0 right-0 h-full w-1/2 opacity-25"
+                  style="
+                    background-image: repeating-linear-gradient(
+                      45deg,
+                      rgba(255,255,255,0.5) 0 2px,
+                      transparent 2px 14px
+                    );
+                  "
+                ></div>
+
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full bg-white/25 backdrop-blur px-3 py-1 text-[11px] font-round font-bold tracking-wider"
+                  >COLLAB</span
+                >
+
+                <div class="mt-6 flex items-start gap-4">
+                  <span class="emoji text-6xl drop-shadow-md">💻</span>
+                  <div>
+                    <h3
+                      class="font-display font-extrabold text-2xl sm:text-3xl leading-tight"
+                    >
+                      팀 칸반
+                    </h3>
+                    <p class="mt-1 text-white/85 font-round">
+                      board.get-it.cloud
+                    </p>
+                  </div>
+                </div>
+
+                <p
+                  class="mt-6 text-white/95 text-base sm:text-lg max-w-md leading-relaxed font-round"
+                >
+                  할 일 보드 + 협업 기능. 카드 드래그로 진척을
+                  눈에 보이게.
+                </p>
+
+                <div
+                  class="mt-7 inline-flex items-center gap-2 rounded-full bg-white/95 text-violet-700 px-4 py-2 font-display font-bold text-sm shadow"
+                >
+                  보드 열기
+                  <span class="arrow">→</span>
+                </div>
+              </a>
+
+              <!-- Card 4: 롤링페이퍼 (sun) — large -->
+              <a
+                href="https://letter.get-it.cloud"
+                class="card tilt-r2 col-span-12 sm:col-span-6 lg:col-span-7 rounded-[28px] card-sun text-white p-7 lg:p-9 relative overflow-hidden shadow-xl shadow-orange-400/30"
+              >
+                <!-- confetti dots -->
+                <span class="absolute top-6 right-10 h-3 w-3 rounded-full bg-white/80"></span>
+                <span class="absolute top-12 right-24 h-2 w-2 rounded-full bg-white/70"></span>
+                <span class="absolute top-20 right-8 h-2.5 w-2.5 rounded-full bg-white/75"></span>
+                <span class="absolute bottom-10 right-32 h-3 w-3 rounded-full bg-white/80"></span>
+
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full bg-white/25 backdrop-blur px-3 py-1 text-[11px] font-round font-bold tracking-wider"
+                  >ANONYMOUS</span
+                >
+
+                <div class="mt-6 flex items-start gap-4">
+                  <span class="emoji text-6xl drop-shadow-md">🎤</span>
+                  <div>
+                    <h3
+                      class="font-display font-extrabold text-2xl sm:text-3xl leading-tight"
+                    >
+                      익명 롤링페이퍼
+                    </h3>
+                    <p class="mt-1 text-white/90 font-round">
+                      letter.get-it.cloud
+                    </p>
+                  </div>
+                </div>
+
+                <p
+                  class="mt-6 text-white/95 text-base sm:text-lg max-w-md leading-relaxed font-round"
+                >
+                  GETIT 부원끼리 익명 메시지. 멘토에게 못 했던 말,
+                  동기에게 띄우는 한 줄.
+                </p>
+
+                <div
+                  class="mt-7 inline-flex items-center gap-2 rounded-full bg-white/95 text-orange-700 px-4 py-2 font-display font-bold text-sm shadow"
+                >
+                  편지 쓰기
+                  <span class="arrow">→</span>
+                </div>
+              </a>
+            </div>
+          </section>
+
+          <!-- FOOTER -->
+          <footer
+            class="mt-20 pb-10 relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+          >
+            <div class="flex items-center gap-3">
+              <span
+                class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-400 via-fuchsia-500 to-violet-500 text-white font-display font-extrabold shadow"
+                >G</span
+              >
+              <p class="text-sm text-slate-600 dark:text-slate-300 font-round">
+                © GETIT 9기 멘토링 · 경북대학교 IT 학회
+              </p>
+            </div>
+            <div class="flex items-center gap-3 text-xs font-round font-bold">
+              <span
+                class="rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3 py-1.5 text-slate-700 dark:text-slate-200"
+                >🌐 *.get-it.cloud</span
+              >
+              <span
+                class="rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3 py-1.5 text-slate-700 dark:text-slate-200"
+                >🔐 통합 SSO</span
+              >
+            </div>
+          </footer>
+        </main>
+      </div>
+    </template>
+
+    <script>
+      // Inject the same landing fragment into three slots:
+      // 1) light preview (no dark class)
+      // 2) dark preview (forced .dark wrapper above)
+      // 3) live toggle (controlled by #theme-toggle)
+      (function () {
+        const tpl = document.getElementById("landing-template");
+        ["landing-light", "landing-dark", "landing-live"].forEach((id) => {
+          const slot = document.getElementById(id);
+          if (slot) slot.appendChild(tpl.content.cloneNode(true));
+        });
+
+        // ---- live toggle ----
+        const root = document.documentElement;
+        const toggle = document.getElementById("theme-toggle");
+        const apply = (mode) => {
+          if (mode === "dark") root.classList.add("dark");
+          else root.classList.remove("dark");
+        };
+        // initial: respect prefers-color-scheme
+        apply(
+          window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light"
+        );
+        toggle?.addEventListener("click", () => {
+          apply(root.classList.contains("dark") ? "light" : "dark");
+        });
+
+        // ---- local toggles inside each landing fragment ----
+        // For previews 1 & 2 we don't want the local toggle to flip the whole page;
+        // it should only flip the live-toggle section. So redirect them.
+        document.querySelectorAll("[data-local-toggle]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            apply(root.classList.contains("dark") ? "light" : "dark");
+            // also scroll to live section so user sees the change
+            document
+              .getElementById("live-toggle-section")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>
