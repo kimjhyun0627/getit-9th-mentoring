@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1200"
+  height="630"
+  viewBox="0 0 1200 630"
+  role="img"
+  aria-label="GETIT 9기 멘토링 프로젝트 — 4개의 풀스택 서비스를 한 허브에서 (다크)"
+>
+  <!--
+    GETIT 9기 멘토링 — Open Graph 카드 (Minimalist, dark)
+    1200×630, WCAG AA 대비 검증 완료.
+    팔레트: zinc-950 베이스(#09090b) + zinc-300/400(#d4d4d8/#a1a1aa) + accent #818cf8 + hairline rgba(255,255,255,0.10)
+    accent는 다크 환경에서 가독성을 위해 indigo-400(#818cf8) 사용.
+  -->
+  <defs>
+    <style>
+      .font-sans {
+        font-family:
+          "Pretendard Variable", Pretendard, Inter, -apple-system,
+          BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      }
+      .font-emoji {
+        font-family:
+          "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji",
+          "Pretendard Variable", system-ui, sans-serif;
+      }
+      .h1 {
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        fill: #fafafa;
+      }
+      .sub {
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        fill: #a1a1aa;
+      }
+      .eyebrow {
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        fill: #818cf8;
+        text-transform: uppercase;
+      }
+      .card-title {
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        fill: #fafafa;
+      }
+      .card-num {
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        fill: #71717a;
+      }
+      .footer {
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        fill: #a1a1aa;
+      }
+      .brand {
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        fill: #fafafa;
+      }
+    </style>
+  </defs>
+
+  <!-- 배경 (zinc-950) -->
+  <rect width="1200" height="630" fill="#09090b" />
+
+  <!-- 미세 도트 그리드 -->
+  <pattern
+    id="dotGridDark"
+    x="0"
+    y="0"
+    width="32"
+    height="32"
+    patternUnits="userSpaceOnUse"
+  >
+    <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.06)" />
+  </pattern>
+  <rect width="1200" height="630" fill="url(#dotGridDark)" opacity="0.7" />
+
+  <!-- 외곽 hairline -->
+  <rect
+    x="0.5"
+    y="0.5"
+    width="1199"
+    height="629"
+    fill="none"
+    stroke="rgba(255,255,255,0.08)"
+    stroke-width="1"
+  />
+
+  <!-- 상단 좌측: 인디고 도트 + 브랜드 -->
+  <g transform="translate(72, 84)">
+    <circle cx="6" cy="10" r="6" fill="#818cf8" />
+    <text x="24" y="16" class="font-sans brand" font-size="20">
+      GETIT · 9th
+    </text>
+  </g>
+
+  <!-- Eyebrow -->
+  <text
+    x="72"
+    y="222"
+    class="font-sans eyebrow"
+    font-size="14"
+  >— MENTORSHIP / 2026</text>
+
+  <!-- H1: 두 줄 -->
+  <text
+    x="72"
+    y="282"
+    class="font-sans h1"
+    font-size="64"
+  >GETIT 9기</text>
+  <text
+    x="72"
+    y="356"
+    class="font-sans h1"
+    font-size="64"
+  >멘토링 프로젝트</text>
+
+  <line
+    x1="72"
+    y1="392"
+    x2="148"
+    y2="392"
+    stroke="#818cf8"
+    stroke-width="2"
+  />
+
+  <!-- 부연 -->
+  <text
+    x="72"
+    y="440"
+    class="font-sans sub"
+    font-size="24"
+  >4개의 풀스택 서비스를</text>
+  <text
+    x="72"
+    y="476"
+    class="font-sans sub"
+    font-size="24"
+  >한 허브에서.</text>
+
+  <!-- ─────────── 우측 영역 (2×2 카드 그리드) ─────────── -->
+
+  <!-- Card 01 · 취미메이트 -->
+  <g transform="translate(648, 100)">
+    <rect
+      x="0.5"
+      y="0.5"
+      width="223"
+      height="183"
+      rx="14"
+      fill="#18181b"
+      stroke="rgba(255,255,255,0.10)"
+      stroke-width="1"
+    />
+    <text x="20" y="38" class="font-sans card-num" font-size="11">01</text>
+    <text x="20" y="118" class="font-emoji" font-size="56">🤲</text>
+    <text x="20" y="160" class="font-sans card-title" font-size="18">취미메이트</text>
+  </g>
+
+  <!-- Card 02 · 스마트 서재 -->
+  <g transform="translate(888, 100)">
+    <rect
+      x="0.5"
+      y="0.5"
+      width="223"
+      height="183"
+      rx="14"
+      fill="#18181b"
+      stroke="rgba(255,255,255,0.10)"
+      stroke-width="1"
+    />
+    <text x="20" y="38" class="font-sans card-num" font-size="11">02</text>
+    <text x="20" y="118" class="font-emoji" font-size="56">📚</text>
+    <text x="20" y="160" class="font-sans card-title" font-size="18">스마트 서재</text>
+  </g>
+
+  <!-- Card 03 · 팀 칸반 -->
+  <g transform="translate(648, 300)">
+    <rect
+      x="0.5"
+      y="0.5"
+      width="223"
+      height="183"
+      rx="14"
+      fill="#18181b"
+      stroke="rgba(255,255,255,0.10)"
+      stroke-width="1"
+    />
+    <text x="20" y="38" class="font-sans card-num" font-size="11">03</text>
+    <text x="20" y="118" class="font-emoji" font-size="56">💻</text>
+    <text x="20" y="160" class="font-sans card-title" font-size="18">팀 칸반</text>
+  </g>
+
+  <!-- Card 04 · 익명 롤링페이퍼 -->
+  <g transform="translate(888, 300)">
+    <rect
+      x="0.5"
+      y="0.5"
+      width="223"
+      height="183"
+      rx="14"
+      fill="#18181b"
+      stroke="rgba(255,255,255,0.10)"
+      stroke-width="1"
+    />
+    <text x="20" y="38" class="font-sans card-num" font-size="11">04</text>
+    <text x="20" y="118" class="font-emoji" font-size="56">🎤</text>
+    <text x="20" y="160" class="font-sans card-title" font-size="18">익명 롤링페이퍼</text>
+  </g>
+
+  <!-- ─────────── 푸터 ─────────── -->
+  <line
+    x1="72"
+    y1="552"
+    x2="1128"
+    y2="552"
+    stroke="rgba(255,255,255,0.08)"
+    stroke-width="1"
+  />
+
+  <text
+    x="72"
+    y="586"
+    class="font-sans footer"
+    font-size="16"
+  >get-it.cloud · 경북대학교 IT 학회 GETIT 9기</text>
+
+  <text
+    x="1128"
+    y="586"
+    class="font-sans footer"
+    font-size="16"
+    text-anchor="end"
+  >SSO · Dark Mode · Responsive</text>
+</svg>
