@@ -1,0 +1,15 @@
+{
+  "name": "@getit/config-tailwind",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tailwind base preset (darkMode: 'class') - 6개 FE 앱 공통",
+  "main": "tailwind.preset.js",
+  "exports": {
+    "./preset": "./tailwind.preset.js"
+  },
+  "files": ["tailwind.preset.js"],
+  "peerDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

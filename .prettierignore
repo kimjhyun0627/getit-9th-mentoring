@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+coverage/
+.pnpm-store/
+*.lock
+pnpm-lock.yaml
+.gstack/
+.claude/
+LICENSE

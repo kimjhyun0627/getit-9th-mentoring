@@ -1,0 +1,48 @@
+# CodeRabbit configuration
+# 자세히: https://docs.coderabbit.ai/guides/configure-coderabbit
+
+language: ko-KR
+early_access: false
+tone_instructions: "한국어 반말로 간결하고 직설적으로 리뷰. 친절보다는 실용 우선. 근거 없는 칭찬 금지."
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - WIP
+      - DRAFT
+  path_filters:
+    - "!**/pnpm-lock.yaml"
+    - "!**/package-lock.json"
+    - "!**/yarn.lock"
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/.turbo/**"
+    - "!**/coverage/**"
+    - "!**/.next/**"
+  path_instructions:
+    - path: "**/*.{js,jsx}"
+      instructions: "JS only 모노레포. JSDoc + Zod 사용. 한 파일 300줄 max, 150줄 권장."
+    - path: "apps/*-api/**"
+      instructions: "Express + Prisma + Zod. TDD 필수 (Vitest + supertest)."
+    - path: "apps/*-web/**"
+      instructions: "Vite + React + Tailwind + Zustand + TanStack Query. Tailwind darkMode: 'class'."
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
