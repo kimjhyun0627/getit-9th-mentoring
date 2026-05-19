@@ -60,6 +60,47 @@
 4. **병렬 작업** 가능 시 한 메시지에 여러 Agent 호출 (예: FE + BE 동시, 디자이너 5명 동시).
 5. **결과 형태**를 명시 (diff / 표 / 체크리스트 / 테스트 결과 등).
 6. **컨텍스트 절약**: 에이전트한테 작업 관련 `.claude/projects/<프로젝트>.md`만 Read하라고 지시 (CLAUDE.md만 자동 로드).
+7. **개발자 에이전트는 git worktree로 격리 필수** (코드 편집 하는 에이전트만 해당, Plan/Explore 같은 read-only는 제외). 병렬 디스패치 시 동일 working tree에서 `git checkout`이 충돌해서 파일 손실됨. worktree 사용법은 아래 "Worktree 격리" 섹션 참조.
+
+### Worktree 격리 (개발자 에이전트 강제)
+
+병렬 개발자 에이전트가 한 working tree에서 `git checkout`을 번갈아 하면 한 에이전트 파일이 다른 에이전트한테 stash/revert로 날아감 (실제 발생함, PR #5/#10/#11에서 학습).
+
+**에이전트 프롬프트에 항상 박는 도입부**:
+
+```text
+## Working tree 격리 (의무)
+
+이 작업은 격리 worktree에서 진행해. 메인 worktree는 다른 에이전트가 점유 중일 수 있음.
+
+\`\`\`bash
+# 1) 격리 worktree 생성 (브랜치 같이)
+WT="/tmp/getit-worktrees/<issue-slug>"
+git -C /Users/jinhyun/DATA/KNU/GETIT/getit-9th-mentoring worktree add -b feat/<#>-<slug> "$WT" origin/main
+cd "$WT"
+
+# 2) 작업 (cd 유지)
+pnpm install
+# ... 코드 편집 ...
+
+# 3) 커밋 + push (이 worktree에서)
+git add -A
+HUSKY=0 git commit -m "feat(<scope>): ..."
+git push -u origin feat/<#>-<slug>
+gh pr create ...
+
+# 4) 끝나면 worktree 제거 (메인 worktree에서는 자동 정리 안 됨)
+cd /Users/jinhyun/DATA/KNU/GETIT/getit-9th-mentoring
+git worktree remove "$WT" --force
+\`\`\`
+
+규칙:
+- `cd $WT` 이후 모든 Bash/Edit/Write는 그 worktree 안에서 작동
+- 다른 worktree나 메인 working tree의 `git checkout`이 영향 못 미침
+- 작업 완료 후 worktree 제거 (디스크 정리 + 에이전트 격리 종료 신호)
+```
+
+→ Agent tool의 `isolation: "worktree"` 파라미터는 시스템 미지원(WorktreeCreate hook 없음)이라 에이전트가 **직접 `git worktree add`** 호출.
 
 ### 프롬프트 템플릿
 
@@ -85,12 +126,16 @@
 - TDD 필수
 - 한 파일 300줄 max
 - Conventional Commits로 커밋
+- **Worktree 격리 필수** (개발자 에이전트): `git worktree add /tmp/getit-worktrees/<slug>`. 상세: 위 "Worktree 격리" 섹션
+- **봇 코멘트(Gemini/CodeRabbit) 처리 필수**: 적용 또는 보류 답글 + resolve
+  (silent resolve 금지). 상세: `.claude/workflow.md` "Thread resolve 규칙"
 
 ## Output
 - 변경 파일 리스트 + 핵심 diff
 - 통과한 테스트 목록
 - 발견한 이슈/TODO (있으면 follow-up issue 제안)
 - PR 본문 초안 (PR 템플릿 따름)
+- **봇 코멘트 처리 결과**: 적용 N건 / 보류 N건 / 각 thread URL
 ```
 
 ### 예시 호출 (Backend Engineer)
