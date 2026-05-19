@@ -8,7 +8,6 @@ CREATE TABLE `User` (
     `updatedAt` DATETIME(3) NOT NULL,
 
     UNIQUE INDEX `User_email_key`(`email`),
-    INDEX `User_email_idx`(`email`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -23,7 +22,6 @@ CREATE TABLE `RefreshToken` (
 
     UNIQUE INDEX `RefreshToken_tokenHash_key`(`tokenHash`),
     INDEX `RefreshToken_userId_idx`(`userId`),
-    INDEX `RefreshToken_tokenHash_idx`(`tokenHash`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

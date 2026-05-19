@@ -8,10 +8,12 @@
  *       또는 `pnpm --filter @getit/auth-api exec prisma db seed`
  */
 
+import 'dotenv/config';
+
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
-const BCRYPT_COST = 12;
+const BCRYPT_COST = Number.parseInt(process.env.BCRYPT_COST ?? '12', 10);
 
 const SEED_USERS = [
   { email: 'alice@get-it.cloud', name: 'Alice', password: 'password1234' },
@@ -32,7 +34,7 @@ const seedUser = async ({ email, name, password }) => {
 };
 
 const main = async () => {
-  console.log('seeding auth-api dev users (bcrypt cost=12)...');
+  console.log(`seeding auth-api dev users (bcrypt cost=${BCRYPT_COST})...`);
   for (const u of SEED_USERS) {
     await seedUser(u);
   }

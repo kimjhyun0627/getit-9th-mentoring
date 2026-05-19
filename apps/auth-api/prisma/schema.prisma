@@ -24,8 +24,6 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
-
-  @@index([email])
 }
 
 /// Refresh token 회전용 저장소.
@@ -43,5 +41,4 @@ model RefreshToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([tokenHash])
 }
