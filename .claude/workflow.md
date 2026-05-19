@@ -187,8 +187,34 @@ Code Reviewer / 개발자 에이전트가 따름:
 
 - **Squash merge 기본** (히스토리 깔끔)
 - main 브랜치 보호: 직접 push 금지, PR만 가능
-- 필수 체크: GitHub Actions CI 통과 + CodeRabbit OK + 리뷰어 1명 승인
 - 머지 후 브랜치 자동 삭제
+
+### 필수 머지 게이트 (Branch Protection)
+
+PR이 main에 머지되려면 **아래 4개 모두** 통과해야 함:
+
+1. **CI 그린** — `format / lint / test / build` GitHub Actions workflow 성공
+2. **Gemini Code Assist APPROVED** — `gemini-code-assist approved` workflow 통과 (`.github/workflows/gemini-approval-gate.yml`)
+   - Gemini가 COMMENTED만 남기면 통과 X. `APPROVED` 리뷰 state 필요.
+   - 개선 적용 후 `@gemini-code-assist /review` 댓글로 재리뷰 요청 가능.
+3. **모든 review thread resolved** — `required_conversation_resolution: true`. 미해결 코멘트 1개라도 있으면 머지 X.
+4. **PR 필수** — `main`에 직접 push 금지. self-PR도 OK (require_approving_review_count: 0).
+
+추가 보호:
+
+- `required_linear_history: true` (squash 만 허용)
+- `allow_force_pushes: false`, `allow_deletions: false`
+- admin은 긴급 시 `gh pr merge --admin` 으로 bypass 가능 (`enforce_admins: false`).
+
+### Gemini Code Assist 운영
+
+- 설정: `.gemini/config.yaml` — 한국어 톤, MEDIUM threshold, lockfile/dist/design HTML 무시.
+- 리뷰 흐름: PR opened → Gemini가 summary + 라인 코멘트 → 개발자가 fix + 코멘트 resolve → `@gemini-code-assist /review`로 재리뷰 → APPROVED 받으면 머지 게이트 통과.
+- **Gemini approve 권한**: GitHub App "Pull request reviews: write" 권한 필요. Settings → Apps → Gemini Code Assist → Configure에서 확인.
+
+### CodeRabbit (옵션)
+
+- 설치되면 자동 리뷰 (한국어). 필수 게이트엔 안 들어감 — Gemini가 메인 리뷰어 역할.
 
 ## 에이전트별 GitHub 책임
 
