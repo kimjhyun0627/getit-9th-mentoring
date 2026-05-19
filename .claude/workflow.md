@@ -139,20 +139,21 @@ Closes #<issue#>
 - [ ] README 또는 도큐멘트 업데이트
 ```
 
-## CodeRabbit 통합
+## 자동 리뷰 봇 통합
+
+메인 리뷰어는 **Gemini Code Assist**. CodeRabbit은 선택 사항(설치 시 추가 의견 제공).
+머지 게이트는 Gemini의 APPROVED만 강제 — CodeRabbit은 봐도 좋고 안 봐도 좋음.
+
+### CodeRabbit (옵션 — 설치 시)
 
 - **설치**: GitHub Marketplace → CodeRabbit 앱 → 레포 권한 부여 (무료 티어)
 - **설정 파일**: `.coderabbit.yaml` (레포 루트)
-  - JS 모드 강제
-  - 한국어 리뷰 코멘트
-  - 무시 패턴: `*.lock`, `node_modules/`, `dist/`
 - **트리거**: PR 열리면 자동 리뷰
 - **상호작용**: `@coderabbitai resolve`, `@coderabbitai pause`, `@coderabbitai full review`
-- **CI 게이트**: CodeRabbit "Approved" 라벨 + 사람 1명 리뷰 필요
 
-### CodeRabbit apply 자동화 (Claude가 직접 처리)
+### 봇 제안 apply 자동화 (Claude가 직접 처리)
 
-Claude(주로 개발자 에이전트)가 CodeRabbit 제안을 자동 적용 가능. 두 가지 방식:
+Claude(주로 개발자 에이전트)가 Gemini/CodeRabbit 제안을 자동 적용 가능. 두 가지 방식:
 
 #### 방식 A — 코멘트 trigger 명령
 
@@ -198,7 +199,7 @@ PR이 main에 머지되려면 **아래 4개 모두** 통과해야 함:
    - Gemini가 COMMENTED만 남기면 통과 X. `APPROVED` 리뷰 state 필요.
    - 개선 적용 후 `@gemini-code-assist /review` 댓글로 재리뷰 요청 가능.
 3. **모든 review thread resolved** — `required_conversation_resolution: true`. 미해결 코멘트 1개라도 있으면 머지 X.
-4. **PR 필수** — `main`에 직접 push 금지. self-PR도 OK (require_approving_review_count: 0).
+4. **PR 필수** — `main`에 직접 push 금지. self-PR도 OK (`required_approving_review_count: 0`).
 
 추가 보호:
 
@@ -211,10 +212,6 @@ PR이 main에 머지되려면 **아래 4개 모두** 통과해야 함:
 - 설정: `.gemini/config.yaml` — 한국어 톤, MEDIUM threshold, lockfile/dist/design HTML 무시.
 - 리뷰 흐름: PR opened → Gemini가 summary + 라인 코멘트 → 개발자가 fix + 코멘트 resolve → `@gemini-code-assist /review`로 재리뷰 → APPROVED 받으면 머지 게이트 통과.
 - **Gemini approve 권한**: GitHub App "Pull request reviews: write" 권한 필요. Settings → Apps → Gemini Code Assist → Configure에서 확인.
-
-### CodeRabbit (옵션)
-
-- 설치되면 자동 리뷰 (한국어). 필수 게이트엔 안 들어감 — Gemini가 메인 리뷰어 역할.
 
 ## 에이전트별 GitHub 책임
 
