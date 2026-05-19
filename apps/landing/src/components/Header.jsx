@@ -1,6 +1,12 @@
 import { ThemeToggle } from '@getit/theme';
 
-const AUTH_LOGIN_URL = 'https://auth.get-it.cloud/login?redirect=https://get-it.cloud';
+const AUTH_ORIGIN = 'https://auth.get-it.cloud';
+
+const buildLoginUrl = () => {
+  const back =
+    typeof window !== 'undefined' && window.location ? window.location.href : 'https://get-it.cloud';
+  return `${AUTH_ORIGIN}/login?redirect=${encodeURIComponent(back)}`;
+};
 
 /**
  * Sticky 상단 헤더. 1px hairline 하단 보더 + backdrop-blur.
@@ -41,7 +47,7 @@ export const Header = () => {
         <div className="flex items-center gap-2">
           <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-foreground transition hover:bg-foreground/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
           <a
-            href={AUTH_LOGIN_URL}
+            href={buildLoginUrl()}
             className="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-foreground/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
           >
             Sign in

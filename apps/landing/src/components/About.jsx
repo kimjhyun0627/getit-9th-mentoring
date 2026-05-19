@@ -6,14 +6,22 @@
  */
 export const About = () => {
   return (
-    <section id="about" data-testid="about-section" className="border-t border-hairline">
+    <section
+      id="about"
+      data-testid="about-section"
+      aria-labelledby="about-heading"
+      className="border-t border-hairline"
+    >
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10 md:py-28">
         <div className="grid gap-10 md:grid-cols-12">
           <div className="md:col-span-4">
             <p className="mb-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
               — About
             </p>
-            <h2 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+            <h2
+              id="about-heading"
+              className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl"
+            >
               작지만, 진짜 프로덕션.
             </h2>
           </div>
