@@ -48,11 +48,16 @@ const publicUser = (user) => ({ sub: user.id, email: user.email, name: user.name
 /**
  * access + refresh 토큰 발급 + DB 저장 + 쿠키 set 까지 한 번에.
  *
+ * `tx` 가 주어지면 그 트랜잭션 컨텍스트에서 refresh token 을 생성한다.
+ * (signup/login 등에서 사용자 생성과 같이 묶을 수 있도록.)
+ *
  * @param {{ id: string, email: string, name: string }} user
  * @param {import('express').Response} res
+ * @param {{ refreshToken: { create: typeof prisma.refreshToken.create } }} [tx]
  */
-const issueTokensAndCookies = async (user, res) => {
+const issueTokensAndCookies = async (user, res, tx) => {
   const cfg = readAuthEnv();
+  const client = tx ?? prisma;
   const accessToken = generateAccessToken(
     { sub: user.id, email: user.email, name: user.name },
     cfg.jwtSecret,
@@ -60,12 +65,15 @@ const issueTokensAndCookies = async (user, res) => {
   );
   const refreshToken = generateRefreshToken();
   const expiresAt = new Date(Date.now() + cfg.refreshTtlDays * 24 * 60 * 60 * 1000);
-  await prisma.refreshToken.create({
+  await client.refreshToken.create({
     data: { userId: user.id, tokenHash: hashRefreshToken(refreshToken), expiresAt },
   });
   setAuthCookies(res, { accessToken, refreshToken }, cfg);
   return { accessToken, refreshToken };
 };
+
+// Prisma unique constraint violation code.
+const PRISMA_UNIQUE_VIOLATION = 'P2002';
 
 /**
  * 인증 라우터 생성.
@@ -84,12 +92,27 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter }) => {
       if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
 
       const { email, password, name } = parsed.data;
+      // 사전 조회로 명시 충돌 메시지 + 동시성 race 는 P2002 catch 로 백업.
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) return res.status(409).json({ error: 'EmailAlreadyInUse' });
 
       const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
-      const user = await prisma.user.create({ data: { email, name, passwordHash } });
-      await issueTokensAndCookies(user, res);
+
+      // user.create + refreshToken.create 를 한 트랜잭션으로 묶어
+      // 토큰 발급 실패 시 사용자 레코드도 롤백 → 가입 프로세스 일관성.
+      let user;
+      try {
+        user = await prisma.$transaction(async (tx) => {
+          const created = await tx.user.create({ data: { email, name, passwordHash } });
+          await issueTokensAndCookies(created, res, tx);
+          return created;
+        });
+      } catch (err) {
+        if (err?.code === PRISMA_UNIQUE_VIOLATION) {
+          return res.status(409).json({ error: 'EmailAlreadyInUse' });
+        }
+        throw err;
+      }
       return res.status(201).json({ user: publicUser(user) });
     } catch (err) {
       return next(err);
@@ -116,31 +139,44 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter }) => {
     }
   });
 
-  // POST /api/refresh — 토큰 회전
+  // POST /api/refresh — 토큰 회전 (원자적 + reuse-detection)
   router.post('/refresh', async (req, res, next) => {
     try {
       const raw = req.cookies?.[REFRESH_COOKIE];
       if (!raw) return res.status(401).json({ error: 'NoRefreshToken' });
 
-      const stored = await prisma.refreshToken.findUnique({
-        where: { tokenHash: hashRefreshToken(raw) },
+      const tokenHash = hashRefreshToken(raw);
+      // 조건부 revoke: revokedAt IS NULL AND expiresAt > now 일 때만 1건 갱신.
+      // 두 개의 동시 요청이 같은 토큰을 사용해도 단 하나만 count=1 을 받는다.
+      const { count } = await prisma.refreshToken.updateMany({
+        where: { tokenHash, revokedAt: null, expiresAt: { gt: new Date() } },
+        data: { revokedAt: new Date() },
       });
-      if (!stored || stored.revokedAt || stored.expiresAt <= new Date()) {
+
+      if (count !== 1) {
+        // 토큰이 이미 revoked 거나 만료/존재하지 않는다.
+        // revoked 였다면 reuse-attack 가능성 → 해당 유저의 모든 활성 토큰 강제 무효화.
+        const stored = await prisma.refreshToken.findUnique({ where: { tokenHash } });
+        if (stored?.revokedAt) {
+          await prisma.refreshToken
+            .updateMany({
+              where: { userId: stored.userId, revokedAt: null },
+              data: { revokedAt: new Date() },
+            })
+            .catch(() => null);
+        }
         clearAuthCookies(res, cfg);
         return res.status(401).json({ error: 'InvalidRefreshToken' });
       }
 
-      const user = await prisma.user.findUnique({ where: { id: stored.userId } });
+      // revoke 성공 후 유저 조회 + 새 토큰 발급.
+      const revoked = await prisma.refreshToken.findUnique({ where: { tokenHash } });
+      const user = revoked ? await prisma.user.findUnique({ where: { id: revoked.userId } }) : null;
       if (!user) {
         clearAuthCookies(res, cfg);
         return res.status(401).json({ error: 'UserNotFound' });
       }
 
-      // 이전 refresh 토큰 revoke + 새 access/refresh 발급
-      await prisma.refreshToken.update({
-        where: { tokenHash: hashRefreshToken(raw) },
-        data: { revokedAt: new Date() },
-      });
       await issueTokensAndCookies(user, res);
       return res.status(200).json({ user: publicUser(user) });
     } catch (err) {

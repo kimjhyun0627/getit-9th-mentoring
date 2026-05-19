@@ -35,11 +35,34 @@ export const resetDb = () => {
   idCounter = 0;
 };
 
-/** Prisma where 클로즈를 in-memory Map에 적용 */
+/** Prisma where 절을 in-memory Map row 에 적용. `{ gt, gte, lt, lte, equals }` 연산자 일부 지원. */
 const matchWhere = (row, where) => {
   if (!where) return true;
-  return Object.entries(where).every(([k, v]) => row[k] === v);
+  return Object.entries(where).every(([k, v]) => {
+    if (v !== null && typeof v === 'object' && !(v instanceof Date)) {
+      if ('equals' in v) return row[k] === v.equals;
+      if ('gt' in v) return row[k] > v.gt;
+      if ('gte' in v) return row[k] >= v.gte;
+      if ('lt' in v) return row[k] < v.lt;
+      if ('lte' in v) return row[k] <= v.lte;
+      return false;
+    }
+    return row[k] === v;
+  });
 };
+
+/**
+ * Prisma `P2002` 를 흉내내는 unique constraint 에러.
+ * 실 PrismaClientKnownRequestError 와 인터페이스만 호환.
+ */
+class PrismaUniqueViolation extends Error {
+  constructor(target) {
+    super(`Unique constraint failed on the fields: ${target}`);
+    this.name = 'PrismaClientKnownRequestError';
+    this.code = 'P2002';
+    this.meta = { target };
+  }
+}
 
 class FakePrismaClient {
   constructor() {
@@ -49,6 +72,10 @@ class FakePrismaClient {
         return null;
       },
       create: async ({ data }) => {
+        // email unique constraint 시뮬레이션 → P2002 race 케이스 테스트 가능.
+        for (const u of memDb.users.values()) {
+          if (u.email === data.email) throw new PrismaUniqueViolation(['email']);
+        }
         const id = nextId('u');
         const now = new Date();
         const row = { id, ...data, createdAt: now, updatedAt: now };
@@ -89,6 +116,14 @@ class FakePrismaClient {
         return { count };
       },
     };
+  }
+
+  /**
+   * `$transaction(fn)` interactive 형태만 지원. 배열 형태(`$transaction([p1, p2])`)는 필요 시 추가.
+   * fake 환경에선 rollback 불가 — fn 이 throw 시 호출자가 일관성을 책임.
+   */
+  async $transaction(fn) {
+    return fn(this);
   }
 
   // eslint-disable-next-line class-methods-use-this

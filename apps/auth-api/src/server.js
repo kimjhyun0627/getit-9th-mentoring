@@ -30,6 +30,11 @@ const main = async () => {
   const server = app.listen(port, () => {
     log.info({ port }, `auth-api listening on :${port}`);
   });
+  // listen() 실패(EADDRINUSE/EACCES 등)는 비동기 'error' 이벤트로 발생 → main().catch() 로는 못 잡음.
+  server.on('error', (err) => {
+    log.error({ err, port }, 'failed to start auth-api server');
+    process.exitCode = 1;
+  });
 
   const shutdown = (signal) => {
     log.info({ signal }, 'shutting down');

@@ -30,14 +30,40 @@ export const readAuthEnv = () => {
     throw new Error('JWT_SECRET must be >= 32 chars');
   }
   const refreshExpires = process.env.JWT_REFRESH_EXPIRES_IN ?? '30d';
-  const refreshTtlDays = Number.parseInt(String(refreshExpires).replace(/d$/, ''), 10) || 30;
+  // 엄격하게 `^[1-9]\d*d$` 만 허용. `12h`, `0d`, `1w`, 숫자만 등은 부팅 시 즉시 실패.
+  if (!/^[1-9]\d*d$/.test(refreshExpires)) {
+    throw new Error(
+      `JWT_REFRESH_EXPIRES_IN must match /^[1-9]\\d*d$/ (e.g. "30d"), got "${refreshExpires}"`,
+    );
+  }
+  const refreshTtlDays = Number.parseInt(refreshExpires.slice(0, -1), 10);
+  const accessTtl = process.env.JWT_ACCESS_EXPIRES_IN ?? '15m';
   return {
     jwtSecret,
-    accessTtl: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
+    accessTtl,
+    accessTtlMs: parseTtlToMs(accessTtl),
     refreshTtlDays,
     cookieDomain: process.env.COOKIE_DOMAIN || undefined,
     cookieSecure: process.env.COOKIE_SECURE === 'true',
   };
+};
+
+/**
+ * JWT 형식 TTL 문자열을 ms로 변환. `15m`, `2h`, `7d`, `45s`, 또는 숫자(ms).
+ * 잘못된 형식이면 throw — 부팅 시 fail-fast.
+ *
+ * @param {string | number} v
+ * @returns {number}
+ */
+export const parseTtlToMs = (v) => {
+  if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v;
+  const str = String(v).trim();
+  const m = /^(\d+)\s*(ms|s|m|h|d)?$/.exec(str);
+  if (!m) throw new Error(`Invalid TTL string: "${v}"`);
+  const n = Number.parseInt(m[1], 10);
+  const unit = m[2] ?? 'ms';
+  const mul = { ms: 1, s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[unit];
+  return n * mul;
 };
 
 /**
@@ -90,12 +116,16 @@ const baseCookieOpts = ({ cookieDomain, cookieSecure, maxAgeMs }) => ({
  * @param {ReturnType<typeof readAuthEnv>} cfg
  */
 export const setAuthCookies = (res, { accessToken, refreshToken }, cfg) => {
-  const { cookieDomain, cookieSecure, refreshTtlDays } = cfg;
-  // access: 15분 (대략) — 실 만료는 JWT 자체가 강제. 쿠키 maxAge는 길게 두면 클라가 헛 호출하니 동일하게.
+  const { cookieDomain, cookieSecure, refreshTtlDays, accessTtlMs } = cfg;
+  // access 쿠키 maxAge는 JWT TTL과 정확히 일치 → 조기 로그아웃·불필요 refresh 방지.
   res.cookie(
     ACCESS_COOKIE,
     accessToken,
-    baseCookieOpts({ cookieDomain, cookieSecure, maxAgeMs: 15 * 60 * 1000 }),
+    baseCookieOpts({
+      cookieDomain,
+      cookieSecure,
+      maxAgeMs: accessTtlMs ?? parseTtlToMs(cfg.accessTtl),
+    }),
   );
   res.cookie(
     REFRESH_COOKIE,

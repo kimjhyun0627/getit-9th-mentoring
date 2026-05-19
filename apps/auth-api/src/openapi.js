@@ -89,7 +89,9 @@ export const buildOpenApiDoc = () =>
           summary: 'Refresh token 회전 (새 access + refresh 발급)',
           responses: {
             200: ok(z.object({ user: UserResponse })),
-            401: errResp('InvalidRefreshToken'),
+            // 라우터가 반환 가능한 모든 401 사유를 명시.
+            // error 값: 'NoRefreshToken' | 'InvalidRefreshToken' | 'UserNotFound'
+            401: errResp('NoRefreshToken | InvalidRefreshToken | UserNotFound'),
           },
         },
       },

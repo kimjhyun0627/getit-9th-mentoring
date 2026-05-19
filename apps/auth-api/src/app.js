@@ -39,15 +39,22 @@ export const createApp = (opts = {}) => {
   const { rateLimitMax = 5, rateLimitWindowMs = 60 * 1000, trustProxy = true } = opts;
   const app = express();
 
-  if (trustProxy) app.set('trust proxy', 1); // Traefik 뒤에서 동작
+  // 프록시 계층 수는 환경에 따라 다름(예: Cloudflare → LB → Ingress).
+  // 기본값 1(=Traefik 단일 계층), `TRUST_PROXY` 로 오버라이드 가능.
+  if (trustProxy) {
+    const raw = process.env.TRUST_PROXY;
+    const n = raw === undefined ? 1 : Number.parseInt(raw, 10);
+    app.set('trust proxy', Number.isFinite(n) && n >= 0 ? n : raw);
+  }
 
+  // CORS: 운영 설정 누락 시 전면 개방되지 않도록 fail-closed.
+  // `CORS_ORIGINS` 가 비어있으면 cross-origin 자체를 거부 + credentials 끔.
+  const allowedOrigins = parseOrigins(process.env.CORS_ORIGINS);
   app.use(helmet());
   app.use(
     cors({
-      origin: parseOrigins(process.env.CORS_ORIGINS).length
-        ? parseOrigins(process.env.CORS_ORIGINS)
-        : true,
-      credentials: true,
+      origin: allowedOrigins.length ? allowedOrigins : false,
+      credentials: allowedOrigins.length > 0,
     }),
   );
   app.use(cookieParser());
@@ -84,9 +91,13 @@ export const createApp = (opts = {}) => {
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi));
   app.get('/api/openapi.json', (_req, res) => res.json(openapi));
 
-  // 마지막 fallback 에러 핸들러 (4-인자 시그니처 유지)
-  app.use((err, _req, res, _next) => {
+  // 마지막 fallback 에러 핸들러 (4-인자 시그니처 유지).
+  // 500 이상은 pino 로 스택 트레이스까지 로깅 → 운영 환경에서 신속히 트리아지.
+  app.use((err, req, res, _next) => {
     const status = err.status ?? 500;
+    if (status >= 500) {
+      req.log?.error({ err }, 'unhandled error');
+    }
     res.status(status).json({ error: err.code ?? 'InternalServerError' });
   });
 

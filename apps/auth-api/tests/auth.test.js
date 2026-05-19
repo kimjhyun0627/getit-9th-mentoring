@@ -85,6 +85,15 @@ describe('auth-api', () => {
       const res = await signupOk(app, { passwordConfirm: 'otherpassword' });
       expect(res.status).toBe(400);
     });
+
+    it('동시 가입 race → P2002 캐치 후 409 (사전조회 통과해도 409 매핑)', async () => {
+      // 같은 이메일을 거의 동시에 두 번 시도. 사전조회는 둘 다 통과할 수 있지만
+      // create 단계의 unique 위반(P2002)을 잡아 409 로 매핑하는지 검증.
+      const [r1, r2] = await Promise.all([signupOk(app), signupOk(app)]);
+      const statuses = [r1.status, r2.status].sort();
+      // 하나는 201, 다른 하나는 409 여야 한다. 절대 500 X.
+      expect(statuses).toEqual([201, 409]);
+    });
   });
 
   describe('POST /api/login', () => {
@@ -167,6 +176,23 @@ describe('auth-api', () => {
       expect(res.status).toBe(401);
     });
 
+    it('revoked refresh 재사용 → 사용자 모든 활성 refresh 토큰 강제 무효화', async () => {
+      const signup = await signupOk(app);
+      const r1 = readCookie(signup.headers['set-cookie'], 'getit_refresh');
+      // 첫 회전 (성공 → r1 revoked, r2 발급)
+      const rot1 = await request(app).post('/api/refresh').set('Cookie', `getit_refresh=${r1}`);
+      const r2 = readCookie(rot1.headers['set-cookie'], 'getit_refresh');
+      expect(r2).toBeTruthy();
+
+      // revoked 인 r1 을 다시 사용 → reuse-detection 트리거.
+      const reuse = await request(app).post('/api/refresh').set('Cookie', `getit_refresh=${r1}`);
+      expect(reuse.status).toBe(401);
+
+      // r2 도 강제 revoked 되어야 함 → r2 로 회전 시도 시 401.
+      const after = await request(app).post('/api/refresh').set('Cookie', `getit_refresh=${r2}`);
+      expect(after.status).toBe(401);
+    });
+
     it('expired refresh → 401', async () => {
       const signup = await signupOk(app);
       const refresh = readCookie(signup.headers['set-cookie'], 'getit_refresh');
@@ -232,6 +258,19 @@ describe('auth-api', () => {
       const res = await request(app).get('/api/health');
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
+    });
+  });
+
+  describe('CORS fail-closed', () => {
+    it('CORS_ORIGINS 비면 cross-origin Access-Control-Allow-Origin 미반사', async () => {
+      const original = process.env.CORS_ORIGINS;
+      process.env.CORS_ORIGINS = '';
+      const closedApp = createApp({ rateLimitMax: 100 });
+      const res = await request(closedApp).get('/api/health').set('Origin', 'https://evil.example');
+      // origin: false → Access-Control-Allow-Origin 헤더 자체가 생략돼야 함.
+      expect(res.headers['access-control-allow-origin']).toBeUndefined();
+      expect(res.headers['access-control-allow-credentials']).toBeUndefined();
+      process.env.CORS_ORIGINS = original;
     });
   });
 });
