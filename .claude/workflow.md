@@ -255,20 +255,23 @@ query($owner:String!,$repo:String!,$pr:Int!){repository(owner:$owner,name:$repo)
 
 ### 필수 머지 게이트 (Branch Protection)
 
-PR이 main에 머지되려면 **아래 4개 모두** 통과해야 함:
+PR이 main에 머지되려면 **아래 5개 모두** 통과해야 함:
 
 1. **CI 그린** — `format / lint / test / build` GitHub Actions workflow 성공
 2. **CodeRabbit APPROVED** — `coderabbitai approved` workflow 통과 (`.github/workflows/coderabbit-approval-gate.yml`)
-   - CodeRabbit이 COMMENTED만 남기면 통과 X. `APPROVED` 리뷰 state 필요.
-   - 개선 적용 후 `@coderabbitai full review` 댓글로 재리뷰 요청 가능.
-3. **모든 review thread resolved** — `required_conversation_resolution: true`. 미해결 코멘트 1개라도 있으면 머지 X.
-4. **PR 필수** — `main`에 직접 push 금지. self-PR도 OK (`required_approving_review_count: 0`).
+   - CR이 COMMENTED만 남기거나 REQUEST_CHANGES면 통과 X. 마지막 리뷰 state == `APPROVED` 필요.
+   - `.coderabbit.yaml` `request_changes_workflow: true` 로 APPROVE/REQUEST_CHANGES 상태 강제.
+   - 라인 코멘트 적용/보류 답글 + resolve → `@coderabbitai full review` 로 재리뷰 → clean하면 APPROVED.
+3. **Gemini engagement** — `gemini-code-assist threads handled` workflow 통과 (`.github/workflows/gemini-engagement-gate.yml`)
+   - Gemini는 베타라 APPROVED 미지원 → "리뷰 1개 이상 존재 + 모든 thread resolved + 답글 있음" 검증.
+4. **모든 review thread resolved** — `required_conversation_resolution: true`. 미해결 코멘트 1개라도 있으면 머지 X.
+5. **PR 필수** — `main`에 직접 push 금지. self-PR도 OK (`required_approving_review_count: 0`).
 
 추가 보호:
 
 - `required_linear_history: true` (squash 만 허용)
 - `allow_force_pushes: false`, `allow_deletions: false`
-- admin은 긴급 시 `gh pr merge --admin` 으로 bypass 가능 (`enforce_admins: false`).
+- admin은 **진짜 긴급 시만** `gh pr merge --admin` bypass. **CR/Gemini 리뷰 완료 전 admin 머지 금지** (PR이 closed 되어 봇이 "Review failed: PR is closed" 반환). 리뷰 도착 → 적용 → APPROVED 받고 정상 머지가 디폴트.
 
 ### CodeRabbit 운영
 
@@ -277,10 +280,11 @@ PR이 main에 머지되려면 **아래 4개 모두** 통과해야 함:
 - `request_changes_workflow: true` 로 APPROVE/REQUEST_CHANGES 리뷰 상태 강제.
 - **사용자 액션 (한 번)**: CodeRabbit GitHub App 설치 → 본 레포에 권한 부여.
 
-### Gemini Code Assist (보조, 옵션)
+### Gemini Code Assist (engagement 게이트)
 
-- 설치되면 추가 의견 제공. 베타라 `APPROVED` 상태 미지원 — 머지 게이트엔 안 들어감.
-- 무시 또는 보조 시각 정도로 활용.
+- 베타라 `APPROVED` 상태 미지원 → engagement 모델로 게이트.
+- 통과 조건: "Gemini 리뷰 1개 이상 + Gemini가 단 모든 thread resolved + 답글 있음".
+- 적용/보류 답글로 닫으면 자동 통과.
 
 ## 에이전트별 GitHub 책임
 

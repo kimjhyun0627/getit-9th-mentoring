@@ -11,9 +11,14 @@ tone_instructions: >
 
 reviews:
   profile: chill
-  # 머지 게이트: CodeRabbit이 깨끗하다고 판단하면 APPROVED 리뷰 남김.
-  # .github/workflows/coderabbit-approval-gate.yml 가 이 APPROVE를 검증.
+  # 머지 게이트: CodeRabbit이 깨끗하다고 판단하면 APPROVED, 이슈 있으면 REQUEST_CHANGES.
+  # request_changes_workflow: true 가 핵심 — COMMENTED 대신 APPROVE/REQUEST_CHANGES 상태 강제.
+  # .github/workflows/coderabbit-approval-gate.yml 가 마지막 리뷰 state == APPROVED 검증.
   request_changes_workflow: true
+  # finishing-touches: 라인 코멘트 적용 + thread resolve 후 자동 재리뷰 → 깨끗하면 APPROVE 회귀.
+  finishing_touches:
+    docstrings:
+      enabled: true
   # Summary / walkthrough 노이즈 최소화 — 라인 코멘트가 메인.
   high_level_summary: false
   high_level_summary_in_walkthrough: false

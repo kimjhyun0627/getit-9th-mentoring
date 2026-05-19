@@ -44,6 +44,7 @@
 - 임의 main push, 임의 force push 금지
 - **봇 코멘트(Gemini/CodeRabbit) silent resolve 금지** — 적용/보류 모두 답글로 사유 박고 resolve. 상세: [`.claude/workflow.md`](.claude/workflow.md) "Thread resolve 규칙"
 - **개발자 에이전트 worktree 격리 필수** — 같은 working tree 공유하면 `git checkout` 충돌로 파일 손실. 상세: [`.claude/agents/index.md`](.claude/agents/index.md) "Worktree 격리"
+- **CR 리뷰 전 admin 머지 금지** — `gh pr merge --admin`은 CR/Gemini가 리뷰 시작 전 PR 닫아버려서 "Review failed: PR is closed" 발생. 필요시 게이트 통과 + 리뷰 도착 후에만 admin bypass. 일반 `--squash`로 게이트가 합법 통과하는 게 디폴트
 
 ---
 
