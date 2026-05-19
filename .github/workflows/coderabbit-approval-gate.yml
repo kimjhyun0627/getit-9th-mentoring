@@ -9,8 +9,8 @@ on:
     types: [opened, synchronize, reopened]
   pull_request_review:
     types: [submitted, edited, dismissed]
-  pull_request_review_thread:
-    types: [resolved, unresolved]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
 
 permissions:
   contents: read
