@@ -35,12 +35,14 @@ const safeTarget = (raw, fallback) => {
   if (raw.startsWith('/') && !raw.startsWith('//')) return raw;
   try {
     const url = new URL(raw);
+    // 스킴 화이트리스트 (javascript:, data:, file: 등 차단)
+    const isHttp = url.protocol === 'http:' || url.protocol === 'https:';
     const host = url.hostname;
     const ok =
       host === 'get-it.cloud' ||
       host.endsWith('.get-it.cloud') ||
       (typeof window !== 'undefined' && host === window.location.hostname);
-    return ok ? raw : fallback;
+    return isHttp && ok ? raw : fallback;
   } catch {
     return fallback;
   }

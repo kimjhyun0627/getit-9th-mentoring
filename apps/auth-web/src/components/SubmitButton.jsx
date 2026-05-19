@@ -10,9 +10,16 @@ import { cn } from '../lib/cn.js';
  *   loading?: boolean;
  *   disabled?: boolean;
  *   className?: string;
+ *   loadingText?: string;
  * }} props
  */
-export const SubmitButton = ({ children, loading = false, disabled = false, className }) => {
+export const SubmitButton = ({
+  children,
+  loading = false,
+  disabled = false,
+  className,
+  loadingText = '처리 중…',
+}) => {
   return (
     <button
       type="submit"
@@ -24,7 +31,7 @@ export const SubmitButton = ({ children, loading = false, disabled = false, clas
         className,
       )}
     >
-      {loading ? '처리 중…' : children}
+      {loading ? loadingText : children}
     </button>
   );
 };
