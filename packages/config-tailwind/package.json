@@ -8,7 +8,9 @@
   "exports": {
     "./preset": "./tailwind.preset.js"
   },
-  "files": ["tailwind.preset.js"],
+  "files": [
+    "tailwind.preset.js"
+  ],
   "peerDependencies": {
     "tailwindcss": "^3.4.0"
   }

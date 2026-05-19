@@ -40,6 +40,8 @@ export default [
       'jsdoc/require-jsdoc': 'off',
       'jsdoc/require-param-description': 'off',
       'jsdoc/require-returns-description': 'off',
+      'jsdoc/require-returns': 'off',
+      'jsdoc/no-undefined-types': ['warn', { definedTypes: ['React', 'JSX', 'NodeJS', 'Express'] }],
       'jsdoc/tag-lines': ['error', 'any', { startLines: 1 }],
 
       // import 위생

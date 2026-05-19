@@ -10,7 +10,11 @@
     "./react": "./react.js",
     "./node": "./node.js"
   },
-  "files": ["base.js", "react.js", "node.js"],
+  "files": [
+    "base.js",
+    "react.js",
+    "node.js"
+  ],
   "dependencies": {
     "@eslint/js": "^9.18.0",
     "eslint-plugin-import": "^2.31.0",

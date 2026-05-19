@@ -1,6 +1,6 @@
+import { ThemeProvider } from '@getit/theme';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ThemeProvider } from '@getit/theme';
 
 import { App } from './App.jsx';
 import './index.css';
