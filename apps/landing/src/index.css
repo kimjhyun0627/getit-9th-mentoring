@@ -40,9 +40,6 @@
     --ring: 239 84% 58%;
 
     --radius: 0.5rem;
-
-    /* hairline tint (border-zinc-200 in light, white/8 in dark) */
-    --hairline: 240 6% 90%;
   }
 
   .dark {
@@ -71,8 +68,8 @@
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 100%;
-    --input: 0 0% 100%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
     --ring: 0 0% 100%;
   }
 

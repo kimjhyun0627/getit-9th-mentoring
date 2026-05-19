@@ -18,12 +18,13 @@
  */
 export const ProjectCard = ({ eyebrow, title, href, emoji, description, hostLabel }) => {
   return (
-    <li className="group bg-background p-8 transition duration-200 hover:bg-foreground/[0.03]">
+    <li className="group bg-background">
       <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex h-full flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`${title} — 새 탭에서 열림`}
+        className="flex h-full flex-col p-8 transition duration-200 hover:bg-foreground/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <div className="mb-10 flex items-center justify-between">
           <span
