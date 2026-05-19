@@ -263,14 +263,24 @@ describe('auth-api', () => {
 
   describe('CORS fail-closed', () => {
     it('CORS_ORIGINS 비면 cross-origin Access-Control-Allow-Origin 미반사', async () => {
+      // process.env는 try/finally로 원복 보장 (테스트 실패해도 다음 테스트 격리).
       const original = process.env.CORS_ORIGINS;
       process.env.CORS_ORIGINS = '';
-      const closedApp = createApp({ rateLimitMax: 100 });
-      const res = await request(closedApp).get('/api/health').set('Origin', 'https://evil.example');
-      // origin: false → Access-Control-Allow-Origin 헤더 자체가 생략돼야 함.
-      expect(res.headers['access-control-allow-origin']).toBeUndefined();
-      expect(res.headers['access-control-allow-credentials']).toBeUndefined();
-      process.env.CORS_ORIGINS = original;
+      try {
+        const closedApp = createApp({ rateLimitMax: 100 });
+        const res = await request(closedApp)
+          .get('/api/health')
+          .set('Origin', 'https://evil.example');
+        // origin: false → Access-Control-Allow-Origin 헤더 자체가 생략돼야 함.
+        expect(res.headers['access-control-allow-origin']).toBeUndefined();
+        expect(res.headers['access-control-allow-credentials']).toBeUndefined();
+      } finally {
+        if (original === undefined) {
+          delete process.env.CORS_ORIGINS;
+        } else {
+          process.env.CORS_ORIGINS = original;
+        }
+      }
     });
   });
 });
