@@ -39,7 +39,7 @@ const zodErrorBody = (err) => ({
  * @param {{ id: string, ownerId: string, name: string, description: string | null, createdAt: Date, updatedAt: Date }} p
  * @param {{
  *   role?: 'OWNER' | 'MEMBER' | null,
- *   members?: Array<{ userId: string, name: string | null }>,
+ *   members?: Array<{ userId: string, role: 'OWNER'|'MEMBER', name: string | null }>,
  *   currentUserId?: string | null,
  * }} [extra]
  */
@@ -65,10 +65,10 @@ const publicProject = (p, extra = {}) => ({
  *
  * @param {Array<{ id: string }>} projects
  * @param {string} userId
- * @returns {Promise<Map<string, { role: 'OWNER'|'MEMBER'|null, members: Array<{ userId: string, name: string|null }> }>>}
+ * @returns {Promise<Map<string, { role: 'OWNER'|'MEMBER'|null, members: Array<{ userId: string, role: 'OWNER'|'MEMBER', name: string|null }> }>>}
  */
 const fetchRoleAndMembers = async (projects, userId) => {
-  /** @type {Map<string, { role: 'OWNER'|'MEMBER'|null, members: Array<{ userId: string, name: string|null }> }>} */
+  /** @type {Map<string, { role: 'OWNER'|'MEMBER'|null, members: Array<{ userId: string, role: 'OWNER'|'MEMBER', name: string|null }> }>} */
   const out = new Map();
   if (projects.length === 0) return out;
   const ids = projects.map((p) => p.id);
@@ -80,7 +80,7 @@ const fetchRoleAndMembers = async (projects, userId) => {
   for (const m of memberships) {
     const bucket = out.get(m.projectId);
     if (!bucket) continue;
-    bucket.members.push({ userId: m.userId, name: null });
+    bucket.members.push({ userId: m.userId, role: m.role, name: null });
     if (m.userId === userId) bucket.role = m.role;
   }
   return out;

@@ -224,13 +224,19 @@ export const BoardViewPage = () => {
           setMembersError(null);
         }}
         role={projectQuery.data?.role ?? 'MEMBER'}
-        // 멤버 detail (role 포함) 은 GET /members 응답 우선, 실패/대기 시 projectQuery 의 경량 멤버로 fallback.
+        // 멤버 detail (role 포함) 은 GET /members 응답 우선, 실패/대기 시 projectQuery 의 멤버로 fallback.
+        // projectMembers 가 role 을 들고 오면 그걸 신뢰. 없을 때만 ownerId 로 보수적 추정.
         members={
           membersQuery.isSuccess
             ? membersQuery.data
             : projectMembers.map((m) => ({
                 userId: m.userId,
-                role: m.userId === projectQuery.data?.ownerId ? 'OWNER' : 'MEMBER',
+                role:
+                  m.role === 'OWNER' || m.role === 'MEMBER'
+                    ? m.role
+                    : m.userId === projectQuery.data?.ownerId
+                      ? 'OWNER'
+                      : 'MEMBER',
                 name: m.name ?? null,
               }))
         }

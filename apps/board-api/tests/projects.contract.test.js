@@ -41,7 +41,10 @@ describe('board-api projects contract (#297)', () => {
     p.members.forEach((m) => {
       expect(m).toHaveProperty('userId');
       expect(m).toHaveProperty('name');
+      expect(['OWNER', 'MEMBER']).toContain(m.role);
     });
+    expect(p.members.find((m) => m.userId === 'alice').role).toBe('OWNER');
+    expect(p.members.find((m) => m.userId === 'bob').role).toBe('MEMBER');
   });
 
   it('MEMBER 로 가입된 사용자의 role 은 MEMBER', async () => {
