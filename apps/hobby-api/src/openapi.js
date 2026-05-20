@@ -141,6 +141,24 @@ export const buildOpenApiDoc = () =>
           },
         },
       },
+      '/api/me': {
+        get: {
+          summary: '현재 사용자 (JWT 인증 필요) — auth-api 와 동일 페이로드',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: ok(
+              z.object({
+                user: z.object({
+                  sub: z.string(),
+                  email: z.string().email().optional(),
+                  name: z.string().optional(),
+                }),
+              }),
+            ),
+            401: errResp('Unauthorized'),
+          },
+        },
+      },
       '/api/me/posts': {
         get: {
           summary: '내가 만든 모임 (JWT 필요, status 무관 CLOSED 포함)',

@@ -38,6 +38,13 @@ export const createMeRouter = ({ jwtSecret }) => {
   const router = Router();
   const auth = requireAuth({ secret: jwtSecret });
 
+  // GET /api/me — 현재 사용자 (JWT payload 그대로).
+  // FE 의 `getMe()` 가 `/api/me` 를 치는데 hobby-api 는 `/me/posts`, `/me/applications`
+  // 만 있어서 404 가 떨어졌음. auth-api 와 동일하게 자기 토큰 정보를 반환한다.
+  router.get('/me', auth, (req, res) => {
+    return res.status(200).json({ user: req.user });
+  });
+
   // GET /api/me/posts — 본인 게시글. status 미지정 시 CLOSED 포함 전부.
   router.get('/me/posts', auth, async (req, res, next) => {
     try {
