@@ -31,8 +31,9 @@ export const useDialogFocus = ({ open, ref, initialSelector }) => {
     };
 
     const initial = initialSelector
-      ? /** @type {HTMLElement | null} */ ((ref.current?.querySelector(initialSelector)) ??
-        getFocusable()[0])
+      ? /** @type {HTMLElement | null} */ (
+          ref.current?.querySelector(initialSelector) ?? getFocusable()[0]
+        )
       : getFocusable()[0];
     initial?.focus();
 
