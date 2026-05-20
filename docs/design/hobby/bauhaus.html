@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="ko" class="">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>취미메이트 · Bauhaus — 기하학적 모집 보드</title>
+
+<!--
+  ============================================================
+  BAUHAUS PERSONA — hobby.get-it.cloud (Discover)
+  ------------------------------------------------------------
+  차별 포인트:
+   1) 카테고리 = 컬러 stripe (맛집=빨강, 스포츠=파랑, 카공=노랑) — 색이 곧 분류
+   2) 두꺼운 검정 외곽선(3px) + 그림자 0 + radius 0 — 면과 선의 대비
+   3) 정원 게이지 = thick 외곽선 안 채워진 컬러 바 (인디케이터도 grid)
+   4) 방장 아바타 = 원/사각/삼각 단색 — 인물도 형상으로 환원
+   5) 8px grid 배경 라인(subtle) — 시스템이 시각적으로 드러남
+   6) 필터 활성 = 즉각 invert(no fade) — Bauhaus의 즉각성
+   7) 마감 카드 = grayscale + opacity — 색이 사라지면 모집 종료
+   8) hobby/playful의 그라데이션/회전 카드와 완전 반대 방향: 정직한 원색 블록 + 기하 정렬
+  ============================================================
+-->
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Outfit:wght@400;600;800;900&family=Manrope:wght@400;700;800&display=swap"
+  rel="stylesheet"
+/>
+<link
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"
+  rel="stylesheet"
+/>
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          bauhaus: {
+            red:    '#D2232A',
+            blue:   '#0050A0',
+            yellow: '#FFC700',
+            ink:    '#0a0a0a',
+            paper:  '#F5F1E8',
+            paper2: '#EDE8D8',
+            redDk:    '#B81F26',
+            blueDk:   '#1A4A8C',
+            yellowDk: '#E0B000',
+          }
+        },
+        fontFamily: {
+          display: ['Outfit', 'Manrope', 'Pretendard', 'system-ui', 'sans-serif'],
+          sans:    ['Space Grotesk', 'Pretendard', 'system-ui', 'sans-serif'],
+        },
+        letterSpacing: { tightish: '-0.02em', tightxx: '-0.035em' },
+      }
+    }
+  };
+</script>
+
+<style>
+  html, body { background: #F5F1E8; }
+  html.dark, html.dark body { background: #0a0a0a; }
+
+  /* 8px grid background — subtle, but visible */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(10,10,10,0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(10,10,10,0.045) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+  html.dark .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(245,241,232,0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(245,241,232,0.045) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+
+  .border-ink-3 { border: 3px solid #0a0a0a; }
+  html.dark .border-ink-3 { border-color: #F5F1E8; }
+  .border-ink-2 { border: 2px solid #0a0a0a; }
+  html.dark .border-ink-2 { border-color: #F5F1E8; }
+
+  /* instant color transitions — no fade */
+  .swap { transition: background-color 120ms steps(1,end), color 120ms steps(1,end), border-color 120ms steps(1,end); }
+
+  /* hover invert pattern */
+  .invert-hover:hover { background:#0a0a0a; color:#F5F1E8; }
+  html.dark .invert-hover:hover { background:#F5F1E8; color:#0a0a0a; }
+
+  /* active filter (locked invert) */
+  .is-active { background:#0a0a0a; color:#F5F1E8; }
+  html.dark .is-active { background:#F5F1E8; color:#0a0a0a; }
+
+  /* triangle clip */
+  .tri { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+
+  /* focus ring */
+  :focus-visible { outline: 3px solid #0a0a0a; outline-offset: 2px; }
+  html.dark :focus-visible { outline-color: #F5F1E8; }
+
+  /* card press feedback (no smooth fade) */
+  .card-tilt:hover { transform: translate(-1px, -1px); }
+  .card-tilt { transition: transform 100ms steps(1,end); }
+
+  /* closed card: drained of color */
+  .is-closed { filter: grayscale(1); opacity: 0.55; }
+  .is-closed .card-stripe { filter: grayscale(1); }
+
+  /* selection */
+  ::selection { background:#FFC700; color:#0a0a0a; }
+  html.dark ::selection { background:#FFC700; color:#0a0a0a; }
+</style>
+</head>
+
+<body class="font-sans text-bauhaus-ink dark:text-bauhaus-paper antialiased min-h-screen grid-bg">
+
+<!-- ============================== HEADER ============================== -->
+<header class="border-b-[3px] border-bauhaus-ink dark:border-bauhaus-paper">
+  <div class="max-w-[1400px] mx-auto px-6 md:px-10 py-5 flex items-center gap-4 md:gap-6">
+
+    <!-- logomark: red square + blue circle + yellow triangle -->
+    <a href="#" class="flex items-center gap-2 shrink-0" aria-label="취미메이트 홈">
+      <span class="block w-5 h-5 bg-bauhaus-red"></span>
+      <span class="block w-5 h-5 rounded-full bg-bauhaus-blue"></span>
+      <span class="block tri bg-bauhaus-yellow" style="width:20px;height:20px;"></span>
+    </a>
+
+    <h1 class="font-display font-black text-2xl md:text-3xl tracking-tightxx shrink-0">
+      취미메이트
+    </h1>
+    <span class="hidden lg:inline text-[11px] uppercase tracking-[0.2em] font-semibold opacity-70 shrink-0">
+      / Discover · KNU
+    </span>
+
+    <!-- search -->
+    <div class="flex-1 min-w-0 hidden sm:flex items-center border-ink-3 bg-bauhaus-paper dark:bg-bauhaus-ink swap">
+      <span class="px-3 grid place-items-center" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="2"/>
+          <path d="M11 11l3 3" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </span>
+      <input
+        type="text"
+        placeholder="북문 마라탕, 풋살, 카공…"
+        aria-label="모집 검색"
+        class="bg-transparent w-full py-2 pr-3 outline-none font-sans placeholder:opacity-60"
+      />
+      <kbd class="hidden md:inline-block mr-2 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.15em] font-bold border-ink-2">⌘K</kbd>
+    </div>
+
+    <!-- theme toggle -->
+    <button id="themeToggle"
+      class="swap invert-hover w-10 h-10 grid place-items-center border-ink-3 bg-bauhaus-paper dark:bg-bauhaus-ink shrink-0"
+      aria-label="테마 전환">
+      <span class="dark:hidden text-lg" aria-hidden="true">☀</span>
+      <span class="hidden dark:inline text-lg" aria-hidden="true">🌙</span>
+    </button>
+
+    <!-- sign in -->
+    <button class="swap invert-hover hidden md:inline-flex items-center gap-2 px-4 py-2 border-ink-3 bg-bauhaus-paper dark:bg-bauhaus-ink font-display font-black uppercase tracking-tightish shrink-0">
+      Sign in
+    </button>
+  </div>
+
+  <!-- subheader: filter row + create CTA -->
+  <div class="max-w-[1400px] mx-auto px-6 md:px-10 pb-5 flex flex-wrap items-center gap-3">
+    <!-- filter pills -->
+    <div class="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.2em] font-bold">
+      <button class="swap invert-hover is-active px-3 py-1.5 border-ink-2">All · 12</button>
+      <button class="swap invert-hover px-3 py-1.5 border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink">
+        <span class="inline-block w-2.5 h-2.5 bg-bauhaus-red align-middle mr-1.5"></span>맛집
+      </button>
+      <button class="swap invert-hover px-3 py-1.5 border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-bauhaus-blue align-middle mr-1.5"></span>스포츠
+      </button>
+      <button class="swap invert-hover px-3 py-1.5 border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink">
+        <span class="inline-block tri bg-bauhaus-yellow align-middle mr-1.5" style="width:10px;height:10px;"></span>카공
+      </button>
+      <button class="swap invert-hover px-3 py-1.5 border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink">오늘</button>
+      <button class="swap invert-hover px-3 py-1.5 border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink">이번 주</button>
+    </div>
+
+    <!-- create CTA: yellow block, thick border, the loudest thing on screen -->
+    <button class="swap invert-hover ml-auto inline-flex items-center gap-2 bg-bauhaus-yellow text-bauhaus-ink border-ink-3 px-5 py-2.5 font-display font-black uppercase tracking-tightish">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="3"/>
+      </svg>
+      새 모임 만들기
+    </button>
+  </div>
+</header>
+
+<!-- ============================== MAIN ============================== -->
+<main class="max-w-[1400px] mx-auto px-6 md:px-10 py-8 md:py-10">
+
+  <!-- section title -->
+  <div class="mb-6 md:mb-8 flex items-end justify-between gap-4 border-b-[3px] border-bauhaus-ink dark:border-bauhaus-paper pb-4">
+    <div>
+      <h2 class="font-display font-black text-3xl md:text-4xl tracking-tightxx leading-none">
+        오늘의 모집
+      </h2>
+      <p class="text-sm opacity-70 mt-2">정원 마감 시 오픈채팅 자동 공개 · 12건 진행 중</p>
+    </div>
+    <div class="hidden sm:flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] font-bold">
+      <span class="px-2 py-1 border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink swap invert-hover cursor-default">정렬 · 마감 임박</span>
+    </div>
+  </div>
+
+  <!-- card grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-7">
+
+    <!-- ============ CARD 1 — 맛집 (RED) ============ -->
+    <article class="card-tilt swap bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-3 p-5 flex flex-col" style="border-left:10px solid #D2232A;">
+      <header class="flex items-start justify-between gap-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="card-stripe block w-3.5 h-3.5 bg-bauhaus-red" aria-hidden="true"></span>
+          <span class="text-[10px] uppercase tracking-[0.22em] font-bold">맛집</span>
+        </div>
+        <span class="text-[10px] uppercase tracking-[0.18em] font-bold bg-bauhaus-yellow text-bauhaus-ink px-1.5 py-0.5 border-ink-2">마감 6h</span>
+      </header>
+
+      <h3 class="font-display font-black text-xl leading-tight tracking-tightish mb-2">
+        북문 마라탕 같이 가실 분
+      </h3>
+      <p class="text-sm leading-snug opacity-80 mb-4">
+        오늘 저녁 18:00 · 북문 라조방 · 처음이라도 편하게 와요
+      </p>
+
+      <!-- meta: when / where -->
+      <dl class="text-[11px] uppercase tracking-[0.18em] font-bold mb-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+        <dt class="opacity-60">When</dt><dd>05.19 (오늘) 18:00</dd>
+        <dt class="opacity-60">Where</dt><dd>경북대 북문 · 라조방</dd>
+      </dl>
+
+      <!-- capacity bar -->
+      <div class="mb-4">
+        <div class="flex items-baseline justify-between text-[10px] uppercase tracking-[0.2em] font-bold mb-1">
+          <span>정원</span>
+          <span><span class="font-display text-bauhaus-red">3</span>/4</span>
+        </div>
+        <div class="border-ink-2 h-3" aria-label="3/4명 채워짐">
+          <div class="h-full bg-bauhaus-red" style="width:75%"></div>
+        </div>
+      </div>
+
+      <!-- tags -->
+      <div class="flex flex-wrap gap-1.5 mb-5 text-[10px] uppercase tracking-[0.18em] font-bold">
+        <span class="bg-bauhaus-red text-bauhaus-paper px-1.5 py-0.5">#마라탕</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#북문</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#저녁</span>
+      </div>
+
+      <!-- footer: host + apply -->
+      <footer class="mt-auto flex items-center justify-between gap-3 pt-3 border-t-2 border-bauhaus-ink dark:border-bauhaus-paper">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 bg-bauhaus-red border-ink-2 grid place-items-center font-display font-black text-bauhaus-paper text-[11px]">JH</span>
+          <div class="leading-tight">
+            <div class="font-display font-black text-sm">진현</div>
+            <div class="text-[10px] uppercase tracking-[0.18em] opacity-70 font-bold">방장 · 컴공 21</div>
+          </div>
+        </div>
+        <button class="swap invert-hover px-3.5 py-2 border-ink-3 bg-bauhaus-paper dark:bg-bauhaus-ink font-display font-black uppercase tracking-tightish text-sm">신청</button>
+      </footer>
+    </article>
+
+    <!-- ============ CARD 2 — 스포츠 (BLUE) ============ -->
+    <article class="card-tilt swap bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-3 p-5 flex flex-col" style="border-left:10px solid #0050A0;">
+      <header class="flex items-start justify-between gap-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="card-stripe block w-3.5 h-3.5 rounded-full bg-bauhaus-blue" aria-hidden="true"></span>
+          <span class="text-[10px] uppercase tracking-[0.22em] font-bold">스포츠</span>
+        </div>
+        <span class="text-[10px] uppercase tracking-[0.18em] font-bold border-ink-2 px-1.5 py-0.5">내일 19:00</span>
+      </header>
+
+      <h3 class="font-display font-black text-xl leading-tight tracking-tightish mb-2">
+        대운동장 풋살 8인 모집
+      </h3>
+      <p class="text-sm leading-snug opacity-80 mb-4">
+        실력 무관 · 운동화 OK · 팀 나눠서 1시간 가볍게 뜁니다
+      </p>
+
+      <dl class="text-[11px] uppercase tracking-[0.18em] font-bold mb-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+        <dt class="opacity-60">When</dt><dd>05.20 (화) 19:00 · 60min</dd>
+        <dt class="opacity-60">Where</dt><dd>경북대 대운동장</dd>
+      </dl>
+
+      <div class="mb-4">
+        <div class="flex items-baseline justify-between text-[10px] uppercase tracking-[0.2em] font-bold mb-1">
+          <span>정원</span>
+          <span><span class="font-display text-bauhaus-blue">5</span>/8</span>
+        </div>
+        <div class="border-ink-2 h-3" aria-label="5/8명 채워짐">
+          <div class="h-full bg-bauhaus-blue" style="width:62.5%"></div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 mb-5 text-[10px] uppercase tracking-[0.18em] font-bold">
+        <span class="bg-bauhaus-blue text-bauhaus-paper px-1.5 py-0.5">#풋살</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#실력무관</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#1H</span>
+      </div>
+
+      <footer class="mt-auto flex items-center justify-between gap-3 pt-3 border-t-2 border-bauhaus-ink dark:border-bauhaus-paper">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-full bg-bauhaus-blue border-ink-2 grid place-items-center font-display font-black text-bauhaus-paper text-[11px]">MJ</span>
+          <div class="leading-tight">
+            <div class="font-display font-black text-sm">민지</div>
+            <div class="text-[10px] uppercase tracking-[0.18em] opacity-70 font-bold">방장 · 체육 22</div>
+          </div>
+        </div>
+        <button class="swap invert-hover px-3.5 py-2 border-ink-3 bg-bauhaus-paper dark:bg-bauhaus-ink font-display font-black uppercase tracking-tightish text-sm">신청</button>
+      </footer>
+    </article>
+
+    <!-- ============ CARD 3 — 카공 (YELLOW) ============ -->
+    <article class="card-tilt swap bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-3 p-5 flex flex-col" style="border-left:10px solid #FFC700;">
+      <header class="flex items-start justify-between gap-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="card-stripe block tri bg-bauhaus-yellow" style="width:14px;height:14px;" aria-hidden="true"></span>
+          <span class="text-[10px] uppercase tracking-[0.22em] font-bold">카공</span>
+        </div>
+        <span class="text-[10px] uppercase tracking-[0.18em] font-bold border-ink-2 px-1.5 py-0.5">조용집중</span>
+      </header>
+
+      <h3 class="font-display font-black text-xl leading-tight tracking-tightish mb-2">
+        북문 스벅에서 알고리즘 카공
+      </h3>
+      <p class="text-sm leading-snug opacity-80 mb-4">
+        주말 오후 3시간 · 백준 한 문제씩 풀고 30분마다 한 줄 공유
+      </p>
+
+      <dl class="text-[11px] uppercase tracking-[0.18em] font-bold mb-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+        <dt class="opacity-60">When</dt><dd>05.24 (토) 14:00 · 3H</dd>
+        <dt class="opacity-60">Where</dt><dd>스타벅스 경북대북문점</dd>
+      </dl>
+
+      <div class="mb-4">
+        <div class="flex items-baseline justify-between text-[10px] uppercase tracking-[0.2em] font-bold mb-1">
+          <span>정원</span>
+          <span><span class="font-display">2</span>/5</span>
+        </div>
+        <div class="border-ink-2 h-3" aria-label="2/5명 채워짐">
+          <div class="h-full bg-bauhaus-yellow" style="width:40%"></div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 mb-5 text-[10px] uppercase tracking-[0.18em] font-bold">
+        <span class="bg-bauhaus-yellow text-bauhaus-ink border-ink-2 px-1.5 py-0.5">#알고리즘</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#백준</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#주말</span>
+      </div>
+
+      <footer class="mt-auto flex items-center justify-between gap-3 pt-3 border-t-2 border-bauhaus-ink dark:border-bauhaus-paper">
+        <div class="flex items-center gap-2">
+          <span class="relative w-8 h-8 grid place-items-center" aria-hidden="true">
+            <span class="absolute inset-0 tri bg-bauhaus-yellow"></span>
+            <span class="absolute inset-0 tri" style="border:2px solid #0a0a0a;"></span>
+          </span>
+          <div class="leading-tight">
+            <div class="font-display font-black text-sm">수아</div>
+            <div class="text-[10px] uppercase tracking-[0.18em] opacity-70 font-bold">방장 · 전자 20</div>
+          </div>
+        </div>
+        <button class="swap invert-hover px-3.5 py-2 border-ink-3 bg-bauhaus-paper dark:bg-bauhaus-ink font-display font-black uppercase tracking-tightish text-sm">신청</button>
+      </footer>
+    </article>
+
+    <!-- ============ CARD 4 — 스포츠 (BLUE) ============ -->
+    <article class="card-tilt swap bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-3 p-5 flex flex-col" style="border-left:10px solid #0050A0;">
+      <header class="flex items-start justify-between gap-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="card-stripe block w-3.5 h-3.5 rounded-full bg-bauhaus-blue" aria-hidden="true"></span>
+          <span class="text-[10px] uppercase tracking-[0.22em] font-bold">스포츠</span>
+        </div>
+        <span class="text-[10px] uppercase tracking-[0.18em] font-bold bg-bauhaus-yellow text-bauhaus-ink px-1.5 py-0.5 border-ink-2">마감 2h</span>
+      </header>
+
+      <h3 class="font-display font-black text-xl leading-tight tracking-tightish mb-2">
+        체육관 배드민턴 복식
+      </h3>
+      <p class="text-sm leading-snug opacity-80 mb-4">
+        오늘 21시 · 라켓 대여 가능 · 끝나고 야식 콜 환영
+      </p>
+
+      <dl class="text-[11px] uppercase tracking-[0.18em] font-bold mb-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+        <dt class="opacity-60">When</dt><dd>05.19 (오늘) 21:00</dd>
+        <dt class="opacity-60">Where</dt><dd>경북대 학생체육관 B코트</dd>
+      </dl>
+
+      <div class="mb-4">
+        <div class="flex items-baseline justify-between text-[10px] uppercase tracking-[0.2em] font-bold mb-1">
+          <span>정원</span>
+          <span><span class="font-display text-bauhaus-blue">3</span>/4</span>
+        </div>
+        <div class="border-ink-2 h-3" aria-label="3/4명 채워짐">
+          <div class="h-full bg-bauhaus-blue" style="width:75%"></div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 mb-5 text-[10px] uppercase tracking-[0.18em] font-bold">
+        <span class="bg-bauhaus-blue text-bauhaus-paper px-1.5 py-0.5">#배드민턴</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#복식</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#야간</span>
+      </div>
+
+      <footer class="mt-auto flex items-center justify-between gap-3 pt-3 border-t-2 border-bauhaus-ink dark:border-bauhaus-paper">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 bg-bauhaus-red border-ink-2 grid place-items-center font-display font-black text-bauhaus-paper text-[11px]">DH</span>
+          <div class="leading-tight">
+            <div class="font-display font-black text-sm">도현</div>
+            <div class="text-[10px] uppercase tracking-[0.18em] opacity-70 font-bold">방장 · 화공 22</div>
+          </div>
+        </div>
+        <button class="swap invert-hover px-3.5 py-2 border-ink-3 bg-bauhaus-paper dark:bg-bauhaus-ink font-display font-black uppercase tracking-tightish text-sm">신청</button>
+      </footer>
+    </article>
+
+    <!-- ============ CARD 6 — 맛집 (RED) — CLOSED ============ -->
+    <article class="card-tilt swap is-closed bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-3 p-5 flex flex-col" style="border-left:10px solid #D2232A;" aria-label="모집 마감">
+      <header class="flex items-start justify-between gap-3 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="card-stripe block w-3.5 h-3.5 bg-bauhaus-red" aria-hidden="true"></span>
+          <span class="text-[10px] uppercase tracking-[0.22em] font-bold">맛집</span>
+        </div>
+        <span class="text-[10px] uppercase tracking-[0.18em] font-bold border-ink-2 px-1.5 py-0.5 bg-bauhaus-ink text-bauhaus-paper dark:bg-bauhaus-paper dark:text-bauhaus-ink">마감</span>
+      </header>
+
+      <h3 class="font-display font-black text-xl leading-tight tracking-tightish mb-2">
+        교촌 허니콤보 야식
+      </h3>
+      <p class="text-sm leading-snug opacity-80 mb-4">
+        기숙사 라운지에서 23시 · 정원 마감, 오픈채팅 발송됨
+      </p>
+
+      <dl class="text-[11px] uppercase tracking-[0.18em] font-bold mb-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+        <dt class="opacity-60">When</dt><dd>05.19 (오늘) 23:00</dd>
+        <dt class="opacity-60">Where</dt><dd>기숙사 1동 라운지</dd>
+      </dl>
+
+      <div class="mb-4">
+        <div class="flex items-baseline justify-between text-[10px] uppercase tracking-[0.2em] font-bold mb-1">
+          <span>정원</span>
+          <span><span class="font-display">5</span>/5</span>
+        </div>
+        <div class="border-ink-2 h-3" aria-label="5/5명 마감">
+          <div class="h-full bg-bauhaus-ink dark:bg-bauhaus-paper" style="width:100%"></div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-1.5 mb-5 text-[10px] uppercase tracking-[0.18em] font-bold">
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#치킨</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#기숙사</span>
+        <span class="bg-bauhaus-paper dark:bg-bauhaus-ink border-ink-2 px-1.5 py-0.5">#야식</span>
+      </div>
+
+      <footer class="mt-auto flex items-center justify-between gap-3 pt-3 border-t-2 border-bauhaus-ink dark:border-bauhaus-paper">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 bg-bauhaus-paper2 dark:bg-bauhaus-ink border-ink-2 grid place-items-center font-display font-black text-[11px]">SH</span>
+          <div class="leading-tight">
+            <div class="font-display font-black text-sm">선호</div>
+            <div class="text-[10px] uppercase tracking-[0.18em] opacity-70 font-bold">방장 · 신소재 22</div>
+          </div>
+        </div>
+        <button disabled class="px-3.5 py-2 border-ink-3 bg-bauhaus-ink text-bauhaus-paper dark:bg-bauhaus-paper dark:text-bauhaus-ink font-display font-black uppercase tracking-tightish text-sm cursor-not-allowed">마감</button>
+      </footer>
+    </article>
+
+  </div>
+
+  <!-- pagination row (geometric) -->
+  <nav class="mt-10 flex items-center justify-center gap-2 text-[11px] uppercase tracking-[0.2em] font-bold" aria-label="페이지">
+    <button class="swap invert-hover w-9 h-9 grid place-items-center border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink" aria-label="이전">←</button>
+    <button class="swap is-active w-9 h-9 grid place-items-center border-ink-2">1</button>
+    <button class="swap invert-hover w-9 h-9 grid place-items-center border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink">2</button>
+    <button class="swap invert-hover w-9 h-9 grid place-items-center border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink">3</button>
+    <button class="swap invert-hover w-9 h-9 grid place-items-center border-ink-2 bg-bauhaus-paper dark:bg-bauhaus-ink" aria-label="다음">→</button>
+  </nav>
+
+  <!-- ============== EMPTY STATE preview (in a thick frame, beneath grid) ============== -->
+  <section class="mt-14 border-ink-3 bg-bauhaus-paper dark:bg-bauhaus-ink p-8 md:p-12 flex flex-col md:flex-row items-center gap-8" aria-label="모집이 없을 때 안내">
+    <!-- big geometric mark: red square + blue circle + yellow triangle stack -->
+    <div class="relative shrink-0" style="width:140px;height:140px;" aria-hidden="true">
+      <span class="absolute left-0 top-0 w-20 h-20 bg-bauhaus-red border-ink-3"></span>
+      <span class="absolute right-0 top-4 w-16 h-16 rounded-full bg-bauhaus-blue border-ink-3"></span>
+      <span class="absolute left-6 bottom-0 tri bg-bauhaus-yellow border-ink-2" style="width:64px;height:60px;"></span>
+    </div>
+    <div class="text-center md:text-left">
+      <h3 class="font-display font-black text-2xl md:text-3xl tracking-tightxx leading-none mb-3">
+        오늘 모집이 없어?<br />네가 첫 번째가 돼.
+      </h3>
+      <p class="text-sm opacity-75 mb-5 max-w-md">
+        한 줄이면 충분해 — "오늘 18시 북문 마라탕 3명". 정원만 차면 오픈채팅이 자동으로 열려.
+      </p>
+      <button class="swap invert-hover inline-flex items-center gap-2 bg-bauhaus-yellow text-bauhaus-ink border-ink-3 px-5 py-2.5 font-display font-black uppercase tracking-tightish">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="3"/>
+        </svg>
+        새 모임 만들기
+      </button>
+    </div>
+  </section>
+
+  <!-- ============================== FOOTER LEGEND ============================== -->
+  <footer class="mt-14 border-t-[3px] border-bauhaus-ink dark:border-bauhaus-paper pt-6 flex flex-wrap items-center gap-x-8 gap-y-3 text-[11px] uppercase tracking-[0.2em] font-bold">
+    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-bauhaus-red"></span> 맛집</span>
+    <span class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-bauhaus-blue"></span> 스포츠</span>
+    <span class="flex items-center gap-2"><span class="tri bg-bauhaus-yellow" style="width:14px;height:14px;"></span> 카공</span>
+    <span class="flex items-center gap-2 opacity-50"><span class="w-4 h-4 bg-bauhaus-ink dark:bg-bauhaus-paper"></span> 마감</span>
+    <span class="ml-auto opacity-70 normal-case tracking-normal font-normal">
+      hobby.get-it.cloud · v0.4 · 8px grid · Bauhaus persona
+    </span>
+  </footer>
+
+</main>
+
+<!-- ============================== SCRIPTS ============================== -->
+<script>
+  // theme toggle with localStorage — same key family as board
+  (function () {
+    const root = document.documentElement;
+    const KEY = 'getit-hobby-theme';
+    const saved = localStorage.getItem(KEY);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (saved === 'dark' || (!saved && prefersDark)) root.classList.add('dark');
+
+    document.getElementById('themeToggle').addEventListener('click', function () {
+      root.classList.toggle('dark');
+      localStorage.setItem(KEY, root.classList.contains('dark') ? 'dark' : 'light');
+    });
+  })();
+</script>
+
+</body>
+</html>

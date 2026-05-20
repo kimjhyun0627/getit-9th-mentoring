@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="ko" class="">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GETIT 롤링페이퍼 — Bauhaus</title>
+
+<!--
+  PERSONA: Bauhaus (letter)
+  차별 포인트 vs warm/playful:
+   - warm  = 파스텔 워시테이프 포스트잇 (감성적)
+   - playful = 비비드 회전 포스트잇 (장난스러움)
+   - bauhaus = 사각 정렬 그리드 + 원색 블록 + 두꺼운 외곽선 + "MY" 라벨
+              회전 X / 손글씨 X / 이모지 X / 그림자 X / round X
+              "디자인 학교의 게시판" — 기능 우선, 기하학적 정밀
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'],
+          display: ['Outfit', 'Manrope', 'Pretendard Variable', 'sans-serif'],
+          mono: ['Space Grotesk', 'Manrope', 'sans-serif']
+        },
+        colors: {
+          bauhaus: {
+            red: '#D2232A',
+            blue: '#0050A0',
+            yellow: '#FFC700',
+            ink: '#0a0a0a',
+            paper: '#F5F1E8',
+            darkpaper: '#1a1a1a',
+            redDk: '#B81C22',
+            blueDk: '#00407F',
+            yellowDk: '#E0AC00'
+          }
+        }
+      }
+    }
+  };
+</script>
+
+<style>
+  /* 8px grid 명시 — 모든 간격은 8의 배수 */
+  :root { --grid: 8px; --border-w: 3px; }
+
+  html { background: #F5F1E8; }
+  html.dark { background: #0a0a0a; }
+
+  body { font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; }
+
+  /* 두꺼운 검정 외곽선 — Bauhaus 시그니처 */
+  .bh-border { border: var(--border-w) solid #0a0a0a; }
+  .dark .bh-border { border-color: #F5F1E8; }
+
+  .bh-border-thin { border: 2px solid #0a0a0a; }
+  .dark .bh-border-thin { border-color: #F5F1E8; }
+
+  /* round 없음, 그림자 없음 — 강제 */
+  .bh-block { border-radius: 0 !important; box-shadow: none !important; }
+
+  /* hover 시 색 invert */
+  .bh-invert:hover,
+  .bh-invert:focus-visible {
+    background: #0a0a0a !important;
+    color: #F5F1E8 !important;
+    outline: none;
+  }
+  .dark .bh-invert:hover,
+  .dark .bh-invert:focus-visible {
+    background: #F5F1E8 !important;
+    color: #0a0a0a !important;
+  }
+
+  /* 검정 focus ring — WCAG AA */
+  :focus-visible {
+    outline: 3px solid #0a0a0a;
+    outline-offset: 2px;
+  }
+  .dark :focus-visible {
+    outline-color: #F5F1E8;
+  }
+
+  /* 메시지 블록 즉각 색 전환 (이징 없이, 기능 우선) */
+  .msg-block { transition: background 60ms linear, color 60ms linear; }
+
+  /* 본인 메시지 강조 — 더 두꺼운 외곽선 */
+  .msg-mine { border-width: 5px; }
+  @media (min-width: 768px) { .msg-mine { border-width: 6px; } }
+
+  /* 다크모드 원색 — 채도 살짝 down */
+  .dark .bg-bh-red    { background-color: #B81C22; }
+  .dark .bg-bh-blue   { background-color: #00407F; }
+  .dark .bg-bh-yellow { background-color: #E0AC00; }
+  .dark .bg-bh-paper  { background-color: #1a1a1a; color: #F5F1E8; }
+
+  /* 라이트모드 원색 */
+  .bg-bh-red    { background-color: #D2232A; color: #F5F1E8; }
+  .bg-bh-blue   { background-color: #0050A0; color: #F5F1E8; }
+  .bg-bh-yellow { background-color: #FFC700; color: #0a0a0a; }
+  .bg-bh-paper  { background-color: #F5F1E8; color: #0a0a0a; }
+
+  /* 노랑 다크모드는 글자 검정 유지 */
+  .dark .bg-bh-yellow { color: #0a0a0a; }
+
+  /* 헤더 두꺼운 디바이더 */
+  .bh-divider {
+    border-bottom: 6px solid #0a0a0a;
+  }
+  .dark .bh-divider { border-bottom-color: #F5F1E8; }
+
+  /* 기하 도형 마커 (정사각/원/삼각) — SVG로도 가능하지만 CSS로 */
+  .marker-sq { width: 16px; height: 16px; background: #0a0a0a; }
+  .marker-ci { width: 16px; height: 16px; background: #0a0a0a; border-radius: 50%; }
+  .marker-tr {
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 16px solid #0a0a0a;
+  }
+  /* 다크 + 노랑 블록 위 마커는 검정 유지 (대비 OK), 빨강/파랑 블록 위에선 페이퍼 화이트로 */
+  .bg-bh-red .marker-sq, .bg-bh-blue .marker-sq { background: #F5F1E8; }
+  .bg-bh-red .marker-ci, .bg-bh-blue .marker-ci { background: #F5F1E8; }
+  .bg-bh-red .marker-tr, .bg-bh-blue .marker-tr { border-bottom-color: #F5F1E8; }
+  .dark .bg-bh-yellow .marker-sq { background: #0a0a0a; }
+
+  /* FAB — 우측 하단 큰 사각 버튼 */
+  .fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 50;
+  }
+
+  /* 그리드 — 모바일 2, md 3, lg 4-5 */
+  .board-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  @media (min-width: 768px) {
+    .board-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  }
+  @media (min-width: 1024px) {
+    .board-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+  }
+  @media (min-width: 1280px) {
+    .board-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
+
+  /* 메시지 블록 비율 고정 (정사각에 가까운 직사각) — 정렬된 그리드 강조 */
+  .msg-block { aspect-ratio: 1 / 1; display: flex; flex-direction: column; padding: 16px; position: relative; }
+  @media (min-width: 768px) { .msg-block { padding: 20px; } }
+
+  /* 메시지 본문 폰트 */
+  .msg-body {
+    font-family: 'Pretendard Variable', Pretendard, sans-serif;
+    font-weight: 500;
+    line-height: 1.45;
+    flex: 1;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    font-size: 14px;
+  }
+  @media (min-width: 768px) { .msg-body { font-size: 15px; } }
+
+  /* 메타 (날짜) */
+  .msg-meta {
+    font-family: 'Space Grotesk', 'Manrope', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  /* MY 라벨 — 큼지막 굵게, 좌상단 */
+  .my-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translate(-3px, -3px);
+    background: #0a0a0a;
+    color: #FFC700;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+  .dark .my-label { background: #F5F1E8; color: #D2232A; }
+
+  /* 마커 위치 (좌상단, MY 라벨 옆 or 아래) */
+  .geo-marker {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+  .msg-mine .geo-marker { top: 38px; left: 12px; right: auto; }
+
+  /* 헤더 타이틀 큼지막 */
+  .hero-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+  }
+
+  /* 사이드 큰 기하 도형 (장식) */
+  .hero-shape {
+    width: 56px; height: 56px;
+  }
+  @media (min-width: 768px) { .hero-shape { width: 80px; height: 80px; } }
+
+  /* 빈 상태 (현재 안 쓰지만 코멘트 위해 클래스 정의) */
+  .empty-state { display: none; }
+
+  /* 동적 reduce-motion 대응 */
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+
+<body class="bg-bauhaus-paper dark:bg-bauhaus-ink text-bauhaus-ink dark:text-bauhaus-paper min-h-screen">
+
+<!-- ========== HEADER ========== -->
+<header class="bh-divider">
+  <div class="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-8 flex items-center justify-between gap-4">
+    <!-- 좌측: 타이틀 + 기하 도형 -->
+    <div class="flex items-center gap-4 md:gap-6 min-w-0">
+      <!-- Bauhaus 시그니처: 원/사각/삼각 조합 -->
+      <div class="hero-shape relative shrink-0" aria-hidden="true">
+        <div class="absolute inset-0 bg-bh-red bh-block"></div>
+        <div class="absolute right-0 bottom-0 w-2/3 h-2/3 bg-bh-blue bh-block bh-border-thin"></div>
+        <div class="absolute left-0 top-0 w-1/2 h-1/2 rounded-full bg-bh-yellow bh-border-thin" style="border-radius: 50%;"></div>
+      </div>
+      <div class="min-w-0">
+        <h1 class="hero-title text-3xl md:text-5xl lg:text-6xl">
+          GETIT<br class="md:hidden"/> <span class="text-bh-red dark:text-bauhaus-redDk">롤링페이퍼</span>
+        </h1>
+        <p class="font-mono text-[11px] md:text-xs font-bold tracking-widest uppercase mt-2 opacity-70">
+          Anonymous Board · 9th · 2026
+        </p>
+      </div>
+    </div>
+
+    <!-- 우측: 로그인 + 다크모드 -->
+    <div class="flex items-center gap-2 md:gap-3 shrink-0">
+      <!-- 닉네임 (SSO 로그인 상태) -->
+      <div class="hidden sm:flex items-center gap-2 bh-border bh-block px-3 py-2">
+        <span class="marker-sq" aria-hidden="true"></span>
+        <span class="font-mono text-xs font-bold tracking-wider uppercase">@jinhyun</span>
+      </div>
+
+      <!-- Dark mode toggle -->
+      <button id="darkToggle"
+              class="bh-border bh-block bh-invert msg-block-no w-11 h-11 md:w-12 md:h-12 flex items-center justify-center font-display text-xl bg-bauhaus-paper dark:bg-bauhaus-ink"
+              aria-label="다크모드 토글" type="button">
+        <span class="dark:hidden" aria-hidden="true">☀</span>
+        <span class="hidden dark:inline" aria-hidden="true">🌙</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ========== SUB-NAV / META BAR ========== -->
+<div class="border-b-2 border-bauhaus-ink dark:border-bauhaus-paper">
+  <div class="max-w-[1400px] mx-auto px-4 md:px-8 py-3 md:py-4 flex flex-wrap items-center gap-3 md:gap-6">
+    <div class="flex items-center gap-2">
+      <span class="marker-ci" aria-hidden="true"></span>
+      <span class="font-mono text-xs font-bold tracking-widest uppercase">메시지 18</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="marker-sq" aria-hidden="true"></span>
+      <span class="font-mono text-xs font-bold tracking-widest uppercase">내 메시지 2</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="marker-tr" aria-hidden="true"></span>
+      <span class="font-mono text-xs font-bold tracking-widest uppercase">익명 보장</span>
+    </div>
+    <div class="ml-auto font-mono text-xs font-bold tracking-widest uppercase opacity-60">
+      Updated · 2026.05.19
+    </div>
+  </div>
+</div>
+
+<!-- ========== BOARD ========== -->
+<main class="max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12">
+
+  <!-- 섹션 라벨 -->
+  <div class="flex items-end justify-between gap-4 mb-6 md:mb-8">
+    <div>
+      <h2 class="hero-title text-xl md:text-3xl">
+        부원들의 <span class="bg-bh-yellow dark:bg-bauhaus-yellowDk px-2 inline-block">메시지</span>
+      </h2>
+      <p class="font-mono text-[11px] md:text-xs font-bold tracking-widest uppercase mt-2 opacity-70">
+        Grid · 8px System · No Rotation · Pure Geometry
+      </p>
+    </div>
+    <!-- 정렬 토글 (장식) -->
+    <div class="hidden md:flex bh-border bh-block">
+      <button class="px-4 py-2 font-mono text-xs font-bold tracking-widest uppercase bg-bauhaus-ink text-bauhaus-paper dark:bg-bauhaus-paper dark:text-bauhaus-ink">최신</button>
+      <button class="px-4 py-2 font-mono text-xs font-bold tracking-widest uppercase bh-invert border-l-2 border-bauhaus-ink dark:border-bauhaus-paper">오래된</button>
+    </div>
+  </div>
+
+  <!-- 화이트보드 그리드 -->
+  <div class="board-grid" id="board" role="list">
+
+    <!-- 1. RED · MY (본인 메시지) -->
+    <article class="msg-block bg-bh-red bh-border msg-mine bh-block" role="listitem" aria-label="내 메시지">
+      <span class="my-label">MY</span>
+      <span class="geo-marker marker-sq" aria-hidden="true"></span>
+      <p class="msg-body mt-8">
+        9기 시작할 때 아무것도 몰랐는데, 같이 코드 짜면서 진짜 많이 배웠어요. 다들 고마워요.
+      </p>
+      <div class="flex items-center justify-between">
+        <div class="msg-meta">2026.05.18</div>
+        <div class="flex gap-1">
+          <button class="bh-border-thin bh-block w-8 h-8 flex items-center justify-center font-mono text-xs font-bold bh-invert" aria-label="편집">E</button>
+          <button class="bh-border-thin bh-block w-8 h-8 flex items-center justify-center font-mono text-xs font-bold bh-invert" aria-label="삭제">X</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- 2. PAPER -->
+    <article class="msg-block bg-bh-paper bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-ci" aria-hidden="true"></span>
+      <p class="msg-body">
+        새벽 3시 디스코드에서 같이 디버깅하던 그 밤. 평생 못 잊을 듯.
+      </p>
+      <div class="msg-meta">2026.05.17</div>
+    </article>
+
+    <!-- 3. BLUE -->
+    <article class="msg-block bg-bh-blue bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-tr" aria-hidden="true"></span>
+      <p class="msg-body">
+        멘토님 코드리뷰 진짜 무서웠는데 덕분에 PR 매너 제대로 배웠습니다. 감사합니다.
+      </p>
+      <div class="msg-meta">2026.05.17</div>
+    </article>
+
+    <!-- 4. YELLOW -->
+    <article class="msg-block bg-bh-yellow bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-sq" aria-hidden="true"></span>
+      <p class="msg-body">
+        해커톤 우승하자는 말, 진심이었어요. 이번 학기 같이 달려준 팀원들 최고.
+      </p>
+      <div class="msg-meta">2026.05.16</div>
+    </article>
+
+    <!-- 5. RED -->
+    <article class="msg-block bg-bh-red bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-ci" aria-hidden="true"></span>
+      <p class="msg-body">
+        스터디 발표 매주 빠지지 않고 준비해주신 분, 정말 본받고 갑니다.
+      </p>
+      <div class="msg-meta">2026.05.15</div>
+    </article>
+
+    <!-- 6. PAPER · MY (본인 메시지 2) -->
+    <article class="msg-block bg-bh-paper bh-border msg-mine bh-block" role="listitem" aria-label="내 메시지">
+      <span class="my-label">MY</span>
+      <span class="geo-marker marker-tr" aria-hidden="true"></span>
+      <p class="msg-body mt-8">
+        취미메이트 팀 — 첫 배포 성공한 날 다 같이 박수 쳤던 거, 두고두고 자랑할게요.
+      </p>
+      <div class="flex items-center justify-between">
+        <div class="msg-meta">2026.05.14</div>
+        <div class="flex gap-1">
+          <button class="bh-border-thin bh-block w-8 h-8 flex items-center justify-center font-mono text-xs font-bold bh-invert" aria-label="편집">E</button>
+          <button class="bh-border-thin bh-block w-8 h-8 flex items-center justify-center font-mono text-xs font-bold bh-invert" aria-label="삭제">X</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- 7. BLUE -->
+    <article class="msg-block bg-bh-blue bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-sq" aria-hidden="true"></span>
+      <p class="msg-body">
+        칸반 프로젝트 PR 충돌 났을 때 30분 만에 풀어준 그 분, 진짜 영웅이었습니다.
+      </p>
+      <div class="msg-meta">2026.05.14</div>
+    </article>
+
+    <!-- 8. YELLOW -->
+    <article class="msg-block bg-bh-yellow bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-ci" aria-hidden="true"></span>
+      <p class="msg-body">
+        매주 회의 끝나고 밥 먹으러 가던 거, 그게 진짜 GETIT의 본질 같아요.
+      </p>
+      <div class="msg-meta">2026.05.13</div>
+    </article>
+
+    <!-- 9. PAPER -->
+    <article class="msg-block bg-bh-paper bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-tr" aria-hidden="true"></span>
+      <p class="msg-body">
+        SSO 붙일 때 멘토님이 그려준 시퀀스 다이어그램 — 그거 보고 백엔드가 처음 이해됐어요.
+      </p>
+      <div class="msg-meta">2026.05.12</div>
+    </article>
+
+    <!-- 10. RED -->
+    <article class="msg-block bg-bh-red bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-sq" aria-hidden="true"></span>
+      <p class="msg-body">
+        스마트 서재 팀에 합류한 게 이번 학기 베스트 결정이었음. 다음 학기도 잘 부탁해.
+      </p>
+      <div class="msg-meta">2026.05.12</div>
+    </article>
+
+    <!-- 11. BLUE -->
+    <article class="msg-block bg-bh-blue bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-ci" aria-hidden="true"></span>
+      <p class="msg-body">
+        익명이라 말하는데, 발표 자료 새벽까지 같이 봐준 분 — 진짜 고마웠어요.
+      </p>
+      <div class="msg-meta">2026.05.11</div>
+    </article>
+
+    <!-- 12. YELLOW -->
+    <article class="msg-block bg-bh-yellow bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-tr" aria-hidden="true"></span>
+      <p class="msg-body">
+        리액트 처음 만져본 게 이 동아리. 지금은 훅 직접 짤 수 있다. 감격.
+      </p>
+      <div class="msg-meta">2026.05.10</div>
+    </article>
+
+    <!-- 13. PAPER -->
+    <article class="msg-block bg-bh-paper bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-sq" aria-hidden="true"></span>
+      <p class="msg-body">
+        롤링페이퍼 프로젝트 자체가 우리 동아리스러워서 좋다. 잘 만들었어요.
+      </p>
+      <div class="msg-meta">2026.05.10</div>
+    </article>
+
+    <!-- 14. RED -->
+    <article class="msg-block bg-bh-red bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-ci" aria-hidden="true"></span>
+      <p class="msg-body">
+        멘토링 처음엔 부담됐는데, 끝나니까 아쉽다. 10기에도 또 와요.
+      </p>
+      <div class="msg-meta">2026.05.09</div>
+    </article>
+
+    <!-- 15. BLUE -->
+    <article class="msg-block bg-bh-blue bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-tr" aria-hidden="true"></span>
+      <p class="msg-body">
+        Docker 설명해준 세션, 두고두고 다시 보고 있어요. 명강의였습니다.
+      </p>
+      <div class="msg-meta">2026.05.08</div>
+    </article>
+
+    <!-- 16. YELLOW -->
+    <article class="msg-block bg-bh-yellow bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-sq" aria-hidden="true"></span>
+      <p class="msg-body">
+        Tailwind 광신도 만들어주신 분, 책임지세요. 이젠 CSS 못 짜요.
+      </p>
+      <div class="msg-meta">2026.05.07</div>
+    </article>
+
+    <!-- 17. PAPER -->
+    <article class="msg-block bg-bh-paper bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-ci" aria-hidden="true"></span>
+      <p class="msg-body">
+        조용히 코드만 짜는 줄 알았는데, 회식에서 제일 웃기던 그 분께.
+      </p>
+      <div class="msg-meta">2026.05.06</div>
+    </article>
+
+    <!-- 18. RED -->
+    <article class="msg-block bg-bh-red bh-border bh-block" role="listitem">
+      <span class="geo-marker marker-tr" aria-hidden="true"></span>
+      <p class="msg-body">
+        익명이지만 알 사람은 알겠지. 그래서 더 부끄럽지만 — 좋아했어요, 팀.
+      </p>
+      <div class="msg-meta">2026.05.05</div>
+    </article>
+
+  </div>
+
+  <!-- 안내 푸터 라인 -->
+  <div class="mt-12 md:mt-16 pt-8 border-t-4 border-bauhaus-ink dark:border-bauhaus-paper">
+    <div class="grid md:grid-cols-3 gap-6 md:gap-8">
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="marker-sq" aria-hidden="true"></span>
+          <span class="font-mono text-xs font-bold tracking-widest uppercase">01 · Anonymous</span>
+        </div>
+        <p class="text-sm leading-relaxed">
+          작성자 정보는 절대 노출되지 않습니다. SSO는 부원 확인만 합니다.
+        </p>
+      </div>
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="marker-ci" aria-hidden="true"></span>
+          <span class="font-mono text-xs font-bold tracking-widest uppercase">02 · My Message</span>
+        </div>
+        <p class="text-sm leading-relaxed">
+          내가 쓴 글에는 두꺼운 외곽선과 MY 라벨이 붙습니다. 본인만 편집/삭제 가능.
+        </p>
+      </div>
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <span class="marker-tr" aria-hidden="true"></span>
+          <span class="font-mono text-xs font-bold tracking-widest uppercase">03 · Grid System</span>
+        </div>
+        <p class="text-sm leading-relaxed">
+          8px 그리드. 회전 없음. 손글씨 없음. 기하학적 정렬만으로 익명의 평등을 표현.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ========== FAB — 우측 하단 큰 사각 버튼 ========== -->
+<button class="fab bh-border bh-block bh-invert bg-bh-yellow dark:bg-bauhaus-yellowDk px-5 py-4 md:px-6 md:py-5 flex items-center gap-3"
+        type="button" aria-label="새 메시지 남기기">
+  <span class="marker-sq" aria-hidden="true" style="background:#0a0a0a;"></span>
+  <span class="font-display font-black text-sm md:text-base tracking-wider uppercase">+ 메시지 남기기</span>
+</button>
+
+<!-- ========== FOOTER ========== -->
+<footer class="border-t-4 border-bauhaus-ink dark:border-bauhaus-paper mt-16 md:mt-24">
+  <div class="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-8 flex flex-wrap items-center justify-between gap-4">
+    <div class="font-mono text-xs font-bold tracking-widest uppercase">
+      GETIT · 9th · Mentoring · 2026
+    </div>
+    <div class="font-mono text-xs font-bold tracking-widest uppercase opacity-60">
+      letter.get-it.cloud / Bauhaus
+    </div>
+  </div>
+</footer>
+
+<script>
+  // 다크모드 토글 — localStorage 영속
+  (function() {
+    var root = document.documentElement;
+    var btn = document.getElementById('darkToggle');
+    var KEY = 'getit-letter-bauhaus-theme';
+
+    // 초기 상태 — 저장값 or 시스템 prefers-color-scheme
+    var saved = null;
+    try { saved = localStorage.getItem(KEY); } catch(e) {}
+    var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var initialDark = saved ? saved === 'dark' : systemDark;
+    if (initialDark) root.classList.add('dark');
+
+    if (btn) {
+      btn.addEventListener('click', function() {
+        root.classList.toggle('dark');
+        var isDark = root.classList.contains('dark');
+        try { localStorage.setItem(KEY, isDark ? 'dark' : 'light'); } catch(e) {}
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>스마트 서재 · 거실 한쪽 작은 책장</title>
+<!-- 차별 포인트:
+  1) 나무 선반 모티프 — 카드 그리드 하단에 실제 나무결 선반(grain + 양 끝 지지대)
+  2) 둥근 책 표지 + washi tape 라벨 + 살짝 기울어진 배치(정렬보다 손맛)
+  3) 파스텔 베이지/세이지/피치 + 미색 배경(#FAF6F0) → "거실 한쪽 작은 책장" 무드
+  4) Gaegu 손글씨 + 종이 grain + 점선 stitch divider
+-->
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: { extend: {
+      fontFamily: {
+        sans: ['"Pretendard Variable"','Pretendard','system-ui','sans-serif'],
+        hand: ['"Gaegu"','cursive'],
+      },
+      colors: {
+        cream:'#FAF6F0', cream2:'#F3ECE0',
+        peach:'#F4D7C8', peachDk:'#E8B89F',
+        sage:'#93A487', sageDk:'#6F8366',
+        ink:'#3A2E27', ink2:'#5A4A3F',
+        mocha:'#2A1F1A', mocha2:'#3A2C24', mocha3:'#4A3A30',
+        beige:'#E8D6C4', beige2:'#C9B49E',
+        rose:'#D9A892', sageW:'#A8B89A',
+      },
+      boxShadow: {
+        paper: '0 1px 0 rgba(58,46,39,0.06), 0 8px 24px -12px rgba(58,46,39,0.18)',
+      },
+      borderRadius: { 'blob': '24px' }
+    }}
+  }
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* Paper grain (light + dark) */
+  .paper { position: relative; isolation: isolate; }
+  .paper::before {
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:0; opacity:.55;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.23 0 0 0 0 0.18 0 0 0 0 0.15 0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+  }
+  .paper-dark::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.75 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: screen; opacity:.5;
+  }
+  .paper > * { position: relative; z-index: 1; }
+
+  /* Wooden shelf (핵심 모티프) */
+  .shelf {
+    height: 14px; border-radius: 4px; position: relative;
+    background:
+      linear-gradient(180deg,#D8B68F 0%,#C9A985 40%,#B08F6A 100%),
+      repeating-linear-gradient(90deg, rgba(94,66,42,0.06) 0 1px, transparent 1px 6px);
+    background-blend-mode: multiply;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(94,66,42,.18), 0 6px 12px -8px rgba(94,66,42,.4);
+  }
+  .shelf::before, .shelf::after { content:""; position:absolute; top:0; bottom:0; width:6px;
+    background: linear-gradient(180deg,#A88463,#8B6843); border-radius:2px; }
+  .shelf::before { left:-3px; } .shelf::after { right:-3px; }
+  .dark .shelf, .dark-scope .shelf {
+    background:
+      linear-gradient(180deg,#6B4F38 0%,#5A4230 40%,#3F2E22 100%),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 6px);
+    background-blend-mode: multiply;
+    box-shadow: inset 0 1px 0 rgba(255,220,180,.12), inset 0 -2px 0 rgba(0,0,0,.35), 0 6px 12px -8px rgba(0,0,0,.7);
+  }
+  .dark .shelf::before, .dark .shelf::after,
+  .dark-scope .shelf::before, .dark-scope .shelf::after { background: linear-gradient(180deg,#4A3528,#2A1F18); }
+
+  /* Book card */
+  .book { transition: transform 380ms cubic-bezier(.4,0,.2,1); transform-origin: bottom center; will-change: transform; }
+  .book:nth-child(3n)   { transform: rotate(-0.6deg); }
+  .book:nth-child(3n+1) { transform: rotate(0.4deg); }
+  .book:hover { transform: translateY(-8px) rotate(0deg) scale(1.025); }
+
+  /* Book cover placeholder */
+  .cover {
+    aspect-ratio: 2 / 3; border-radius: 10px 14px 14px 10px;
+    position: relative; overflow: hidden;
+    box-shadow: inset 6px 0 0 rgba(255,255,255,.18), inset 0 0 0 1px rgba(58,46,39,.06);
+  }
+  .cover::after { /* spine highlight */
+    content:""; position:absolute; left:0; top:0; bottom:0; width:6px;
+    background: linear-gradient(90deg, rgba(0,0,0,.18), rgba(255,255,255,.15) 60%, transparent);
+  }
+  .cover-title { position:absolute; left:12px; right:12px; top:16px;
+    font-family:'Gaegu',cursive; font-size:18px; line-height:1.15;
+    color: rgba(58,46,39,.85); text-shadow: 0 1px 0 rgba(255,255,255,.35); }
+  .cover-mark { position:absolute; left:12px; right:12px; bottom:12px;
+    font-size:10px; letter-spacing:.12em; text-transform:uppercase; color: rgba(58,46,39,.55); }
+
+  /* Washi tape */
+  .tape { position:absolute; top:-8px; left:50%; transform:translateX(-50%) rotate(-3deg);
+    padding:2px 10px; font-family:'Gaegu',cursive; font-size:13px;
+    background: rgba(244,215,200,.92); color:#5A4A3F; border-radius:2px;
+    box-shadow: 0 2px 6px rgba(58,46,39,.18); white-space:nowrap; }
+  .tape.sage { background: rgba(168,184,154,.85); transform: translateX(-50%) rotate(2deg); }
+  .tape.rose { background: rgba(232,184,159,.92); }
+  .dark-scope .tape { color:#2A1F1A; }
+  .dark-scope .tape.peach { background: rgba(217,168,146,.85); }
+  .dark-scope .tape.cream { background: rgba(232,214,196,.9); }
+  .dark-scope .tape.sage  { background: rgba(168,184,154,.85); }
+
+  /* Scribble underline */
+  .scribble {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'><path d='M2 7 Q 50 1, 100 6 T 198 5' stroke='%23E8B89F' stroke-width='5' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat; background-position: 0 88%; background-size: 100% 0.5em;
+  }
+  .dark .scribble, .dark-scope .scribble {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'><path d='M2 7 Q 50 1, 100 6 T 198 5' stroke='%23D9A892' stroke-width='5' fill='none' stroke-linecap='round'/></svg>");
+  }
+
+  /* Toggle */
+  .toggle-track { width:56px; height:30px; background:#F3ECE0; border-radius:999px;
+    border:1px solid rgba(58,46,39,.12); position:relative; transition: background 250ms ease; }
+  .toggle-thumb { position:absolute; top:3px; left:3px; width:22px; height:22px; background:#fff;
+    border-radius:50%; box-shadow: 0 2px 6px rgba(58,46,39,.2);
+    transition: transform 280ms cubic-bezier(.4,0,.2,1), background 250ms ease;
+    display:grid; place-items:center; font-size:12px; }
+  .dark .toggle-track { background:#4A3A30; border-color: rgba(232,214,196,.15); }
+  .dark .toggle-thumb { transform: translateX(26px); background:#E8D6C4; }
+
+  /* Stitch divider */
+  .stitch { background-image: linear-gradient(90deg, rgba(58,46,39,.35) 50%, transparent 50%);
+    background-size:12px 1px; background-repeat:repeat-x; background-position:center; height:1px; }
+  .dark .stitch, .dark-scope .stitch { background-image: linear-gradient(90deg, rgba(232,214,196,.35) 50%, transparent 50%); }
+
+  /* Blobs */
+  .blob { position:absolute; border-radius:50%; filter:blur(40px); opacity:.5; pointer-events:none; }
+
+  /* Search bar */
+  .search-input:focus { outline:none; border-color:#E8B89F; box-shadow: 0 0 0 4px rgba(232,184,159,.25); }
+  .dark .search-input:focus, .dark-scope .search-input:focus { border-color:#D9A892; box-shadow: 0 0 0 4px rgba(217,168,146,.18); }
+
+  /* Filter chip */
+  .chip { padding:6px 14px; border-radius:999px; font-size:13px; border:1px solid transparent; transition: all 200ms ease; }
+  .chip-active { background:#3A2E27; color:#FAF6F0; }
+  .dark .chip-active, .dark-scope .chip-active { background:#E8D6C4; color:#2A1F1A; }
+
+  /* Horizontal scroll */
+  .h-scroll { scrollbar-width: thin; scrollbar-color: rgba(58,46,39,.2) transparent; }
+  .h-scroll::-webkit-scrollbar { height:6px; }
+  .h-scroll::-webkit-scrollbar-thumb { background: rgba(58,46,39,.18); border-radius:999px; }
+  .dark .h-scroll, .dark-scope .h-scroll { scrollbar-color: rgba(232,214,196,.2) transparent; }
+
+  .dark-scope { color-scheme: dark; }
+
+  /* Focus a11y */
+  a:focus-visible, button:focus-visible, input:focus-visible { outline:2px solid #E8B89F; outline-offset:3px; border-radius:8px; }
+  .dark a:focus-visible, .dark button:focus-visible, .dark input:focus-visible,
+  .dark-scope a:focus-visible, .dark-scope button:focus-visible, .dark-scope input:focus-visible { outline-color:#D9A892; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .book, .book:hover { transform: none; } html { scroll-behavior:auto; }
+  }
+</style>
+</head>
+
+<body class="bg-cream text-ink dark:bg-mocha dark:text-beige transition-colors duration-300">
+
+<!-- ===================== LIGHT ===================== -->
+<section id="light-section" class="paper relative overflow-hidden min-h-screen">
+  <div class="blob bg-peach" style="width:360px; height:360px; top:-100px; right:-60px;"></div>
+  <div class="blob bg-sage/40" style="width:280px; height:280px; bottom:-80px; left:-40px;"></div>
+
+  <header class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-6 pb-3 flex items-center gap-4">
+    <a href="#" class="flex items-baseline gap-1.5 shrink-0">
+      <span class="font-hand text-3xl text-sageDk leading-none">서</span>
+      <span class="text-lg sm:text-xl font-semibold tracking-tight">재</span>
+    </a>
+    <div class="flex-1 max-w-md mx-auto sm:mx-4">
+      <label class="relative block">
+        <span class="sr-only">책 제목 또는 저자 검색</span>
+        <span aria-hidden="true" class="absolute left-4 top-1/2 -translate-y-1/2 text-ink2/60">🔍</span>
+        <input type="search" placeholder="책 제목 / 저자 검색..."
+          aria-label="책 제목 또는 저자 검색"
+          class="search-input w-full pl-10 pr-4 py-2.5 rounded-full bg-white/80 border border-peach/60 text-sm text-ink placeholder:text-ink2/50 backdrop-blur transition-colors" />
+      </label>
+    </div>
+    <nav class="flex items-center gap-3 shrink-0">
+      <a href="#" class="hidden sm:inline text-sm text-ink2 hover:text-ink">로그인</a>
+      <button id="themeToggle" type="button" aria-label="다크 모드 전환" class="toggle-track">
+        <span class="toggle-thumb"><span class="text-amber-500">☀</span></span>
+      </button>
+    </nav>
+  </header>
+
+  <main class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-6 pb-16">
+    <div class="flex items-end justify-between mb-6">
+      <div>
+        <p class="font-hand text-xl sm:text-2xl text-peachDk">오늘도 한 페이지</p>
+        <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mt-1">나의 <span class="scribble">작은 책장</span></h1>
+      </div>
+      <span class="hidden sm:block text-xs text-ink2/70">2026년 봄</span>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3 sm:gap-5 mb-8">
+      <div class="rounded-blob p-4 sm:p-5 bg-white/70 border border-peach/50 shadow-paper">
+        <div class="text-[11px] uppercase tracking-wider text-ink2/70">읽은 책</div>
+        <div class="mt-1 flex items-baseline gap-1"><span class="text-2xl sm:text-3xl font-bold">23</span><span class="text-sm text-ink2">권</span></div>
+      </div>
+      <div class="rounded-blob p-4 sm:p-5 bg-white/70 border border-sage/40 shadow-paper">
+        <div class="text-[11px] uppercase tracking-wider text-ink2/70">읽고 싶은</div>
+        <div class="mt-1 flex items-baseline gap-1"><span class="text-2xl sm:text-3xl font-bold">8</span><span class="text-sm text-ink2">권</span></div>
+      </div>
+      <div class="rounded-blob p-4 sm:p-5 bg-white/70 border border-peach/50 shadow-paper">
+        <div class="text-[11px] uppercase tracking-wider text-ink2/70">평균 평점</div>
+        <div class="mt-1 flex items-baseline gap-1"><span class="text-2xl sm:text-3xl font-bold">4.3</span><span class="text-sm text-peachDk">★</span></div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 mb-8">
+      <button class="chip chip-active">전체</button>
+      <button class="chip bg-white/70 text-ink2 border-peach/50 hover:bg-white">읽고 싶은</button>
+      <button class="chip bg-white/70 text-ink2 border-peach/50 hover:bg-white">읽는 중</button>
+      <button class="chip bg-white/70 text-ink2 border-peach/50 hover:bg-white">완독</button>
+      <span class="ml-auto text-xs text-ink2/70">총 31권</span>
+    </div>
+
+    <!-- Bookshelf row 1 -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 mb-2">
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(135deg,#F4D7C8,#E8B89F);">
+          <div class="cover-title">아주<br/>작은<br/>습관의<br/>힘</div><div class="cover-mark">제임스 클리어</div>
+        </div>
+        <span class="tape rose">완독</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight">아주 작은 습관의 힘</h3>
+        <p class="text-xs text-ink2 mt-0.5">제임스 클리어</p>
+        <div class="text-xs text-peachDk mt-1">★★★★★</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(160deg,#C7D5BC,#93A487);">
+          <div class="cover-title">미드<br/>나잇<br/>라이브<br/>러리</div><div class="cover-mark">매트 헤이그</div>
+        </div>
+        <span class="tape sage">읽는 중</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight">미드나잇 라이브러리</h3>
+        <p class="text-xs text-ink2 mt-0.5">매트 헤이그</p>
+        <div class="text-xs text-ink2/60 mt-1">62%</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(145deg,#FAE4D0,#E8B89F 60%,#C49074);">
+          <div class="cover-title">불안<br/>세대</div><div class="cover-mark">조너선 하이트</div>
+        </div>
+        <span class="tape">읽고 싶은</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight">불안 세대</h3>
+        <p class="text-xs text-ink2 mt-0.5">조너선 하이트</p>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(180deg,#E8C8B5,#C9A985);">
+          <div class="cover-title">달러구트<br/>꿈 백화점</div><div class="cover-mark">이미예</div>
+        </div>
+        <span class="tape rose">완독</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight">달러구트 꿈 백화점</h3>
+        <p class="text-xs text-ink2 mt-0.5">이미예</p>
+        <div class="text-xs text-peachDk mt-1">★★★★☆</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(135deg,#D5DCC7,#93A487);">
+          <div class="cover-title">아침<br/>의 피아노</div><div class="cover-mark">김진영</div>
+        </div>
+        <span class="tape rose">완독</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight">아침의 피아노</h3>
+        <p class="text-xs text-ink2 mt-0.5">김진영</p>
+        <div class="text-xs text-peachDk mt-1">★★★★★</div>
+      </article>
+    </div>
+    <div class="shelf mx-1 sm:mx-2 mb-10"></div>
+
+    <!-- Bookshelf row 2 -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 mb-2">
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(170deg,#F0D4C0,#D9A892);">
+          <div class="cover-title">소년이<br/>온다</div><div class="cover-mark">한강</div>
+        </div>
+        <span class="tape rose">완독</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight">소년이 온다</h3>
+        <p class="text-xs text-ink2 mt-0.5">한강</p>
+        <div class="text-xs text-peachDk mt-1">★★★★★</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(155deg,#D8C7B0,#A88463);">
+          <div class="cover-title">코스모스</div><div class="cover-mark">칼 세이건</div>
+        </div>
+        <span class="tape sage">읽는 중</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight">코스모스</h3>
+        <p class="text-xs text-ink2 mt-0.5">칼 세이건</p>
+        <div class="text-xs text-ink2/60 mt-1">34%</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(135deg,#E3E2D1,#B5BFA2);">
+          <div class="cover-title">사<br/>피<br/>엔<br/>스</div><div class="cover-mark">유발 하라리</div>
+        </div>
+        <span class="tape">읽고 싶은</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight">사피엔스</h3>
+        <p class="text-xs text-ink2 mt-0.5">유발 하라리</p>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(180deg,#F2DECC,#E8B89F 60%,#B5825F);">
+          <div class="cover-title">트렌드<br/>코리아<br/>2026</div><div class="cover-mark">김난도 외</div>
+        </div>
+        <span class="tape">읽고 싶은</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight">트렌드 코리아 2026</h3>
+        <p class="text-xs text-ink2 mt-0.5">김난도 외</p>
+      </article>
+      <button class="book relative group text-left">
+        <div class="cover flex flex-col items-center justify-center text-center"
+             style="background:rgba(255,255,255,.55); border:2px dashed rgba(232,184,159,.7);">
+          <span class="text-3xl text-peachDk">+</span>
+          <span class="font-hand text-base text-ink2 mt-1">책 추가하기</span>
+        </div>
+        <p class="mt-3 text-xs text-ink2/70">새 책을 꽂아볼까?</p>
+      </button>
+    </div>
+    <div class="shelf mx-1 sm:mx-2 mb-12"></div>
+
+    <!-- Authors -->
+    <section class="mt-4">
+      <div class="flex items-end justify-between mb-4">
+        <div>
+          <p class="font-hand text-xl text-sageDk">자주 읽는 작가</p>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight mt-0.5">이 작가의 <span class="scribble">다른 책</span>도 어때요?</h2>
+        </div>
+        <a href="#" class="hidden sm:inline text-xs text-ink2 hover:underline">전체 보기 →</a>
+      </div>
+      <div class="h-scroll flex gap-4 overflow-x-auto pb-3 -mx-5 px-5 sm:-mx-8 sm:px-8 snap-x">
+        <article class="snap-start shrink-0 w-56 rounded-blob p-4 bg-white/80 border border-peach/50 shadow-paper">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-peach/70 grid place-items-center font-hand text-xl text-ink">한</div>
+            <div><div class="font-semibold text-sm">한강</div><div class="text-xs text-ink2/70">읽은 책 3권</div></div>
+          </div>
+          <p class="mt-3 text-xs text-ink2 leading-relaxed">"채식주의자", "흰" 도 책장에 꽂혀있어요.</p>
+          <div class="mt-3 flex gap-2">
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-peach/40 text-ink2">노벨문학상</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-sage/30 text-sageDk">소설</span>
+          </div>
+        </article>
+        <article class="snap-start shrink-0 w-56 rounded-blob p-4 bg-white/80 border border-sage/40 shadow-paper">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-sage/40 grid place-items-center font-hand text-xl text-sageDk">매</div>
+            <div><div class="font-semibold text-sm">매트 헤이그</div><div class="text-xs text-ink2/70">읽은 책 2권</div></div>
+          </div>
+          <p class="mt-3 text-xs text-ink2 leading-relaxed">"휴먼스" 도 추천해요. 따뜻한 위로.</p>
+          <div class="mt-3 flex gap-2">
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-sage/30 text-sageDk">힐링</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-peach/40 text-ink2">소설</span>
+          </div>
+        </article>
+        <article class="snap-start shrink-0 w-56 rounded-blob p-4 bg-white/80 border border-peach/50 shadow-paper">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-peach/70 grid place-items-center font-hand text-xl text-ink">김</div>
+            <div><div class="font-semibold text-sm">김초엽</div><div class="text-xs text-ink2/70">읽은 책 4권</div></div>
+          </div>
+          <p class="mt-3 text-xs text-ink2 leading-relaxed">SF에 다정함을 담아내는 작가.</p>
+          <div class="mt-3 flex gap-2">
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-peach/40 text-ink2">SF</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-sage/30 text-sageDk">단편</span>
+          </div>
+        </article>
+        <article class="snap-start shrink-0 w-56 rounded-blob p-4 bg-white/80 border border-sage/40 shadow-paper">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-sage/40 grid place-items-center font-hand text-xl text-sageDk">정</div>
+            <div><div class="font-semibold text-sm">정세랑</div><div class="text-xs text-ink2/70">읽은 책 2권</div></div>
+          </div>
+          <p class="mt-3 text-xs text-ink2 leading-relaxed">"보건교사 안은영"이 책장에 있어요.</p>
+          <div class="mt-3 flex gap-2"><span class="text-[11px] px-2 py-0.5 rounded-full bg-sage/30 text-sageDk">판타지</span></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pb-10">
+    <div class="stitch mb-6"></div>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-ink2">
+      <div class="flex items-center gap-2"><span class="font-hand text-xl text-sageDk">서</span><span>© 2026 스마트 서재 · GETIT 9기</span></div>
+      <div class="flex items-center gap-4"><a href="#" class="hover:text-ink">도서 검색 API</a><a href="https://get-it.cloud" class="hover:text-ink">GETIT 9기</a></div>
+    </div>
+  </footer>
+</section>
+
+<!-- ===================== DIVIDER ===================== -->
+<section class="bg-cream dark:bg-mocha py-10 sm:py-14">
+  <div class="max-w-3xl mx-auto px-5 text-center">
+    <div class="stitch mb-6 opacity-70"></div>
+    <p class="font-hand text-2xl sm:text-3xl text-ink2 dark:text-beige2">↓ 다크 모드 ↓</p>
+    <p class="mt-2 text-sm text-ink2/80 dark:text-beige2/80">밤에 책장 앞에 앉은 느낌으로 — 짙은 원목 + 따뜻한 베이지.</p>
+    <div class="stitch mt-6 opacity-70"></div>
+  </div>
+</section>
+
+<!-- ===================== DARK (강제 스코프) ===================== -->
+<section id="dark-section" class="dark-scope paper paper-dark relative overflow-hidden" style="background:#2A1F1A; color:#E8D6C4;">
+  <div class="blob" style="background:#D9A892; width:360px; height:360px; top:-100px; right:-60px; opacity:.18;"></div>
+  <div class="blob" style="background:#A8B89A; width:280px; height:280px; bottom:-80px; left:-40px; opacity:.16;"></div>
+
+  <header class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-6 pb-3 flex items-center gap-4">
+    <a href="#" class="flex items-baseline gap-1.5 shrink-0">
+      <span class="font-hand text-3xl leading-none" style="color:#A8B89A;">서</span>
+      <span class="text-lg sm:text-xl font-semibold tracking-tight" style="color:#E8D6C4;">재</span>
+    </a>
+    <div class="flex-1 max-w-md mx-auto sm:mx-4">
+      <label class="relative block">
+        <span class="sr-only">책 제목 또는 저자 검색</span>
+        <span aria-hidden="true" class="absolute left-4 top-1/2 -translate-y-1/2" style="color:rgba(232,214,196,.55);">🔍</span>
+        <input type="search" placeholder="책 제목 / 저자 검색..."
+          aria-label="책 제목 또는 저자 검색"
+          class="search-input w-full pl-10 pr-4 py-2.5 rounded-full text-sm backdrop-blur"
+          style="background:rgba(58,44,36,.7); border:1px solid #4A3A30; color:#E8D6C4;" />
+      </label>
+    </div>
+    <nav class="flex items-center gap-3 shrink-0">
+      <a href="#" class="hidden sm:inline text-sm" style="color:#C9B49E;">로그인</a>
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
+            style="background:#3A2C24; color:#C9B49E; border:1px solid #4A3A30;">🌙 다크 시안</span>
+    </nav>
+  </header>
+
+  <main class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-6 pb-16">
+    <div class="flex items-end justify-between mb-6">
+      <div>
+        <p class="font-hand text-xl sm:text-2xl" style="color:#D9A892;">오늘도 한 페이지</p>
+        <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mt-1" style="color:#F4E8D9;">나의 <span class="scribble">작은 책장</span></h1>
+      </div>
+      <span class="hidden sm:block text-xs" style="color:#C9B49E;">2026년 봄</span>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3 sm:gap-5 mb-8">
+      <div class="rounded-blob p-4 sm:p-5" style="background:#3A2C24; border:1px solid #4A3A30;">
+        <div class="text-[11px] uppercase tracking-wider" style="color:#C9B49E;opacity:.75;">읽은 책</div>
+        <div class="mt-1 flex items-baseline gap-1"><span class="text-2xl sm:text-3xl font-bold" style="color:#F4E8D9;">23</span><span class="text-sm" style="color:#C9B49E;">권</span></div>
+      </div>
+      <div class="rounded-blob p-4 sm:p-5" style="background:#3A2C24; border:1px solid #4A3A30;">
+        <div class="text-[11px] uppercase tracking-wider" style="color:#C9B49E;opacity:.75;">읽고 싶은</div>
+        <div class="mt-1 flex items-baseline gap-1"><span class="text-2xl sm:text-3xl font-bold" style="color:#F4E8D9;">8</span><span class="text-sm" style="color:#C9B49E;">권</span></div>
+      </div>
+      <div class="rounded-blob p-4 sm:p-5" style="background:#3A2C24; border:1px solid #4A3A30;">
+        <div class="text-[11px] uppercase tracking-wider" style="color:#C9B49E;opacity:.75;">평균 평점</div>
+        <div class="mt-1 flex items-baseline gap-1"><span class="text-2xl sm:text-3xl font-bold" style="color:#F4E8D9;">4.3</span><span class="text-sm" style="color:#D9A892;">★</span></div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 mb-8">
+      <button class="chip chip-active">전체</button>
+      <button class="chip" style="background:#3A2C24; color:#C9B49E; border:1px solid #4A3A30;">읽고 싶은</button>
+      <button class="chip" style="background:#3A2C24; color:#C9B49E; border:1px solid #4A3A30;">읽는 중</button>
+      <button class="chip" style="background:#3A2C24; color:#C9B49E; border:1px solid #4A3A30;">완독</button>
+      <span class="ml-auto text-xs" style="color:#C9B49E; opacity:.75;">총 31권</span>
+    </div>
+
+    <!-- Bookshelf row 1 (dark) -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 mb-2">
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(135deg,#F4D7C8,#B5825F);"><div class="cover-title">아주<br/>작은<br/>습관의<br/>힘</div><div class="cover-mark">제임스 클리어</div></div>
+        <span class="tape peach">완독</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight" style="color:#F4E8D9;">아주 작은 습관의 힘</h3>
+        <p class="text-xs mt-0.5" style="color:#C9B49E;">제임스 클리어</p>
+        <div class="text-xs mt-1" style="color:#D9A892;">★★★★★</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(160deg,#C7D5BC,#6F8366);"><div class="cover-title">미드<br/>나잇<br/>라이브<br/>러리</div><div class="cover-mark">매트 헤이그</div></div>
+        <span class="tape sage">읽는 중</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight" style="color:#F4E8D9;">미드나잇 라이브러리</h3>
+        <p class="text-xs mt-0.5" style="color:#C9B49E;">매트 헤이그</p>
+        <div class="text-xs mt-1" style="color:#A8B89A;">62%</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(145deg,#FAE4D0,#B5825F);"><div class="cover-title">불안<br/>세대</div><div class="cover-mark">조너선 하이트</div></div>
+        <span class="tape cream">읽고 싶은</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight" style="color:#F4E8D9;">불안 세대</h3>
+        <p class="text-xs mt-0.5" style="color:#C9B49E;">조너선 하이트</p>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(180deg,#E8C8B5,#8B6843);"><div class="cover-title">달러구트<br/>꿈 백화점</div><div class="cover-mark">이미예</div></div>
+        <span class="tape peach">완독</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight" style="color:#F4E8D9;">달러구트 꿈 백화점</h3>
+        <p class="text-xs mt-0.5" style="color:#C9B49E;">이미예</p>
+        <div class="text-xs mt-1" style="color:#D9A892;">★★★★☆</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(135deg,#D5DCC7,#5A6A4E);"><div class="cover-title">아침<br/>의 피아노</div><div class="cover-mark">김진영</div></div>
+        <span class="tape peach">완독</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight" style="color:#F4E8D9;">아침의 피아노</h3>
+        <p class="text-xs mt-0.5" style="color:#C9B49E;">김진영</p>
+        <div class="text-xs mt-1" style="color:#D9A892;">★★★★★</div>
+      </article>
+    </div>
+    <div class="shelf mx-1 sm:mx-2 mb-10"></div>
+
+    <!-- Bookshelf row 2 (dark) -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 mb-2">
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(170deg,#F0D4C0,#A88463);"><div class="cover-title">소년이<br/>온다</div><div class="cover-mark">한강</div></div>
+        <span class="tape peach">완독</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight" style="color:#F4E8D9;">소년이 온다</h3>
+        <p class="text-xs mt-0.5" style="color:#C9B49E;">한강</p>
+        <div class="text-xs mt-1" style="color:#D9A892;">★★★★★</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(155deg,#D8C7B0,#6B4F38);"><div class="cover-title">코스모스</div><div class="cover-mark">칼 세이건</div></div>
+        <span class="tape sage">읽는 중</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight" style="color:#F4E8D9;">코스모스</h3>
+        <p class="text-xs mt-0.5" style="color:#C9B49E;">칼 세이건</p>
+        <div class="text-xs mt-1" style="color:#A8B89A;">34%</div>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(135deg,#E3E2D1,#7A8868);"><div class="cover-title">사<br/>피<br/>엔<br/>스</div><div class="cover-mark">유발 하라리</div></div>
+        <span class="tape cream">읽고 싶은</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight" style="color:#F4E8D9;">사피엔스</h3>
+        <p class="text-xs mt-0.5" style="color:#C9B49E;">유발 하라리</p>
+      </article>
+      <article class="book relative">
+        <div class="cover" style="background:linear-gradient(180deg,#F2DECC,#8B5C3D);"><div class="cover-title">트렌드<br/>코리아<br/>2026</div><div class="cover-mark">김난도 외</div></div>
+        <span class="tape cream">읽고 싶은</span>
+        <h3 class="mt-3 text-sm font-semibold leading-tight" style="color:#F4E8D9;">트렌드 코리아 2026</h3>
+        <p class="text-xs mt-0.5" style="color:#C9B49E;">김난도 외</p>
+      </article>
+      <button class="book relative text-left">
+        <div class="cover flex flex-col items-center justify-center text-center"
+             style="background:rgba(58,44,36,.55); border:2px dashed rgba(217,168,146,.6);">
+          <span class="text-3xl" style="color:#D9A892;">+</span>
+          <span class="font-hand text-base mt-1" style="color:#C9B49E;">책 추가하기</span>
+        </div>
+        <p class="mt-3 text-xs" style="color:#C9B49E; opacity:.75;">새 책을 꽂아볼까?</p>
+      </button>
+    </div>
+    <div class="shelf mx-1 sm:mx-2 mb-12"></div>
+
+    <!-- Authors (dark) -->
+    <section class="mt-4">
+      <div class="flex items-end justify-between mb-4">
+        <div>
+          <p class="font-hand text-xl" style="color:#A8B89A;">자주 읽는 작가</p>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight mt-0.5" style="color:#F4E8D9;">이 작가의 <span class="scribble">다른 책</span>도 어때요?</h2>
+        </div>
+        <a href="#" class="hidden sm:inline text-xs" style="color:#C9B49E;">전체 보기 →</a>
+      </div>
+      <div class="h-scroll flex gap-4 overflow-x-auto pb-3 -mx-5 px-5 sm:-mx-8 sm:px-8 snap-x" id="darkAuthors"></div>
+      <script>
+        (function(){
+          const data = [
+            {i:'한', name:'한강', n:3, desc:'"채식주의자", "흰" 도 책장에 꽂혀있어요.', tags:[['노벨문학상','rose'],['소설','sage']]},
+            {i:'매', name:'매트 헤이그', n:2, desc:'"휴먼스" 도 추천해요. 따뜻한 위로.', tags:[['힐링','sage'],['소설','rose']]},
+            {i:'김', name:'김초엽', n:4, desc:'SF에 다정함을 담아내는 작가.', tags:[['SF','rose'],['단편','sage']]},
+            {i:'정', name:'정세랑', n:2, desc:'"보건교사 안은영"이 책장에 있어요.', tags:[['판타지','sage']]},
+          ];
+          const c = (t)=> t==='rose' ? 'background:rgba(217,168,146,.2);color:#D9A892;' : 'background:rgba(168,184,154,.2);color:#A8B89A;';
+          const av = (t)=> t==='rose' ? 'background:rgba(217,168,146,.25);color:#D9A892;' : 'background:rgba(168,184,154,.25);color:#A8B89A;';
+          document.getElementById('darkAuthors').innerHTML = data.map((a,idx)=>{
+            const tone = idx % 2 === 0 ? 'rose' : 'sage';
+            return `<article class="snap-start shrink-0 w-56 rounded-blob p-4" style="background:#3A2C24; border:1px solid #4A3A30;">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full grid place-items-center font-hand text-xl" style="${av(tone)}">${a.i}</div>
+                <div><div class="font-semibold text-sm" style="color:#F4E8D9;">${a.name}</div><div class="text-xs" style="color:#C9B49E;">읽은 책 ${a.n}권</div></div>
+              </div>
+              <p class="mt-3 text-xs leading-relaxed" style="color:#C9B49E;">${a.desc}</p>
+              <div class="mt-3 flex gap-2">${a.tags.map(([label,t])=>`<span class="text-[11px] px-2 py-0.5 rounded-full" style="${c(t)}">${label}</span>`).join('')}</div>
+            </article>`;
+          }).join('');
+        })();
+      </script>
+    </section>
+  </main>
+
+  <footer class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pb-10">
+    <div class="stitch mb-6"></div>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm" style="color:#C9B49E;">
+      <div class="flex items-center gap-2"><span class="font-hand text-xl" style="color:#A8B89A;">서</span><span>© 2026 스마트 서재 · GETIT 9기</span></div>
+      <div class="flex items-center gap-4"><a href="#" class="hover:opacity-100" style="opacity:.85;">도서 검색 API</a><a href="https://get-it.cloud" class="hover:opacity-100" style="opacity:.85;">GETIT 9기</a></div>
+    </div>
+  </footer>
+</section>
+
+<script>
+  (function () {
+    const root = document.documentElement;
+    const btn  = document.getElementById('themeToggle');
+    const KEY  = 'getit-shelf-warm-theme';
+    function apply(mode) { if (mode === 'dark') root.classList.add('dark'); else root.classList.remove('dark'); }
+    const saved = localStorage.getItem(KEY);
+    apply(saved === 'dark' ? 'dark' : 'light');
+    btn?.addEventListener('click', () => {
+      const next = root.classList.contains('dark') ? 'light' : 'dark';
+      apply(next);
+      localStorage.setItem(KEY, next);
+    });
+  })();
+</script>
+
+</body>
+</html>

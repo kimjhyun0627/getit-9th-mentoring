@@ -1,100 +1,105 @@
 <!doctype html>
-<html lang="ko" class="dark">
+<html lang="ko" class="dark scroll-smooth">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>GETIT/9 — 9기 멘토링 프로젝트 [TECH/DARK]</title>
+    <title>GETIT/9 — 9기 멘토링 [TECH/DARK]</title>
+
+    <!-- Fonts: Pretendard (KO body), Inter (LATIN body), JetBrains Mono (heading/meta) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Theme bootstrap (must run before first paint to avoid flash). -->
+    <script>
+      (function () {
+        try {
+          var root = document.documentElement;
+          var KEY = 'getit-theme';
+          var stored = null;
+          try {
+            stored = localStorage.getItem(KEY);
+          } catch (e) {
+            // localStorage 접근 차단(시크릿 모드 등) — stored 는 null 유지
+          }
+          var initial = stored || 'dark';
+          if (initial === 'dark') root.classList.add('dark');
+          else root.classList.remove('dark');
+        } catch (e) {
+          // 어떤 이유로든 실패해도 마크업 기본값(class="dark")이 적용됨
+        }
+      })();
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Inter', 'ui-sans-serif', 'system-ui'],
-              mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+              sans: ['Inter', 'Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'],
+              mono: ['JetBrains Mono', 'ui-monospace', 'SF Mono', 'monospace'],
             },
             colors: {
               cyan: { neon: '#22d3ee' },
               magenta: { neon: '#e879f9' },
               lime: { neon: '#a3e635' },
               ink: {
-                950: '#08090b',
-                900: '#0c0d10',
-                850: '#101114',
-                800: '#16181d',
-                700: '#1f2228',
-                600: '#2a2e36',
+                50: '#fafafa', 100: '#f4f4f5', 200: '#e4e4e7', 300: '#d4d4d8',
+                400: '#a1a1aa', 500: '#71717a', 600: '#52525b', 700: '#1f2228',
+                800: '#16181d', 850: '#101114', 900: '#0c0d10', 950: '#08090b',
               },
             },
+            letterSpacing: { tightest: '-0.04em' },
           },
         },
       };
     </script>
+
     <style>
       :root {
-        --grid-color: rgba(255, 255, 255, 0.04);
-        --grid-color-light: rgba(15, 23, 42, 0.06);
         --cyan: #22d3ee;
         --magenta: #e879f9;
         --lime: #a3e635;
       }
-      html {
-        scroll-behavior: smooth;
-      }
       body {
-        font-feature-settings: 'cv11', 'ss01', 'ss03';
+        font-family: 'Inter', 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+        font-feature-settings: 'cv11', 'ss01', 'tnum';
         -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
       }
-      /* Backgrounds */
+      /* ─── Background scenes ─────────────────────────────────────── */
       .scene-dark {
         background-color: #08090b;
         background-image:
-          radial-gradient(
-            900px 500px at 85% -10%,
-            rgba(34, 211, 238, 0.12),
-            transparent 60%
-          ),
-          radial-gradient(
-            700px 400px at 5% 20%,
-            rgba(232, 121, 249, 0.08),
-            transparent 60%
-          ),
-          linear-gradient(var(--grid-color) 1px, transparent 1px),
-          linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-        background-size:
-          auto,
-          auto,
-          48px 48px,
-          48px 48px;
+          radial-gradient(900px 500px at 85% -10%, rgba(34,211,238,0.12), transparent 60%),
+          radial-gradient(700px 400px at 5% 20%, rgba(232,121,249,0.07), transparent 60%),
+          linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+        background-size: auto, auto, 48px 48px, 48px 48px;
       }
-      .scene-light {
-        background-color: #f5f5f4;
+      html:not(.dark) .scene-dark {
+        background-color: #fafaf9;
         background-image:
-          radial-gradient(
-            900px 500px at 85% -10%,
-            rgba(8, 145, 178, 0.06),
-            transparent 60%
-          ),
-          radial-gradient(
-            700px 400px at 5% 20%,
-            rgba(192, 38, 211, 0.05),
-            transparent 60%
-          ),
-          linear-gradient(var(--grid-color-light) 1px, transparent 1px),
-          linear-gradient(90deg, var(--grid-color-light) 1px, transparent 1px);
-        background-size:
-          auto,
-          auto,
-          48px 48px,
-          48px 48px;
+          radial-gradient(900px 500px at 85% -10%, rgba(8,145,178,0.06), transparent 60%),
+          radial-gradient(700px 400px at 5% 20%, rgba(192,38,211,0.05), transparent 60%),
+          linear-gradient(rgba(15,23,42,0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15,23,42,0.05) 1px, transparent 1px);
+        background-size: auto, auto, 48px 48px, 48px 48px;
       }
-      /* Blinking caret */
+      /* hairline (matches minimalist pattern, neon-tinted in dark) */
+      .hairline { border-color: rgba(15,23,42,0.10); }
+      .dark .hairline { border-color: rgba(255,255,255,0.08); }
+
+      /* ─── Blinking caret (single hero accent) ──────────────────── */
       @keyframes blink {
         0%, 49% { opacity: 1; }
         50%, 100% { opacity: 0; }
@@ -102,938 +107,574 @@
       .caret {
         display: inline-block;
         width: 0.55ch;
+        height: 1em;
         background: currentColor;
         animation: blink 1.05s steps(1) infinite;
-        margin-left: 2px;
+        margin-left: 0.12em;
+        vertical-align: -0.12em;
       }
-      /* Subtle scanline overlay (dark only) */
+      /* ─── Subtle scanline overlay (dark only) ──────────────────── */
       .scanlines::after {
         content: '';
-        position: absolute;
-        inset: 0;
+        position: absolute; inset: 0;
         pointer-events: none;
         background-image: repeating-linear-gradient(
           to bottom,
-          rgba(255, 255, 255, 0.012) 0,
-          rgba(255, 255, 255, 0.012) 1px,
+          rgba(255,255,255,0.012) 0,
+          rgba(255,255,255,0.012) 1px,
           transparent 1px,
           transparent 3px
         );
         mix-blend-mode: overlay;
+        opacity: 0;
+        transition: opacity 200ms ease;
       }
-      /* Glitch hover for hero title */
-      @keyframes glitchShift {
-        0%, 100% { transform: translate(0, 0); }
-        20% { transform: translate(-1px, 1px); }
-        40% { transform: translate(1px, -1px); }
-        60% { transform: translate(-1px, 0); }
-        80% { transform: translate(1px, 1px); }
-      }
-      .glitch:hover { animation: glitchShift 320ms steps(2) 1; }
-      /* Card neon glow */
+      .dark .scanlines::after { opacity: 1; }
+
+      /* ─── Card hover: 1px neon outline + accent glow ───────────── */
       .card-tech {
         position: relative;
-        transition:
-          transform 180ms ease,
-          border-color 180ms ease,
-          box-shadow 180ms ease,
-          background-color 180ms ease;
+        transition: transform 180ms ease, border-color 180ms ease,
+                    box-shadow 180ms ease, background-color 180ms ease;
       }
-      .card-tech::before {
-        content: '';
-        position: absolute;
-        inset: -1px;
-        border-radius: inherit;
-        padding: 1px;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.06),
-          rgba(255, 255, 255, 0.01) 45%,
-          rgba(255, 255, 255, 0.04)
-        );
-        -webkit-mask:
-          linear-gradient(#000 0 0) content-box,
-          linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        pointer-events: none;
+      .card-tech:hover { transform: translateY(-2px); }
+      .dark .card-tech[data-accent='cyan']:hover {
+        border-color: rgba(34,211,238,0.55) !important;
+        box-shadow: 0 0 0 1px rgba(34,211,238,0.30),
+                    0 0 36px -8px rgba(34,211,238,0.45),
+                    0 14px 40px -20px rgba(0,0,0,0.8);
       }
-      .card-tech:hover {
-        transform: translateY(-2px);
+      .dark .card-tech[data-accent='magenta']:hover {
+        border-color: rgba(232,121,249,0.55) !important;
+        box-shadow: 0 0 0 1px rgba(232,121,249,0.30),
+                    0 0 36px -8px rgba(232,121,249,0.45),
+                    0 14px 40px -20px rgba(0,0,0,0.8);
       }
-      .card-tech[data-accent='cyan']:hover {
-        border-color: rgba(34, 211, 238, 0.55) !important;
-        box-shadow:
-          0 0 0 1px rgba(34, 211, 238, 0.35),
-          0 0 32px -6px rgba(34, 211, 238, 0.45),
-          0 12px 40px -16px rgba(0, 0, 0, 0.8);
+      .dark .card-tech[data-accent='lime']:hover {
+        border-color: rgba(163,230,53,0.55) !important;
+        box-shadow: 0 0 0 1px rgba(163,230,53,0.28),
+                    0 0 36px -8px rgba(163,230,53,0.40),
+                    0 14px 40px -20px rgba(0,0,0,0.8);
       }
-      .card-tech[data-accent='magenta']:hover {
-        border-color: rgba(232, 121, 249, 0.55) !important;
-        box-shadow:
-          0 0 0 1px rgba(232, 121, 249, 0.35),
-          0 0 32px -6px rgba(232, 121, 249, 0.45),
-          0 12px 40px -16px rgba(0, 0, 0, 0.8);
+      .dark .card-tech[data-accent='amber']:hover {
+        border-color: rgba(251,191,36,0.55) !important;
+        box-shadow: 0 0 0 1px rgba(251,191,36,0.28),
+                    0 0 36px -8px rgba(251,191,36,0.40),
+                    0 14px 40px -20px rgba(0,0,0,0.8);
       }
-      .card-tech[data-accent='lime']:hover {
-        border-color: rgba(163, 230, 53, 0.55) !important;
-        box-shadow:
-          0 0 0 1px rgba(163, 230, 53, 0.3),
-          0 0 32px -6px rgba(163, 230, 53, 0.4),
-          0 12px 40px -16px rgba(0, 0, 0, 0.8);
+      .dark .card-tech[data-accent='zinc']:hover {
+        border-color: rgba(244,244,245,0.45) !important;
+        box-shadow: 0 0 0 1px rgba(244,244,245,0.20),
+                    0 0 36px -8px rgba(244,244,245,0.20),
+                    0 14px 40px -20px rgba(0,0,0,0.8);
       }
-      .card-tech[data-accent='amber']:hover {
-        border-color: rgba(251, 191, 36, 0.5) !important;
-        box-shadow:
-          0 0 0 1px rgba(251, 191, 36, 0.3),
-          0 0 32px -6px rgba(251, 191, 36, 0.4),
-          0 12px 40px -16px rgba(0, 0, 0, 0.8);
-      }
-      /* Light mode card hover */
-      .light .card-tech[data-accent='cyan']:hover {
-        border-color: rgba(8, 145, 178, 0.6) !important;
-        box-shadow:
-          0 0 0 1px rgba(8, 145, 178, 0.3),
-          0 18px 40px -22px rgba(8, 145, 178, 0.5);
-      }
-      .light .card-tech[data-accent='magenta']:hover {
-        border-color: rgba(192, 38, 211, 0.55) !important;
-        box-shadow:
-          0 0 0 1px rgba(192, 38, 211, 0.25),
-          0 18px 40px -22px rgba(192, 38, 211, 0.45);
-      }
-      .light .card-tech[data-accent='lime']:hover {
-        border-color: rgba(101, 163, 13, 0.55) !important;
-        box-shadow:
-          0 0 0 1px rgba(101, 163, 13, 0.25),
-          0 18px 40px -22px rgba(101, 163, 13, 0.45);
-      }
-      .light .card-tech[data-accent='amber']:hover {
-        border-color: rgba(180, 83, 9, 0.55) !important;
-        box-shadow:
-          0 0 0 1px rgba(180, 83, 9, 0.25),
-          0 18px 40px -22px rgba(180, 83, 9, 0.45);
-      }
-      /* Arrow shift on hover */
-      .card-tech:hover .arrow-x {
-        transform: translateX(3px);
-      }
-      .arrow-x {
-        transition: transform 180ms ease;
-      }
-      /* Code-style chip */
-      .chip-mono {
-        font-feature-settings: 'zero', 'ss02';
-      }
-      /* Divider */
+      /* Light mode card hover (charcoal accents, no neon bloom) */
+      html:not(.dark) .card-tech[data-accent='cyan']:hover    { border-color:#0e7490!important;
+        box-shadow:0 0 0 1px rgba(14,116,144,0.25),0 14px 32px -18px rgba(14,116,144,0.4); }
+      html:not(.dark) .card-tech[data-accent='magenta']:hover { border-color:#a21caf!important;
+        box-shadow:0 0 0 1px rgba(162,28,175,0.22),0 14px 32px -18px rgba(162,28,175,0.4); }
+      html:not(.dark) .card-tech[data-accent='lime']:hover    { border-color:#4d7c0f!important;
+        box-shadow:0 0 0 1px rgba(77,124,15,0.22),0 14px 32px -18px rgba(77,124,15,0.4); }
+      html:not(.dark) .card-tech[data-accent='amber']:hover   { border-color:#b45309!important;
+        box-shadow:0 0 0 1px rgba(180,83,9,0.22),0 14px 32px -18px rgba(180,83,9,0.4); }
+      html:not(.dark) .card-tech[data-accent='zinc']:hover    { border-color:#18181b!important;
+        box-shadow:0 0 0 1px rgba(24,24,27,0.20),0 14px 32px -18px rgba(24,24,27,0.45); }
+
+      .card-tech:hover .arrow-x { transform: translateX(3px); }
+      .arrow-x { transition: transform 180ms ease; }
+
+      /* ─── Dotted/dashed mono divider ───────────────────────────── */
       .divider-mono {
         background-image: repeating-linear-gradient(
-          90deg,
-          currentColor 0,
-          currentColor 6px,
-          transparent 6px,
-          transparent 12px
+          90deg, currentColor 0, currentColor 6px, transparent 6px, transparent 12px
         );
         height: 1px;
       }
-      /* Focus visibility */
-      a:focus-visible,
-      button:focus-visible {
+
+      /* ─── Status pulse dot ─────────────────────────────────────── */
+      @keyframes pulseDot {
+        0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+        50%      { opacity: 0.55; box-shadow: 0 0 0 6px transparent; }
+      }
+      .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
+
+      /* ─── Focus visibility (WCAG AA) ───────────────────────────── */
+      a:focus-visible, button:focus-visible {
         outline: 2px solid var(--cyan);
         outline-offset: 3px;
         border-radius: 4px;
       }
-      .light a:focus-visible,
-      .light button:focus-visible {
-        outline-color: #0e7490;
-      }
-      /* Status pulse */
-      @keyframes pulseDot {
-        0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
-        50% { opacity: 0.6; box-shadow: 0 0 0 6px transparent; }
-      }
-      .pulse-dot {
-        animation: pulseDot 1.8s ease-in-out infinite;
-      }
-      /* Reduce motion */
+      html:not(.dark) a:focus-visible,
+      html:not(.dark) button:focus-visible { outline-color: #0e7490; }
+
+      /* Reduced motion */
       @media (prefers-reduced-motion: reduce) {
         .caret, .pulse-dot { animation: none; }
-        .glitch:hover { animation: none; }
         * { transition-duration: 0.001ms !important; }
       }
     </style>
   </head>
 
-  <body class="bg-ink-950 text-zinc-200 font-sans antialiased">
-    <!-- ============================================================
-         SECTION A — DARK MODE (default)
-         ============================================================ -->
-    <section
-      id="scene-dark"
-      class="scene-dark scanlines relative min-h-screen overflow-hidden"
-    >
-      <!-- corner registration marks -->
-      <div
-        class="pointer-events-none absolute left-4 top-4 font-mono text-[10px] tracking-wider text-zinc-600"
-      >
-        +
-      </div>
-      <div
-        class="pointer-events-none absolute right-4 top-4 font-mono text-[10px] tracking-wider text-zinc-600"
-      >
-        +
-      </div>
-      <div
-        class="pointer-events-none absolute bottom-4 left-4 font-mono text-[10px] tracking-wider text-zinc-600"
-      >
-        +
-      </div>
-      <div
-        class="pointer-events-none absolute bottom-4 right-4 font-mono text-[10px] tracking-wider text-zinc-600"
-      >
-        +
-      </div>
+  <body class="bg-stone-50 text-zinc-900 dark:bg-ink-950 dark:text-zinc-200 antialiased">
+    <!-- POLISH NOTES (HTML 코멘트로 차별 포인트 기록)
+         ─────────────────────────────────────────────────────────────
+         1) 2×2 카드 그리드: hobby / shelf / board / letter
+            → landing(self) 카드는 제거. 4 프로젝트만 노출
+         2) Hero 4-up metaline: "4 PROJECTS / 5 SUBDOMAINS / 1 SSO / 100% OPEN"
+            → minimalist의 dl 시그니처를 mono로 재해석
+         3) 단일 페이지 + class='dark' 토글 (minimalist 패턴 정렬)
+            → ☀/🌙 sticky 우상단, localStorage 영속화, 로드시 다크 기본
+         4) Hero 헤드라인: JetBrains Mono + tracking-tightest (-0.04em)
+            본문은 Inter/Pretendard sans (가독성 우선). 사이언 caret 1개.
+         5) Card hover: 1px neon outline + 외곽 glow (cyan/magenta/lime/amber)
+            라이트 모드는 charcoal 외곽선(글로우 없음)으로 절제
+         6) 액센트 색 절제: CTA, hero caret, hover 외곽, [01-04] 모듈 배지만
+         ─────────────────────────────────────────────────────────────-->
 
-      <!-- header -->
-      <header class="relative z-10 mx-auto max-w-7xl px-5 py-5 sm:px-8">
-        <nav class="flex items-center justify-between">
-          <a
-            href="#"
-            class="group flex items-center gap-2 font-mono text-sm font-semibold text-zinc-100"
-          >
-            <span class="text-cyan-neon">GETIT</span>
-            <span class="text-zinc-500">/</span>
-            <span class="text-zinc-100">9</span>
-            <span class="caret h-4 bg-cyan-neon text-cyan-neon" aria-hidden="true"></span>
-          </a>
-          <div class="flex items-center gap-2">
-            <div
-              class="hidden items-center gap-2 rounded-md border border-ink-700/80 bg-ink-900/60 px-2.5 py-1.5 font-mono text-[11px] text-zinc-400 sm:flex"
-            >
-              <span class="inline-block size-1.5 rounded-full bg-lime-neon pulse-dot text-lime-neon"></span>
-              <span>all systems / nominal</span>
-            </div>
-            <button
-              type="button"
-              data-toggle="dark-section"
-              class="rounded-md border border-ink-700 bg-ink-900/70 px-3 py-1.5 font-mono text-xs text-zinc-200 transition hover:border-cyan-neon hover:text-cyan-neon"
-              aria-label="섹션 라이트 모드 미리보기 토글"
-            >
-              <span class="opacity-60">$</span> toggle --light
-            </button>
-          </div>
-        </nav>
-      </header>
-
-      <!-- hero -->
-      <main class="relative z-10 mx-auto max-w-7xl px-5 pb-20 pt-10 sm:px-8 sm:pt-16">
-        <!-- breadcrumb / meta strip -->
-        <div
-          class="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500"
-        >
-          <span class="text-cyan-neon">~/getit/9</span>
-          <span class="text-zinc-700">·</span>
-          <span>region: knu</span>
-          <span class="text-zinc-700">·</span>
-          <span>build: 2026.05</span>
-          <span class="text-zinc-700">·</span>
-          <span class="text-zinc-300">stage <span class="text-lime-neon">live</span></span>
-        </div>
-
-        <div class="grid grid-cols-12 gap-6 lg:gap-10">
-          <!-- left: hero title -->
-          <div class="col-span-12 lg:col-span-8">
-            <p class="font-mono text-xs text-zinc-500">
-              <span class="text-magenta-neon">//</span> 4 services, 1 hub — SSO unified
-            </p>
-            <h1
-              class="glitch mt-3 text-[clamp(2.4rem,6vw,5rem)] font-semibold leading-[1.02] tracking-tight text-zinc-50"
-            >
-              9기 멘토링<br />
-              <span class="text-zinc-400">프로젝트.</span>
-              <span class="text-cyan-neon">deploy()</span>
-            </h1>
-            <p class="mt-6 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg">
-              경북대 GETIT 9기가 만드는 4개 서비스 허브. 통합 SSO, 다크모드,
-              모노레포로 묶인 풀스택 플레이그라운드.
-            </p>
-
-            <!-- cta -->
-            <div class="mt-8 flex flex-wrap items-center gap-3">
-              <a
-                href="#projects"
-                class="group inline-flex items-center gap-2 rounded-md bg-cyan-neon px-4 py-2.5 font-mono text-sm font-semibold text-ink-950 transition hover:brightness-110"
-              >
-                <span>./explore --all</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"/>
-                </svg>
-              </a>
-              <a
-                href="https://github.com/kimjhyun0627/getit-9th-mentoring"
-                class="inline-flex items-center gap-2 rounded-md border border-ink-700 bg-ink-900/60 px-4 py-2.5 font-mono text-sm text-zinc-200 transition hover:border-zinc-400 hover:text-zinc-50"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M12 .5A11.5 11.5 0 0 0 .5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55v-1.92c-3.2.7-3.88-1.54-3.88-1.54-.52-1.32-1.28-1.67-1.28-1.67-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.66.79.55C20.21 21.39 23.5 17.08 23.5 12A11.5 11.5 0 0 0 12 .5Z"/>
-                </svg>
-                <span>git remote</span>
-              </a>
-              <span class="font-mono text-[11px] text-zinc-500"
-                >press <kbd class="rounded border border-ink-700 bg-ink-900 px-1.5 py-0.5 text-zinc-300">/</kbd> to search</span
-              >
-            </div>
-          </div>
-
-          <!-- right: terminal panel -->
-          <aside class="col-span-12 lg:col-span-4">
-            <div
-              class="overflow-hidden rounded-lg border border-ink-700/80 bg-ink-900/70 shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_30px_60px_-30px_rgba(0,0,0,0.6)] backdrop-blur"
-            >
-              <div
-                class="flex items-center justify-between border-b border-ink-700/80 bg-ink-850/80 px-3 py-2"
-              >
-                <div class="flex items-center gap-1.5">
-                  <span class="size-2.5 rounded-full bg-zinc-700"></span>
-                  <span class="size-2.5 rounded-full bg-zinc-700"></span>
-                  <span class="size-2.5 rounded-full bg-zinc-700"></span>
-                </div>
-                <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500"
-                  >~/getit-9 — zsh — 80×24</span
-                >
-              </div>
-              <pre class="m-0 overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-relaxed text-zinc-300"><span class="text-zinc-500">$</span> <span class="text-zinc-100">getit ls --tree</span>
-<span class="text-zinc-500">├──</span> <span class="text-cyan-neon">hobby</span>     <span class="text-zinc-600">// 취미메이트</span>
-<span class="text-zinc-500">├──</span> <span class="text-magenta-neon">shelf</span>     <span class="text-zinc-600">// 스마트 서재</span>
-<span class="text-zinc-500">├──</span> <span class="text-lime-neon">board</span>     <span class="text-zinc-600">// 팀 칸반</span>
-<span class="text-zinc-500">└──</span> <span class="text-amber-400">letter</span>    <span class="text-zinc-600">// 익명 롤링페이퍼</span>
-
-<span class="text-zinc-500">$</span> <span class="text-zinc-100">getit status</span>
-<span class="text-lime-neon">●</span> auth.get-it.cloud  <span class="text-zinc-500">200 OK · 42ms</span>
-<span class="text-lime-neon">●</span> hobby.get-it.cloud <span class="text-zinc-500">200 OK · 51ms</span>
-<span class="text-lime-neon">●</span> shelf.get-it.cloud <span class="text-zinc-500">200 OK · 38ms</span>
-<span class="text-lime-neon">●</span> board.get-it.cloud <span class="text-zinc-500">200 OK · 47ms</span>
-<span class="text-lime-neon">●</span> letter.get-it.cloud<span class="text-zinc-500">200 OK · 44ms</span>
-
-<span class="text-zinc-500">$</span> <span class="text-cyan-neon">_</span><span class="caret h-3 bg-cyan-neon text-cyan-neon align-middle" aria-hidden="true"></span></pre>
-            </div>
-
-            <!-- stats row -->
-            <dl class="mt-4 grid grid-cols-3 gap-3 font-mono text-[11px]">
-              <div class="rounded-md border border-ink-700/70 bg-ink-900/50 px-3 py-2">
-                <dt class="text-zinc-500">services</dt>
-                <dd class="mt-0.5 text-lg font-semibold text-zinc-100">04</dd>
-              </div>
-              <div class="rounded-md border border-ink-700/70 bg-ink-900/50 px-3 py-2">
-                <dt class="text-zinc-500">sso</dt>
-                <dd class="mt-0.5 text-lg font-semibold text-cyan-neon">on</dd>
-              </div>
-              <div class="rounded-md border border-ink-700/70 bg-ink-900/50 px-3 py-2">
-                <dt class="text-zinc-500">uptime</dt>
-                <dd class="mt-0.5 text-lg font-semibold text-lime-neon">99.9</dd>
-              </div>
-            </dl>
-          </aside>
-        </div>
-
-        <!-- section divider -->
-        <div
-          id="projects"
-          class="mt-20 flex items-center gap-4 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500"
-        >
-          <span class="text-cyan-neon">[02]</span>
-          <span>services</span>
-          <div class="divider-mono flex-1 text-zinc-700"></div>
-          <span class="text-zinc-400">04 modules</span>
-        </div>
-
-        <!-- project cards -->
-        <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2">
-          <!-- 01 HOBBY -->
-          <a
-            href="https://hobby.get-it.cloud"
-            target="_blank"
-            rel="noopener"
-            data-accent="cyan"
-            class="card-tech group relative flex flex-col rounded-xl border border-ink-700/80 bg-ink-900/60 p-6 backdrop-blur"
-          >
-            <header class="flex items-start justify-between">
-              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
-                <span class="rounded border border-cyan-neon/40 bg-cyan-neon/10 px-1.5 py-0.5 text-cyan-neon">[01]</span>
-                <span class="text-zinc-400">HOBBY</span>
-              </div>
-              <span class="font-mono text-[10px] text-zinc-500">ID: HBY-01</span>
-            </header>
-            <div class="mt-6 flex items-center gap-3">
-              <span class="grid size-12 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-2xl">🤲</span>
-              <div>
-                <h3 class="text-xl font-semibold text-zinc-50">취미메이트</h3>
-                <p class="font-mono text-[11px] text-zinc-500">hobbymate · matchmaking</p>
-              </div>
-            </div>
-            <p class="mt-4 text-sm leading-relaxed text-zinc-400">
-              취미 기반 친구 매칭. 위치·관심사·시간대 매칭 알고리즘.
-            </p>
-            <ul class="mt-4 flex flex-wrap gap-1.5 font-mono text-[10.5px]">
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">next.js</li>
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">nest</li>
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">postgres</li>
-            </ul>
-            <footer class="mt-6 flex items-center justify-between">
-              <code class="font-mono text-[11px] text-cyan-neon">hobby.get-it.cloud</code>
-              <span class="inline-flex items-center gap-1 font-mono text-xs text-zinc-300 group-hover:text-cyan-neon">
-                open
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-                </svg>
-              </span>
-            </footer>
-          </a>
-
-          <!-- 02 SHELF -->
-          <a
-            href="https://shelf.get-it.cloud"
-            target="_blank"
-            rel="noopener"
-            data-accent="magenta"
-            class="card-tech group relative flex flex-col rounded-xl border border-ink-700/80 bg-ink-900/60 p-6 backdrop-blur"
-          >
-            <header class="flex items-start justify-between">
-              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
-                <span class="rounded border border-magenta-neon/40 bg-magenta-neon/10 px-1.5 py-0.5 text-magenta-neon">[02]</span>
-                <span class="text-zinc-400">SHELF</span>
-              </div>
-              <span class="font-mono text-[10px] text-zinc-500">ID: SHF-02</span>
-            </header>
-            <div class="mt-6 flex items-center gap-3">
-              <span class="grid size-12 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-2xl">📚</span>
-              <div>
-                <h3 class="text-xl font-semibold text-zinc-50">스마트 서재</h3>
-                <p class="font-mono text-[11px] text-zinc-500">smart-shelf · library</p>
-              </div>
-            </div>
-            <p class="mt-4 text-sm leading-relaxed text-zinc-400">
-              개인 도서 컬렉션 + 독서 기록. OCR 책 스캔, 추천 알고리즘.
-            </p>
-            <ul class="mt-4 flex flex-wrap gap-1.5 font-mono text-[10.5px]">
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">react</li>
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">fastify</li>
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">vision</li>
-            </ul>
-            <footer class="mt-6 flex items-center justify-between">
-              <code class="font-mono text-[11px] text-magenta-neon">shelf.get-it.cloud</code>
-              <span class="inline-flex items-center gap-1 font-mono text-xs text-zinc-300 group-hover:text-magenta-neon">
-                open
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-                </svg>
-              </span>
-            </footer>
-          </a>
-
-          <!-- 03 BOARD -->
-          <a
-            href="https://board.get-it.cloud"
-            target="_blank"
-            rel="noopener"
-            data-accent="lime"
-            class="card-tech group relative flex flex-col rounded-xl border border-ink-700/80 bg-ink-900/60 p-6 backdrop-blur"
-          >
-            <header class="flex items-start justify-between">
-              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
-                <span class="rounded border border-lime-neon/40 bg-lime-neon/10 px-1.5 py-0.5 text-lime-neon">[03]</span>
-                <span class="text-zinc-400">BOARD</span>
-              </div>
-              <span class="font-mono text-[10px] text-zinc-500">ID: BRD-03</span>
-            </header>
-            <div class="mt-6 flex items-center gap-3">
-              <span class="grid size-12 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-2xl">💻</span>
-              <div>
-                <h3 class="text-xl font-semibold text-zinc-50">팀 칸반</h3>
-                <p class="font-mono text-[11px] text-zinc-500">kanban · realtime</p>
-              </div>
-            </div>
-            <p class="mt-4 text-sm leading-relaxed text-zinc-400">
-              실시간 협업 칸반 보드. WebSocket 동기화, 드래그·드롭.
-            </p>
-            <ul class="mt-4 flex flex-wrap gap-1.5 font-mono text-[10.5px]">
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">svelte</li>
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">elysia</li>
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">redis</li>
-            </ul>
-            <footer class="mt-6 flex items-center justify-between">
-              <code class="font-mono text-[11px] text-lime-neon">board.get-it.cloud</code>
-              <span class="inline-flex items-center gap-1 font-mono text-xs text-zinc-300 group-hover:text-lime-neon">
-                open
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-                </svg>
-              </span>
-            </footer>
-          </a>
-
-          <!-- 04 LETTER -->
-          <a
-            href="https://letter.get-it.cloud"
-            target="_blank"
-            rel="noopener"
-            data-accent="amber"
-            class="card-tech group relative flex flex-col rounded-xl border border-ink-700/80 bg-ink-900/60 p-6 backdrop-blur"
-          >
-            <header class="flex items-start justify-between">
-              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
-                <span class="rounded border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-amber-400">[04]</span>
-                <span class="text-zinc-400">LETTER</span>
-              </div>
-              <span class="font-mono text-[10px] text-zinc-500">ID: LTR-04</span>
-            </header>
-            <div class="mt-6 flex items-center gap-3">
-              <span class="grid size-12 place-items-center rounded-lg border border-ink-700 bg-ink-850 text-2xl">🎤</span>
-              <div>
-                <h3 class="text-xl font-semibold text-zinc-50">익명 롤링페이퍼</h3>
-                <p class="font-mono text-[11px] text-zinc-500">letter · anonymous</p>
-              </div>
-            </div>
-            <p class="mt-4 text-sm leading-relaxed text-zinc-400">
-              익명 메시지 보드. 보낸이 비공개, 모더레이션, 공유 링크.
-            </p>
-            <ul class="mt-4 flex flex-wrap gap-1.5 font-mono text-[10.5px]">
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">remix</li>
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">hono</li>
-              <li class="chip-mono rounded border border-ink-700 bg-ink-850 px-1.5 py-0.5 text-zinc-300">sqlite</li>
-            </ul>
-            <footer class="mt-6 flex items-center justify-between">
-              <code class="font-mono text-[11px] text-amber-400">letter.get-it.cloud</code>
-              <span class="inline-flex items-center gap-1 font-mono text-xs text-zinc-300 group-hover:text-amber-400">
-                open
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-                </svg>
-              </span>
-            </footer>
-          </a>
-        </div>
-
-        <!-- footer terminal log -->
-        <footer
-          class="mt-20 rounded-lg border border-ink-700/70 bg-ink-900/50 p-5 font-mono text-[11.5px] leading-relaxed text-zinc-400"
-        >
-          <div class="flex items-center justify-between border-b border-ink-700/70 pb-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-            <span class="text-cyan-neon">[03]</span>
-            <span>git log --oneline -n 5</span>
-            <span>main ↑</span>
-          </div>
-          <pre class="mt-3 m-0 overflow-x-auto whitespace-pre"><span class="text-amber-400">3f9c1a2</span> feat(landing): wire SSO across 4 services
-<span class="text-amber-400">1ad77be</span> chore(infra): traefik + docker compose baseline
-<span class="text-amber-400">a02e418</span> feat(auth): unified login + dark mode toggle
-<span class="text-amber-400">66b9d03</span> docs: project specs for hobby/shelf/board/letter
-<span class="text-amber-400">e0c2210</span> init: monorepo (pnpm) — getit-9th-mentoring</pre>
-          <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink-700/70 pt-3 text-zinc-500">
-            <span>© 2026 GETIT/9 — KNU · made with <span class="text-magenta-neon">&lt;3</span> &amp; semicolons;</span>
-            <span class="flex items-center gap-3">
-              <a href="https://github.com/kimjhyun0627/getit-9th-mentoring" class="hover:text-zinc-200">github</a>
-              <span class="text-zinc-700">·</span>
-              <a href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b" class="hover:text-zinc-200">notion</a>
-              <span class="text-zinc-700">·</span>
-              <a href="mailto:hello@get-it.cloud" class="hover:text-zinc-200">mail</a>
-            </span>
-          </div>
-        </footer>
-      </main>
-    </section>
-
-    <!-- ============================================================
-         DIVIDER
-         ============================================================ -->
-    <div class="bg-ink-950">
-      <div class="mx-auto flex max-w-7xl items-center gap-4 px-5 py-12 sm:px-8">
-        <div class="divider-mono flex-1 text-zinc-700"></div>
-        <span class="font-mono text-xs uppercase tracking-[0.35em] text-zinc-400">
-          ↓ light mode ↓
-        </span>
-        <div class="divider-mono flex-1 text-zinc-700"></div>
-      </div>
+    <!-- ░░░ Sticky theme toggle (minimalist 패턴 일치) ░░░ -->
+    <div class="fixed right-4 top-4 z-50 flex items-center gap-2 rounded-full border hairline
+                bg-white/80 dark:bg-ink-900/80 backdrop-blur px-3 py-2 shadow-sm">
+      <span class="font-mono text-[10px] uppercase tracking-[0.2em]
+                   text-zinc-500 dark:text-zinc-500 pl-1">theme</span>
+      <button id="themeToggle" type="button" aria-label="Toggle theme"
+              class="inline-flex h-8 w-8 items-center justify-center rounded-full border hairline
+                     text-zinc-700 dark:text-zinc-200
+                     hover:border-cyan-neon hover:text-cyan-neon transition">
+        <!-- sun (shown in dark) -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden dark:block"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <!-- moon (shown in light) -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 block dark:hidden"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
     </div>
 
-    <!-- ============================================================
-         SECTION B — LIGHT MODE
-         ============================================================ -->
-    <section
-      id="scene-light"
-      class="light scene-light relative min-h-screen overflow-hidden text-zinc-900"
-    >
-      <!-- corner registration marks -->
-      <div class="pointer-events-none absolute left-4 top-4 font-mono text-[10px] tracking-wider text-zinc-400">+</div>
-      <div class="pointer-events-none absolute right-4 top-4 font-mono text-[10px] tracking-wider text-zinc-400">+</div>
-      <div class="pointer-events-none absolute bottom-4 left-4 font-mono text-[10px] tracking-wider text-zinc-400">+</div>
-      <div class="pointer-events-none absolute bottom-4 right-4 font-mono text-[10px] tracking-wider text-zinc-400">+</div>
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- HEADER                                                       -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <header class="sticky top-0 z-30 border-b hairline
+                   bg-white/80 dark:bg-ink-950/80 backdrop-blur">
+      <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
+        <a href="#" class="group flex items-center gap-2">
+          <span class="grid h-7 w-7 place-items-center rounded-md
+                       bg-ink-950 dark:bg-cyan-neon
+                       text-cyan-neon dark:text-ink-950
+                       font-mono text-[11px] font-bold border hairline">G9</span>
+          <span class="font-mono text-sm font-semibold tracking-tight">
+            <span class="text-cyan-700 dark:text-cyan-neon">GETIT</span><span class="text-zinc-400 dark:text-zinc-500">/</span>9
+          </span>
+        </a>
 
-      <!-- header -->
-      <header class="relative z-10 mx-auto max-w-7xl px-5 py-5 sm:px-8">
-        <nav class="flex items-center justify-between">
-          <a href="#" class="flex items-center gap-2 font-mono text-sm font-semibold text-zinc-900">
-            <span class="text-cyan-700">GETIT</span>
-            <span class="text-zinc-400">/</span>
-            <span>9</span>
-            <span class="caret h-4 bg-cyan-700 text-cyan-700" aria-hidden="true"></span>
+        <nav class="hidden md:flex items-center gap-8 font-mono text-[12px]">
+          <a href="#projects"
+             class="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition">
+            services
           </a>
-          <div class="flex items-center gap-2">
-            <div
-              class="hidden items-center gap-2 rounded-md border border-zinc-300 bg-white/70 px-2.5 py-1.5 font-mono text-[11px] text-zinc-600 sm:flex"
-            >
-              <span class="inline-block size-1.5 rounded-full bg-lime-600 pulse-dot text-lime-600"></span>
-              <span>all systems / nominal</span>
-            </div>
-            <button
-              type="button"
-              data-toggle="light-section"
-              class="rounded-md border border-zinc-300 bg-white px-3 py-1.5 font-mono text-xs text-zinc-800 transition hover:border-cyan-700 hover:text-cyan-700"
-              aria-label="섹션 다크 모드 미리보기 토글"
-            >
-              <span class="opacity-60">$</span> toggle --dark
-            </button>
-          </div>
+          <a href="#about"
+             class="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition">
+            about
+          </a>
         </nav>
-      </header>
 
-      <!-- hero -->
-      <main class="relative z-10 mx-auto max-w-7xl px-5 pb-20 pt-10 sm:px-8 sm:pt-16">
-        <div class="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-          <span class="text-cyan-700">~/getit/9</span>
-          <span class="text-zinc-300">·</span>
-          <span>region: knu</span>
-          <span class="text-zinc-300">·</span>
-          <span>build: 2026.05</span>
-          <span class="text-zinc-300">·</span>
-          <span>stage <span class="text-lime-700">live</span></span>
-        </div>
-
-        <div class="grid grid-cols-12 gap-6 lg:gap-10">
-          <div class="col-span-12 lg:col-span-8">
-            <p class="font-mono text-xs text-zinc-500">
-              <span class="text-fuchsia-700">//</span> 4 services, 1 hub — SSO unified
-            </p>
-            <h1 class="glitch mt-3 text-[clamp(2.4rem,6vw,5rem)] font-semibold leading-[1.02] tracking-tight text-zinc-900">
-              9기 멘토링<br />
-              <span class="text-zinc-500">프로젝트.</span>
-              <span class="text-cyan-700">deploy()</span>
-            </h1>
-            <p class="mt-6 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg">
-              경북대 GETIT 9기가 만드는 4개 서비스 허브. 통합 SSO, 다크모드,
-              모노레포로 묶인 풀스택 플레이그라운드.
-            </p>
-
-            <div class="mt-8 flex flex-wrap items-center gap-3">
-              <a
-                href="#projects-light"
-                class="group inline-flex items-center gap-2 rounded-md bg-zinc-900 px-4 py-2.5 font-mono text-sm font-semibold text-zinc-50 transition hover:bg-zinc-800"
-              >
-                <span>./explore --all</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-                </svg>
-              </a>
-              <a
-                href="https://github.com/kimjhyun0627/getit-9th-mentoring"
-                class="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2.5 font-mono text-sm text-zinc-800 transition hover:border-zinc-500"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M12 .5A11.5 11.5 0 0 0 .5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55v-1.92c-3.2.7-3.88-1.54-3.88-1.54-.52-1.32-1.28-1.67-1.28-1.67-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.66.79.55C20.21 21.39 23.5 17.08 23.5 12A11.5 11.5 0 0 0 12 .5Z"/>
-                </svg>
-                <span>git remote</span>
-              </a>
-              <span class="font-mono text-[11px] text-zinc-500"
-                >press <kbd class="rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-zinc-700">/</kbd> to search</span
-              >
-            </div>
+        <div class="flex items-center gap-2">
+          <div class="hidden items-center gap-2 rounded-md border hairline
+                      bg-white/60 dark:bg-ink-900/60 px-2.5 py-1.5
+                      font-mono text-[11px] text-zinc-600 dark:text-zinc-400 sm:flex">
+            <span class="inline-block size-1.5 rounded-full
+                         bg-lime-600 dark:bg-lime-neon
+                         text-lime-600 dark:text-lime-neon pulse-dot"></span>
+            <span>all systems / nominal</span>
           </div>
+          <a href="https://auth.get-it.cloud"
+             class="inline-flex items-center gap-1.5 rounded-md border hairline
+                    bg-white/70 dark:bg-ink-900/70 px-3 py-1.5
+                    font-mono text-[12px] font-medium
+                    text-zinc-800 dark:text-zinc-200
+                    hover:border-cyan-700 dark:hover:border-cyan-neon
+                    hover:text-cyan-700 dark:hover:text-cyan-neon transition">
+            <span class="opacity-60">$</span> sign in
+          </a>
+        </div>
+      </div>
+    </header>
 
-          <aside class="col-span-12 lg:col-span-4">
-            <div class="overflow-hidden rounded-lg border border-zinc-300 bg-white shadow-[0_18px_36px_-22px_rgba(15,23,42,0.2)]">
-              <div class="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-3 py-2">
-                <div class="flex items-center gap-1.5">
-                  <span class="size-2.5 rounded-full bg-zinc-300"></span>
-                  <span class="size-2.5 rounded-full bg-zinc-300"></span>
-                  <span class="size-2.5 rounded-full bg-zinc-300"></span>
-                </div>
-                <span class="font-mono text-[10px] uppercase tracking-wider text-zinc-500">~/getit-9 — zsh — 80×24</span>
-              </div>
-              <pre class="m-0 overflow-x-auto px-4 py-4 font-mono text-[12.5px] leading-relaxed text-zinc-700"><span class="text-zinc-400">$</span> <span class="text-zinc-900">getit ls --tree</span>
-<span class="text-zinc-400">├──</span> <span class="text-cyan-700">hobby</span>     <span class="text-zinc-400">// 취미메이트</span>
-<span class="text-zinc-400">├──</span> <span class="text-fuchsia-700">shelf</span>     <span class="text-zinc-400">// 스마트 서재</span>
-<span class="text-zinc-400">├──</span> <span class="text-lime-700">board</span>     <span class="text-zinc-400">// 팀 칸반</span>
-<span class="text-zinc-400">└──</span> <span class="text-amber-700">letter</span>    <span class="text-zinc-400">// 익명 롤링페이퍼</span>
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- HERO                                                         -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <section class="scene-dark scanlines relative overflow-hidden">
+      <!-- corner registration marks (engineer/print aesthetic) -->
+      <div class="pointer-events-none absolute left-4 top-4 font-mono text-[10px] tracking-wider text-zinc-500 dark:text-zinc-600">+</div>
+      <div class="pointer-events-none absolute right-4 top-4 font-mono text-[10px] tracking-wider text-zinc-500 dark:text-zinc-600">+</div>
+      <div class="pointer-events-none absolute bottom-4 left-4 font-mono text-[10px] tracking-wider text-zinc-500 dark:text-zinc-600">+</div>
+      <div class="pointer-events-none absolute bottom-4 right-4 font-mono text-[10px] tracking-wider text-zinc-500 dark:text-zinc-600">+</div>
 
-<span class="text-zinc-400">$</span> <span class="text-zinc-900">getit status</span>
-<span class="text-lime-700">●</span> auth.get-it.cloud  <span class="text-zinc-500">200 OK · 42ms</span>
-<span class="text-lime-700">●</span> hobby.get-it.cloud <span class="text-zinc-500">200 OK · 51ms</span>
-<span class="text-lime-700">●</span> shelf.get-it.cloud <span class="text-zinc-500">200 OK · 38ms</span>
-<span class="text-lime-700">●</span> board.get-it.cloud <span class="text-zinc-500">200 OK · 47ms</span>
-<span class="text-lime-700">●</span> letter.get-it.cloud<span class="text-zinc-500">200 OK · 44ms</span>
-
-<span class="text-zinc-400">$</span> <span class="text-cyan-700">_</span><span class="caret h-3 bg-cyan-700 text-cyan-700 align-middle" aria-hidden="true"></span></pre>
-            </div>
-
-            <dl class="mt-4 grid grid-cols-3 gap-3 font-mono text-[11px]">
-              <div class="rounded-md border border-zinc-300 bg-white px-3 py-2">
-                <dt class="text-zinc-500">services</dt>
-                <dd class="mt-0.5 text-lg font-semibold text-zinc-900">04</dd>
-              </div>
-              <div class="rounded-md border border-zinc-300 bg-white px-3 py-2">
-                <dt class="text-zinc-500">sso</dt>
-                <dd class="mt-0.5 text-lg font-semibold text-cyan-700">on</dd>
-              </div>
-              <div class="rounded-md border border-zinc-300 bg-white px-3 py-2">
-                <dt class="text-zinc-500">uptime</dt>
-                <dd class="mt-0.5 text-lg font-semibold text-lime-700">99.9</dd>
-              </div>
-            </dl>
-          </aside>
+      <div class="relative mx-auto max-w-7xl px-6 lg:px-10 pt-20 pb-24 md:pt-28 md:pb-32">
+        <!-- meta strip / breadcrumb -->
+        <div class="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1
+                    font-mono text-[11px] uppercase tracking-[0.2em]
+                    text-zinc-500 dark:text-zinc-500">
+          <span class="text-cyan-700 dark:text-cyan-neon">~/getit/9</span>
+          <span class="text-zinc-300 dark:text-zinc-700">·</span>
+          <span>region: knu</span>
+          <span class="text-zinc-300 dark:text-zinc-700">·</span>
+          <span>build: 2026.05</span>
+          <span class="text-zinc-300 dark:text-zinc-700">·</span>
+          <span>stage <span class="text-lime-700 dark:text-lime-neon">live</span></span>
         </div>
 
-        <div
-          id="projects-light"
-          class="mt-20 flex items-center gap-4 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500"
-        >
-          <span class="text-cyan-700">[02]</span>
-          <span>services</span>
-          <div class="divider-mono flex-1 text-zinc-300"></div>
-          <span class="text-zinc-700">04 modules</span>
+        <!-- eyebrow tag -->
+        <div class="flex items-center gap-3 mb-7">
+          <span class="inline-flex items-center gap-2 rounded-full border hairline
+                       bg-white/50 dark:bg-ink-900/50 backdrop-blur
+                       px-2.5 py-1 font-mono text-[11px] font-medium tracking-wide
+                       text-zinc-600 dark:text-zinc-300">
+            <span class="h-1.5 w-1.5 rounded-full bg-cyan-700 dark:bg-cyan-neon"></span>
+            경북대학교 IT 학회 · 9th
+          </span>
         </div>
 
-        <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2">
-          <!-- 01 HOBBY -->
-          <a
-            href="https://hobby.get-it.cloud"
-            target="_blank"
-            rel="noopener"
-            data-accent="cyan"
-            class="card-tech group relative flex flex-col rounded-xl border border-zinc-200 bg-white p-6"
-          >
-            <header class="flex items-start justify-between">
-              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
-                <span class="rounded border border-cyan-700/30 bg-cyan-50 px-1.5 py-0.5 text-cyan-700">[01]</span>
-                <span class="text-zinc-500">HOBBY</span>
-              </div>
-              <span class="font-mono text-[10px] text-zinc-400">ID: HBY-01</span>
-            </header>
-            <div class="mt-6 flex items-center gap-3">
-              <span class="grid size-12 place-items-center rounded-lg border border-zinc-200 bg-zinc-50 text-2xl">🤲</span>
-              <div>
-                <h3 class="text-xl font-semibold text-zinc-900">취미메이트</h3>
-                <p class="font-mono text-[11px] text-zinc-500">hobbymate · matchmaking</p>
-              </div>
-            </div>
-            <p class="mt-4 text-sm leading-relaxed text-zinc-600">
-              취미 기반 친구 매칭. 위치·관심사·시간대 매칭 알고리즘.
-            </p>
-            <ul class="mt-4 flex flex-wrap gap-1.5 font-mono text-[10.5px]">
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">next.js</li>
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">nest</li>
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">postgres</li>
-            </ul>
-            <footer class="mt-6 flex items-center justify-between">
-              <code class="font-mono text-[11px] text-cyan-700">hobby.get-it.cloud</code>
-              <span class="inline-flex items-center gap-1 font-mono text-xs text-zinc-700 group-hover:text-cyan-700">
-                open
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-                </svg>
-              </span>
-            </footer>
-          </a>
+        <!-- headline: mono + tightened tracking -->
+        <h1 class="font-mono font-semibold tracking-tightest
+                   text-ink-950 dark:text-white
+                   text-5xl sm:text-6xl md:text-7xl leading-[0.96] max-w-5xl">
+          9기 멘토링<br />
+          <span class="text-zinc-400 dark:text-zinc-500">프로젝트</span><span class="text-cyan-700 dark:text-cyan-neon">.deploy()</span><span class="caret bg-cyan-700 dark:bg-cyan-neon text-cyan-700 dark:text-cyan-neon" aria-hidden="true"></span>
+        </h1>
 
-          <!-- 02 SHELF -->
-          <a
-            href="https://shelf.get-it.cloud"
-            target="_blank"
-            rel="noopener"
-            data-accent="magenta"
-            class="card-tech group relative flex flex-col rounded-xl border border-zinc-200 bg-white p-6"
-          >
-            <header class="flex items-start justify-between">
-              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
-                <span class="rounded border border-fuchsia-700/30 bg-fuchsia-50 px-1.5 py-0.5 text-fuchsia-700">[02]</span>
-                <span class="text-zinc-500">SHELF</span>
-              </div>
-              <span class="font-mono text-[10px] text-zinc-400">ID: SHF-02</span>
-            </header>
-            <div class="mt-6 flex items-center gap-3">
-              <span class="grid size-12 place-items-center rounded-lg border border-zinc-200 bg-zinc-50 text-2xl">📚</span>
-              <div>
-                <h3 class="text-xl font-semibold text-zinc-900">스마트 서재</h3>
-                <p class="font-mono text-[11px] text-zinc-500">smart-shelf · library</p>
-              </div>
-            </div>
-            <p class="mt-4 text-sm leading-relaxed text-zinc-600">
-              개인 도서 컬렉션 + 독서 기록. OCR 책 스캔, 추천 알고리즘.
-            </p>
-            <ul class="mt-4 flex flex-wrap gap-1.5 font-mono text-[10.5px]">
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">react</li>
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">fastify</li>
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">vision</li>
-            </ul>
-            <footer class="mt-6 flex items-center justify-between">
-              <code class="font-mono text-[11px] text-fuchsia-700">shelf.get-it.cloud</code>
-              <span class="inline-flex items-center gap-1 font-mono text-xs text-zinc-700 group-hover:text-fuchsia-700">
-                open
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-                </svg>
-              </span>
-            </footer>
-          </a>
+        <p class="mt-8 max-w-xl text-base sm:text-lg leading-relaxed
+                  text-zinc-600 dark:text-zinc-300">
+          경북대 GETIT 9기가 만드는 네 개의 작은 제품. 하나의 SSO,
+          공통 다크모드, 모노레포로 묶인 풀스택 플레이그라운드.
+        </p>
 
-          <!-- 03 BOARD -->
-          <a
-            href="https://board.get-it.cloud"
-            target="_blank"
-            rel="noopener"
-            data-accent="lime"
-            class="card-tech group relative flex flex-col rounded-xl border border-zinc-200 bg-white p-6"
-          >
-            <header class="flex items-start justify-between">
-              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
-                <span class="rounded border border-lime-700/30 bg-lime-50 px-1.5 py-0.5 text-lime-700">[03]</span>
-                <span class="text-zinc-500">BOARD</span>
-              </div>
-              <span class="font-mono text-[10px] text-zinc-400">ID: BRD-03</span>
-            </header>
-            <div class="mt-6 flex items-center gap-3">
-              <span class="grid size-12 place-items-center rounded-lg border border-zinc-200 bg-zinc-50 text-2xl">💻</span>
-              <div>
-                <h3 class="text-xl font-semibold text-zinc-900">팀 칸반</h3>
-                <p class="font-mono text-[11px] text-zinc-500">kanban · realtime</p>
-              </div>
-            </div>
-            <p class="mt-4 text-sm leading-relaxed text-zinc-600">
-              실시간 협업 칸반 보드. WebSocket 동기화, 드래그·드롭.
-            </p>
-            <ul class="mt-4 flex flex-wrap gap-1.5 font-mono text-[10.5px]">
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">svelte</li>
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">elysia</li>
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">redis</li>
-            </ul>
-            <footer class="mt-6 flex items-center justify-between">
-              <code class="font-mono text-[11px] text-lime-700">board.get-it.cloud</code>
-              <span class="inline-flex items-center gap-1 font-mono text-xs text-zinc-700 group-hover:text-lime-700">
-                open
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-                </svg>
-              </span>
-            </footer>
+        <!-- CTA -->
+        <div class="mt-10 flex flex-wrap items-center gap-3">
+          <a href="#projects"
+             class="group inline-flex items-center gap-2 rounded-md
+                    bg-ink-950 text-cyan-neon
+                    dark:bg-cyan-neon dark:text-ink-950
+                    px-4 py-2.5 font-mono text-sm font-semibold
+                    hover:brightness-110
+                    dark:shadow-[0_0_0_1px_rgba(34,211,238,0.4),0_0_28px_-4px_rgba(34,211,238,0.55)]
+                    transition">
+            <span>./explore --all</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="arrow-x">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
+            </svg>
           </a>
-
-          <!-- 04 LETTER -->
-          <a
-            href="https://letter.get-it.cloud"
-            target="_blank"
-            rel="noopener"
-            data-accent="amber"
-            class="card-tech group relative flex flex-col rounded-xl border border-zinc-200 bg-white p-6"
-          >
-            <header class="flex items-start justify-between">
-              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
-                <span class="rounded border border-amber-700/30 bg-amber-50 px-1.5 py-0.5 text-amber-700">[04]</span>
-                <span class="text-zinc-500">LETTER</span>
-              </div>
-              <span class="font-mono text-[10px] text-zinc-400">ID: LTR-04</span>
-            </header>
-            <div class="mt-6 flex items-center gap-3">
-              <span class="grid size-12 place-items-center rounded-lg border border-zinc-200 bg-zinc-50 text-2xl">🎤</span>
-              <div>
-                <h3 class="text-xl font-semibold text-zinc-900">익명 롤링페이퍼</h3>
-                <p class="font-mono text-[11px] text-zinc-500">letter · anonymous</p>
-              </div>
-            </div>
-            <p class="mt-4 text-sm leading-relaxed text-zinc-600">
-              익명 메시지 보드. 보낸이 비공개, 모더레이션, 공유 링크.
-            </p>
-            <ul class="mt-4 flex flex-wrap gap-1.5 font-mono text-[10.5px]">
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">remix</li>
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">hono</li>
-              <li class="chip-mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-zinc-700">sqlite</li>
-            </ul>
-            <footer class="mt-6 flex items-center justify-between">
-              <code class="font-mono text-[11px] text-amber-700">letter.get-it.cloud</code>
-              <span class="inline-flex items-center gap-1 font-mono text-xs text-zinc-700 group-hover:text-amber-700">
-                open
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
-                </svg>
-              </span>
-            </footer>
+          <a href="https://github.com/kimjhyun0627/getit-9th-mentoring"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-2 rounded-md border hairline
+                    bg-white/60 dark:bg-ink-900/60 px-4 py-2.5
+                    font-mono text-sm
+                    text-zinc-800 dark:text-zinc-200
+                    hover:border-zinc-500 dark:hover:border-zinc-400 transition">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 .5A11.5 11.5 0 0 0 .5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55v-1.92c-3.2.7-3.88-1.54-3.88-1.54-.52-1.32-1.28-1.67-1.28-1.67-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.66.79.55C20.21 21.39 23.5 17.08 23.5 12A11.5 11.5 0 0 0 12 .5Z"/>
+            </svg>
+            <span>git remote</span>
           </a>
         </div>
 
-        <footer
-          class="mt-20 rounded-lg border border-zinc-200 bg-white/80 p-5 font-mono text-[11.5px] leading-relaxed text-zinc-600"
-        >
-          <div class="flex items-center justify-between border-b border-zinc-200 pb-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-            <span class="text-cyan-700">[03]</span>
+        <!-- 4-up metaline (mono dl, engineer tone) -->
+        <dl class="mt-20 grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-10
+                   border-t hairline pt-8 max-w-4xl
+                   font-mono">
+          <div>
+            <dt class="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">projects</dt>
+            <dd class="mt-1 text-2xl font-semibold tracking-tight text-ink-950 dark:text-white">04</dd>
+          </div>
+          <div>
+            <dt class="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">subdomains</dt>
+            <dd class="mt-1 text-2xl font-semibold tracking-tight text-ink-950 dark:text-white">05</dd>
+          </div>
+          <div>
+            <dt class="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">sso</dt>
+            <dd class="mt-1 text-2xl font-semibold tracking-tight text-cyan-700 dark:text-cyan-neon">unified</dd>
+          </div>
+          <div>
+            <dt class="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">source</dt>
+            <dd class="mt-1 text-2xl font-semibold tracking-tight text-lime-700 dark:text-lime-neon">100% open</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- ABOUT                                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <section id="about" class="border-t hairline bg-white dark:bg-ink-950">
+      <div class="mx-auto max-w-7xl px-6 lg:px-10 py-20 md:py-24">
+        <div class="grid md:grid-cols-12 gap-10">
+          <div class="md:col-span-4">
+            <p class="font-mono text-[11px] uppercase tracking-[0.2em]
+                      text-zinc-500 dark:text-zinc-500 mb-3">
+              <span class="text-cyan-700 dark:text-cyan-neon">[01]</span> about
+            </p>
+            <h2 class="font-mono text-3xl font-semibold tracking-tight
+                       text-ink-950 dark:text-white">
+              작지만,<br/>진짜 프로덕션.
+            </h2>
+          </div>
+          <div class="md:col-span-7 md:col-start-6 text-base leading-relaxed space-y-5
+                      text-zinc-600 dark:text-zinc-300">
+            <p>
+              GETIT 9기 멘토링은 한 학기 동안 네 개의 제품을 실제로 운영합니다.
+              기획부터 디자인, 풀스택 구현, 배포, 운영까지 — 학회 활동을 넘어
+              실제 사용자가 쓰는 제품을 만드는 것이 목표입니다.
+            </p>
+            <p>
+              모든 서비스는 하나의 <code class="font-mono text-cyan-700 dark:text-cyan-neon">auth.get-it.cloud</code>
+              SSO로 연결되고, 다크모드와 모바일을 기본으로 지원합니다.
+              <span class="text-zinc-900 dark:text-white">코드와 디자인 모두 공개되어 있어요.</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- PROJECTS (4 cards · 2×2 grid: hobby / shelf / board / letter)-->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <section id="projects" class="border-t hairline scene-dark relative overflow-hidden">
+      <div class="relative mx-auto max-w-7xl px-6 lg:px-10 py-20 md:py-28">
+        <div class="flex items-end justify-between gap-4 mb-10">
+          <div>
+            <p class="font-mono text-[11px] uppercase tracking-[0.2em]
+                      text-zinc-500 dark:text-zinc-500 mb-3">
+              <span class="text-cyan-700 dark:text-cyan-neon">[02]</span> services
+            </p>
+            <h2 class="font-mono text-3xl md:text-4xl font-semibold tracking-tight
+                       text-ink-950 dark:text-white">
+              네 개의 모듈.
+            </h2>
+          </div>
+          <div class="hidden sm:flex items-center gap-3 font-mono text-[11px]
+                      uppercase tracking-[0.2em]
+                      text-zinc-500 dark:text-zinc-500">
+            <div class="divider-mono w-24 text-zinc-300 dark:text-zinc-700"></div>
+            <span>04 modules</span>
+          </div>
+        </div>
+
+        <!-- 2×2 card grid: mobile 1-col, md+ 2-col (lg에서도 2col 유지) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          <!-- 01 HOBBY (cyan) -->
+          <a href="https://hobby.get-it.cloud" target="_blank" rel="noopener" data-accent="cyan"
+             class="card-tech group relative flex flex-col rounded-xl border hairline
+                    bg-white/70 dark:bg-ink-900/60 backdrop-blur p-7">
+            <header class="flex items-start justify-between">
+              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
+                <span class="rounded border border-cyan-700/30 dark:border-cyan-neon/40
+                             bg-cyan-50 dark:bg-cyan-neon/10
+                             text-cyan-700 dark:text-cyan-neon px-1.5 py-0.5">[01]</span>
+                <span class="text-zinc-500 dark:text-zinc-400">HOBBY</span>
+              </div>
+              <span class="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">ID: HBY-01</span>
+            </header>
+            <div class="mt-6 flex items-center gap-3">
+              <span class="grid size-12 place-items-center rounded-lg border hairline
+                           bg-zinc-50 dark:bg-ink-850 text-2xl">🤲</span>
+              <div>
+                <h3 class="text-xl font-semibold tracking-tight text-ink-950 dark:text-white">취미메이트</h3>
+                <p class="font-mono text-[11px] text-zinc-500 dark:text-zinc-500">hobbymate · matchmaking</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              관심사 기반 모임/소모임 매칭. 위치 · 관심사 · 시간대 알고리즘.
+            </p>
+            <footer class="mt-auto pt-6 flex items-center justify-between border-t hairline">
+              <code class="font-mono text-[11px] text-cyan-700 dark:text-cyan-neon">hobby.get-it.cloud</code>
+              <span class="inline-flex items-center gap-1 font-mono text-xs
+                           text-zinc-700 dark:text-zinc-300
+                           group-hover:text-cyan-700 dark:group-hover:text-cyan-neon">
+                open
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
+                </svg>
+              </span>
+            </footer>
+          </a>
+
+          <!-- 02 SHELF (magenta) -->
+          <a href="https://shelf.get-it.cloud" target="_blank" rel="noopener" data-accent="magenta"
+             class="card-tech group relative flex flex-col rounded-xl border hairline
+                    bg-white/70 dark:bg-ink-900/60 backdrop-blur p-7">
+            <header class="flex items-start justify-between">
+              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
+                <span class="rounded border border-fuchsia-700/30 dark:border-magenta-neon/40
+                             bg-fuchsia-50 dark:bg-magenta-neon/10
+                             text-fuchsia-700 dark:text-magenta-neon px-1.5 py-0.5">[02]</span>
+                <span class="text-zinc-500 dark:text-zinc-400">SHELF</span>
+              </div>
+              <span class="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">ID: SHF-02</span>
+            </header>
+            <div class="mt-6 flex items-center gap-3">
+              <span class="grid size-12 place-items-center rounded-lg border hairline
+                           bg-zinc-50 dark:bg-ink-850 text-2xl">📚</span>
+              <div>
+                <h3 class="text-xl font-semibold tracking-tight text-ink-950 dark:text-white">스마트 서재</h3>
+                <p class="font-mono text-[11px] text-zinc-500 dark:text-zinc-500">smart-shelf · library</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              개인 도서 컬렉션과 독서 기록. OCR 책 스캔, 추천 알고리즘.
+            </p>
+            <footer class="mt-auto pt-6 flex items-center justify-between border-t hairline">
+              <code class="font-mono text-[11px] text-fuchsia-700 dark:text-magenta-neon">shelf.get-it.cloud</code>
+              <span class="inline-flex items-center gap-1 font-mono text-xs
+                           text-zinc-700 dark:text-zinc-300
+                           group-hover:text-fuchsia-700 dark:group-hover:text-magenta-neon">
+                open
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
+                </svg>
+              </span>
+            </footer>
+          </a>
+
+          <!-- 03 BOARD (lime) -->
+          <a href="https://board.get-it.cloud" target="_blank" rel="noopener" data-accent="lime"
+             class="card-tech group relative flex flex-col rounded-xl border hairline
+                    bg-white/70 dark:bg-ink-900/60 backdrop-blur p-7">
+            <header class="flex items-start justify-between">
+              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
+                <span class="rounded border border-lime-700/30 dark:border-lime-neon/40
+                             bg-lime-50 dark:bg-lime-neon/10
+                             text-lime-700 dark:text-lime-neon px-1.5 py-0.5">[03]</span>
+                <span class="text-zinc-500 dark:text-zinc-400">BOARD</span>
+              </div>
+              <span class="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">ID: BRD-03</span>
+            </header>
+            <div class="mt-6 flex items-center gap-3">
+              <span class="grid size-12 place-items-center rounded-lg border hairline
+                           bg-zinc-50 dark:bg-ink-850 text-2xl">💻</span>
+              <div>
+                <h3 class="text-xl font-semibold tracking-tight text-ink-950 dark:text-white">팀 칸반</h3>
+                <p class="font-mono text-[11px] text-zinc-500 dark:text-zinc-500">kanban · realtime</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              실시간 협업 칸반 보드. WebSocket 동기화, 드래그 · 드롭.
+            </p>
+            <footer class="mt-auto pt-6 flex items-center justify-between border-t hairline">
+              <code class="font-mono text-[11px] text-lime-700 dark:text-lime-neon">board.get-it.cloud</code>
+              <span class="inline-flex items-center gap-1 font-mono text-xs
+                           text-zinc-700 dark:text-zinc-300
+                           group-hover:text-lime-700 dark:group-hover:text-lime-neon">
+                open
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
+                </svg>
+              </span>
+            </footer>
+          </a>
+
+          <!-- 04 LETTER (amber) -->
+          <a href="https://letter.get-it.cloud" target="_blank" rel="noopener" data-accent="amber"
+             class="card-tech group relative flex flex-col rounded-xl border hairline
+                    bg-white/70 dark:bg-ink-900/60 backdrop-blur p-7">
+            <header class="flex items-start justify-between">
+              <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
+                <span class="rounded border border-amber-700/30 dark:border-amber-400/40
+                             bg-amber-50 dark:bg-amber-400/10
+                             text-amber-700 dark:text-amber-400 px-1.5 py-0.5">[04]</span>
+                <span class="text-zinc-500 dark:text-zinc-400">LETTER</span>
+              </div>
+              <span class="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">ID: LTR-04</span>
+            </header>
+            <div class="mt-6 flex items-center gap-3">
+              <span class="grid size-12 place-items-center rounded-lg border hairline
+                           bg-zinc-50 dark:bg-ink-850 text-2xl">🎤</span>
+              <div>
+                <h3 class="text-xl font-semibold tracking-tight text-ink-950 dark:text-white">익명 롤링페이퍼</h3>
+                <p class="font-mono text-[11px] text-zinc-500 dark:text-zinc-500">letter · anonymous</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              GETIT 부원끼리, 익명으로 한 줄. 모더레이션 + 공유 링크.
+            </p>
+            <footer class="mt-auto pt-6 flex items-center justify-between border-t hairline">
+              <code class="font-mono text-[11px] text-amber-700 dark:text-amber-400">letter.get-it.cloud</code>
+              <span class="inline-flex items-center gap-1 font-mono text-xs
+                           text-zinc-700 dark:text-zinc-300
+                           group-hover:text-amber-700 dark:group-hover:text-amber-400">
+                open
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="arrow-x">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="square"/>
+                </svg>
+              </span>
+            </footer>
+          </a>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- FOOTER (terminal-styled git log)                             -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <footer class="border-t hairline bg-white dark:bg-ink-950">
+      <div class="mx-auto max-w-7xl px-6 lg:px-10 py-12 md:py-16">
+        <div class="rounded-lg border hairline
+                    bg-zinc-50/70 dark:bg-ink-900/50
+                    p-5 font-mono text-[11.5px] leading-relaxed
+                    text-zinc-600 dark:text-zinc-400">
+          <div class="flex items-center justify-between border-b hairline pb-2
+                      text-[10px] uppercase tracking-[0.2em]
+                      text-zinc-500 dark:text-zinc-500">
+            <span class="text-cyan-700 dark:text-cyan-neon">[03]</span>
             <span>git log --oneline -n 5</span>
             <span>main ↑</span>
           </div>
-          <pre class="mt-3 m-0 overflow-x-auto whitespace-pre"><span class="text-amber-700">3f9c1a2</span> feat(landing): wire SSO across 4 services
-<span class="text-amber-700">1ad77be</span> chore(infra): traefik + docker compose baseline
-<span class="text-amber-700">a02e418</span> feat(auth): unified login + dark mode toggle
-<span class="text-amber-700">66b9d03</span> docs: project specs for hobby/shelf/board/letter
-<span class="text-amber-700">e0c2210</span> init: monorepo (pnpm) — getit-9th-mentoring</pre>
-          <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-3 text-zinc-500">
-            <span>© 2026 GETIT/9 — KNU · made with <span class="text-fuchsia-700">&lt;3</span> &amp; semicolons;</span>
+          <pre class="mt-3 m-0 overflow-x-auto whitespace-pre"><span class="text-amber-700 dark:text-amber-400">3f9c1a2</span> feat(landing): wire SSO across 4 services
+<span class="text-amber-700 dark:text-amber-400">1ad77be</span> chore(infra): traefik + docker compose baseline
+<span class="text-amber-700 dark:text-amber-400">a02e418</span> feat(auth): unified login + dark mode toggle
+<span class="text-amber-700 dark:text-amber-400">66b9d03</span> docs: project specs for hobby/shelf/board/letter
+<span class="text-amber-700 dark:text-amber-400">e0c2210</span> init: monorepo (pnpm) — getit-9th-mentoring</pre>
+          <div class="mt-4 flex flex-wrap items-center justify-between gap-3
+                      border-t hairline pt-3
+                      text-zinc-500 dark:text-zinc-500">
+            <span>© 2026 GETIT/9 — KNU · made with <span class="text-fuchsia-700 dark:text-magenta-neon">&lt;3</span> &amp; semicolons;</span>
             <span class="flex items-center gap-3">
-              <a href="https://github.com/kimjhyun0627/getit-9th-mentoring" class="hover:text-zinc-900">github</a>
-              <span class="text-zinc-300">·</span>
-              <a href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b" class="hover:text-zinc-900">notion</a>
-              <span class="text-zinc-300">·</span>
-              <a href="mailto:hello@get-it.cloud" class="hover:text-zinc-900">mail</a>
+              <a href="https://github.com/kimjhyun0627/getit-9th-mentoring"
+                 class="hover:text-zinc-900 dark:hover:text-zinc-200">github</a>
+              <span class="text-zinc-300 dark:text-zinc-700">·</span>
+              <a href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b"
+                 class="hover:text-zinc-900 dark:hover:text-zinc-200">notion</a>
+              <span class="text-zinc-300 dark:text-zinc-700">·</span>
+              <a href="mailto:hello@get-it.cloud"
+                 class="hover:text-zinc-900 dark:hover:text-zinc-200">mail</a>
             </span>
           </div>
-        </footer>
-      </main>
-    </section>
+        </div>
+      </div>
+    </footer>
 
     <script>
-      // Per-section preview toggle:
-      //   - top section default = dark.  toggle button swaps it to light preview, then back.
-      //   - bottom section default = light. toggle button swaps it to dark preview, then back.
-      // This lets reviewers see both modes side-by-side AND verify the swap behavior.
+      // Theme toggle — class='dark' on <html>, persisted via localStorage.
+      // 초기 클래스 적용은 <head>의 부트스트랩 스크립트가 담당 (paint 전 적용 → 깜빡임 방지).
       (function () {
-        const darkSection = document.getElementById('scene-dark');
-        const lightSection = document.getElementById('scene-light');
-
-        const darkBtn = document.querySelector('[data-toggle="dark-section"]');
-        const lightBtn = document.querySelector('[data-toggle="light-section"]');
-
-        function swap(section, makeLight) {
-          if (makeLight) {
-            section.classList.remove('scene-dark', 'scanlines', 'text-zinc-200');
-            section.classList.add('scene-light', 'light', 'text-zinc-900');
-          } else {
-            section.classList.add('scene-dark', 'scanlines', 'text-zinc-200');
-            section.classList.remove('scene-light', 'light', 'text-zinc-900');
+        const root = document.documentElement;
+        const KEY = 'getit-theme';
+        const btn = document.getElementById('themeToggle');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+          const isDark = root.classList.toggle('dark');
+          try {
+            localStorage.setItem(KEY, isDark ? 'dark' : 'light');
+          } catch (e) {
+            // localStorage 접근 차단(시크릿 모드 등) — 토글 자체는 정상 동작
           }
-        }
-
-        darkBtn?.addEventListener('click', () => {
-          const isLightNow = darkSection.classList.contains('scene-light');
-          swap(darkSection, !isLightNow);
-          darkBtn.firstElementChild &&
-            (darkBtn.innerHTML = isLightNow
-              ? '<span class="opacity-60">$</span> toggle --light'
-              : '<span class="opacity-60">$</span> toggle --dark');
         });
-
-        lightBtn?.addEventListener('click', () => {
-          const isDarkNow = lightSection.classList.contains('scene-dark');
-          swap(lightSection, isDarkNow);
-          lightBtn.firstElementChild &&
-            (lightBtn.innerHTML = isDarkNow
-              ? '<span class="opacity-60">$</span> toggle --dark'
-              : '<span class="opacity-60">$</span> toggle --light');
-        });
-
-        // '/' 키 리스너 제거 — 검색 affordance 미구현 + 브라우저 빠른찾기 기본 동작 방해 우려.
       })();
     </script>
   </body>
