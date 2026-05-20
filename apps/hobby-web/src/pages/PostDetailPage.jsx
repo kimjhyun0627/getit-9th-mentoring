@@ -106,11 +106,14 @@ export const PostDetailPage = () => {
   const ownerNick = post.owner?.nickname ?? '익명';
   const errAlert =
     applyErrorMessage(applyMutation.error) ?? cancelErrorMessage(cancelMutation.error);
-  // #310 — me 가 아직 안 도착했고 401 도 아직 안 떨어졌으면 신청 영역 placeholder 표시.
-  // 그렇지 않으면 race 로 잠깐 "신청하기" → 곧바로 "방장 안내" 로 튀는 깜빡임 발생.
-  const meIsResolving = meQuery.isLoading || meQuery.isFetching;
+  // #310 — me 가 아직 처음 도착도 안 했고 401 도 아직 안 떨어졌으면 placeholder.
+  // CR review #350: 캐시된 data 가 있는데 백그라운드 refetch (isFetching=true) 중일 땐
+  // 깜빡임이 발생하지 않으므로 placeholder 를 띄우면 안 된다.
+  //   - isLoading: true  → 초기 fetch in-flight, data 없음 → 깜빡임 위험 ✓ placeholder
+  //   - isFetching && data: 백그라운드 refetch, 화면엔 이미 me 가 있음 → placeholder X
+  //   - 401 error: 비로그인 확정 → placeholder X
   const meErrorStatus = meQuery.error?.response?.status;
-  const meSettled = !meIsResolving || meErrorStatus === 401;
+  const meSettled = !meQuery.isLoading || meQuery.data != null || meErrorStatus === 401;
 
   return (
     <PageShell>
