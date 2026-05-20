@@ -115,7 +115,9 @@ export const LoginPage = () => {
           </p>
         ) : null}
 
-        <SubmitButton loading={isSubmitting}>로그인</SubmitButton>
+        <SubmitButton loading={isSubmitting} loadingText="로그인 중…">
+          로그인
+        </SubmitButton>
       </form>
 
       <div className="divider-mono text-zinc-300 dark:text-zinc-700" aria-hidden="true" />

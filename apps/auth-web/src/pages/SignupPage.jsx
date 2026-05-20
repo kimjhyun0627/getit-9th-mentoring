@@ -128,7 +128,9 @@ export const SignupPage = () => {
           </p>
         ) : null}
 
-        <SubmitButton loading={isSubmitting}>회원가입</SubmitButton>
+        <SubmitButton loading={isSubmitting} loadingText="가입 중…">
+          회원가입
+        </SubmitButton>
       </form>
 
       <div className="divider-mono text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
