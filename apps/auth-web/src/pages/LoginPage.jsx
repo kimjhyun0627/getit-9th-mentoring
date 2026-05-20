@@ -78,7 +78,7 @@ export const LoginPage = () => {
           />
         </h1>
         <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-          한 계정으로 네 개 프로젝트를 모두 이용하세요.
+          한 계정으로 네 개 프로젝트를 모두 이용하세요
         </p>
       </header>
 
