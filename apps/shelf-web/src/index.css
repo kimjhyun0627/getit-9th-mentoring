@@ -1,0 +1,290 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Editorial 시안 (shelf editorial.html 1:1 도쿠멘트 토큰).
+ * - 라이트: 페이퍼 잉크 (paper + 차콜 + wine accent)
+ * - 다크: 미드나이트 차콜 + 머스타드 accent
+ * shadcn CSS variable과 함께 token system 운영.
+ */
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 4%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 4%;
+
+    --popover: 0 0% 98%;
+    --popover-foreground: 0 0% 4%;
+
+    --primary: 0 60% 30%;
+    --primary-foreground: 36 60% 97%;
+
+    --secondary: 38 18% 93%;
+    --secondary-foreground: 0 0% 4%;
+
+    --muted: 38 18% 93%;
+    --muted-foreground: 0 0% 32%;
+
+    --accent: 0 60% 30%;
+    --accent-foreground: 36 60% 97%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 38 14% 80%;
+    --input: 38 14% 80%;
+    --ring: 0 60% 30%;
+
+    --radius: 0.125rem;
+
+    /* Editorial-only tokens */
+    --paper-1: #fafafa;
+    --paper-2: #f3f1ec;
+    --paper-3: #ebe8e1;
+    --ink-1: #0a0a0a;
+    --ink-2: #1f1f1f;
+    --ink-3: #525252;
+    --ink-hint: #a3a3a3;
+    --rule-1: #d4d0c7;
+    --rule-2: #0a0a0a;
+    --wine: #7c1d1d;
+    --wine-soft: #a13a3a;
+  }
+
+  .dark {
+    --background: 0 0% 8%;
+    --foreground: 41 33% 93%;
+
+    --card: 0 0% 11%;
+    --card-foreground: 41 33% 93%;
+
+    --popover: 0 0% 11%;
+    --popover-foreground: 41 33% 93%;
+
+    --primary: 39 53% 53%;
+    --primary-foreground: 0 0% 8%;
+
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 41 33% 93%;
+
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 64%;
+
+    --accent: 39 53% 53%;
+    --accent-foreground: 0 0% 8%;
+
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 41 33% 93%;
+
+    --border: 0 0% 22%;
+    --input: 0 0% 22%;
+    --ring: 39 53% 53%;
+
+    --paper-1: #141414;
+    --paper-2: #1c1c1c;
+    --paper-3: #242424;
+    --ink-1: #f5f1e8;
+    --ink-2: #ededed;
+    --ink-3: #a3a3a3;
+    --ink-hint: #6b6b6b;
+    --rule-1: #2a2a2a;
+    --rule-2: #3a3a3a;
+    --wine: #c79a48;
+    --wine-soft: #d9b06f;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--paper-1);
+    color: var(--ink-2);
+    @apply font-sans antialiased;
+    font-feature-settings: 'kern', 'liga', 'onum';
+    transition:
+      background-color 280ms ease,
+      color 280ms ease;
+  }
+  ::selection {
+    background: var(--wine);
+    color: var(--paper-1);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--ink-1);
+  }
+}
+
+@layer utilities {
+  .text-meta {
+    color: var(--ink-3);
+  }
+  .text-hint {
+    color: var(--ink-hint);
+  }
+  .text-body {
+    color: var(--ink-2);
+  }
+  .text-ink-strong {
+    color: var(--ink-1);
+  }
+  .text-wine {
+    color: var(--wine);
+  }
+  .bg-paper-2 {
+    background-color: var(--paper-2);
+  }
+
+  .num-display {
+    font-feature-settings: 'lnum', 'tnum';
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  .hairline {
+    height: 1px;
+    background-color: var(--rule-1);
+    transition: background-color 280ms ease;
+  }
+  .hairline-strong {
+    height: 1px;
+    background-color: var(--rule-2);
+    transition: background-color 280ms ease;
+  }
+
+  /* 페이퍼 그레인 */
+  .paper-grain {
+    background-image:
+      radial-gradient(rgba(10, 10, 10, 0.022) 1px, transparent 1px),
+      radial-gradient(rgba(10, 10, 10, 0.015) 1px, transparent 1px);
+    background-size:
+      22px 22px,
+      11px 11px;
+    background-position:
+      0 0,
+      11px 11px;
+  }
+  .dark .paper-grain {
+    background-image:
+      radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      radial-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  }
+
+  /* Drop cap (매거진 컬럼 opener) */
+  .dropcap::first-letter {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 800;
+    float: left;
+    font-size: 3.6rem;
+    line-height: 0.86;
+    padding: 0.4rem 0.6rem 0 0;
+    color: var(--wine);
+  }
+
+  /* Pull-quote (이탈릭은 여기만 허용) */
+  .pullquote {
+    font-style: italic;
+  }
+  .pullquote::before {
+    content: '\201C';
+    font-family: 'Playfair Display', serif;
+    font-weight: 800;
+    font-style: italic;
+    font-size: 2rem;
+    line-height: 0;
+    vertical-align: -0.3em;
+    margin-right: 0.05em;
+    color: var(--wine);
+  }
+
+  .smallcaps {
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+    color: var(--ink-3);
+  }
+
+  .body-kr {
+    font-family: 'Pretendard Variable', Pretendard, 'Noto Serif KR', sans-serif;
+  }
+  .essay-kr {
+    font-family: 'Noto Serif KR', 'Source Serif 4', Georgia, serif;
+  }
+
+  .ink-link {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 100% 1px;
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    padding-bottom: 2px;
+    transition:
+      background-size 250ms ease,
+      color 250ms ease;
+  }
+  .ink-link:hover {
+    background-size: 100% 2px;
+    color: var(--wine);
+  }
+
+  .stars-row {
+    color: var(--wine);
+    letter-spacing: 0.06em;
+  }
+  .stars-row .dim {
+    opacity: 0.25;
+  }
+
+  .filter-btn {
+    color: var(--ink-3);
+    transition:
+      color 240ms ease,
+      border-color 240ms ease;
+    padding-bottom: 2px;
+  }
+  .filter-btn:hover {
+    color: var(--ink-1);
+  }
+  .filter-btn.is-active {
+    color: var(--ink-1);
+    border-bottom: 1px solid var(--wine);
+  }
+
+  /* 책 표지 — 2:3 종횡비 + subtle inset shadow */
+  .cover {
+    aspect-ratio: 2/3;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.06) inset,
+      -2px 0 0 rgba(0, 0, 0, 0.04) inset,
+      0 16px 32px -20px rgba(0, 0, 0, 0.42);
+    border-radius: 1px;
+  }
+  .dark .cover {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.05) inset,
+      -2px 0 0 rgba(255, 255, 255, 0.03) inset,
+      0 16px 36px -18px rgba(0, 0, 0, 0.85);
+  }
+  .cover-inner {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    transition: transform 450ms ease;
+  }
+  .book-card {
+    transition: transform 350ms ease;
+  }
+  .book-card:hover {
+    transform: translateY(-3px);
+  }
+  .book-card:hover .cover-inner {
+    transform: scale(1.02);
+  }
+}
