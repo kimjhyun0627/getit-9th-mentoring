@@ -19,18 +19,26 @@ const main = async () => {
   });
   server.on('error', (err) => {
     log.error({ err, port }, 'failed to start letter-api server');
-    process.exitCode = 1;
+    // listen 실패 (EADDRINUSE/EACCES 등) 에서 exitCode 만 세팅하면 프로세스가 hang.
+    // 비동기 'error' 이벤트라 throw 가 main().catch 로 안 잡혀 명시 종료가 안전.
+    // eslint-disable-next-line n/no-process-exit
+    process.exit(1);
   });
 
   const shutdown = (signal) => {
     log.info({ signal }, 'shutting down');
-    server.close(() => {
-      process.exitCode = 0;
-    });
-    setTimeout(() => {
+    // 강제 종료 타이머는 정상 close 가 끝나면 clearTimeout 으로 취소 — 안 그러면
+    // 5초 후에 exitCode 가 1 로 덮어써져 정상 종료가 비정상으로 보고된다.
+    const forceTimer = setTimeout(() => {
+      log.warn('shutdown timeout — forcing close');
       process.exitCode = 1;
       server.closeAllConnections?.();
-    }, 5000).unref();
+    }, 5000);
+    forceTimer.unref();
+    server.close(() => {
+      clearTimeout(forceTimer);
+      process.exitCode = 0;
+    });
   };
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));

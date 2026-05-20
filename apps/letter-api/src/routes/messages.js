@@ -116,6 +116,9 @@ export const createMessagesRouter = ({ jwtSecret, mutationLimiter }) => {
 
       if (result.count === 1) {
         const updated = await prisma.message.findUnique({ where: { id } });
+        // 동시 race 가드: updateMany 직후 다른 요청이 삭제했을 가능성 → null 가드.
+        // serializeMessage(null, ...) 호출 시 500 터지는 걸 회피.
+        if (!updated) return res.status(404).json({ error: 'MessageNotFound' });
         return res.status(200).json({ message: serializeMessage(updated, req.user.sub) });
       }
 
