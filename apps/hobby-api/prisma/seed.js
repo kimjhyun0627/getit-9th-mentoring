@@ -13,12 +13,12 @@ import 'dotenv/config';
 
 import { PrismaClient } from '@prisma/client';
 
-const SEED_POST_ID = 'seed-post-001';
-const SEED_OWNER_ID = 'seed-user-alice';
+export const SEED_POST_ID = 'seed-post-001';
+export const SEED_OWNER_ID = 'seed-user-alice';
 
-const SEED_TAGS = ['맛집', '스포츠', '스터디'];
+export const SEED_TAGS = ['맛집', '스포츠', '스터디'];
 
-const SEED_POST = {
+export const SEED_POST = {
   id: SEED_POST_ID,
   ownerId: SEED_OWNER_ID,
   title: '오늘 18시 북문 마라탕 3명',
@@ -30,11 +30,9 @@ const SEED_POST = {
   status: 'RECRUITING',
 };
 
-const SEED_POST_TAGS = ['맛집', '스터디'];
+export const SEED_POST_TAGS = ['맛집', '스터디'];
 
-const prisma = new PrismaClient();
-
-const seedTags = async () => {
+export const seedTags = async (prisma) => {
   const tags = {};
   for (const name of SEED_TAGS) {
     const tag = await prisma.tag.upsert({
@@ -48,7 +46,7 @@ const seedTags = async () => {
   return tags;
 };
 
-const seedPost = async () => {
+export const seedPost = async (prisma) => {
   const post = await prisma.post.upsert({
     where: { id: SEED_POST.id },
     update: { title: SEED_POST.title, body: SEED_POST.body },
@@ -58,7 +56,7 @@ const seedPost = async () => {
   return post;
 };
 
-const seedPostTags = async (post, tagsByName) => {
+export const seedPostTags = async (prisma, post, tagsByName) => {
   for (const name of SEED_POST_TAGS) {
     const tag = tagsByName[name];
     if (!tag) continue;
@@ -71,19 +69,24 @@ const seedPostTags = async (post, tagsByName) => {
   }
 };
 
-const main = async () => {
+export const main = async (prisma) => {
   console.log('seeding hobby-api dev data...');
-  const tagsByName = await seedTags();
-  const post = await seedPost();
-  await seedPostTags(post, tagsByName);
+  const tagsByName = await seedTags(prisma);
+  const post = await seedPost(prisma);
+  await seedPostTags(prisma, post, tagsByName);
   console.log('done.');
 };
 
-main()
-  .catch((err) => {
-    console.error('seed failed:', err);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// CLI 진입점일 때만 자동 실행. 테스트에서 import 시 사이드이펙트 없음.
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+  const prisma = new PrismaClient();
+  void main(prisma)
+    .catch((err) => {
+      console.error('seed failed:', err);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

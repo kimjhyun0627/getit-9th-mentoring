@@ -27,9 +27,9 @@ model Post {
   title           String
   body            String         @db.Text
   meetAt          DateTime
-  capacity        Int
-  currentCapacity Int            @default(0)
-  openChatUrl     String
+  capacity        Int            @db.UnsignedInt
+  currentCapacity Int            @default(0) @db.UnsignedInt
+  openChatUrl     String         @db.VarChar(512)
   status          PostStatus     @default(RECRUITING)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
