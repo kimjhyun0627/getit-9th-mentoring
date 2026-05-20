@@ -49,6 +49,7 @@ services:
       - "443:443"
     environment:
       ACME_EMAIL: ${ACME_EMAIL}
+      DOCKER_API_VERSION: ${DOCKER_API_VERSION:-1.44} # Docker Engine 29+ 와 Traefik v3 client 사이 negotiation 우회
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
