@@ -14,7 +14,7 @@ import { SearchResultCard } from '../components/SearchResultCard.jsx';
 
 import { MAX_QUERY, TARGET_OPTIONS } from './SearchPage.constants.js';
 
-/** @typedef {'all' | 'title' | 'person' | 'isbn'} TargetKey */
+/** @typedef {import('./SearchPage.constants.js').TargetKey} TargetKey */
 
 /**
  * 검색 대상 토글 (#202) — 제목 / 저자 / ISBN / 전체.

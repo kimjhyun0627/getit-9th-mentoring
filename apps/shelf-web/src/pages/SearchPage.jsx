@@ -29,7 +29,7 @@ const DEBOUNCE_MS = 300;
 const MIN_QUERY = 2;
 const PAGE_STEP = 10;
 
-/** @typedef {'all' | 'title' | 'person' | 'isbn'} TargetKey */
+/** @typedef {import('./SearchPage.constants.js').TargetKey} TargetKey */
 
 /**
  * 추가 실패를 사용자 친화 메시지로 매핑.
@@ -127,7 +127,9 @@ export const SearchPage = () => {
 
   const addMutation = useMutation({
     mutationFn: async (vars) => {
-      const res = await api.addToShelf({ ...vars, status: 'WANT' });
+      // status 는 카드 라디오에서 선택 (#298). 기본값은 카드 컴포넌트가 'WANT' 로 초기화.
+      const status = vars.status ?? 'WANT';
+      const res = await api.addToShelf({ ...vars, status });
       return res.data?.shelf;
     },
     onSuccess: (_data, vars) => {

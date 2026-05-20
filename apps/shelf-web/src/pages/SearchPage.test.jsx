@@ -170,7 +170,7 @@ describe('SearchPage', () => {
     expect(heading.className).toMatch(/text-ink-strong/);
   });
 
-  it('검색 페이지에서 추가 시 status=WANT 고정 (#298)', async () => {
+  it('검색 페이지에서 status 기본값은 WANT (#298 회귀 가드)', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'searchBooks').mockResolvedValue({
       items: [
@@ -192,9 +192,36 @@ describe('SearchPage', () => {
 
     await waitFor(() => {
       expect(addSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'WANT' }));
-      // 다른 status 가 전달되지 않았다는 negative assertion.
-      const call = addSpy.mock.calls[0]?.[0];
-      expect(call?.status).toBe('WANT');
+    });
+  });
+
+  it('검색 카드에서 status 를 READ 로 선택 후 추가하면 READ 가 전달된다 (#298)', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'searchBooks').mockResolvedValue({
+      items: [
+        {
+          id: 'book-1',
+          isbn: '9788932917245',
+          title: '데미안',
+          author: '헤르만 헤세',
+          publisher: '민음사',
+          coverUrl: null,
+        },
+      ],
+    });
+    const addSpy = vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
+
+    renderSearch();
+    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
+    // 카드가 렌더링될 때까지 대기.
+    await screen.findByRole('button', { name: /데미안 서재에 추가/ });
+    // 카드 내부 라디오에서 "읽은 책" 선택.
+    const readRadio = screen.getByRole('radio', { name: '읽은 책' });
+    await user.click(readRadio);
+    await user.click(screen.getByRole('button', { name: /데미안 서재에 추가/ }));
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'READ' }));
     });
   });
 
@@ -214,6 +241,8 @@ describe('SearchPage', () => {
 
   it('검색어 입력은 100자 초과 시 잘려서 입력된다 (#232)', async () => {
     const user = userEvent.setup();
+    // debounce 이후 실제 호출 발생을 막아 테스트 안정화 (CR #346).
+    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
     renderSearch();
     const input = /** @type {HTMLInputElement} */ (
       screen.getByRole('searchbox', { name: /책 검색/ })

@@ -24,7 +24,9 @@ describe('CORS fail-closed (#273)', () => {
       expect(res.headers['access-control-allow-origin']).toBeUndefined();
       expect(res.headers['access-control-allow-credentials']).toBeUndefined();
     } finally {
-      process.env.CORS_ORIGINS = original;
+      // undefined 를 그대로 대입하면 "undefined" 문자열로 박히므로 분기 복구 (CR #346).
+      if (original === undefined) delete process.env.CORS_ORIGINS;
+      else process.env.CORS_ORIGINS = original;
     }
   });
 
@@ -37,7 +39,9 @@ describe('CORS fail-closed (#273)', () => {
       expect(res.status).toBe(200);
       expect(res.headers['access-control-allow-origin']).toBeUndefined();
     } finally {
-      process.env.CORS_ORIGINS = original;
+      // undefined 를 그대로 대입하면 "undefined" 문자열로 박히므로 분기 복구 (CR #346).
+      if (original === undefined) delete process.env.CORS_ORIGINS;
+      else process.env.CORS_ORIGINS = original;
     }
   });
 
@@ -54,7 +58,9 @@ describe('CORS fail-closed (#273)', () => {
       // cors() 가 매치 안 되면 헤더 자체 미부착 → 브라우저가 거부.
       expect(bad.headers['access-control-allow-origin']).toBeUndefined();
     } finally {
-      process.env.CORS_ORIGINS = original;
+      // undefined 를 그대로 대입하면 "undefined" 문자열로 박히므로 분기 복구 (CR #346).
+      if (original === undefined) delete process.env.CORS_ORIGINS;
+      else process.env.CORS_ORIGINS = original;
     }
   });
 });

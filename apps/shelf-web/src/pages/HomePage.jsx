@@ -38,11 +38,20 @@ export const HomePage = () => {
     SORT_KEYS.includes(/** @type {SortKey} */ (sortParam)) ? sortParam : SHELF_SORT_DEFAULT
   );
 
-  // 페이지네이션 — 100건 넘는 서재 처리 (#269). 50권/페이지.
+  // 페이지네이션 — 100건 넘는 서재 처리 (#269).
+  // BE 가 pageSize ≤ 100 이라 전체를 한 번에 못 가져옴 → 서버 페이지네이션을 그대로 사용.
+  // 단, 필터/정렬은 "현재 페이지" 가 아닌 "전체 서재" 기준이 되도록 BE 정렬 + 클라 cull
+  // 조합으로 처리하고, status 필터는 BE 에 내릴 수 없으니 모든 status 카운트가 정확하게
+  // 표시될 때까지는 페이지네이션을 'ALL' 필터일 때만 노출 (다른 필터엔 클라 cull 표시).
+  // 이는 CR #346 의 "필터/페이지 결과 불일치" 지적에 대한 명시적 trade-off.
   const pageParam = Number.parseInt(searchParams.get('page') ?? '', 10);
-  const page = Number.isFinite(pageParam) && pageParam >= 1 ? pageParam : 1;
+  const requestedPage = Number.isFinite(pageParam) && pageParam >= 1 ? pageParam : 1;
 
-  const { data, isLoading, isError, error } = useMyShelves({ sort, page, pageSize: PAGE_SIZE });
+  const { data, isLoading, isError, error } = useMyShelves({
+    sort,
+    page: requestedPage,
+    pageSize: PAGE_SIZE,
+  });
   const update = useUpdateShelf();
   const remove = useRemoveShelf();
 
@@ -50,16 +59,6 @@ export const HomePage = () => {
   // 별점 2차 필터 (#199): 0=전체, 1~5=최소 별점.
   const [minRating, setMinRating] = useState(0);
   const [editing, setEditing] = useState(/** @type {Shelf | null} */ (null));
-
-  // 필터/정렬 바뀌면 page 1 로 리셋 — URL state 일관성.
-  useEffect(() => {
-    if (page === 1) return;
-    const params = new URLSearchParams(searchParams);
-    params.delete('page');
-    setSearchParams(params, { replace: true });
-    // 의도적으로 sort 만 dep — filter / minRating 은 클라이언트 cull 이라 page reset 불필요.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort]);
 
   /** @param {SortKey} next */
   const handleSortChange = (next) => {
@@ -73,6 +72,29 @@ export const HomePage = () => {
   const total = data?.pagination?.total ?? shelves.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  // 페이지 범위 초과 가드 (CR #346): ?page=999 같은 입력이나
+  // 마지막 페이지의 유일한 항목 삭제로 totalPages 가 줄어든 경우 마지막 유효 페이지로 클램프.
+  const page = Math.min(requestedPage, totalPages);
+  useEffect(() => {
+    if (isLoading) return;
+    if (requestedPage > totalPages) {
+      const params = new URLSearchParams(searchParams);
+      if (totalPages <= 1) params.delete('page');
+      else params.set('page', String(totalPages));
+      setSearchParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, totalPages, requestedPage]);
+
+  // 정렬 변경 시 page 1 로 리셋 (URL state 정리).
+  useEffect(() => {
+    if (requestedPage === 1) return;
+    const params = new URLSearchParams(searchParams);
+    params.delete('page');
+    setSearchParams(params, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
+
   const counts = useMemo(() => countByStatus(shelves), [shelves]);
   const visible = useMemo(() => {
     let next = filter === 'ALL' ? shelves : shelves.filter((s) => s.status === filter);
@@ -81,6 +103,11 @@ export const HomePage = () => {
     }
     return next;
   }, [shelves, filter, minRating]);
+
+  // 페이지네이션은 ALL + minRating=0 일 때만 노출 — status/rating 필터는 현재 페이지에만 적용되므로
+  // 다른 페이지 결과와 혼선을 막기 위해 필터가 걸린 동안에는 페이지네이션을 숨긴다 (CR #346 trade-off).
+  // 필터가 걸리면 사용자가 다른 페이지로 이동할 의미가 약하고, BE 필터 도입은 별도 PR.
+  const paginationActive = filter === 'ALL' && minRating === 0;
 
   const handlePageChange = (next) => {
     const params = new URLSearchParams(searchParams);
@@ -187,7 +214,7 @@ export const HomePage = () => {
                 <BookCard key={shelf.id} shelf={shelf} onEdit={setEditing} />
               ))}
             </div>
-            {totalPages > 1 ? (
+            {paginationActive && totalPages > 1 ? (
               <Pagination
                 page={page}
                 totalPages={totalPages}
