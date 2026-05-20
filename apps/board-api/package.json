@@ -6,12 +6,12 @@
   "description": "board.get-it.cloud/api - 팀 칸반 BE (Prisma DB layer)",
   "main": "src/server.js",
   "scripts": {
-    "dev": "echo \"dev server: 후속 PR (#46/#47/#48)\"",
-    "start": "echo \"server: 후속 PR (#46/#47/#48)\"",
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
     "build": "echo \"JS only, skip build\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint --no-error-on-unmatched-pattern src prisma",
+    "lint": "eslint --no-error-on-unmatched-pattern src prisma tests",
     "typecheck": "echo \"JS only, skip\"",
     "clean": "rm -rf dist .turbo",
     "prisma:generate": "prisma generate",
@@ -24,12 +24,23 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@getit/auth-utils": "workspace:*",
+    "@getit/schemas": "workspace:*",
     "@prisma/client": "^6.2.1",
-    "dotenv": "^16.4.7"
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@getit/config-eslint": "workspace:*",
     "eslint": "^9.18.0",
+    "jsonwebtoken": "^9.0.2",
     "prisma": "^6.2.1",
     "supertest": "^7.0.0",
     "vitest": "^2.1.8"
