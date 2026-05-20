@@ -38,7 +38,12 @@ export const MessageCreateInput = z.object({
  */
 export const MessageUpdateInput = z
   .object({
-    content: z.string().trim().min(1, '메시지 내용을 입력하세요').max(500).optional(),
+    content: z
+      .string()
+      .trim()
+      .min(1, '메시지 내용을 입력하세요')
+      .max(500, '메시지는 500자 이내')
+      .optional(),
     color: MessageColor.optional(),
   })
   .refine((d) => d.content !== undefined || d.color !== undefined, {

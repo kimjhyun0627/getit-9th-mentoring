@@ -56,6 +56,17 @@ describe('MessageUpdateInput', () => {
   it('둘 다 누락 → reject', () => {
     expect(() => MessageUpdateInput.parse({})).toThrow();
   });
+
+  // #302 — max(500) 한국어 메시지 일관성.
+  it('501자 content reject + 한국어 메시지', () => {
+    const long = 'a'.repeat(501);
+    const result = MessageUpdateInput.safeParse({ content: long });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const msg = result.error.issues.find((i) => i.path[0] === 'content')?.message;
+      expect(msg).toBe('메시지는 500자 이내');
+    }
+  });
 });
 
 describe('MessageIdParam', () => {

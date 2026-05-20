@@ -6,7 +6,7 @@
  *   → pino-http (test 제외)
  *   → /api/health (public)
  *   → /api/me (JWT 필요, FE BoardPage mount 시 호출)
- *   → /api/messages/* (JWT 필요, mutation 은 rate-limit)
+ *   → /api/messages/* (JWT 필요, mutation + GET 은 rate-limit, #252)
  */
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -46,17 +46,32 @@ const readJwtSecret = () => {
 /**
  * Express 앱 인스턴스 생성.
  *
- * @param {{ rateLimitMax?: number, rateLimitWindowMs?: number, trustProxy?: boolean }} [opts]
+ * @param {{
+ *   rateLimitMax?: number,
+ *   rateLimitWindowMs?: number,
+ *   readRateLimitMax?: number,
+ *   trustProxy?: boolean,
+ * }} [opts]
  * @returns {import('express').Express}
  */
 export const createApp = (opts = {}) => {
   const envMax = Number.parseInt(process.env.RATE_LIMIT_MAX ?? '30', 10);
   const envWindow = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '60000', 10);
+  const envReadMax = Number.parseInt(process.env.RATE_LIMIT_READ_MAX ?? '60', 10);
   const {
-    rateLimitMax = Number.isFinite(envMax) ? envMax : 30,
-    rateLimitWindowMs = Number.isFinite(envWindow) ? envWindow : 60_000,
+    rateLimitMax: rawMax = Number.isFinite(envMax) && envMax >= 1 ? envMax : 30,
+    rateLimitWindowMs: rawWindow = Number.isFinite(envWindow) && envWindow >= 1
+      ? envWindow
+      : 60_000,
+    // CR #345 — 0/음수 방어. 잘못된 배포 설정에서 조회 전면 차단 회피.
+    readRateLimitMax: rawReadMax = Number.isFinite(envReadMax) && envReadMax >= 1 ? envReadMax : 60,
     trustProxy = true,
   } = opts;
+  // CR #345 round 2 — caller 가 createApp({ rateLimitMax: 0 }) 같이 직접 invalid 를
+  // 넘겨도 limiter 가 받지 못하도록 한 번 더 coerce.
+  const rateLimitMax = Number.isFinite(rawMax) && rawMax >= 1 ? rawMax : 30;
+  const rateLimitWindowMs = Number.isFinite(rawWindow) && rawWindow >= 1 ? rawWindow : 60_000;
+  const readRateLimitMax = Number.isFinite(rawReadMax) && rawReadMax >= 1 ? rawReadMax : 60;
 
   const app = express();
 
@@ -84,10 +99,20 @@ export const createApp = (opts = {}) => {
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'letter-api' }));
 
-  // POST/PATCH/DELETE 만 burst 차단. GET 은 free (목록 조회 부하 적음).
+  // POST/PATCH/DELETE 는 burst 차단 (기본 분당 30).
   const mutationLimiter = rateLimit({
     windowMs: rateLimitWindowMs,
     max: rateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'RateLimitExceeded' },
+  });
+
+  // GET /api/messages 도 timing oracle 차단 목적으로 limit (#252).
+  // mutation 보다는 후하게 (기본 분당 60 = 1초당 1회).
+  const readLimiter = rateLimit({
+    windowMs: rateLimitWindowMs,
+    max: readRateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'RateLimitExceeded' },
@@ -97,7 +122,7 @@ export const createApp = (opts = {}) => {
   // /api/me — FE BoardPage 가 mount 시 호출. 미등록이면 404 → FE 의 401 핸들러
   // 발화 안 함 → SSO redirect 누락 → "롤링페이퍼 못 불러옴" UX 회귀. 반드시 등록.
   app.use('/api', createMeRouter({ jwtSecret }));
-  app.use('/api', createMessagesRouter({ jwtSecret, mutationLimiter }));
+  app.use('/api', createMessagesRouter({ jwtSecret, mutationLimiter, readLimiter }));
 
   // 마지막 fallback 에러 핸들러 (4-인자 시그니처 유지).
   app.use((err, req, res, next) => {
