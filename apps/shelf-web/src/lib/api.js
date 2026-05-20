@@ -12,11 +12,11 @@ const baseURL = import.meta.env?.VITE_API_URL ?? '/api';
 export const client = axios.create({
   baseURL,
   withCredentials: true,
-  timeout: 10_000,
+  timeout: 10000,
 });
 
 /**
- * 401 시 상위 콜백 실행. 페이지가 호출하지 않으면 무시.
+ * 401 시 상위 콜백 실행 (옵션). 현재는 미사용. 로그인 화면 redirect는 추후.
  *
  * @type {{ onUnauthorized: (() => void) | null }}
  */
@@ -51,13 +51,29 @@ const searchResponseSchema = z.object({
 });
 
 /**
- * shelf 도메인 API 헬퍼.
- * - searchBooks: BE 중계 (외부 카카오 API). 키 1자 이상 필수, 100자 이하.
- * - addToShelf: 내 서재에 추가. isbn 또는 bookId 중 하나 필수.
+ * 서재 API — 페이지에서 axios 직접 노출 X.
+ *
+ * - listMyShelves / updateShelf / removeShelf — 내 서재 관리 (#44).
+ * - searchBooks / addToShelf — 책 검색 + 서재 추가 (#43).
  *
  * 외부 데이터 경계에서 zod 로 런타임 검증해서 UI 상태 깨짐 방지.
  */
 export const api = {
+  /**
+   * @param {{ page?: number; pageSize?: number }} [opts]
+   */
+  listMyShelves: (opts = {}) =>
+    client.get('/shelves/me', { params: { page: opts.page, pageSize: opts.pageSize } }),
+  /**
+   * @param {string} bookId
+   * @param {{ status?: 'WANT'|'READING'|'READ'; rating?: number|null; review?: string|null }} body
+   */
+  updateShelf: (bookId, body) => client.patch(`/shelves/${encodeURIComponent(bookId)}`, body),
+  /**
+   * @param {string} bookId
+   */
+  removeShelf: (bookId) => client.delete(`/shelves/${encodeURIComponent(bookId)}`),
+
   /**
    * @param {string} q
    * @returns {Promise<{ items: Array<Record<string, unknown>> }>}

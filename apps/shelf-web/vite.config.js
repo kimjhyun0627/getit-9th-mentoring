@@ -2,8 +2,8 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 /**
- * Vite + Vitest config (auth-web 패턴).
- * shelf-web은 5175 포트 — landing(5173) / auth-web(5174) 와 충돌 회피.
+ * Vite + Vitest config — shelf-web.
+ * dev 포트 5175 (auth-web 5174, landing 5173과 충돌 회피).
  */
 export default defineConfig({
   plugins: [react()],

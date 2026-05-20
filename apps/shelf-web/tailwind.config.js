@@ -1,15 +1,13 @@
 import preset from '@getit/config-tailwind/preset';
 
 /**
- * shelf-web Tailwind config — Editorial 페르소나.
- * - 페이퍼/잉크 라이트 + 미드나잇 차콜 다크
- * - 액센트: 와인(라이트) → 머스타드(다크) — 토큰은 index.css 에서 정의.
- * - 폰트: display(Playfair) / serif(Source Serif 4 + Noto Serif KR) / sans(Pretendard).
+ * shelf-web Tailwind config.
+ * Editorial 페르소나 — paper / charcoal 베이스 + wine(light) / mustard(dark) 액센트.
+ * 본문은 Pretendard, display는 Playfair Display, serif 본문은 Source Serif + Noto Serif KR.
  *
  * @type {import('tailwindcss').Config}
  */
 export default {
-  darkMode: 'class',
   presets: [preset],
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {

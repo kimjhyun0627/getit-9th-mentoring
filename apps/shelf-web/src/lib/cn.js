@@ -1,10 +1,10 @@
-import clsx from 'clsx';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 /**
- * 클래스명 머지 — clsx 그대로 노출.
- * tailwind-merge 는 shelf-web에 아직 의존성 안 잡혔으니, 필요 시 추가.
+ * Tailwind 클래스 병합 헬퍼 (shadcn 표준).
  *
- * @param {...import('clsx').ClassValue} classes
+ * @param  {...any} inputs
  * @returns {string}
  */
-export const cn = (...classes) => clsx(...classes);
+export const cn = (...inputs) => twMerge(clsx(inputs));

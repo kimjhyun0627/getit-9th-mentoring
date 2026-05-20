@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "GETIT 9기 스마트 서재 웹 UI (shelf.get-it.cloud) — editorial",
+  "description": "GETIT 9기 스마트 서재 FE — editorial 페르소나 (shelf.get-it.cloud)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -14,16 +14,19 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@getit/auth-utils": "workspace:*",
     "@getit/config-tailwind": "workspace:*",
     "@getit/schemas": "workspace:*",
     "@getit/theme": "workspace:*",
     "@tanstack/react-query": "^5.62.16",
-    "axios": "^1.15.1",
+    "axios": "^1.9.0",
     "clsx": "^2.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^6.28.1",
-    "zod": "^3.24.1"
+    "tailwind-merge": "^2.6.0",
+    "zod": "^3.24.1",
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
     "@getit/config-eslint": "workspace:*",

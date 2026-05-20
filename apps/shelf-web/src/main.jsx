@@ -8,9 +8,8 @@ import { App } from './App.jsx';
 import './index.css';
 
 /**
- * React 19 + ThemeProvider + Router + QueryClient (auth-web 패턴).
- * shelf 는 검색/서재 fetch 중심이라 staleTime 30s, refetchOnWindowFocus false 로
- * 외부 API 호출(BE 중계) 보호.
+ * React 19 + ThemeProvider + Router + QueryClient.
+ * 서재 데이터는 사용자별이라 staleTime 1분 (목록 갱신은 mutation 후 invalidate).
  */
 const container = document.getElementById('root');
 if (!container) {
@@ -19,7 +18,7 @@ if (!container) {
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30_000, refetchOnWindowFocus: false },
+    queries: { retry: false, staleTime: 60_000, refetchOnWindowFocus: false },
     mutations: { retry: false },
   },
 });

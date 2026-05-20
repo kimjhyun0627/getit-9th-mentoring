@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { BookCard } from '../components/BookCard.jsx';
+import { SearchResultCard } from '../components/SearchResultCard.jsx';
 import { Toast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 import { useDebounce } from '../lib/useDebounce.js';
@@ -229,7 +229,7 @@ const ResultsGrid = ({ items, onAdd, pendingKey, addedKeys }) => (
       const key = identity ?? `${book.title}-${idx}`;
       return (
         <li key={key}>
-          <BookCard
+          <SearchResultCard
             book={book}
             onAdd={onAdd}
             isPending={identity !== null && pendingKey === identity}
