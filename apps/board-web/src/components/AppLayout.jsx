@@ -1,4 +1,5 @@
 import { ThemeToggle } from '@getit/theme';
+import { Link } from 'react-router-dom';
 
 /**
  * board-web 공통 App 레이아웃.
@@ -11,7 +12,7 @@ export const AppLayout = ({ children }) => {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b border-hairline bg-background/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6 lg:px-10">
-          <a href="/" className="group flex items-center gap-2" aria-label="board 홈">
+          <Link to="/" className="group flex items-center gap-2" aria-label="board 홈">
             <span
               aria-hidden="true"
               className="grid h-7 w-7 place-items-center rounded-md bg-foreground text-[11px] font-bold tracking-tight text-background"
@@ -23,7 +24,7 @@ export const AppLayout = ({ children }) => {
               /
             </span>
             <span className="text-sm text-muted-foreground">GETIT 9기</span>
-          </a>
+          </Link>
 
           <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-base transition hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" />
         </div>

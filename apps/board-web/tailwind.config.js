@@ -10,6 +10,7 @@ import preset from '@getit/config-tailwind/preset';
 export default {
   presets: [preset],
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {

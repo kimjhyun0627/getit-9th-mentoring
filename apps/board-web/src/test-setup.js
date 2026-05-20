@@ -3,8 +3,10 @@ import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
 // `globals: false`라 RTL auto-cleanup이 안 걸림. 명시적으로 등록.
+// localStorage 도 매 테스트 후 초기화해 테스트 간 상태 누수 방지.
 afterEach(() => {
   cleanup();
+  window.localStorage?.clear?.();
 });
 
 // Node 25의 실험적 `--localstorage-file` 플래그가 jsdom localStorage를
