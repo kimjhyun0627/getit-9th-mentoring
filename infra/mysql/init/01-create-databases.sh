@@ -17,14 +17,19 @@ set -euo pipefail
 : "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set by docker-entrypoint}"
 
 # Temp credential file readable only by current user; cleaned up on exit.
+# trap is registered *immediately* after mktemp so a failure in `chmod` (or
+# any subsequent command) still removes the file.
 CNF="$(mktemp)"
-chmod 600 "$CNF"
 trap 'rm -f "$CNF"' EXIT
+chmod 600 "$CNF"
 
+# Password is quoted in case it contains spaces or `#`. Note: my.cnf treats
+# backslash as an escape char inside values, so passwords with `\` need to
+# avoid that character.
 cat >"$CNF" <<EOF
 [client]
 user=root
-password=${MYSQL_ROOT_PASSWORD}
+password="${MYSQL_ROOT_PASSWORD}"
 EOF
 
 # All 5 service-specific DBs. Adding a new app: append here.
