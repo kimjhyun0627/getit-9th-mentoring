@@ -3,6 +3,13 @@
  *
  * `serialize` 가 게시글의 첫 태그 이름을 기준으로 색을 결정한다.
  * 태그가 없거나 매칭이 안 되면 id 해시로 fallback — 같은 게시글은 항상 같은 색.
+ *
+ * Status tone (#309):
+ *  - RECRUITING: 컬러 유지 (palette.gradient)
+ *  - FULL: 컬러 유지 + 🎉 마감 amber 리본 (긍정적 종료, 잔치 분위기)
+ *  - CLOSED: gray-out (`tone-closed`) + opacity 60% (부정/중립 종료)
+ *
+ * Status별 표시 텍스트는 `statusBadgeFor` 가 반환.
  */
 
 /** @type {{ key: string; gradient: string; text: string; chip: string; pill: string; btn: string; tilt: string }[]} */
@@ -131,4 +138,51 @@ const TAG_TO_EMOJI = {
 export const emojiFor = (post) => {
   const matched = post.tags?.find((t) => TAG_TO_EMOJI[t.name]);
   return matched ? TAG_TO_EMOJI[matched.name] : '🎯';
+};
+
+/**
+ * 모집 상태별 표시 정보 — #309.
+ *
+ *  - RECRUITING: 액션 가능. 배지 X.
+ *  - FULL: 정원 마감, 긍정적 종료 (오픈채팅 활성). amber 리본.
+ *  - CLOSED: 모집 종료 / 만료. 회색 톤 + 비활성.
+ *
+ * `tone` 은 카드 자체에 추가로 적용할 클래스:
+ *  - 'active' = 변형 없음
+ *  - 'full' = ribbon 노출, 카드 채도 유지
+ *  - 'closed' = grayscale + opacity-60 + line-through
+ *
+ * @param {{ status: string }} post
+ * @returns {{
+ *   tone: 'active' | 'full' | 'closed';
+ *   inactive: boolean;
+ *   label: string | null;
+ *   ribbon: { text: string; cls: string } | null;
+ *   bodyCls: string;
+ * }}
+ */
+export const statusBadgeFor = (post) => {
+  if (post.status === 'FULL') {
+    return {
+      tone: 'full',
+      inactive: true,
+      label: '정원 마감',
+      ribbon: {
+        text: '🎉 마감',
+        // amber + 짙은 슬레이트 글자 = WCAG AA 통과 (4.5:1+)
+        cls: 'bg-amber-300 text-slate-900 ring-1 ring-amber-500/40',
+      },
+      bodyCls: '',
+    };
+  }
+  if (post.status === 'CLOSED') {
+    return {
+      tone: 'closed',
+      inactive: true,
+      label: '모집 종료',
+      ribbon: null,
+      bodyCls: 'line-through decoration-slate-500/40',
+    };
+  }
+  return { tone: 'active', inactive: false, label: null, ribbon: null, bodyCls: '' };
 };

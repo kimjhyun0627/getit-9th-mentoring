@@ -165,11 +165,12 @@ export const MyApplicationCard = ({ item, onCancel, isPending }) => {
         </span>
         <h3 className="font-display font-extrabold text-lg leading-tight">{post.title}</h3>
       </div>
-      <div className="mt-4 flex items-center justify-between gap-3">
+      {/* #332 — 좁은 모바일에서도 두 액션이 깨지지 않게 wrap 허용 */}
+      <div className="mt-4 flex items-center justify-between gap-2 flex-wrap">
         <Link
           to={`/posts/${post.id}`}
           className={cn(
-            'inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-display font-extrabold',
+            'inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-display font-extrabold whitespace-nowrap',
             palette.chip,
           )}
         >
@@ -180,7 +181,8 @@ export const MyApplicationCard = ({ item, onCancel, isPending }) => {
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="inline-flex items-center gap-1 rounded-full bg-white dark:bg-white/15 text-slate-700 dark:text-slate-100 px-3 py-1.5 text-xs font-display font-extrabold disabled:opacity-50"
+            // #311 — disabled: opacity 대신 단색 muted (그라데이션 위 가독성 보장)
+            className="inline-flex items-center gap-1 rounded-full bg-white dark:bg-white/15 text-slate-700 dark:text-slate-100 px-3 py-1.5 text-xs font-display font-extrabold whitespace-nowrap disabled:bg-slate-200 disabled:text-slate-500 disabled:dark:bg-slate-700 disabled:dark:text-slate-300 disabled:cursor-not-allowed"
           >
             {isPending ? '취소 중…' : '신청 취소'}
           </button>
