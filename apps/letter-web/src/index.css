@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Warm 시안 (docs/design/letter/warm.html) 톤.
+ * - 라이트: cream 베이지 벽지 + 파스텔 포스트잇
+ * - 다크: mocha 짙은 브라운 + 베이지 한 스푼
+ * shadcn 호환 CSS variable 시스템 유지.
+ */
+@layer base {
+  :root {
+    --background: 36 50% 96%; /* cream #FAF6F0 */
+    --foreground: 22 19% 19%; /* ink #3A2E27 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 22 19% 19%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 22 19% 19%;
+
+    /* Warm primary: peachDk #E8B89F */
+    --primary: 21 64% 77%;
+    --primary-foreground: 22 19% 19%;
+
+    --secondary: 36 36% 91%; /* cream2 */
+    --secondary-foreground: 22 19% 19%;
+
+    --muted: 36 36% 91%;
+    --muted-foreground: 25 19% 31%; /* ink2 */
+
+    --accent: 21 64% 87%; /* peach */
+    --accent-foreground: 22 19% 19%;
+
+    --destructive: 0 64% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 36 24% 86%;
+    --input: 36 24% 86%;
+    --ring: 21 64% 77%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 22 17% 14%; /* mocha #2C2420 */
+    --foreground: 36 36% 84%; /* beige #E8D6C4 */
+
+    --card: 22 14% 19%; /* mocha2 */
+    --card-foreground: 36 36% 84%;
+
+    --popover: 22 14% 19%;
+    --popover-foreground: 36 36% 84%;
+
+    /* 다크에선 rose #D9A892 */
+    --primary: 18 47% 73%;
+    --primary-foreground: 22 17% 14%;
+
+    --secondary: 22 17% 25%; /* mocha3 */
+    --secondary-foreground: 36 36% 84%;
+
+    --muted: 22 17% 25%;
+    --muted-foreground: 33 23% 70%; /* beige2 */
+
+    --accent: 22 17% 25%;
+    --accent-foreground: 36 36% 84%;
+
+    --destructive: 0 50% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 22 17% 25%;
+    --input: 22 17% 25%;
+    --ring: 18 47% 73%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'ss01', 'tnum';
+    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer utilities {
+  /* Warm wall background — 부원실 벽지 톤 (warm.html .wall-bg). */
+  .wall-bg {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(244, 215, 200, 0.55), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(147, 164, 135, 0.25), transparent 60%),
+      linear-gradient(180deg, #f4eadc 0%, #efe2cc 100%);
+  }
+  .dark .wall-bg {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(217, 168, 146, 0.18), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(168, 184, 154, 0.14), transparent 60%),
+      linear-gradient(180deg, #2c2420 0%, #261e1a 100%);
+  }
+}
