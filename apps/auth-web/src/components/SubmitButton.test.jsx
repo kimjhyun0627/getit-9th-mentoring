@@ -52,8 +52,9 @@ describe('auth-web 다크 모드 primary 토큰 (Issue #91)', () => {
     return match ? match[1].trim() : null;
   };
 
+  const darkBlock = extractBlock('.dark');
+
   it('다크 모드에서 --primary는 indigo 액센트를 유지한다 (흰색이 아니다)', () => {
-    const darkBlock = extractBlock('.dark');
     const darkPrimary = readVar(darkBlock, 'primary');
     expect(darkPrimary).not.toBeNull();
     // indigo hue (239 ± 5), 채도 ≥ 60%, 명도 ≥ 50% (브랜드 액센트)
@@ -66,7 +67,6 @@ describe('auth-web 다크 모드 primary 토큰 (Issue #91)', () => {
   });
 
   it('다크 모드 --primary-foreground는 흰색이다 (CTA 위 가독성)', () => {
-    const darkBlock = extractBlock('.dark');
     const darkPrimaryFg = readVar(darkBlock, 'primary-foreground');
     expect(darkPrimaryFg).toBe('0 0% 100%');
   });
