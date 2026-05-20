@@ -35,7 +35,10 @@ const main = async () => {
     process.exitCode = 1;
   });
 
+  let shuttingDown = false;
   const shutdown = (signal) => {
+    if (shuttingDown) return; // 재진입 방지 — 같은 시그널 중복 / 다른 시그널 동시 도착 대비
+    shuttingDown = true;
     log.info({ signal }, 'shutting down');
     let forced = false;
     const timer = setTimeout(() => {
@@ -44,14 +47,20 @@ const main = async () => {
       server.closeAllConnections?.();
     }, 5000);
     timer.unref();
-    server.close(() => {
+    server.close((err) => {
       clearTimeout(timer);
-      // 타임아웃으로 강제 종료된 경우엔 exitCode를 0으로 덮어쓰지 않음
-      if (!forced) process.exitCode = 0;
+      if (err) {
+        log.error({ err, signal }, 'server.close failed');
+        if (process.exitCode == null) process.exitCode = 1;
+        return;
+      }
+      // 타임아웃으로 강제 종료됐거나 이미 누가 exitCode 세팅했다면 0으로 덮지 않음
+      if (!forced && process.exitCode == null) process.exitCode = 0;
     });
   };
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  // once — 동일 시그널 두 번째 수신 시 OS 기본 동작으로 떨어지게 (handler 재실행 X)
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  process.once('SIGINT', () => shutdown('SIGINT'));
 };
 
 main().catch((err) => {
