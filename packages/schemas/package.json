@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.js",
     "./auth": "./src/auth.js",
-    "./board": "./src/board.js"
+    "./board": "./src/board.js",
+    "./hobby": "./src/hobby.js"
   },
   "scripts": {
     "lint": "eslint src",

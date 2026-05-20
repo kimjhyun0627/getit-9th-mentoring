@@ -1,14 +1,62 @@
 /**
- * hobby-api 진입점 placeholder.
+ * hobby-api 부트스트랩 — .env 로드, Sentry init (옵션), listen.
  *
- * 본 PR (#63 / issue #33) 은 DBA 작업 — Prisma 스키마/마이그레이션/seed 한정.
- * Express 앱·라우트·미들웨어는 후속 BE 이슈에서 추가 예정.
- *
- * 지금은 `pnpm --filter @getit/hobby-api dev` / `... start` 가 즉시 실패하지
- * 않도록 안내 로그만 출력하고 깨끗이 종료한다. 이렇게 두면 모노레포 전역
- * `pnpm dev` 같은 명령이 hobby-api 때문에 죽는 일도 막을 수 있다.
+ * 실 미들웨어/라우터 와이어링은 `app.js` 에서. 테스트는 `createApp()` 만 import.
  */
-console.log(
-  '[hobby-api] server placeholder — Express 앱은 후속 BE 이슈에서 구현됩니다. ' +
-    '현재는 prisma:* 스크립트 (generate / migrate / seed) 만 의미가 있습니다.',
-);
+import 'dotenv/config';
+
+import pino from 'pino';
+
+import { createApp } from './app.js';
+
+const log = pino({ name: 'hobby-api' });
+
+// Sentry 는 `optionalDependencies` — 운영 이미지에는 설치되고, 로컬/테스트에는
+// 없어도 부팅됨. SENTRY_DSN 이 비어 있으면 import 자체를 건너뜀.
+const initSentry = async () => {
+  if (!process.env.SENTRY_DSN) return;
+  try {
+    const Sentry = await import('@sentry/node');
+    Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
+    log.info('Sentry initialized');
+  } catch (err) {
+    log.warn({ err }, 'Sentry init skipped (@sentry/node missing — install optional dep?)');
+  }
+};
+
+const main = async () => {
+  await initSentry();
+
+  const app = createApp();
+  const port = Number.parseInt(process.env.PORT ?? '3002', 10);
+  const server = app.listen(port, () => {
+    log.info({ port }, `hobby-api listening on :${port}`);
+  });
+  server.on('error', (err) => {
+    log.error({ err, port }, 'failed to start hobby-api server');
+    process.exitCode = 1;
+  });
+
+  const shutdown = (signal) => {
+    log.info({ signal }, 'shutting down');
+    // graceful close 가 5초 안에 끝나지 않으면 강제 종료. close() 가 먼저 끝나면
+    // clearTimeout 으로 타이머를 끄고 정상 exitCode 를 보존.
+    const forceCloseTimer = setTimeout(() => {
+      process.exitCode = 1;
+      server.closeAllConnections?.();
+    }, 5000);
+    forceCloseTimer.unref();
+
+    server.close(() => {
+      clearTimeout(forceCloseTimer);
+      process.exitCode = 0;
+    });
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+};
+
+main().catch((err) => {
+  log.error({ err }, 'fatal during startup');
+  process.exitCode = 1;
+});
