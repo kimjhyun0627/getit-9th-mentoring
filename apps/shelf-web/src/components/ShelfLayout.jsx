@@ -1,8 +1,11 @@
-import { ThemeToggle } from '@getit/theme';
+import { BookFlipToggle } from './BookFlipToggle.jsx';
 
 /**
  * shelf editorial 공통 레이아웃 — 매거진 헤더 + 이슈 바 + 본문 + colophon.
  * `apps/shelf-web/src/index.css` 의 paper/ink/wine/mustard 토큰을 사용.
+ *
+ * 다크 토글은 shelf 전용 `BookFlipToggle` (책 페이지 3D flip · A안).
+ * 공유 `@getit/theme` 의 `ThemeToggle` 은 다른 5개 FE 앱에서 그대로 사용.
  *
  * @param {{ children: import('react').ReactNode }} props
  */
@@ -25,10 +28,7 @@ export const ShelfLayout = ({ children }) => {
           <a href="/search" className="ink-link hidden sm:inline">
             Search
           </a>
-          <ThemeToggle
-            className="smallcaps inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[12px] transition hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style={{ borderColor: 'var(--rule-2)' }}
-          />
+          <BookFlipToggle />
         </nav>
       </header>
 
