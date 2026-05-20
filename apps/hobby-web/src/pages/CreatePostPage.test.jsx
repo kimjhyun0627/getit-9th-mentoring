@@ -82,9 +82,16 @@ describe('CreatePostPage', () => {
     const urlInput = screen.getByLabelText(/오픈채팅/);
     expect(urlInput.className).toMatch(/dark:bg-zinc-900\/60/);
 
-    // TagInput 도 다크 톤 적용
+    // TagInput — 내부 input 글자색 + 컨테이너 배경/보더/그림자/color-scheme 다 같이 검증
     const tagInput = screen.getByLabelText('태그');
     expect(tagInput.className).toMatch(/dark:text-slate-100/);
+    // 컨테이너 div (input 의 parent) 에 다크 배경 + 인셋 그림자 + color-scheme 토큰
+    const tagContainer = tagInput.parentElement;
+    expect(tagContainer).not.toBeNull();
+    expect(tagContainer?.className).toMatch(/dark:bg-zinc-900\/60/);
+    expect(tagContainer?.className).toMatch(/dark:border-white\/10/);
+    expect(tagContainer?.className).toMatch(/dark:shadow-inner/);
+    expect(tagContainer?.className).toMatch(/dark:\[color-scheme:dark\]/);
   });
 
   it('빈 입력으로 submit 시 검증 에러를 보여준다', async () => {

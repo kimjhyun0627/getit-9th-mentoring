@@ -4,10 +4,11 @@ import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
-import { FormField } from '../components/FormField.jsx';
+import { FormField, inputBaseClass } from '../components/FormField.jsx';
 import { SubmitButton } from '../components/SubmitButton.jsx';
 import { TagInput } from '../components/TagInput.jsx';
 import { api } from '../lib/api.js';
+import { cn } from '../lib/cn.js';
 
 /**
  * BE PostCreateInput (`@getit/schemas/hobby`) 는 ISO 8601 meetAt 을 요구하지만,
@@ -161,7 +162,7 @@ export const CreatePostPage = () => {
             rows={5}
             placeholder="모임 분위기, 준비물 같은 것도 적어줘"
             aria-invalid={Boolean(errors.body?.message) || undefined}
-            className="min-h-[7rem] w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm transition [color-scheme:light] placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:border-white/10 dark:bg-zinc-900/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:shadow-inner dark:shadow-black/30 dark:[color-scheme:dark] dark:focus-visible:ring-amber-300"
+            className={cn(inputBaseClass, 'min-h-[7rem] w-full resize-y px-4 py-3 text-sm')}
             {...register('body')}
           />
           {errors.body?.message ? (
