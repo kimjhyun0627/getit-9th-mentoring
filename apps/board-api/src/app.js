@@ -6,6 +6,7 @@
  *   → /api/health (public)
  *   → /api/projects/* (requireAuth)
  *   → /api/projects/:id/members/* (requireAuth + requireProjectMember)
+ *   → /api/projects/:id/columns/* (requireAuth + requireProjectMember)
  *
  * `server.js` 의 listen()과 분리해 supertest 친화적.
  */
@@ -18,6 +19,7 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 
 import { requireProjectMember } from './middleware/requireProjectMember.js';
+import { createColumnsRouter } from './routes/columns.js';
 import { createMembersRouter } from './routes/members.js';
 import { createProjectsRouter } from './routes/projects.js';
 
@@ -96,6 +98,7 @@ export const createApp = (opts = {}) => {
 
   app.use('/api/projects', createProjectsRouter());
   app.use('/api/projects/:id/members', requireProjectMember(), createMembersRouter());
+  app.use('/api/projects/:id/columns', requireProjectMember(), createColumnsRouter());
 
   // 마지막 fallback 에러 핸들러 (4-인자).
   app.use((err, req, res, _next) => {

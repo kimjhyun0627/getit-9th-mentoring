@@ -44,6 +44,30 @@ export const resetDb = () => {
 };
 
 /**
+ * Prisma orderBy 를 단일 객체 또는 배열 형태로 받아 정렬 비교 함수를 만든다.
+ * 지원 형태:
+ *  - `{ field: 'asc' | 'desc' }`
+ *  - `[{ field: 'asc' }, { other: 'desc' }, ...]` (다중 키)
+ *
+ * @param {Record<string, 'asc'|'desc'> | Array<Record<string, 'asc'|'desc'>> | undefined} orderBy
+ * @returns {(a: any, b: any) => number}
+ */
+const compareBy = (orderBy) => {
+  const orders = Array.isArray(orderBy) ? orderBy : orderBy ? [orderBy] : [];
+  const keys = orders.flatMap((o) => Object.entries(o).map(([field, dir]) => ({ field, dir })));
+  return (a, b) => {
+    for (const { field, dir } of keys) {
+      const av = a[field];
+      const bv = b[field];
+      if (av === bv) continue;
+      const cmp = av > bv ? 1 : -1;
+      return dir === 'desc' ? -cmp : cmp;
+    }
+    return 0;
+  };
+};
+
+/**
  * Prisma where 절을 in-memory row 에 적용. equals/gt/gte/lt/lte 만 지원.
  *
  * @param {Record<string, any>} row
@@ -203,13 +227,48 @@ const makeBoardColumnDelegate = () => ({
     }
     return { count: data.length };
   },
+  findUnique: async ({ where }) => {
+    for (const c of memDb.boardColumns.values()) if (matchWhere(c, where)) return { ...c };
+    return null;
+  },
+  findFirst: async ({ where, orderBy } = {}) => {
+    let list = [...memDb.boardColumns.values()];
+    if (where) list = list.filter((c) => matchWhere(c, where));
+    if (orderBy) list.sort(compareBy(orderBy));
+    return list.length ? { ...list[0] } : null;
+  },
   findMany: async ({ where, orderBy } = {}) => {
     let list = [...memDb.boardColumns.values()];
     if (where) list = list.filter((c) => matchWhere(c, where));
-    if (orderBy?.order) {
-      list.sort((a, b) => (orderBy.order === 'desc' ? b.order - a.order : a.order - b.order));
-    }
+    if (orderBy) list.sort(compareBy(orderBy));
     return list.map((c) => ({ ...c }));
+  },
+  count: async ({ where } = {}) => {
+    let n = 0;
+    for (const c of memDb.boardColumns.values()) if (matchWhere(c, where)) n++;
+    return n;
+  },
+  update: async ({ where, data }) => {
+    for (const [id, c] of memDb.boardColumns) {
+      if (matchWhere(c, where)) {
+        const updated = { ...c, ...data };
+        memDb.boardColumns.set(id, updated);
+        return { ...updated };
+      }
+    }
+    throw new Error('BoardColumn not found');
+  },
+  delete: async ({ where }) => {
+    for (const [id, c] of memDb.boardColumns) {
+      if (matchWhere(c, where)) {
+        memDb.boardColumns.delete(id);
+        for (const [cardId, card] of memDb.cards) {
+          if (card.columnId === id) memDb.cards.delete(cardId);
+        }
+        return { ...c };
+      }
+    }
+    throw new Error('BoardColumn not found');
   },
 });
 

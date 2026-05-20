@@ -42,7 +42,34 @@ export const ProjectMemberInput = z.object({
 });
 
 /**
+ * BoardColumn 생성 입력.
+ * order는 선택 — 미입력 시 라우터에서 마지막 컬럼 뒤(+1000)로 자동 배치.
+ */
+export const BoardColumnCreateInput = z.object({
+  name: z
+    .string({ required_error: '컬럼 이름이 필요합니다' })
+    .trim()
+    .min(1, '컬럼 이름이 필요합니다')
+    .max(40, '컬럼 이름은 40자 이내'),
+  order: z.number().finite().optional(),
+});
+
+/**
+ * BoardColumn 수정 입력 — name / order 중 최소 1개.
+ */
+export const BoardColumnUpdateInput = z
+  .object({
+    name: z.string().trim().min(1, '컬럼 이름이 필요합니다').max(40).optional(),
+    order: z.number().finite().optional(),
+  })
+  .refine((d) => d.name !== undefined || d.order !== undefined, {
+    message: 'name 또는 order 중 하나는 필요합니다',
+  });
+
+/**
  * @typedef {z.infer<typeof ProjectCreateInput>} ProjectCreateInputT
  * @typedef {z.infer<typeof ProjectUpdateInput>} ProjectUpdateInputT
  * @typedef {z.infer<typeof ProjectMemberInput>} ProjectMemberInputT
+ * @typedef {z.infer<typeof BoardColumnCreateInput>} BoardColumnCreateInputT
+ * @typedef {z.infer<typeof BoardColumnUpdateInput>} BoardColumnUpdateInputT
  */
