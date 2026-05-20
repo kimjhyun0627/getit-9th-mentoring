@@ -78,15 +78,19 @@ model PostTag {
 /// 매칭 신청.
 /// - postId × userId 페어로 unique — 같은 유저가 한 게시글에 두 번 신청 불가.
 /// - 취소 시 DB 에선 hard delete (Notification 에 이력 보존).
+/// - noShow (#247): 모임 끝난 뒤 방장이 노쇼로 신고한 경우 true.
+///   FK 없이 userId 그룹핑으로 누적 카운트 산출. 별도 User 모델은 auth-api 소유.
 model Application {
   id        String   @id @default(cuid())
   postId    String
   userId    String
   createdAt DateTime @default(now())
+  noShow    Boolean  @default(false)
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@index([userId])
+  @@index([userId, noShow])
 }
 
 /// 알림.

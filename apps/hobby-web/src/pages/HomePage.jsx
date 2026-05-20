@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { EmptyCard } from '../components/EmptyCard.jsx';
 import { FilterChips } from '../components/FilterChips.jsx';
@@ -21,8 +21,11 @@ import { api } from '../lib/api.js';
  *  - 카드가 있어도 그리드 마지막에 항상 EmptyCard 를 보여줘 "새 모임" CTA 유도.
  */
 export const HomePage = () => {
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
+  // #266: URL `?q=` 가 있으면 초기 검색어로 채움 (다른 페이지 헤더 검색창에서 enter 시 진입).
+  const [searchParams] = useSearchParams();
+  const initialQ = searchParams.get('q') ?? '';
+  const [searchInput, setSearchInput] = useState(initialQ);
+  const [search, setSearch] = useState(initialQ);
   const [timeKey, setTimeKey] = useState(/** @type {'all'|'today'|'week'} */ ('all'));
   const [tagKey, setTagKey] = useState(/** @type {string|null} */ (null));
 
@@ -31,6 +34,12 @@ export const HomePage = () => {
     const handle = setTimeout(() => setSearch(searchInput.trim()), 250);
     return () => clearTimeout(handle);
   }, [searchInput]);
+
+  // URL `?q=` 가 외부 페이지에서 갱신될 때 input/검색 상태도 동기화.
+  useEffect(() => {
+    const next = searchParams.get('q') ?? '';
+    setSearchInput((prev) => (prev !== next ? next : prev));
+  }, [searchParams]);
 
   // #229: tag / timeWindow / q 전부 서버 사이드 필터로 BE 에 위임.
   // queryKey 에 모든 필터를 포함해 변경 시 자동 refetch.

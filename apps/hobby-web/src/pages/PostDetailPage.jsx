@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 
 import { CapacityMeter } from '../components/CapacityMeter.jsx';
@@ -12,6 +12,8 @@ import {
   cancelErrorMessage,
   fetchErrorMessage,
 } from './PostDetailPage.errors.js';
+import { PENDING_APPLICATION_ID, usePostDetailMutations } from './PostDetailPage.mutations.js';
+import { OwnerPanel } from './PostDetailPage.owner.jsx';
 import { PageShell } from './PostDetailPage.shell.jsx';
 
 /**
@@ -30,7 +32,6 @@ import { PageShell } from './PostDetailPage.shell.jsx';
  */
 export const PostDetailPage = () => {
   const { id } = useParams();
-  const queryClient = useQueryClient();
   const postKey = ['post', id];
 
   const postQuery = useQuery({
@@ -38,6 +39,13 @@ export const PostDetailPage = () => {
     queryFn: () => api.getPost(id),
     enabled: Boolean(id),
     retry: false,
+    // #288: RECRUITING 일 때 15초마다 폴링 → 다른 사용자의 신청으로 FULL 전이된 걸 실시간 반영.
+    // FULL/CLOSED 면 폴링 종료 (status 가 안정 상태). 탭이 백그라운드면 자동 일시정지 (RQ 기본).
+    refetchInterval: (q) => {
+      const status = q.state.data?.post?.status;
+      return status === 'RECRUITING' ? 15_000 : false;
+    },
+    refetchIntervalInBackground: false,
   });
 
   // /me 는 비로그인(401) 이 정상 케이스. retry 끄고, 실패해도 페이지 렌더는 계속.
@@ -49,79 +57,14 @@ export const PostDetailPage = () => {
   });
 
   // #212: 신청 여부 식별은 서버 응답 myApplication 으로. reload 후에도 유지됨.
-  // optimistic 업데이트는 query cache 의 myApplication 을 함께 set/clear.
-  // 낙관 마커 `__pending__` 는 진짜 application id 가 도착하기 전 임시 표식 —
-  // 그 상태에선 취소 버튼을 활성화해도 호출은 막아야 함 (CR review #340).
-  const PENDING_APPLICATION_ID = '__pending__';
   const myApplication = postQuery.data?.post?.myApplication ?? null;
   const isPendingApplication = myApplication?.id === PENDING_APPLICATION_ID;
 
-  const applyMutation = useMutation({
-    mutationFn: () => api.applyPost(id),
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: postKey });
-      const prev = queryClient.getQueryData(postKey);
-      queryClient.setQueryData(postKey, (old) =>
-        old
-          ? {
-              post: {
-                ...old.post,
-                currentCapacity: old.post.currentCapacity + 1,
-                myApplication: old.post.myApplication ?? {
-                  id: PENDING_APPLICATION_ID,
-                  createdAt: '',
-                },
-              },
-            }
-          : old,
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(postKey, ctx.prev);
-    },
-    onSuccess: (data) => {
-      // 서버에서 받은 application id 로 cache 갱신.
-      queryClient.setQueryData(postKey, (old) =>
-        old
-          ? {
-              post: {
-                ...old.post,
-                myApplication: { id: data.application.id, createdAt: data.application.createdAt },
-              },
-            }
-          : old,
-      );
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: () => {
-      if (!myApplication?.id || myApplication.id === PENDING_APPLICATION_ID) {
-        throw new Error('no application to cancel');
-      }
-      return api.cancelApplication(myApplication.id);
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: postKey });
-      const prev = queryClient.getQueryData(postKey);
-      queryClient.setQueryData(postKey, (old) =>
-        old
-          ? {
-              post: {
-                ...old.post,
-                currentCapacity: Math.max(0, old.post.currentCapacity - 1),
-                myApplication: null,
-              },
-            }
-          : old,
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(postKey, ctx.prev);
-    },
-  });
+  const {
+    apply: applyMutation,
+    cancel: cancelMutation,
+    close: closeMutation,
+  } = usePostDetailMutations(id, postKey, myApplication);
 
   if (postQuery.isLoading) {
     return (
@@ -256,9 +199,13 @@ export const PostDetailPage = () => {
 
         <section className="mt-8" aria-label="신청">
           {isOwner ? (
-            <p className="rounded-2xl bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 p-5 font-round text-slate-700 dark:text-slate-200">
-              이 모임의 방장이야. 정원 차면 카카오 오픈채팅이 신청자에게 자동 공개돼.
-            </p>
+            <OwnerPanel
+              postId={id}
+              status={post.status}
+              onClose={() => closeMutation.mutate()}
+              closing={closeMutation.isPending}
+              closeError={closeMutation.error}
+            />
           ) : !meQuery.data ? (
             <a
               href={`https://auth.get-it.cloud/login?redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}

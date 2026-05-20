@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api.js';
 
@@ -17,6 +17,7 @@ import { PlayfulThemeToggle } from './PlayfulThemeToggle.jsx';
  * @param {{ search: string; onSearchChange: (v: string) => void }} props
  */
 export const Header = ({ search, onSearchChange }) => {
+  const navigate = useNavigate();
   const meQuery = useQuery({
     queryKey: ['me'],
     queryFn: api.getMe,
@@ -25,6 +26,18 @@ export const Header = ({ search, onSearchChange }) => {
   });
   const isLoggedIn = Boolean(meQuery.data);
   const userId = meQuery.data?.id ?? null;
+
+  // #266: 상세 페이지처럼 onSearchChange 가 단순 setState 인 화면에서도 Enter 로 검색을 띄우려면
+  // submit 시 `/?q=...` 로 이동시키면 된다. HomePage 가 URL searchParams 에서 q 를 읽음.
+  const onSubmit = (e) => {
+    e.preventDefault();
+    const q = (search ?? '').trim();
+    if (q) {
+      navigate(`/?q=${encodeURIComponent(q)}`);
+    } else {
+      navigate('/');
+    }
+  };
 
   return (
     <header className="relative z-10 max-w-[1280px] mx-auto px-5 lg:px-10 pt-6 flex items-center gap-3 sm:gap-5">
@@ -44,23 +57,30 @@ export const Header = ({ search, onSearchChange }) => {
         </span>
       </Link>
 
-      <label className="relative flex-1 max-w-xl hidden sm:block">
+      <form
+        role="search"
+        onSubmit={onSubmit}
+        className="relative flex-1 max-w-xl hidden sm:block"
+        aria-label="모집 검색"
+      >
         <span
           aria-hidden="true"
           className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
         >
           🔎
         </span>
-        <span className="sr-only">검색</span>
+        <label htmlFor="hobby-header-search" className="sr-only">
+          태그 또는 장소로 검색
+        </label>
         <input
-          type="text"
+          id="hobby-header-search"
+          type="search"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="태그·장소 검색 (예: 북문 마라탕)"
-          aria-label="태그 또는 장소로 검색"
           className="w-full rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 pl-11 pr-4 py-2.5 text-sm font-round text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-rose-400 outline-none transition"
         />
-      </label>
+      </form>
 
       <div className="ml-auto flex items-center gap-2.5">
         <PlayfulThemeToggle />

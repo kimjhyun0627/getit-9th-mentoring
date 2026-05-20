@@ -8,6 +8,7 @@ import { FormField, inputBaseClass } from '../components/FormField.jsx';
 import { SubmitButton } from '../components/SubmitButton.jsx';
 import { TagInput } from '../components/TagInput.jsx';
 import { api } from '../lib/api.js';
+import { useRequireAuth } from '../lib/auth.js';
 import { cn } from '../lib/cn.js';
 
 /**
@@ -77,6 +78,8 @@ const CreatePostFormSchema = z.object({
 export const CreatePostPage = () => {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
+  // #331: 비로그인 진입 → SSO 즉시 redirect. 폼 입력 다 채우고 submit 에서야 401 받는 UX 차단.
+  const { isLoading: meLoading, isLoggedIn, is401 } = useRequireAuth();
 
   const {
     register,
@@ -121,6 +124,20 @@ export const CreatePostPage = () => {
       setServerError(toFriendlyError(err));
     }
   };
+
+  // 로그인 확인 중 / SSO redirect 진행 중에는 폼을 보여주지 않음.
+  if (meLoading || (!isLoggedIn && is401)) {
+    return (
+      <section className="mx-auto max-w-2xl">
+        <p
+          role="status"
+          className="mt-20 text-center font-round text-slate-500 dark:text-slate-400"
+        >
+          {meLoading ? '로그인 확인 중…' : '로그인 페이지로 이동 중…'}
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto max-w-2xl">
@@ -178,8 +195,9 @@ export const CreatePostPage = () => {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <FormField
-            label="모임 일시"
+            label="모임 일시 (KST)"
             type="datetime-local"
+            hint="한국 시간 (KST · UTC+9) 기준"
             error={errors.meetAtLocal?.message}
             {...register('meetAtLocal')}
           />
@@ -198,7 +216,7 @@ export const CreatePostPage = () => {
             inputMode="numeric"
             min={2}
             max={20}
-            hint="방장 포함 2~20명"
+            hint="총 인원 (방장 1명 + 신청자). 예: 4 → 방장 + 신청자 3명."
             error={errors.capacity?.message}
             {...register('capacity')}
           />

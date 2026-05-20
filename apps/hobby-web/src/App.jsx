@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { HobbyLayout } from './components/HobbyLayout.jsx';
+import { ApplicantsPage } from './pages/ApplicantsPage.jsx';
 import { CreatePostPage } from './pages/CreatePostPage.jsx';
+import { EditPostPage } from './pages/EditPostPage.jsx';
 import { HomePage } from './pages/HomePage.jsx';
 import { MePage } from './pages/MePage.jsx';
 import { PostDetailPage } from './pages/PostDetailPage.jsx';
@@ -21,6 +23,8 @@ export const App = () => {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/posts/:id" element={<PostDetailPage />} />
+      <Route path="/posts/:id/edit" element={<EditPostPage />} />
+      <Route path="/posts/:id/applicants" element={<ApplicantsPage />} />
       <Route path="/me" element={<MePage />} />
       <Route
         path="/new"

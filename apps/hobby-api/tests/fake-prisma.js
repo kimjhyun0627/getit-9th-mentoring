@@ -14,6 +14,7 @@ import {
   buildApplicationModel,
   buildNotificationModel,
   buildPostModel,
+  buildPostTagModel,
   buildTagModel,
 } from './fake-prisma-models.js';
 
@@ -53,6 +54,7 @@ export class FakePrismaClient {
   constructor() {
     this.tag = buildTagModel(memDb, nextId);
     this.post = buildPostModel(memDb, nextId);
+    this.postTag = buildPostTagModel(memDb);
     this.application = buildApplicationModel(memDb, nextId);
     this.notification = buildNotificationModel(memDb, nextId);
   }

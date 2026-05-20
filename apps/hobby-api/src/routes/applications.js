@@ -42,15 +42,16 @@ const serializeApplication = (app) => ({
 /**
  * 매칭 라우터 생성.
  *
- * @param {{ jwtSecret: string }} opts
+ * @param {{ jwtSecret: string, mutationLimiter?: import('express').RequestHandler }} opts
  * @returns {import('express').Router}
  */
-export const createApplicationsRouter = ({ jwtSecret }) => {
+export const createApplicationsRouter = ({ jwtSecret, mutationLimiter }) => {
   const router = Router();
   const auth = requireAuth({ secret: jwtSecret });
+  const burstLimit = mutationLimiter ?? ((_req, _res, next) => next());
 
   // POST /api/applications — 신청
-  router.post('/applications', auth, async (req, res, next) => {
+  router.post('/applications', burstLimit, auth, async (req, res, next) => {
     try {
       const parsed = ApplicationCreateInput.safeParse(req.body);
       if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
@@ -200,7 +201,7 @@ export const createApplicationsRouter = ({ jwtSecret }) => {
   });
 
   // DELETE /api/applications/:id — 본인 신청 취소
-  router.delete('/applications/:id', auth, async (req, res, next) => {
+  router.delete('/applications/:id', burstLimit, auth, async (req, res, next) => {
     try {
       const parsedParam = ApplicationIdParam.safeParse(req.params);
       if (!parsedParam.success) return res.status(400).json(zodErrorBody(parsedParam.error));
