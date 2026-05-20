@@ -1,5 +1,5 @@
 /**
- * Prisma seed — 개발/테스트용 더미 데이터.
+ * Prisma seed — 개발/테스트용 더미 데이터 (순수 helper + CLI 진입점).
  *
  * 멱등성: tag.upsert (by name) + 고정 ownerId 로 post.upsert 패턴.
  * - Tag 3개 (맛집/스포츠/스터디) 보장
@@ -7,11 +7,13 @@
  * - PostTag 매핑 (post × {맛집, 스터디})
  *
  * 실행: `pnpm --filter @getit/hobby-api prisma:seed`
+ *
+ * 주의: 본 모듈은 @prisma/client 를 import 하지 않는다 — `seedTags` / `seedPost`
+ * / `seedPostTags` / `main` 모두 prisma client 를 인자로 받는 순수 함수.
+ * CLI 부트스트랩(@prisma/client 의존)은 `seed.cli.js` 에 분리되어 있고,
+ * 테스트는 본 모듈만 import 해서 fake prisma 로 검증한다.
+ * 이렇게 분리하면 CI 에서 prisma generate 가 선행되지 않아도 unit test 가 통과.
  */
-
-import 'dotenv/config';
-
-import { PrismaClient } from '@prisma/client';
 
 export const SEED_POST_ID = 'seed-post-001';
 export const SEED_OWNER_ID = 'seed-user-alice';
@@ -76,17 +78,3 @@ export const main = async (prisma) => {
   await seedPostTags(prisma, post, tagsByName);
   console.log('done.');
 };
-
-// CLI 진입점일 때만 자동 실행. 테스트에서 import 시 사이드이펙트 없음.
-const isMain = import.meta.url === `file://${process.argv[1]}`;
-if (isMain) {
-  const prisma = new PrismaClient();
-  void main(prisma)
-    .catch((err) => {
-      console.error('seed failed:', err);
-      process.exitCode = 1;
-    })
-    .finally(async () => {
-      await prisma.$disconnect();
-    });
-}
