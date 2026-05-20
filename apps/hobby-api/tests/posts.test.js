@@ -86,15 +86,16 @@ describe('hobby-api posts', () => {
       expect(res.status).toBe(400);
     });
 
-    it('태그 중복 입력해도 한 번만 연결됨 (대소문자 무시)', async () => {
+    it('태그 중복 입력해도 한 번만 연결됨 (trim + 대소문자 무시)', async () => {
       const token = tokenFor('alice');
       const res = await request(app)
         .post('/api/posts')
         .set('Authorization', `Bearer ${token}`)
-        .send(validBody({ tags: ['음식', '음식', '맛집'] }));
+        .send(validBody({ tags: ['Food', ' food ', 'FOOD', '맛집'] }));
       expect(res.status).toBe(201);
       const names = res.body.post.tags.map((t) => t.name).sort();
-      expect(names).toEqual(['맛집', '음식']);
+      // 'Food' / ' food ' / 'FOOD' 모두 정규화 → 'food' 한 row 로 합쳐짐.
+      expect(names).toEqual(['food', '맛집']);
     });
   });
 
@@ -196,6 +197,24 @@ describe('hobby-api posts', () => {
       const res = await request(app).get(`/api/posts/${id}`);
       expect(res.status).toBe(200);
       expect(res.body.post.openChatUrl).toBeUndefined();
+    });
+
+    it('status=FULL 게시글 → 비owner 도 openChatUrl 노출 (이 PR scope 의 1차 분기)', async () => {
+      const create = await createPost(app, 'alice');
+      const id = create.body.post.id;
+      // 라우터 분기만 검증하기 위해 fake DB 의 status 를 직접 FULL 로 변경.
+      // 실 흐름 (#35 매칭 정원 마감) 은 후속 이슈에서.
+      const { memDb } = await import('./setup.js');
+      const row = memDb.posts.get(id);
+      memDb.posts.set(id, { ...row, status: 'FULL' });
+
+      const token = tokenFor('bob');
+      const res = await request(app)
+        .get(`/api/posts/${id}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.post.status).toBe('FULL');
+      expect(res.body.post.openChatUrl).toBe('https://open.kakao.com/o/test');
     });
   });
 

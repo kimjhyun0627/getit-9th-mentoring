@@ -34,8 +34,10 @@ const TagName = z
 export const PostCreateInput = z.object({
   title: z.string().trim().min(2, '제목은 2자 이상').max(80, '제목은 80자 이내'),
   body: z.string().trim().min(1, '본문을 입력하세요').max(2000, '본문은 2000자 이내'),
-  meetAt: z.coerce
-    .date({ invalid_type_error: '유효한 일시가 아닙니다' })
+  meetAt: z
+    .string({ invalid_type_error: '유효한 일시가 아닙니다' })
+    .datetime({ offset: true, message: '유효한 ISO 8601 일시 문자열이 아닙니다' })
+    .transform((s) => new Date(s))
     .refine((d) => d.getTime() > Date.now(), { message: '과거 시각은 입력할 수 없습니다' }),
   capacity: z
     .number({ invalid_type_error: '정원은 숫자여야 합니다' })

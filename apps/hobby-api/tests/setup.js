@@ -163,7 +163,11 @@ class FakePrismaClient {
 
         if (cursor) {
           const idx = rows.findIndex((p) => p.id === cursor.id);
-          if (idx >= 0) rows = rows.slice(idx + (skip ?? 0));
+          // cursor 가 매칭 안 되면 진짜 Prisma 는 P2025 던지는데, 테스트 fake
+          // 에서는 첫 페이지 재반환을 막기 위해 빈 결과를 반환 — 페이지네이션
+          // 버그가 silent 통과하는 일을 막음.
+          if (idx < 0) return [];
+          rows = rows.slice(idx + (skip ?? 0));
         }
         if (typeof take === 'number') rows = rows.slice(0, take);
 

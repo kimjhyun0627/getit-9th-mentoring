@@ -35,6 +35,19 @@ describe('PostCreateInput', () => {
     expect(r.success).toBe(false);
   });
 
+  it('meetAt 숫자 (epoch ms) → 400 — string ISO만 허용', () => {
+    const r = PostCreateInput.safeParse({
+      ...validCreate(),
+      meetAt: Date.now() + 60 * 60 * 1000,
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('meetAt 비-ISO 문자열 → 400', () => {
+    const r = PostCreateInput.safeParse({ ...validCreate(), meetAt: '2026-05-20 18:00:00' });
+    expect(r.success).toBe(false);
+  });
+
   it('capacity 1 → 400', () => {
     const r = PostCreateInput.safeParse({ ...validCreate(), capacity: 1 });
     expect(r.success).toBe(false);

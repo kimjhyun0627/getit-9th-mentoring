@@ -37,13 +37,18 @@ const main = async () => {
 
   const shutdown = (signal) => {
     log.info({ signal }, 'shutting down');
-    server.close(() => {
-      process.exitCode = 0;
-    });
-    setTimeout(() => {
+    // graceful close 가 5초 안에 끝나지 않으면 강제 종료. close() 가 먼저 끝나면
+    // clearTimeout 으로 타이머를 끄고 정상 exitCode 를 보존.
+    const forceCloseTimer = setTimeout(() => {
       process.exitCode = 1;
       server.closeAllConnections?.();
-    }, 5000).unref();
+    }, 5000);
+    forceCloseTimer.unref();
+
+    server.close(() => {
+      clearTimeout(forceCloseTimer);
+      process.exitCode = 0;
+    });
   };
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));

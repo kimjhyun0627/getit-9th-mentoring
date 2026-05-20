@@ -87,11 +87,14 @@ export const createPostsRouter = ({ jwtSecret }) => {
       const parsed = PostListQuery.safeParse(req.query);
       if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
       const { status, tag, cursor, limit } = parsed.data;
+      // 생성 측 (POST /api/posts) 의 태그 정규화 (trim + lowercase) 와 동일 규칙
+      // 으로 검색해야 결과가 비지 않음. 한 곳만 어긋나면 사용자 체감으론 "버그".
+      const normalizedTag = tag?.trim().toLowerCase();
 
       const where = {};
       if (status) where.status = status;
       else where.status = { in: ['RECRUITING', 'FULL'] };
-      if (tag) where.tags = { some: { tag: { name: tag } } };
+      if (normalizedTag) where.tags = { some: { tag: { name: normalizedTag } } };
 
       // limit+1 fetch 로 nextCursor 판별.
       const rows = await prisma.post.findMany({
