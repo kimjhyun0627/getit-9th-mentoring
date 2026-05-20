@@ -5,6 +5,8 @@
  */
 import {
   ApplicationCreateInput,
+  NotificationKind,
+  NotificationListQuery,
   PostCreateInput,
   PostListQuery,
   PostStatus,
@@ -24,6 +26,18 @@ const ApplicationResponse = z
     createdAt: z.string(),
   })
   .openapi({ ref: 'Application' });
+
+const NotificationResponse = z
+  .object({
+    id: z.string(),
+    userId: z.string(),
+    postId: z.string().nullable(),
+    kind: NotificationKind,
+    message: z.string(),
+    createdAt: z.string(),
+    readAt: z.string().nullable(),
+  })
+  .openapi({ ref: 'Notification' });
 
 const PostResponse = z
   .object({
@@ -123,6 +137,27 @@ export const buildOpenApiDoc = () =>
           },
         },
       },
+      '/api/notifications': {
+        get: {
+          summary: '본인 알림 리스트 (JWT 필요, cursor 페이지네이션)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'query', name: 'cursor', schema: z.string() },
+            { in: 'query', name: 'limit', schema: z.number().int().min(1).max(50) },
+            { in: 'query', name: 'unreadOnly', schema: z.boolean() },
+          ],
+          responses: {
+            200: ok(
+              z.object({
+                items: z.array(NotificationResponse),
+                nextCursor: z.string().nullable(),
+              }),
+            ),
+            400: errResp('ValidationError'),
+            401: errResp('Unauthorized'),
+          },
+        },
+      },
       '/api/posts/{id}': {
         get: {
           summary: '게시글 상세 (인증 선택 — owner 면 openChatUrl 노출)',
@@ -147,7 +182,10 @@ export const buildOpenApiDoc = () =>
     },
     components: {
       // PostListQuery 직접 export 도 같이 reference 로 노출.
-      schemas: { PostListQuery: PostListQuery.openapi({ ref: 'PostListQuery' }) },
+      schemas: {
+        PostListQuery: PostListQuery.openapi({ ref: 'PostListQuery' }),
+        NotificationListQuery: NotificationListQuery.openapi({ ref: 'NotificationListQuery' }),
+      },
       // JWT Bearer — POST/DELETE /api/posts 의 auth 미들웨어와 매핑.
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
