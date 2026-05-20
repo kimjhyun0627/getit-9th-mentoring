@@ -124,7 +124,8 @@ describe('buildLoginUrl (#271)', () => {
       value: undefined,
     });
     const redirect = new URL(buildLoginUrl()).searchParams.get('redirect');
-    expect(redirect).toBe('https://get-it.cloud');
+    // canonical link (index.html) 과 일치하는 trailing-slash 형태.
+    expect(redirect).toBe('https://get-it.cloud/');
   });
 
   it('AUTH_ORIGIN으로 향한다', () => {
