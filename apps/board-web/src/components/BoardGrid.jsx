@@ -5,7 +5,8 @@ import { NewColumnComposer } from './NewColumnComposer.jsx';
 /**
  * 칸반 그리드 — 컬럼 N개 + 새 컬럼 컴포저.
  *
- * #223: 모바일 가로 스크롤 (snap), md 이상은 auto-fit grid.
+ * #223: 모바일 가로 스크롤 (snap).
+ * #356: 데스크탑도 가로 스크롤로 통일 (칸반 표준). 컬럼이 늘어나도 wrap 안 됨.
  *
  * @param {{
  *   columns: Array<{ id: string; name: string; order: number }>;
@@ -52,12 +53,12 @@ export const BoardGrid = ({
     >
       <div
         data-testid="board-grid"
-        className="flex w-full snap-x snap-mandatory gap-px overflow-x-auto rounded-lg border border-hairline bg-hairline md:grid md:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] md:overflow-visible"
+        className="flex w-full flex-nowrap snap-x snap-mandatory gap-px overflow-x-auto rounded-lg border border-hairline bg-hairline md:snap-none"
       >
         {columns.map((col) => (
           <div
             key={col.id}
-            className="w-[85vw] min-w-[16rem] shrink-0 snap-start md:w-auto md:min-w-0"
+            className="w-[85vw] min-w-[16rem] shrink-0 snap-start md:w-72 md:min-w-[18rem]"
           >
             <BoardColumn
               column={col}
@@ -77,7 +78,7 @@ export const BoardGrid = ({
             />
           </div>
         ))}
-        <div className="w-[85vw] min-w-[16rem] shrink-0 snap-start md:w-auto md:min-w-0">
+        <div className="w-[85vw] min-w-[16rem] shrink-0 snap-start md:w-72 md:min-w-[18rem]">
           <NewColumnComposer onSubmit={onCreateColumn} submitting={isCreateColumnPending} />
         </div>
       </div>

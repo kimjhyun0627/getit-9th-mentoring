@@ -157,10 +157,10 @@ describe('BoardViewPage', () => {
     const grid = await screen.findByTestId('board-grid');
     expect(grid.className).toMatch(/gap-px/);
     expect(grid.className).toMatch(/bg-hairline/);
-    // #223: 모바일은 가로 스크롤 (snap), md 이상은 auto-fit grid.
+    // #356: 모든 breakpoint 가로 스크롤로 통일. flex-nowrap 으로 wrap 차단.
     expect(grid.className).toMatch(/overflow-x-auto/);
-    expect(grid.className).toMatch(/snap-x/);
-    expect(grid.className).toMatch(/md:grid/);
+    expect(grid.className).toMatch(/flex-nowrap/);
+    expect(grid.className).not.toMatch(/md:grid/);
   });
 
   it('"+ Add card" 클릭 → 입력 → 생성 시 optimistic 으로 즉시 보인다', async () => {
