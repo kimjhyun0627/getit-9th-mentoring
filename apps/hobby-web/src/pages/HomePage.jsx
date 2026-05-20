@@ -145,9 +145,10 @@ export const HomePage = () => {
 
           <Link
             to="/new"
-            className="group relative inline-flex items-center gap-3 rounded-full card-coral text-white px-7 py-4 font-display font-extrabold text-lg shadow-xl shadow-rose-400/40 hover:scale-[1.04] hover:-rotate-2 transition self-start"
+            // #332 — 모바일에서도 한 줄로 (whitespace-nowrap) + 모바일 패딩 축소
+            className="group relative inline-flex items-center gap-2 sm:gap-3 rounded-full card-coral text-white px-5 sm:px-7 py-3 sm:py-4 font-display font-extrabold text-base sm:text-lg shadow-xl shadow-rose-400/40 hover:scale-[1.04] hover:-rotate-2 transition self-start whitespace-nowrap"
           >
-            <span aria-hidden="true" className="text-2xl emoji">
+            <span aria-hidden="true" className="text-xl sm:text-2xl emoji">
               ＋
             </span>
             <span>새 모임 만들기</span>

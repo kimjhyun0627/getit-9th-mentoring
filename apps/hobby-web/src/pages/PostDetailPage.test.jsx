@@ -201,6 +201,44 @@ describe('PostDetailPage', () => {
     expect(await screen.findByRole('button', { name: /신청 취소/ })).toBeInTheDocument();
   });
 
+  it('#310 — me query 로딩 동안엔 신청 버튼 대신 placeholder 가 노출된다', async () => {
+    vi.spyOn(api, 'getPost').mockResolvedValue({ post: samplePost({ status: 'RECRUITING' }) });
+    // me 는 영원히 pending 상태로 둠 — race 시뮬레이션
+    vi.spyOn(api, 'getMe').mockImplementation(() => new Promise(() => {}));
+    renderAt();
+
+    await screen.findByRole('heading', { name: /북문 마라탕/ });
+    expect(screen.getByTestId('apply-section-placeholder')).toBeInTheDocument();
+    // 신청 버튼 자체가 렌더되지 않아야 함 (깜빡임 방지)
+    expect(screen.queryByRole('button', { name: /^신청하기$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /로그인하고 신청하기/ })).not.toBeInTheDocument();
+  });
+
+  it('#310 — CLOSED 게시글은 신청 영역이 "모집 종료" 안내로 대체된다', async () => {
+    vi.spyOn(api, 'getPost').mockResolvedValue({
+      post: samplePost({ status: 'CLOSED', currentCapacity: 2 }),
+    });
+    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    renderAt();
+
+    expect(await screen.findByTestId('apply-section-closed')).toHaveTextContent(/모집 종료/);
+    expect(screen.queryByRole('button', { name: /^신청하기$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /정원 마감/ })).not.toBeInTheDocument();
+  });
+
+  it('#310 — FULL 게시글은 신청 버튼이 "정원 마감" disabled 상태', async () => {
+    vi.spyOn(api, 'getPost').mockResolvedValue({
+      post: samplePost({ status: 'FULL', currentCapacity: 4, capacity: 4 }),
+    });
+    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    renderAt();
+
+    const fullBtn = await screen.findByRole('button', { name: /정원 마감/ });
+    expect(fullBtn).toBeDisabled();
+    // CLOSED placeholder 는 안 나옴
+    expect(screen.queryByTestId('apply-section-closed')).not.toBeInTheDocument();
+  });
+
   it('404 — 게시글이 없으면 안내 메시지', async () => {
     vi.spyOn(api, 'getPost').mockRejectedValue({ response: { status: 404 } });
     vi.spyOn(api, 'getMe').mockRejectedValue({ response: { status: 401 } });

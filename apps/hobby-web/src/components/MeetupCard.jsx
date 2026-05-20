@@ -1,12 +1,16 @@
 import { Link } from 'react-router-dom';
 
-import { emojiFor, paletteFor } from '../data/palette.js';
+import { emojiFor, paletteFor, statusBadgeFor } from '../data/palette.js';
 import { cn } from '../lib/cn.js';
 import { formatMeetAt, initialOf } from '../lib/format.js';
 
 /**
  * 모집 카드 — 시안 (playful.html) 의 <article class="card ..."> 1:1 변환.
- * 색은 palette.js 가 태그/id 로 결정. CLOSED 상태면 is-closed (회색 + 비활성).
+ *
+ * Status (#309):
+ *  - RECRUITING: 컬러 + 신청 링크
+ *  - FULL: 컬러 유지 + 우상단 🎉 마감 amber 리본 + 하단 "정원 마감" pill (잔치 톤)
+ *  - CLOSED: tone-closed grayscale + opacity-60 + 본문 line-through (종료 톤)
  *
  * @param {{
  *   post: {
@@ -25,7 +29,7 @@ import { formatMeetAt, initialOf } from '../lib/format.js';
 export const MeetupCard = ({ post }) => {
   const palette = paletteFor(post);
   const emoji = emojiFor(post);
-  const closed = post.status === 'CLOSED' || post.status === 'FULL';
+  const badge = statusBadgeFor(post);
   const meetLabel = formatMeetAt(post.meetAt);
   const ownerNick = post.owner?.nickname ?? '익명';
   const ownerLabel = post.owner?.label ?? '';
@@ -36,13 +40,14 @@ export const MeetupCard = ({ post }) => {
       role="group"
       data-testid={`meetup-card-${post.id}`}
       aria-label={`모집: ${post.title}`}
-      aria-disabled={closed || undefined}
+      aria-disabled={badge.inactive || undefined}
       className={cn(
         'card rounded-[28px] p-6 relative overflow-hidden shadow-xl',
         palette.gradient,
         palette.text,
         palette.tilt,
-        closed && 'is-closed',
+        badge.tone === 'closed' && 'tone-closed',
+        badge.tone === 'full' && 'tone-full',
       )}
     >
       <div
@@ -54,7 +59,20 @@ export const MeetupCard = ({ post }) => {
         className="absolute top-8 right-10 h-12 w-12 rounded-full bg-white/15"
       />
 
-      <div className="flex items-center justify-between">
+      {/* #309 — FULL 만 우상단 잔치 리본. CLOSED 는 색 자체로 종료 신호. */}
+      {badge.ribbon ? (
+        <span
+          data-testid={`meetup-ribbon-${post.id}`}
+          className={cn(
+            'absolute top-3 right-3 z-10 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-display font-extrabold shadow-md',
+            badge.ribbon.cls,
+          )}
+        >
+          {badge.ribbon.text}
+        </span>
+      ) : null}
+
+      <div className="flex items-center justify-between gap-2">
         <span
           className={cn(
             'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-round font-bold tracking-wider backdrop-blur',
@@ -77,7 +95,7 @@ export const MeetupCard = ({ post }) => {
         <span aria-hidden="true" className="emoji text-5xl drop-shadow-md">
           {emoji}
         </span>
-        <div>
+        <div className={cn(badge.bodyCls)}>
           <h3 className="font-display font-extrabold text-xl leading-tight">{post.title}</h3>
           {post.location ? (
             <p className="mt-1 opacity-90 font-round text-sm">{post.location}</p>
@@ -101,15 +119,15 @@ export const MeetupCard = ({ post }) => {
         </ul>
       ) : null}
 
-      <div className="mt-5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="mt-5 flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
           <span
             aria-hidden="true"
-            className="inline-flex h-8 w-8 rounded-full bg-amber-200 text-amber-900 font-display font-extrabold items-center justify-center text-sm"
+            className="inline-flex h-8 w-8 shrink-0 rounded-full bg-amber-200 text-amber-900 font-display font-extrabold items-center justify-center text-sm"
           >
             {initialOf(ownerNick)}
           </span>
-          <span className="text-sm font-round font-bold">
+          <span className="text-sm font-round font-bold truncate">
             {ownerNick}
             {ownerLabel ? ` · ${ownerLabel}` : ''}
             {noShow > 0 ? (
@@ -119,14 +137,17 @@ export const MeetupCard = ({ post }) => {
             ) : null}
           </span>
         </div>
-        {closed ? (
+        {badge.inactive ? (
           <span
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-4 py-2 font-display font-extrabold text-sm',
-              palette.pill,
+              // CLOSED 는 muted-gray pill, FULL 은 palette pill 유지 (컬러 톤).
+              badge.tone === 'closed'
+                ? 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                : palette.pill,
             )}
           >
-            {post.status === 'FULL' ? '정원 마감' : '모집 종료'}
+            {badge.label}
           </span>
         ) : (
           <Link

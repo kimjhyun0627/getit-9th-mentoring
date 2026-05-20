@@ -95,7 +95,10 @@ export const PostDetailPage = () => {
   const post = postQuery.data.post;
   const me = meQuery.data ?? null;
   const isOwner = Boolean(me && me.id === post.ownerId);
-  const isFull = post.status === 'FULL' || post.status === 'CLOSED';
+  // #310 — FULL/CLOSED 분리: CLOSED 는 별도 안내 (모집 종료), FULL 은 정원 마감.
+  const isCapacityReached = post.status === 'FULL';
+  const isClosed = post.status === 'CLOSED';
+  const isInactive = isCapacityReached || isClosed;
   // 진짜 application id 가 도착해야만 "취소" 버튼 활성. pending 상태에선 비활성 + 라벨 분기.
   const isApplied = Boolean(myApplication?.id);
   const cancelDisabled = isPendingApplication || cancelMutation.isPending;
@@ -103,6 +106,11 @@ export const PostDetailPage = () => {
   const ownerNick = post.owner?.nickname ?? '익명';
   const errAlert =
     applyErrorMessage(applyMutation.error) ?? cancelErrorMessage(cancelMutation.error);
+  // #310 — me 가 아직 안 도착했고 401 도 아직 안 떨어졌으면 신청 영역 placeholder 표시.
+  // 그렇지 않으면 race 로 잠깐 "신청하기" → 곧바로 "방장 안내" 로 튀는 깜빡임 발생.
+  const meIsResolving = meQuery.isLoading || meQuery.isFetching;
+  const meErrorStatus = meQuery.error?.response?.status;
+  const meSettled = !meIsResolving || meErrorStatus === 401;
 
   return (
     <PageShell>
@@ -198,7 +206,25 @@ export const PostDetailPage = () => {
         </article>
 
         <section className="mt-8" aria-label="신청">
-          {isOwner ? (
+          {!meSettled ? (
+            // #310 — me query 가 아직 해소되지 않았을 때 placeholder. 신청 버튼 깜빡임 방지.
+            <div
+              data-testid="apply-section-placeholder"
+              role="status"
+              aria-label="로그인 정보 확인 중"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-200/70 dark:bg-white/10 px-7 py-3 font-display font-extrabold text-base text-slate-500 dark:text-slate-300 animate-pulse"
+            >
+              <span aria-hidden="true">⏳</span> 로그인 정보 확인 중…
+            </div>
+          ) : isClosed ? (
+            // #310 — CLOSED 는 신청 자체가 의미 없음. 안내만.
+            <p
+              data-testid="apply-section-closed"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-6 py-3 font-display font-extrabold text-base"
+            >
+              <span aria-hidden="true">🔒</span> 모집 종료된 모임이야
+            </p>
+          ) : isOwner ? (
             <OwnerPanel
               postId={id}
               status={post.status}
@@ -209,7 +235,9 @@ export const PostDetailPage = () => {
           ) : !meQuery.data ? (
             <a
               href={`https://auth.get-it.cloud/login?redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-6 py-3 font-display font-extrabold text-base shadow-lg"
+              // #311 — dark amber-300 → 짙은 슬레이트 글자 (대비 ~11.5:1, AAA)
+              // #332 — 모바일 좁은 너비에서도 한 줄 유지 (휘어진 패딩으로 wrap 방지)
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-5 sm:px-6 py-3 font-display font-extrabold text-sm sm:text-base shadow-lg whitespace-nowrap"
             >
               로그인하고 신청하기 →
             </a>
@@ -218,7 +246,8 @@ export const PostDetailPage = () => {
               type="button"
               onClick={() => cancelMutation.mutate()}
               disabled={cancelDisabled}
-              className="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/10 dark:ring-white/15 text-slate-700 dark:text-slate-200 px-6 py-3 font-display font-extrabold text-base shadow-sm disabled:opacity-50 hover:scale-[1.02] transition"
+              // #311 — disabled: 단색 muted-gray 로 교체 (opacity-50 그라데이션 가독성 문제 해결)
+              className="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/10 dark:ring-white/15 text-slate-700 dark:text-slate-200 px-6 py-3 font-display font-extrabold text-base shadow-sm disabled:bg-slate-200 disabled:text-slate-500 disabled:dark:bg-slate-700 disabled:dark:text-slate-300 disabled:ring-0 disabled:cursor-not-allowed hover:scale-[1.02] disabled:hover:scale-100 transition"
             >
               {cancelMutation.isPending
                 ? '취소 중…'
@@ -230,11 +259,12 @@ export const PostDetailPage = () => {
             <button
               type="button"
               onClick={() => applyMutation.mutate()}
-              disabled={applyMutation.isPending || isFull}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-500 text-white px-7 py-3 font-display font-extrabold text-base shadow-lg shadow-rose-400/40 disabled:opacity-50 hover:scale-[1.03] hover:-rotate-1 transition"
+              disabled={applyMutation.isPending || isCapacityReached}
+              // #311 — disabled: 그라데이션 + opacity-50 대신 단색 slate. 글자 가독성 보장.
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-500 text-white px-7 py-3 font-display font-extrabold text-base shadow-lg shadow-rose-400/40 disabled:bg-none disabled:bg-slate-300 disabled:text-slate-600 disabled:dark:bg-slate-700 disabled:dark:text-slate-300 disabled:shadow-none disabled:cursor-not-allowed hover:scale-[1.03] hover:-rotate-1 disabled:hover:scale-100 disabled:hover:rotate-0 transition"
             >
-              {applyMutation.isPending ? '신청 중…' : isFull ? '정원 마감' : '신청하기'}
-              {!applyMutation.isPending && !isFull ? <span aria-hidden="true">→</span> : null}
+              {applyMutation.isPending ? '신청 중…' : isCapacityReached ? '정원 마감' : '신청하기'}
+              {!applyMutation.isPending && !isInactive ? <span aria-hidden="true">→</span> : null}
             </button>
           )}
 

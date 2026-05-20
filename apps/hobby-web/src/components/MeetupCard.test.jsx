@@ -58,11 +58,30 @@ describe('MeetupCard', () => {
     expect(screen.getByTestId('meetup-card-p-mara')).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('CLOSED 상태면 하단 배지가 "모집 종료" 로 차별화된다 (#148)', () => {
+  it('FULL 상태면 우상단 🎉 amber 리본이 노출된다 (#309 — 잔치 톤)', () => {
+    renderCard({ ...POST, status: 'FULL', currentCapacity: 4 });
+    const ribbon = screen.getByTestId('meetup-ribbon-p-mara');
+    expect(ribbon).toBeInTheDocument();
+    expect(ribbon).toHaveTextContent(/🎉 마감/);
+    // amber 배경 + 짙은 슬레이트 글자 = WCAG AA 통과 (#311 contrast)
+    expect(ribbon.className).toMatch(/bg-amber-300/);
+    expect(ribbon.className).toMatch(/text-slate-900/);
+    // FULL 은 tone-closed 가 아니어야 함 (컬러 유지)
+    const card = screen.getByTestId('meetup-card-p-mara');
+    expect(card.className).not.toMatch(/tone-closed/);
+    expect(card.className).toMatch(/tone-full/);
+  });
+
+  it('CLOSED 상태면 하단 배지가 "모집 종료" 로 차별화된다 (#148 + #309)', () => {
     renderCard({ ...POST, status: 'CLOSED', currentCapacity: 3 });
     expect(screen.getByText('모집 종료')).toBeInTheDocument();
     expect(screen.queryByText('정원 마감')).not.toBeInTheDocument();
     expect(screen.getByText('3/4')).toBeInTheDocument();
+    // CLOSED 는 amber 리본 없음 (잔치 X)
+    expect(screen.queryByTestId('meetup-ribbon-p-mara')).not.toBeInTheDocument();
+    // tone-closed 적용 → grayscale + opacity-60
+    const card = screen.getByTestId('meetup-card-p-mara');
+    expect(card.className).toMatch(/tone-closed/);
   });
 
   it('노쇼 카운트가 있으면 경고 배지를 표시한다', () => {
