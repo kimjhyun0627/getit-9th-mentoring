@@ -3,6 +3,16 @@ name: gemini engagement gate
 # Gemini Code Assist는 베타라 APPROVED 못 줌. 대신:
 # "Gemini가 남긴 모든 thread가 resolved + 답글 1개 이상" 인지 검증.
 # 즉 코멘트를 적용하거나 보류 사유 답글로 닫으면 통과.
+#
+# Resilience 보강 (2026-05):
+# Gemini가 daily quota 초과 / rate limit / 지원 안 하는 파일 타입 등 사유로
+# review를 아예 안 주는 케이스가 잦음. 이때는 PR-level issue comment 로 사유를
+#남기는데, 게이트가 review 1개 강제하면 영구 BLOCK 됨.
+# 따라서 Gemini가 refusal 키워드 ("quota", "rate limit", "not supported",
+# "unable", "skipping") 가 포함된 PR-level comment 를 남긴 경우
+# → engagement attempted 로 보고 soft pass.
+# 단 옛날 refusal 코멘트로 새 커밋이 영구 통과되는 우회를 막기 위해
+# PR head commit 타임스탬프 이후에 달린 refusal 만 인정.
 
 on:
   pull_request:
@@ -11,10 +21,13 @@ on:
     types: [submitted, edited, dismissed]
   pull_request_review_comment:
     types: [created, edited, deleted]
+  issue_comment:
+    types: [created, edited, deleted]
 
 permissions:
   contents: read
   pull-requests: read
+  issues: read
 
 jobs:
   gemini-threads-handled:
@@ -26,11 +39,21 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const pr = context.payload.pull_request;
+            // issue_comment 이벤트는 issue 컨텍스트 — PR 번호는 issue.number 와 동일
+            const pr =
+              context.payload.pull_request ||
+              (context.payload.issue && context.payload.issue.pull_request
+                ? { number: context.payload.issue.number }
+                : null);
             if (!pr) {
-              core.setFailed('pull_request 컨텍스트가 없음');
+              // issue_comment 이벤트는 일반 이슈에도 트리거됨. PR 컨텍스트가
+              // 없으면 이 게이트와 무관 → silent skip (일반 이슈 댓글로 액션이
+              // FAIL 떨어지는 거 방지).
+              core.info('PR 컨텍스트가 아니므로 스킵');
               return;
             }
+
+            const GEMINI_LOGIN_RE = /^gemini-code-assist(\[bot\])?$/;
 
             // GraphQL — reviewThreads + 작성자 정보
             const query = `
@@ -64,22 +87,105 @@ jobs:
               per_page: 100,
             });
             const geminiReviewed = reviews.some(
-              (r) => r.user && r.user.login === 'gemini-code-assist[bot]',
+              (r) => r.user && GEMINI_LOGIN_RE.test(r.user.login),
             );
 
+            // Refusal soft-pass:
+            // Gemini가 review 못 줄 때 PR-level issue comment 로 사유를 남김
+            // (daily quota 초과, rate limit, unsupported file type, skipping 등).
+            // 이런 경우는 engagement 시도된 것으로 보고 통과시킴.
+            const REFUSAL_PATTERNS = [
+              /\bquota\b/i,
+              /\brate[\s-]?limit/i,
+              /\bnot (currently )?supported\b/i,
+              /\bunable to (review|process|analyze)\b/i,
+              /\bskipping\b.*\breview\b/i,
+              /\bskipped\b.*\breview\b/i,
+              /\bcannot review\b/i,
+              /\bdaily limit\b/i,
+              /\btoo (large|many)\s+(files?|changes?|diffs?|lines?|chunks?)\b/i,
+              /\btoo (large|many)\s+to\s+(review|process|analyze)\b/i,
+            ];
+
+            // 현재 PR head commit 의 author/committer 타임스탬프 기준선.
+            // 이보다 이전에 달린 Gemini refusal 코멘트는 "예전 quota 발언" 이므로
+            // 이후 새 커밋(synchronize)을 그냥 통과시키면 안 됨.
+            // pr.head.sha → commit → committer.date.
+            let prHeadTimestamp = null;
+            try {
+              const prDetail = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+              });
+              const headSha = prDetail.data.head && prDetail.data.head.sha;
+              if (headSha) {
+                const commit = await github.rest.repos.getCommit({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: headSha,
+                });
+                const t =
+                  (commit.data.commit.committer &&
+                    commit.data.commit.committer.date) ||
+                  (commit.data.commit.author && commit.data.commit.author.date);
+                if (t) prHeadTimestamp = new Date(t).getTime();
+              }
+            } catch (e) {
+              core.warning(
+                `PR head commit 타임스탬프 조회 실패: ${e.message}. ` +
+                  `refusal 코멘트 시간 필터 우회 (보수적으로 모든 코멘트 검사).`,
+              );
+            }
+
+            const issueComments = await github.paginate(
+              github.rest.issues.listComments,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                per_page: 100,
+              },
+            );
+            const geminiRefusal = issueComments.find((c) => {
+              if (!c.user || !GEMINI_LOGIN_RE.test(c.user.login)) return false;
+              const body = c.body || '';
+              if (!REFUSAL_PATTERNS.some((re) => re.test(body))) return false;
+              // 현재 head 이후에 달린 refusal 만 인정. 옛날 quota 코멘트로
+              // 후속 커밋이 영구 통과되는 우회 차단.
+              if (prHeadTimestamp !== null && c.created_at) {
+                return new Date(c.created_at).getTime() >= prHeadTimestamp;
+              }
+              return true;
+            });
+
             if (!geminiReviewed) {
+              if (geminiRefusal) {
+                core.info(
+                  `✅ Gemini engagement soft-pass: review 불가 사유 코멘트 감지 ` +
+                    `(comment #${geminiRefusal.id}). 게이트 통과.`,
+                );
+                return;
+              }
               core.setFailed(
-                'Gemini Code Assist 리뷰가 아직 없음. 리뷰 완료까지 대기 (~1-3분).',
+                'Gemini Code Assist 리뷰가 아직 없음. 리뷰 완료까지 대기 (~1-3분). ' +
+                  'Gemini가 quota/rate-limit/unsupported 사유로 review 못 주는 경우 ' +
+                  'PR-level comment 로 사유 남기면 soft-pass 통과.',
               );
               return;
             }
 
             const threads = data.repository.pullRequest.reviewThreads.nodes;
 
-            // Gemini가 *시작한* thread만 (첫 comment author == gemini-code-assist)
+            // Gemini가 *시작한* thread만 (첫 comment author == gemini-code-assist).
+            // 그래프QL author.login 은 [bot] 접미사 없는 형태.
             const geminiThreads = threads.filter((t) => {
               const first = t.comments.nodes[0];
-              return first && first.author && first.author.login === 'gemini-code-assist';
+              return (
+                first &&
+                first.author &&
+                GEMINI_LOGIN_RE.test(first.author.login)
+              );
             });
 
             if (geminiThreads.length === 0) {
