@@ -79,15 +79,25 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
 
       const { email } = parsed.data;
       const user = await prisma.user.findUnique({ where: { email } });
-
-      // 미존재 이메일이어도 응답 본문/상태는 동일. enumeration 차단.
-      if (!user) {
-        return res.status(200).json({ ok: true });
-      }
-
       const token = generateResetToken();
       const tokenHash = hashResetToken(token);
       const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MIN * 60 * 1000);
+
+      // 응답시간 enumeration 방어 (Gemini #3):
+      // 미존재 사용자의 경우에도 동일한 DB 작업 (updateMany no-op) 을 수행해
+      // 존재/미존재 분기의 시간 차이를 최소화한다. token 생성도 양쪽 모두 실행.
+      // 실제 row 생성은 user 가 있을 때만 (가짜 row 를 만들면 DB 가 쓰레기로 차서 거부).
+      if (!user) {
+        // 무 효과 updateMany — userId 가 빈 문자열이라 항상 0건 matching.
+        // 실제 DB 라운드트립은 발생 → 시간 일정화.
+        await prisma.passwordResetToken
+          .updateMany({
+            where: { userId: '__nonexistent__', usedAt: null },
+            data: { usedAt: new Date() },
+          })
+          .catch(() => null);
+        return res.status(200).json({ ok: true });
+      }
 
       // 이전 미사용 토큰은 무효화 (한 사용자당 활성 토큰 1개만 의미 있게).
       await prisma.passwordResetToken.updateMany({
@@ -117,7 +127,7 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
     }
   });
 
-  // POST /api/password/reset — 토큰 소비 + 비밀번호 교체
+  // POST /api/password/reset — 토큰 소비 + 비밀번호 교체 (원자적 트랜잭션)
   router.post('/password/reset', resetLimiter, async (req, res, next) => {
     try {
       const parsed = ResetPasswordInput.safeParse(req.body);
@@ -126,37 +136,41 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
       const { token, password } = parsed.data;
       const tokenHash = hashResetToken(token);
 
-      // 1회용 토큰 원자적 마킹: usedAt IS NULL + expiresAt > now 일 때만 갱신.
-      // 동시 요청 race 에서 단 1건만 count=1 받아 비밀번호 교체 진행.
-      const now = new Date();
-      const { count } = await prisma.passwordResetToken.updateMany({
-        where: { tokenHash, usedAt: null, expiresAt: { gt: now } },
-        data: { usedAt: now },
-      });
-      if (count !== 1) {
-        return res.status(400).json({ error: 'InvalidOrExpiredToken' });
-      }
-
-      // 토큰 → 사용자 조회
-      const stored = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
-      if (!stored) {
-        return res.status(400).json({ error: 'InvalidOrExpiredToken' });
-      }
-
+      // bcrypt.hash 는 비용 크고 외부 상태에 의존 X → 트랜잭션 밖에서 먼저 수행.
+      // 트랜잭션 안에서 해싱하면 DB lock 보유 시간이 비정상적으로 길어진다.
       const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
-      await prisma.user.update({
-        where: { id: stored.userId },
-        data: { passwordHash },
-      });
+      const now = new Date();
 
-      // 보안: 비밀번호 변경 시 기존 모든 refresh 토큰 강제 revoke.
-      await prisma.refreshToken
-        .updateMany({
+      // 토큰 소비 + 비밀번호 교체 + refresh 토큰 revoke 를 하나의 트랜잭션으로 묶어
+      // 어느 단계에서 실패해도 전체가 롤백되도록 한다 (Gemini #1).
+      const success = await prisma.$transaction(async (tx) => {
+        // 1회용 토큰 원자적 마킹: usedAt IS NULL + expiresAt > now 일 때만 갱신.
+        const { count } = await tx.passwordResetToken.updateMany({
+          where: { tokenHash, usedAt: null, expiresAt: { gt: now } },
+          data: { usedAt: now },
+        });
+        if (count !== 1) return false;
+
+        const stored = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+        if (!stored) return false;
+
+        await tx.user.update({
+          where: { id: stored.userId },
+          data: { passwordHash },
+        });
+
+        // 보안: 비밀번호 변경 시 기존 모든 refresh 토큰 강제 revoke.
+        await tx.refreshToken.updateMany({
           where: { userId: stored.userId, revokedAt: null },
           data: { revokedAt: now },
-        })
-        .catch(() => null);
+        });
 
+        return true;
+      });
+
+      if (!success) {
+        return res.status(400).json({ error: 'InvalidOrExpiredToken' });
+      }
       return res.status(200).json({ ok: true });
     } catch (err) {
       return next(err);

@@ -64,7 +64,8 @@ export const installSilentRefresh = (axiosInstance, opts) => {
     throw new Error('installSilentRefresh: opts.authOrigin required');
   }
 
-  const refreshUrl = `${opts.authOrigin}${opts.refreshPath ?? '/api/refresh'}`;
+  const refreshPath = opts.refreshPath ?? '/api/refresh';
+  const refreshUrl = `${opts.authOrigin}${refreshPath}`;
   const fallback = opts.onUnauthorized ?? (() => redirectToLogin(opts.authOrigin));
 
   /** @type {Promise<void> | null} 진행중인 refresh promise — single-flight */
@@ -99,7 +100,9 @@ export const installSilentRefresh = (axiosInstance, opts) => {
       const status = err?.response?.status;
       const original = err?.config;
       const url = typeof original?.url === 'string' ? original.url : '';
-      const isRefreshCall = url.includes('/api/refresh');
+      // refresh path 자체 호출은 retry 대상 X (무한 루프 방지).
+      // 부분 문자열 match (`includes`) 대신 정확 매치 — 다른 path 와 우연 일치를 막는다.
+      const isRefreshCall = url === refreshUrl || url === refreshPath || url.endsWith(refreshPath);
       if (status !== 401 || !original || original._retry || isRefreshCall) {
         return Promise.reject(err);
       }
