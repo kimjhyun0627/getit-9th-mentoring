@@ -1,0 +1,185 @@
+/**
+ * Playful 다크 토글 스타일 — 시안 docs/design/hobby/toggle.html A안 1:1 이식.
+ *
+ * spring easing (cubic-bezier(0.68,-0.55,0.32,1.55)) 으로 햇님↔달 슬라이드 +
+ * 별 페이드. 64×32 트랙 (시안 96×48 의 헤더 축소판), 26×26 puck.
+ *
+ * 상태 트리거: [aria-checked="true"] (role=switch 의 표준 속성).
+ * bounce 트리거: [data-bouncing="true"] (PlayfulThemeToggle.jsx 가 클릭 직후 600ms 부착).
+ *
+ * a11y: prefers-reduced-motion 시 모든 트랜지션/애니메이션 무효화.
+ */
+
+.playful-toggle {
+  position: relative;
+  display: inline-flex;
+  width: 4rem; /* 64px */
+  height: 2rem; /* 32px */
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%);
+  box-shadow:
+    0 6px 14px -8px rgba(245, 158, 11, 0.55),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.06);
+  transition: background 400ms ease;
+}
+.playful-toggle[aria-checked='true'] {
+  background: linear-gradient(135deg, #312e81 0%, #6d28d9 100%);
+  box-shadow:
+    0 6px 14px -8px rgba(139, 92, 246, 0.65),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.playful-toggle__puck {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 1.625rem; /* 26px */
+  height: 1.625rem;
+  border-radius: 9999px;
+  background: #fffbeb;
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.18),
+    0 0 0 3px rgba(255, 255, 255, 0.4);
+  display: grid;
+  place-items: center;
+  transition:
+    transform 450ms cubic-bezier(0.68, -0.55, 0.32, 1.55),
+    background 320ms ease;
+}
+.playful-toggle[aria-checked='true'] .playful-toggle__puck {
+  /* 트랙(64) - puck(26) - 좌우 패딩(3+3) = 32px 슬라이드 */
+  transform: translateX(2rem) rotate(360deg);
+  background: #fef3c7;
+}
+/* 토글 직후 1회 spring overshoot (글로우 강조). 종착 transform 은 aria-checked 가 처리. */
+.playful-toggle[data-bouncing='true'] .playful-toggle__puck {
+  animation: playful-toggle-overshoot 520ms cubic-bezier(0.68, -0.55, 0.32, 1.55) 1;
+}
+@keyframes playful-toggle-overshoot {
+  0%,
+  100% {
+    box-shadow:
+      0 3px 6px rgba(0, 0, 0, 0.18),
+      0 0 0 3px rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 6px 14px rgba(0, 0, 0, 0.22),
+      0 0 0 6px rgba(255, 255, 255, 0.55);
+  }
+}
+
+/* sun ↔ moon 아이콘 cross-fade */
+.playful-toggle__icon {
+  position: absolute;
+  font-size: 0.875rem; /* 14px */
+  line-height: 1;
+  transition:
+    opacity 240ms ease,
+    transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.playful-toggle__icon--sun {
+  opacity: 1;
+  transform: scale(1) rotate(0);
+}
+.playful-toggle__icon--moon {
+  opacity: 0;
+  transform: scale(0.6) rotate(-40deg);
+}
+.playful-toggle[aria-checked='true'] .playful-toggle__icon--sun {
+  opacity: 0;
+  transform: scale(0.6) rotate(40deg);
+}
+.playful-toggle[aria-checked='true'] .playful-toggle__icon--moon {
+  opacity: 1;
+  transform: scale(1) rotate(0);
+}
+
+/* rays (햇살 ✦) — 라이트 모드에서만 보임 */
+.playful-toggle__rays {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 320ms ease;
+}
+.playful-toggle__rays::before,
+.playful-toggle__rays::after {
+  content: '✦';
+  position: absolute;
+  color: #fbbf24;
+  font-size: 0.625rem; /* 10px */
+  line-height: 1;
+}
+.playful-toggle__rays::before {
+  right: 0.75rem;
+  top: 0.375rem;
+}
+.playful-toggle__rays::after {
+  right: 1.25rem;
+  bottom: 0.375rem;
+}
+.playful-toggle[aria-checked='true'] .playful-toggle__rays {
+  opacity: 0;
+}
+
+/* stars (별빛 ⋆) — 다크 모드에서만 페이드 인 */
+.playful-toggle__stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  color: #fef3c7;
+  transition: opacity 420ms ease;
+}
+.playful-toggle__stars::before,
+.playful-toggle__stars::after {
+  content: '⋆';
+  position: absolute;
+  font-size: 0.75rem; /* 12px */
+  line-height: 1;
+}
+.playful-toggle__stars::before {
+  left: 0.75rem;
+  top: 0.375rem;
+}
+.playful-toggle__stars::after {
+  left: 1.375rem;
+  bottom: 0.375rem;
+}
+.playful-toggle[aria-checked='true'] .playful-toggle__stars {
+  opacity: 1;
+}
+
+/* hover/active 미세 모션 — 헤더에서 발견성 ↑ */
+.playful-toggle:hover {
+  transform: scale(1.05);
+}
+.playful-toggle:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * animation/transition 만 제거해서 모션은 끄지만, aria-checked 변경 시 적용되는
+   * 상태 transform (puck 의 translateX + rotate, icon 의 scale/rotate) 은 유지.
+   * → reduced-motion 사용자도 토글의 최종 시각 상태는 정확히 봐야 함 (WCAG).
+   */
+  .playful-toggle,
+  .playful-toggle__puck,
+  .playful-toggle__icon,
+  .playful-toggle__rays,
+  .playful-toggle__stars {
+    animation: none !important;
+    transition: none !important;
+  }
+  /* hover/active 의 미세 스케일 모션만 제거. */
+  .playful-toggle:hover,
+  .playful-toggle:active {
+    transform: none !important;
+  }
+}

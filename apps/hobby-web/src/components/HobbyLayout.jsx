@@ -1,4 +1,4 @@
-import { ThemeToggle } from '@getit/theme';
+import { PlayfulThemeToggle } from './PlayfulThemeToggle.jsx';
 
 /**
  * 취미메이트 공통 레이아웃 — Playful 톤.
@@ -36,7 +36,7 @@ export const HobbyLayout = ({ children }) => {
         </a>
 
         <div className="ml-auto flex items-center gap-2.5">
-          <ThemeToggle className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-lg shadow-sm ring-1 ring-slate-900/5 transition hover:rotate-12 hover:scale-110 dark:bg-white/10 dark:ring-white/10" />
+          <PlayfulThemeToggle />
         </div>
       </header>
 

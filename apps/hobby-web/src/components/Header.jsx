@@ -1,5 +1,6 @@
-import { ThemeToggle } from '@getit/theme';
 import { Link } from 'react-router-dom';
+
+import { PlayfulThemeToggle } from './PlayfulThemeToggle.jsx';
 
 /**
  * Playful 페르소나 헤더 — 로고 + 검색 + 다크 토글 + Sign in.
@@ -48,7 +49,7 @@ export const Header = ({ search, onSearchChange }) => {
       </label>
 
       <div className="ml-auto flex items-center gap-2.5">
-        <ThemeToggle className="inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 text-lg hover:rotate-12 hover:scale-110 transition shadow-sm" />
+        <PlayfulThemeToggle />
         <a
           href="https://auth.get-it.cloud/login?redirect=https%3A%2F%2Fhobby.get-it.cloud"
           className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 sm:px-5 py-2.5 font-display font-bold text-sm shadow-md hover:scale-[1.04] hover:-rotate-1 transition"
