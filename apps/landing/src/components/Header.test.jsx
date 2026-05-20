@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Header } from './Header.jsx';
 
+// CR (#351): VITE_AUTH_ORIGIN 환경별 차이 → 앱과 같은 계산식 공유.
+const AUTH_ORIGIN = import.meta.env.VITE_AUTH_ORIGIN || 'https://auth.get-it.cloud';
+
 /**
  * #343 / #246 — Header SSO 세션 상태 분기 가드.
  *
@@ -53,7 +56,7 @@ describe('Header SSO 세션 분기 (#343 / #246)', () => {
     renderHeader();
     const cta = await screen.findByTestId('session-signin');
     expect(cta).toBeInTheDocument();
-    expect(cta).toHaveAttribute('href', expect.stringContaining('auth.get-it.cloud'));
+    expect(cta).toHaveAttribute('href', expect.stringContaining(AUTH_ORIGIN));
     expect(cta).toHaveAccessibleName(/로그인/);
   });
 
@@ -150,7 +153,7 @@ describe('Header SSO 세션 분기 (#343 / #246)', () => {
 
     await waitFor(() => expect(reloadMock).toHaveBeenCalledTimes(1));
     const logoutCall = fetchMock.mock.calls[1];
-    expect(logoutCall[0]).toBe('https://auth.get-it.cloud/api/logout');
+    expect(logoutCall[0]).toBe(`${AUTH_ORIGIN}/api/logout`);
     expect(logoutCall[1]).toMatchObject({ method: 'POST', credentials: 'include' });
   });
 
