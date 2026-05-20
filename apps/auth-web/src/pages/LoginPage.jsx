@@ -5,24 +5,20 @@ import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { FormField } from '../components/FormField.jsx';
+import { PasswordField } from '../components/PasswordField.jsx';
 import { SubmitButton } from '../components/SubmitButton.jsx';
+import { Toast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 import { redirectAfterAuth } from '../lib/redirect.js';
 
 /**
- * @typedef {import('@getit/schemas/auth').LoginInputT} LoginInputT
- */
-
-/**
- * 로그인 페이지 — Tech-Dark 페르소나 (Issue #172).
- * - Zod (LoginInput) 검증
- * - POST /api/login (HttpOnly 쿠키 세팅은 auth-api 책임)
- * - 401 → 친절한 한국어 에러
- * - 성공 → ?redirect= 화이트리스트 호스트로 location.replace
+ * 로그인 페이지 — Tech-Dark + Phase 6c (#255 카피 / #259 토글 / #262 capslock / #272 토스트
+ * / #275 16px / #285 컨트라스트 / #287 aria 자연화).
  */
 export const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
+  const [toast, setToast] = useState(/** @type {string|null} */ (null));
 
   const {
     register,
@@ -34,13 +30,14 @@ export const LoginPage = () => {
     defaultValues: { email: '', password: '' },
   });
 
-  /** @param {LoginInputT} values */
   const onSubmit = async (values) => {
     setServerError(null);
     try {
       await api.login(values);
-      // ?redirect= 가 없으면 landing 으로 (브랜드 hub). #295 가드와 동선 일치.
-      redirectAfterAuth(searchParams, 'https://get-it.cloud');
+      setToast('로그인 완료 · 잠시 후 이동합니다');
+      setTimeout(() => {
+        redirectAfterAuth(searchParams, 'https://get-it.cloud');
+      }, 500);
     } catch (err) {
       setServerError(toFriendlyError(err));
     }
@@ -48,13 +45,17 @@ export const LoginPage = () => {
 
   return (
     <div className="flex flex-col gap-7">
+      <Toast message={toast} onDone={() => setToast(null)} />
       <header className="flex flex-col gap-2">
-        {/* meta strip — landing hero와 동일 톤 */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-300">
           <span className="text-cyan-700 dark:text-cyan-neon">~/auth/login</span>
-          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <span aria-hidden="true" className="text-zinc-400 dark:text-zinc-600">
+            ·
+          </span>
           <span>method: post</span>
-          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <span aria-hidden="true" className="text-zinc-400 dark:text-zinc-600">
+            ·
+          </span>
           <span>
             sso{' '}
             <span data-testid="eyebrow-dot" className="text-lime-700 dark:text-lime-neon">
@@ -62,13 +63,12 @@ export const LoginPage = () => {
             </span>
           </span>
         </div>
-        {/* 모듈 배지 */}
         <div className="flex items-center gap-2">
           <span className="rounded border border-cyan-700/30 bg-cyan-50 px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-neon/40 dark:bg-cyan-neon/10 dark:text-cyan-neon">
             [01]
           </span>
-          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-            SIGN IN
+          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-700 dark:text-zinc-300">
+            LOGIN
           </span>
         </div>
         <h1 className="font-mono text-3xl font-semibold tracking-tightest text-ink-950 dark:text-white">
@@ -78,7 +78,7 @@ export const LoginPage = () => {
             className="caret bg-cyan-700 text-cyan-700 dark:bg-cyan-neon dark:text-cyan-neon"
           />
         </h1>
-        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
           한 계정으로 네 개 프로젝트를 모두 이용하세요
         </p>
       </header>
@@ -87,7 +87,7 @@ export const LoginPage = () => {
         onSubmit={handleSubmit(onSubmit)}
         noValidate
         className="flex flex-col gap-4"
-        aria-label="로그인 양식"
+        aria-label="GETIT 9기 로그인 폼"
       >
         <FormField
           label="이메일"
@@ -97,9 +97,8 @@ export const LoginPage = () => {
           error={errors.email?.message}
           {...register('email')}
         />
-        <FormField
+        <PasswordField
           label="비밀번호"
-          type="password"
           autoComplete="current-password"
           placeholder="••••••••"
           error={errors.password?.message}
@@ -123,7 +122,7 @@ export const LoginPage = () => {
 
       <div className="divider-mono text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
 
-      <div className="flex flex-col items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+      <div className="flex flex-col items-center gap-2 font-mono text-[12px] text-zinc-600 dark:text-zinc-300">
         <p>
           계정이 없으신가요?{' '}
           <Link
@@ -136,7 +135,7 @@ export const LoginPage = () => {
         <p>
           <Link
             to={`/forgot-password${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
-            className="text-zinc-500 underline-offset-4 hover:text-cyan-700 hover:underline focus-visible:outline-none dark:text-zinc-500 dark:hover:text-cyan-neon"
+            className="text-zinc-600 underline-offset-4 hover:text-cyan-700 hover:underline focus-visible:outline-none dark:text-zinc-300 dark:hover:text-cyan-neon"
           >
             비밀번호 찾기 <span aria-hidden="true">./forgot</span>
           </Link>
@@ -146,14 +145,8 @@ export const LoginPage = () => {
   );
 };
 
-/**
- * 서버 에러 → 사용자 친화 메시지.
- *
- * @param {unknown} err
- * @returns {string}
- */
 const toFriendlyError = (err) => {
-  const status = /** @type {{response?: {status?: number}}} */ (err)?.response?.status;
+  const status = err?.response?.status;
   if (status === 401) return '이메일 또는 비밀번호가 올바르지 않습니다';
   if (status === 429) return '잠시 후 다시 시도해주세요';
   if (typeof status === 'number' && status >= 500)

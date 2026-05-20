@@ -40,7 +40,8 @@ export const FormField = forwardRef(
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={error ? errorId : undefined}
           className={cn(
-            'h-10 w-full rounded-md border border-hairline bg-white/70 px-3 font-sans text-sm text-foreground transition dark:bg-ink-950/60',
+            // #275: 16px 이상 → iOS Safari 입력 시 자동 줌 방지.
+            'h-10 w-full rounded-md border border-hairline bg-white/70 px-3 font-sans text-[16px] text-foreground transition dark:bg-ink-950/60',
             'placeholder:font-mono placeholder:text-[12px] placeholder:text-muted-foreground',
             'hover:border-cyan-700/50 dark:hover:border-cyan-neon/40',
             'focus-visible:border-cyan-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-700/30 dark:focus-visible:border-cyan-neon dark:focus-visible:ring-cyan-neon/30',

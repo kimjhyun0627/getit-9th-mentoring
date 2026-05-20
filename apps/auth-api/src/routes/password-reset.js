@@ -20,6 +20,7 @@ import { ForgotPasswordInput, ResetPasswordInput } from '@getit/schemas/auth';
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
+import { sendPasswordResetEmail } from '../lib/mailer.js';
 import { prisma } from '../lib/prisma.js';
 
 const BCRYPT_COST = Number.parseInt(process.env.BCRYPT_COST ?? '12', 10);
@@ -114,8 +115,12 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
         data: { userId: user.id, tokenHash, expiresAt },
       });
 
-      // 운영: 토큰을 응답에 노출하지 않음. 이메일 발송은 별도 issue.
-      // 개발 편의용으로 환경변수로 켜진 경우에만 응답 본문에 포함.
+      // 운영 (#338): 토큰을 응답에 노출하지 않음. 이메일로만 전달.
+      // SMTP_HOST 미설정이면 mailer 가 disabled 모드 → console.log fallback.
+      const base = process.env.AUTH_WEB_URL ?? 'https://auth.get-it.cloud';
+      const resetUrl = `${base}/reset-password?token=${token}`;
+      sendPasswordResetEmail({ to: user.email, resetUrl }).catch(() => null);
+
       // 디버깅 로그는 NODE_ENV=test 에선 silent (테스트 출력 깨끗하게).
       if (process.env.NODE_ENV !== 'test') {
         req.log?.info?.(

@@ -5,42 +5,53 @@ import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { FormField } from '../components/FormField.jsx';
+import { PasswordField } from '../components/PasswordField.jsx';
+import { PasswordStrength } from '../components/PasswordStrength.jsx';
 import { SubmitButton } from '../components/SubmitButton.jsx';
+import { Toast } from '../components/Toast.jsx';
 import { api } from '../lib/api.js';
 import { redirectAfterAuth } from '../lib/redirect.js';
 
 /**
- * @typedef {import('@getit/schemas/auth').SignupInputT} SignupInputT
- */
-
-/**
- * 회원가입 페이지 — Tech-Dark 페르소나 (Issue #172).
- * - Zod (SignupInput) 검증 (passwordConfirm refine 포함)
- * - POST /api/signup → auth-api가 자동 로그인까지 처리 (HttpOnly 쿠키)
- * - 409 → 이메일 중복 안내
- * - 성공 → ?redirect= 처리 (LoginPage와 동일)
+ * 회원가입 페이지 — Tech-Dark 페르소나 + Phase 6c UX (Issue #237 약관 / #259 토글 / #262 capslock
+ * / #265 강도 / #272 토스트 / #275 16px / #285 컨트라스트 / #287 aria 자연화 / #255 카피 정리).
+ *
+ * - SignupInput: 이름/이메일/비번/비번확인 + acceptTerms / acceptPrivacy.
+ * - 자동 로그인 + 이메일 인증 토큰 발급 (BE 가 메일 발송 — stub or SMTP).
  */
 export const SignupPage = () => {
   const [searchParams] = useSearchParams();
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
+  const [toast, setToast] = useState(/** @type {string|null} */ (null));
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(SignupInput),
     mode: 'onSubmit',
-    defaultValues: { name: '', email: '', password: '', passwordConfirm: '' },
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      passwordConfirm: '',
+      acceptTerms: false,
+      acceptPrivacy: false,
+    },
   });
 
-  /** @param {SignupInputT} values */
+  const passwordValue = watch('password');
+
   const onSubmit = async (values) => {
     setServerError(null);
     try {
       await api.signup(values);
-      // ?redirect= 가 없으면 landing 으로 (브랜드 hub). #295 가드와 동선 일치.
-      redirectAfterAuth(searchParams, 'https://get-it.cloud');
+      setToast('가입 완료 · 잠시 후 이동합니다');
+      setTimeout(() => {
+        redirectAfterAuth(searchParams, 'https://get-it.cloud');
+      }, 500);
     } catch (err) {
       setServerError(toFriendlyError(err));
     }
@@ -48,16 +59,9 @@ export const SignupPage = () => {
 
   return (
     <div className="flex flex-col gap-7">
+      <Toast message={toast} onDone={() => setToast(null)} />
       <header className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-500">
-          <span className="text-cyan-700 dark:text-cyan-neon">~/auth/signup</span>
-          <span className="text-zinc-300 dark:text-zinc-700">·</span>
-          <span>method: post</span>
-          <span className="text-zinc-300 dark:text-zinc-700">·</span>
-          <span>
-            auto-login <span className="text-lime-700 dark:text-lime-neon">on</span>
-          </span>
-        </div>
+        <MetaStrip />
         <div className="flex items-center gap-2">
           <span
             aria-hidden="true"
@@ -65,7 +69,7 @@ export const SignupPage = () => {
           >
             [02]
           </span>
-          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-700 dark:text-zinc-300">
             SIGN UP
           </span>
         </div>
@@ -76,7 +80,7 @@ export const SignupPage = () => {
             className="caret bg-cyan-700 text-cyan-700 dark:bg-cyan-neon dark:text-cyan-neon"
           />
         </h1>
-        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
           한 계정으로 네 개 프로젝트를 모두 이용하세요
         </p>
       </header>
@@ -85,7 +89,7 @@ export const SignupPage = () => {
         onSubmit={handleSubmit(onSubmit)}
         noValidate
         className="flex flex-col gap-4"
-        aria-label="회원가입 양식"
+        aria-label="GETIT 9기 회원가입 폼"
       >
         <FormField
           label="이름"
@@ -102,22 +106,23 @@ export const SignupPage = () => {
           error={errors.email?.message}
           {...register('email')}
         />
-        <FormField
+        <PasswordField
           label="비밀번호"
-          type="password"
           autoComplete="new-password"
           placeholder="••••••••"
           error={errors.password?.message}
           {...register('password')}
         />
-        <FormField
+        <PasswordStrength value={passwordValue} />
+        <PasswordField
           label="비밀번호 확인"
-          type="password"
           autoComplete="new-password"
           placeholder="••••••••"
           error={errors.passwordConfirm?.message}
           {...register('passwordConfirm')}
         />
+
+        <Consent register={register} errors={errors} />
 
         {serverError ? (
           <p
@@ -136,7 +141,7 @@ export const SignupPage = () => {
 
       <div className="divider-mono text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
 
-      <p className="text-center font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+      <p className="text-center font-mono text-[12px] text-zinc-600 dark:text-zinc-300">
         이미 계정이 있으신가요?{' '}
         <Link
           to={`/login${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
@@ -150,13 +155,85 @@ export const SignupPage = () => {
 };
 
 /**
- * 서버 에러 → 사용자 친화 메시지.
- *
- * @param {unknown} err
- * @returns {string}
+ * 메타 strip — 컨트라스트 AA 만족시키도록 zinc-700/zinc-300 톤으로 (#285).
+ * 카피는 LoginPage 와 평행 (#255).
  */
+const MetaStrip = () => (
+  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-300">
+    <span className="text-cyan-700 dark:text-cyan-neon">~/auth/signup</span>
+    <span aria-hidden="true" className="text-zinc-400 dark:text-zinc-600">
+      ·
+    </span>
+    <span>method: post</span>
+    <span aria-hidden="true" className="text-zinc-400 dark:text-zinc-600">
+      ·
+    </span>
+    <span>
+      auto-login <span className="text-lime-700 dark:text-lime-neon">on</span>
+    </span>
+  </div>
+);
+
+/**
+ * 약관/개인정보 동의 체크박스 (#237).
+ */
+const Consent = ({ register, errors }) => (
+  <div className="flex flex-col gap-2 rounded-md border border-hairline bg-white/40 p-3 dark:bg-ink-900/30">
+    <label className="flex items-start gap-2 font-mono text-[12px] text-zinc-700 dark:text-zinc-300">
+      <input
+        type="checkbox"
+        {...register('acceptTerms')}
+        className="mt-0.5 size-4 rounded border-hairline text-cyan-700 focus:ring-cyan-700/40 dark:text-cyan-neon"
+        aria-invalid={Boolean(errors.acceptTerms) || undefined}
+      />
+      <span>
+        <a
+          href="https://get-it.cloud/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cyan-700 underline-offset-4 hover:underline dark:text-cyan-neon"
+        >
+          이용약관
+        </a>
+        에 동의합니다 (필수)
+      </span>
+    </label>
+    {errors.acceptTerms ? (
+      <p role="alert" className="font-mono text-[11px] text-destructive">
+        <span aria-hidden="true">! </span>
+        {errors.acceptTerms.message}
+      </p>
+    ) : null}
+    <label className="flex items-start gap-2 font-mono text-[12px] text-zinc-700 dark:text-zinc-300">
+      <input
+        type="checkbox"
+        {...register('acceptPrivacy')}
+        className="mt-0.5 size-4 rounded border-hairline text-cyan-700 focus:ring-cyan-700/40 dark:text-cyan-neon"
+        aria-invalid={Boolean(errors.acceptPrivacy) || undefined}
+      />
+      <span>
+        <a
+          href="https://get-it.cloud/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cyan-700 underline-offset-4 hover:underline dark:text-cyan-neon"
+        >
+          개인정보 처리방침
+        </a>
+        에 동의합니다 (필수)
+      </span>
+    </label>
+    {errors.acceptPrivacy ? (
+      <p role="alert" className="font-mono text-[11px] text-destructive">
+        <span aria-hidden="true">! </span>
+        {errors.acceptPrivacy.message}
+      </p>
+    ) : null}
+  </div>
+);
+
 const toFriendlyError = (err) => {
-  const status = /** @type {{response?: {status?: number}}} */ (err)?.response?.status;
+  const status = err?.response?.status;
   if (status === 409) return '이미 가입된 이메일입니다';
   if (status === 422 || status === 400) return '입력값이 올바르지 않습니다';
   if (status === 429) return '잠시 후 다시 시도해주세요';

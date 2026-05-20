@@ -6,6 +6,11 @@
  * - access: JWT (`@getit/auth-utils/server` signJwt)
  * - refresh: opaque 토큰 + SHA-256 해시만 DB에 저장 → 회전
  * - 쿠키: HttpOnly, SameSite=Lax, prod에선 Secure, `.get-it.cloud`
+ *
+ * Phase 6c:
+ *  - /api/me: JWT 검증 후 DB 재조회 → revoked/삭제된 user 차단 (Issue #308).
+ *  - /api/refresh: refreshLimiter 적용 — 토큰 무차별 대입 방어 (Issue #329).
+ *  - signup 직후 emailVerifyToken 발급 + 메일 stub 발송 (Issue #226).
  */
 import crypto from 'node:crypto';
 
@@ -14,6 +19,7 @@ import { LoginInput, SignupInput } from '@getit/schemas/auth';
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
+import { sendVerifyEmail } from '../lib/mailer.js';
 import { prisma } from '../lib/prisma.js';
 import {
   ACCESS_COOKIE,
@@ -92,10 +98,14 @@ const PRISMA_UNIQUE_VIOLATION = 'P2002';
 /**
  * 인증 라우터 생성.
  *
- * @param {{ signupLimiter: import('express').RequestHandler, loginLimiter: import('express').RequestHandler }} opts
+ * @param {{
+ *   signupLimiter: import('express').RequestHandler,
+ *   loginLimiter: import('express').RequestHandler,
+ *   refreshLimiter?: import('express').RequestHandler,
+ * }} opts
  * @returns {import('express').Router}
  */
-export const createAuthRouter = ({ signupLimiter, loginLimiter }) => {
+export const createAuthRouter = ({ signupLimiter, loginLimiter, refreshLimiter }) => {
   const router = Router();
   const cfg = readAuthEnv();
 
@@ -127,6 +137,23 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter }) => {
         }
         throw err;
       }
+
+      // Issue #226: 이메일 인증 토큰 발급 + 발송 (fire-and-forget).
+      // 발송 실패는 signup 실패로 이어지지 않는다 — UX 우선.
+      try {
+        const verifyToken = generateRefreshToken();
+        const verifyHash = crypto.createHash('sha256').update(verifyToken).digest('hex');
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await prisma.emailVerifyToken.create({
+          data: { userId: user.id, tokenHash: verifyHash, expiresAt },
+        });
+        const base = process.env.AUTH_WEB_URL ?? 'https://auth.get-it.cloud';
+        const verifyUrl = `${base}/verify-email?token=${verifyToken}`;
+        sendVerifyEmail({ to: user.email, verifyUrl }).catch(() => null);
+      } catch (err) {
+        req.log?.warn?.({ err: String(err), userId: user.id }, 'verify email send failed');
+      }
+
       return res.status(201).json({ user: publicUser(user) });
     } catch (err) {
       return next(err);
@@ -156,7 +183,9 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter }) => {
   });
 
   // POST /api/refresh — 토큰 회전 (원자적 + reuse-detection)
-  router.post('/refresh', async (req, res, next) => {
+  // #329: 무차별 대입 방어용 rate-limit (옵션 — 테스트에선 비워둠).
+  const refreshMw = refreshLimiter ? [refreshLimiter] : [];
+  router.post('/refresh', ...refreshMw, async (req, res, next) => {
     try {
       const raw = req.cookies?.[REFRESH_COOKIE];
       if (!raw) return res.status(401).json({ error: 'NoRefreshToken' });
@@ -219,9 +248,27 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter }) => {
     }
   });
 
-  // GET /api/me — 현재 사용자 정보
-  router.get('/me', requireAuth({ secret: cfg.jwtSecret }), (req, res) => {
-    return res.status(200).json({ user: req.user });
+  // GET /api/me — 현재 사용자 정보.
+  // #308: JWT 만 검증하면 revoke/삭제된 user 도 access TTL 동안 통과.
+  // → JWT 통과 후 DB 재조회로 deletedAt 검사. (성능 영향 있음 → Redis 캐시는 follow-up).
+  router.get('/me', requireAuth({ secret: cfg.jwtSecret }), async (req, res, next) => {
+    try {
+      const existing = await prisma.user.findUnique({ where: { id: req.user.sub } });
+      if (!existing || existing.deletedAt) {
+        clearAuthCookies(res, cfg);
+        return res.status(401).json({ error: 'UserRevokedOrDeleted' });
+      }
+      return res.status(200).json({
+        user: {
+          sub: existing.id,
+          email: existing.email,
+          name: existing.name,
+          emailVerifiedAt: existing.emailVerifiedAt,
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
   });
 
   return router;

@@ -22,15 +22,20 @@ export const SubmitButton = ({
   disabled = false,
   className,
   loadingText = '처리 중…',
+  tone = 'primary',
 }) => {
+  const palette =
+    tone === 'destructive'
+      ? 'bg-destructive text-destructive-foreground hover:brightness-110'
+      : 'bg-primary text-primary-foreground dark:shadow-[0_0_0_1px_hsla(var(--primary)/0.4),0_0_28px_-4px_hsla(var(--primary)/0.55)]';
   return (
     <button
       type="submit"
       disabled={disabled || loading}
       className={cn(
-        'group inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 font-mono text-sm font-semibold text-primary-foreground transition',
+        'group inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 font-mono text-sm font-semibold transition',
+        palette,
         'hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:brightness-100',
-        'dark:shadow-[0_0_0_1px_hsla(var(--primary)/0.4),0_0_28px_-4px_hsla(var(--primary)/0.55)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-700 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:focus-visible:ring-cyan-neon',
         className,
       )}

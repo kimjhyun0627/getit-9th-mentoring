@@ -28,6 +28,18 @@ const renderSignup = (initialEntry = '/signup') => {
   );
 };
 
+/**
+ * 약관/개인정보 동의 체크박스 (Issue #237) 두 개를 한 번에 클릭하는 헬퍼.
+ *
+ * @param {ReturnType<typeof userEvent.setup>} user
+ */
+const acceptTermsAndPrivacy = async (user) => {
+  const checkboxes = screen.getAllByRole('checkbox');
+  for (const cb of checkboxes) {
+    await user.click(cb);
+  }
+};
+
 describe('SignupPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -79,6 +91,7 @@ describe('SignupPage', () => {
     await user.type(screen.getByLabelText('이메일'), 'me@example.com');
     await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
     await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
+    await acceptTermsAndPrivacy(user);
     await user.click(screen.getByRole('button', { name: '회원가입' }));
     await waitFor(() => {
       expect(signupSpy).toHaveBeenCalledWith({
@@ -86,6 +99,8 @@ describe('SignupPage', () => {
         email: 'me@example.com',
         password: 'longenough123',
         passwordConfirm: 'longenough123',
+        acceptTerms: true,
+        acceptPrivacy: true,
       });
     });
   });
@@ -101,6 +116,7 @@ describe('SignupPage', () => {
     await user.type(screen.getByLabelText('이메일'), 'taken@example.com');
     await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
     await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
+    await acceptTermsAndPrivacy(user);
     await user.click(screen.getByRole('button', { name: '회원가입' }));
     expect(await screen.findByText('이미 가입된 이메일입니다')).toBeInTheDocument();
   });
@@ -122,9 +138,13 @@ describe('SignupPage', () => {
     await user.type(screen.getByLabelText('이메일'), 'me@example.com');
     await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
     await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
+    await acceptTermsAndPrivacy(user);
     await user.click(screen.getByRole('button', { name: '회원가입' }));
-    await waitFor(() => {
-      expect(replaceSpy).toHaveBeenCalledWith('https://shelf.get-it.cloud');
-    });
+    await waitFor(
+      () => {
+        expect(replaceSpy).toHaveBeenCalledWith('https://shelf.get-it.cloud');
+      },
+      { timeout: 2000 },
+    );
   });
 });
