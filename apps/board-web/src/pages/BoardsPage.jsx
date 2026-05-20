@@ -107,7 +107,7 @@ const SubHeader = ({ onNewProject }) => (
           내 프로젝트
         </h1>
         <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-          내가 만들었거나 멤버로 속한 프로젝트. 카드를 눌러 보드를 엽니다.
+          내가 만들었거나 멤버로 속한 프로젝트. 프로젝트 카드를 눌러 보드를 엽니다.
         </p>
       </div>
       <button

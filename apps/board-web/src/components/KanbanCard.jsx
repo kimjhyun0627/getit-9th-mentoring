@@ -206,7 +206,7 @@ const MoveMenu = ({ cardTitle, otherColumns, onMove }) => {
                 role="menuitem"
                 type="button"
                 tabIndex={activeIndex === idx ? 0 : -1}
-                aria-label={`${col.name}(으)로 이동`}
+                aria-label={`${col.name} 컬럼으로 이동`}
                 onClick={() => {
                   setOpen(false);
                   onMove(col.id);
