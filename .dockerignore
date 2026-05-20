@@ -1,0 +1,79 @@
+# Dependencies (re-installed inside builder)
+node_modules
+**/node_modules
+.pnpm-store
+
+# Build outputs
+dist
+**/dist
+build
+**/build
+.next
+**/.next
+.turbo
+**/.turbo
+*.tsbuildinfo
+
+# VCS / CI
+.git
+.gitignore
+.github
+.husky
+
+# Tests / coverage
+coverage
+**/coverage
+**/*.test.*
+**/*.spec.*
+**/tests
+**/__tests__
+
+# Environment files (secrets) — never bake into image
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# Editor / OS
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs / cache
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+.cache
+.eslintcache
+.prettiercache
+
+# Misc
+*.tgz
+.npm
+.yarn-integrity
+.pnp.*
+
+# gstack / Claude
+.gstack
+.claude
+CLAUDE.md
+
+# Docs (not needed at build time)
+docs
+README.md
+**/README.md
+LICENSE
+
+# Existing Docker / infra files (compose context separate). Allow nginx config
+# used by web image runners.
+infra/*
+!infra/nginx
+!infra/nginx/**
+Dockerfile
+**/Dockerfile
+.dockerignore

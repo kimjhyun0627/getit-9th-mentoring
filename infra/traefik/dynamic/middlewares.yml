@@ -1,0 +1,31 @@
+# Reusable Traefik middlewares (dynamic config).
+# Attach via docker labels:
+#   traefik.http.routers.<name>.middlewares=security-headers@file,rate-limit@file
+
+http:
+  middlewares:
+    # Standard security headers — every web/api router should opt in.
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        # HSTS — 1 year, include subdomains. Only safe once HTTPS is everywhere.
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: false
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+
+    # Lightweight per-IP rate limit for APIs — burst 50, sustained 20/s.
+    api-rate-limit:
+      rateLimit:
+        average: 20
+        burst: 50
+        period: 1s
+
+    # Compress text responses (gzip / brotli when supported).
+    compress:
+      compress: {}

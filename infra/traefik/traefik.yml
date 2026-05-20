@@ -1,0 +1,63 @@
+# Traefik v3 static config.
+# Mounted read-only into /etc/traefik/traefik.yml by docker-compose.prod.yml.
+# Dynamic per-service routing comes from docker labels (provider: docker).
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# JSON access log on stdout — picked up by docker logs / Loki later.
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        User-Agent: keep
+        Referer: keep
+        X-Forwarded-For: keep
+
+api:
+  # Dashboard disabled in prod (do not expose). Enable via override file if needed.
+  dashboard: false
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      # Force HTTP → HTTPS redirect for every router on this entrypoint.
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    # Containers must opt-in with `traefik.enable=true`. Safer default.
+    exposedByDefault: false
+    network: getit-edge
+    watch: true
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "${ACME_EMAIL}"
+      storage: /letsencrypt/acme.json
+      keyType: EC256
+      httpChallenge:
+        entryPoint: web

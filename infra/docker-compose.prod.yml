@@ -1,0 +1,259 @@
+# GETIT 9기 — production stack (single GCP VM).
+#
+# Usage on VM:
+#   cd /opt/getit/infra
+#   cp .env.prod.example .env.prod    # then fill in real secrets
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml pull
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+#
+# Images come from GHCR (built by GitHub Actions). To rebuild locally instead,
+# replace `image:` lines with the commented `build:` blocks.
+
+name: getit
+
+x-api-env: &api-env
+  NODE_ENV: production
+  DATABASE_URL: "mysql://${MYSQL_APP_USER}:${MYSQL_APP_PASSWORD}@mysql:3306"
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+  JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+  COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.get-it.cloud}
+  COOKIE_SECURE: ${COOKIE_SECURE:-true}
+  TRUST_PROXY: "1"
+  SENTRY_DSN: ${SENTRY_DSN:-}
+
+x-restart: &restart
+  restart: unless-stopped
+
+networks:
+  edge:
+    name: getit-edge
+  internal:
+    name: getit-internal
+    internal: true
+
+volumes:
+  mysql_data:
+  traefik_letsencrypt:
+
+services:
+  # ────────────────────────── Reverse proxy ──────────────────────────
+  traefik:
+    image: traefik:v3.0
+    <<: *restart
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik_letsencrypt:/letsencrypt
+    networks: [edge]
+
+  # ─────────────────────────── Database ──────────────────────────────
+  mysql:
+    image: mysql:8.0
+    <<: *restart
+    command:
+      - --default-authentication-plugin=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_APP_USER}
+      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ─────────────────────────── Landing ───────────────────────────────
+  landing:
+    image: ${IMAGE_REGISTRY}/landing:${IMAGE_TAG}
+    <<: *restart
+    networks: [edge]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.landing.rule=Host(`get-it.cloud`) || Host(`www.get-it.cloud`)"
+      - "traefik.http.routers.landing.entrypoints=websecure"
+      - "traefik.http.routers.landing.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.landing.middlewares=security-headers@file,compress@file"
+      - "traefik.http.services.landing.loadbalancer.server.port=80"
+
+  # ─────────────────────────── auth ──────────────────────────────────
+  auth-web:
+    image: ${IMAGE_REGISTRY}/auth-web:${IMAGE_TAG}
+    <<: *restart
+    networks: [edge]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.auth-web.rule=Host(`auth.get-it.cloud`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.auth-web.entrypoints=websecure"
+      - "traefik.http.routers.auth-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.auth-web.middlewares=security-headers@file,compress@file"
+      - "traefik.http.services.auth-web.loadbalancer.server.port=80"
+
+  auth-api:
+    image: ${IMAGE_REGISTRY}/auth-api:${IMAGE_TAG}
+    <<: *restart
+    environment:
+      <<: *api-env
+      PORT: "3001"
+      CORS_ORIGINS: "https://get-it.cloud,https://auth.get-it.cloud,https://hobby.get-it.cloud,https://shelf.get-it.cloud,https://board.get-it.cloud,https://letter.get-it.cloud"
+    depends_on:
+      mysql: { condition: service_healthy }
+    networks: [edge, internal]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.auth-api.rule=Host(`auth.get-it.cloud`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.auth-api.entrypoints=websecure"
+      - "traefik.http.routers.auth-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.auth-api.middlewares=security-headers@file,api-rate-limit@file"
+      - "traefik.http.services.auth-api.loadbalancer.server.port=3001"
+
+  # ─────────────────────────── hobby ─────────────────────────────────
+  hobby-web:
+    image: ${IMAGE_REGISTRY}/hobby-web:${IMAGE_TAG}
+    <<: *restart
+    networks: [edge]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.hobby-web.rule=Host(`hobby.get-it.cloud`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.hobby-web.entrypoints=websecure"
+      - "traefik.http.routers.hobby-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.hobby-web.middlewares=security-headers@file,compress@file"
+      - "traefik.http.services.hobby-web.loadbalancer.server.port=80"
+
+  hobby-api:
+    image: ${IMAGE_REGISTRY}/hobby-api:${IMAGE_TAG}
+    <<: *restart
+    environment:
+      <<: *api-env
+      PORT: "3002"
+      CORS_ORIGINS: "https://hobby.get-it.cloud"
+      KAKAO_API_KEY: ${KAKAO_API_KEY:-}
+    depends_on:
+      mysql: { condition: service_healthy }
+    networks: [edge, internal]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.hobby-api.rule=Host(`hobby.get-it.cloud`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.hobby-api.entrypoints=websecure"
+      - "traefik.http.routers.hobby-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.hobby-api.middlewares=security-headers@file,api-rate-limit@file"
+      - "traefik.http.services.hobby-api.loadbalancer.server.port=3002"
+
+  # ─────────────────────────── shelf ─────────────────────────────────
+  shelf-web:
+    image: ${IMAGE_REGISTRY}/shelf-web:${IMAGE_TAG}
+    <<: *restart
+    networks: [edge]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.shelf-web.rule=Host(`shelf.get-it.cloud`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.shelf-web.entrypoints=websecure"
+      - "traefik.http.routers.shelf-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.shelf-web.middlewares=security-headers@file,compress@file"
+      - "traefik.http.services.shelf-web.loadbalancer.server.port=80"
+
+  shelf-api:
+    image: ${IMAGE_REGISTRY}/shelf-api:${IMAGE_TAG}
+    <<: *restart
+    environment:
+      <<: *api-env
+      PORT: "3003"
+      CORS_ORIGINS: "https://shelf.get-it.cloud"
+    depends_on:
+      mysql: { condition: service_healthy }
+    networks: [edge, internal]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.shelf-api.rule=Host(`shelf.get-it.cloud`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.shelf-api.entrypoints=websecure"
+      - "traefik.http.routers.shelf-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.shelf-api.middlewares=security-headers@file,api-rate-limit@file"
+      - "traefik.http.services.shelf-api.loadbalancer.server.port=3003"
+
+  # ─────────────────────────── board ─────────────────────────────────
+  board-web:
+    image: ${IMAGE_REGISTRY}/board-web:${IMAGE_TAG}
+    <<: *restart
+    networks: [edge]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.board-web.rule=Host(`board.get-it.cloud`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.board-web.entrypoints=websecure"
+      - "traefik.http.routers.board-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.board-web.middlewares=security-headers@file,compress@file"
+      - "traefik.http.services.board-web.loadbalancer.server.port=80"
+
+  board-api:
+    image: ${IMAGE_REGISTRY}/board-api:${IMAGE_TAG}
+    <<: *restart
+    environment:
+      <<: *api-env
+      PORT: "3004"
+      CORS_ORIGINS: "https://board.get-it.cloud"
+    depends_on:
+      mysql: { condition: service_healthy }
+    networks: [edge, internal]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.board-api.rule=Host(`board.get-it.cloud`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.board-api.entrypoints=websecure"
+      - "traefik.http.routers.board-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.board-api.middlewares=security-headers@file,api-rate-limit@file"
+      - "traefik.http.services.board-api.loadbalancer.server.port=3004"
+
+  # ─────────────────────────── letter ────────────────────────────────
+  letter-web:
+    image: ${IMAGE_REGISTRY}/letter-web:${IMAGE_TAG}
+    <<: *restart
+    networks: [edge]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.letter-web.rule=Host(`letter.get-it.cloud`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.letter-web.entrypoints=websecure"
+      - "traefik.http.routers.letter-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.letter-web.middlewares=security-headers@file,compress@file"
+      - "traefik.http.services.letter-web.loadbalancer.server.port=80"
+
+  letter-api:
+    image: ${IMAGE_REGISTRY}/letter-api:${IMAGE_TAG}
+    <<: *restart
+    environment:
+      <<: *api-env
+      PORT: "3005"
+      CORS_ORIGINS: "https://letter.get-it.cloud"
+    depends_on:
+      mysql: { condition: service_healthy }
+    networks: [edge, internal]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=getit-edge"
+      - "traefik.http.routers.letter-api.rule=Host(`letter.get-it.cloud`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.letter-api.entrypoints=websecure"
+      - "traefik.http.routers.letter-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.letter-api.middlewares=security-headers@file,api-rate-limit@file"
+      - "traefik.http.services.letter-api.loadbalancer.server.port=3005"
