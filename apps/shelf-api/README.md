@@ -42,7 +42,7 @@ pnpm --filter @getit/shelf-api prisma:seed
 | `publisher`   | `String`        | 출판사                                  |
 | `publishedAt` | `DateTime?`     | 출판일(외부 API 누락 가능)              |
 | `coverUrl`    | `String`        | 표지 이미지 URL                         |
-| `description` | `String? Text`  | 책 소개(긴 글 대응 Text)                |
+| `description` | `Text?`         | 책 소개(긴 글 대응 Text)                |
 | `source`      | `String`        | `kakao` / `aladin` / `naver` / `manual` |
 | `cachedAt`    | `DateTime`      | `@updatedAt`. TTL 만료 인덱스 대상      |
 
@@ -57,7 +57,7 @@ pnpm --filter @getit/shelf-api prisma:seed
 | `bookId`      | `String`          | FK → `Book.id`, onDelete Cascade |
 | `status`      | `BookStatus enum` | `WANT` / `READING` / `READ`      |
 | `rating`      | `Int?`            | 1~5 별점(앱 레벨 검증)           |
-| `review`      | `String? Text`    | 감상평                           |
+| `review`      | `Text?`           | 감상평                           |
 | `addedAt`     | `DateTime`        | 서재 추가 시각(기본 now)         |
 | `completedAt` | `DateTime?`       | 완독 시각(`READ` 전환 시)        |
 

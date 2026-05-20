@@ -2,10 +2,12 @@ node_modules/
 dist/
 .turbo/
 
-# env
+# env (시크릿 유출 방지 — .env.production 같은 임의 환경 파일 모두 포함, example만 화이트리스트)
 .env
 .env.local
 .env.*.local
+.env.*
+!.env.example
 
 # prisma
 prisma/*.db

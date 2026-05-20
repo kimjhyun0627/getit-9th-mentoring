@@ -67,10 +67,8 @@ const seedShelfEntry = async ({ userId, bookId, status, rating, review, complete
 const main = async () => {
   console.log('seeding shelf-api dev data...');
 
-  const books = [];
-  for (const book of SEED_BOOKS) {
-    books.push(await seedBook(book));
-  }
+  // 책 시드는 isbn 별로 독립적이라 병렬 upsert 안전.
+  const books = await Promise.all(SEED_BOOKS.map(seedBook));
 
   // 첫 번째 책: 완독 + 별점 + 감상평
   await seedShelfEntry({
