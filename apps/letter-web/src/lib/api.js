@@ -21,9 +21,9 @@ export const client = axios.create({
 const handlers = { onUnauthorized: null };
 
 /**
- * 401 콜백 등록.
+ * 401 콜백 등록. `null` 을 넘기면 해제.
  *
- * @param {() => void} fn
+ * @param {(() => void) | null} fn
  */
 export const setUnauthorizedHandler = (fn) => {
   handlers.onUnauthorized = fn;

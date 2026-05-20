@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -72,6 +72,7 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
   const contentErrId = useId();
   const colorErrId = useId();
   const [serverError, setServerError] = useState(/** @type {string | null} */ (null));
+  const dialogRef = useRef(/** @type {HTMLDivElement | null} */ (null));
 
   const queryClient = useQueryClient();
 
@@ -111,6 +112,63 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
+  // 포커스 관리 — 모달 열릴 때 첫 입력 요소로 포커스 이동, Tab 트랩,
+  // 닫을 때 이전 포커스 복원. (a11y: WAI-ARIA dialog 패턴)
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const previouslyFocused = /** @type {HTMLElement | null} */ (document.activeElement);
+
+    /**
+     * 모달 내 tab 가능한 요소 (포커스 트랩 + 초기 포커스용).
+     *
+     * @returns {HTMLElement[]}
+     */
+    const getFocusable = () => {
+      if (!dialogRef.current) return [];
+      const selectors =
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      return Array.from(dialogRef.current.querySelectorAll(selectors));
+    };
+
+    // 초기 포커스 — 모달 본문 내 textarea (compose-content) 가 있으면 그쪽으로,
+    // 없으면 첫 focusable 로.
+    const initial =
+      /** @type {HTMLElement | null} */ (dialogRef.current?.querySelector('#compose-content')) ??
+      getFocusable()[0];
+    initial?.focus();
+
+    const onKeyDown = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || !dialogRef.current?.contains(/** @type {Node} */ (active))) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      // unmount/close 시 이전 포커스 복원 (요소가 여전히 DOM 에 있을 때만).
+      if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+        previouslyFocused.focus();
+      }
+    };
+  }, [open]);
+
   // 모달 열릴 때마다 state 리셋 (이전 에러 / 입력 흔적 제거).
   useEffect(() => {
     if (open) {
@@ -139,6 +197,7 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
         className="absolute inset-0 cursor-default bg-ink/40 backdrop-blur-sm dark:bg-black/60"
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
