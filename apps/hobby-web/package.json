@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "취미메이트 — KNU 학우 일회성 취미 모임 매칭 (hobby.get-it.cloud)",
+  "description": "GETIT 9기 취미메이트 FE (hobby.get-it.cloud) — Playful 톤",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -14,17 +14,19 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@getit/auth-utils": "workspace:*",
     "@getit/config-tailwind": "workspace:*",
     "@getit/schemas": "workspace:*",
     "@getit/theme": "workspace:*",
+    "@hookform/resolvers": "^3.10.0",
     "@tanstack/react-query": "^5.62.16",
     "axios": "^1.15.1",
     "clsx": "^2.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.2",
     "react-router-dom": "^6.28.1",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^2.6.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@getit/config-eslint": "workspace:*",

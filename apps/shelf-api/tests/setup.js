@@ -17,10 +17,12 @@ process.env.PORT = '0';
 process.env.CORS_ORIGINS = 'http://localhost:5173';
 process.env.KAKAO_BOOK_API_KEY = 'test-kakao-key';
 process.env.BOOK_CACHE_TTL_HOURS = '24';
+process.env.JWT_SECRET = 'test-secret-min-32-chars-long-aaaaaaaaa';
 
-/** @type {{ books: Map<string, any> }} */
+/** @type {{ books: Map<string, any>, bookShelves: Map<string, any> }} */
 export const memDb = {
   books: new Map(),
+  bookShelves: new Map(),
 };
 
 let idCounter = 0;
@@ -29,12 +31,23 @@ const nextId = (prefix) => `${prefix}_${++idCounter}`;
 /** 모든 in-memory 상태 + ID 카운터 리셋 */
 export const resetDb = () => {
   memDb.books.clear();
+  memDb.bookShelves.clear();
   idCounter = 0;
 };
 
+/** Prisma `P2002` 흉내 (unique constraint violation). */
+export class PrismaUniqueViolation extends Error {
+  constructor(target) {
+    super(`Unique constraint failed on the fields: ${target}`);
+    this.name = 'PrismaClientKnownRequestError';
+    this.code = 'P2002';
+    this.meta = { target };
+  }
+}
+
 /**
  * Prisma where 절을 in-memory Map row 에 적용.
- * `{ gt, gte, lt, lte, equals, in }` 일부 지원.
+ * `{ gt, gte, lt, lte, equals, in }` + 복합 unique 키 `userId_bookId` 일부 지원.
  *
  * @param {Record<string, any>} row
  * @param {Record<string, any> | undefined} where
@@ -43,9 +56,12 @@ export const resetDb = () => {
 const matchWhere = (row, where) => {
   if (!where) return true;
   return Object.entries(where).every(([k, v]) => {
+    // 복합 unique key — Prisma `{ userId, bookId }` 형태
+    if (k === 'userId_bookId' && v && typeof v === 'object') {
+      return row.userId === v.userId && row.bookId === v.bookId;
+    }
     if (v !== null && typeof v === 'object' && !(v instanceof Date)) {
       // 같은 필드에 여러 연산자가 있을 수 있음 (예: {age: {gte:18, lte:65}}).
-      // early return 대신 모든 연산자를 AND 로 결합해서 평가.
       const checks = [];
       if ('equals' in v) checks.push(row[k] === v.equals);
       if ('gt' in v) checks.push(row[k] > v.gt);
@@ -59,35 +75,118 @@ const matchWhere = (row, where) => {
   });
 };
 
+const makeBookDelegate = () => ({
+  findUnique: async ({ where }) => {
+    for (const b of memDb.books.values()) {
+      if (matchWhere(b, where)) return { ...b };
+    }
+    return null;
+  },
+  upsert: async ({ where, create, update }) => {
+    for (const [id, b] of memDb.books) {
+      if (matchWhere(b, where)) {
+        const updated = { ...b, ...update, cachedAt: new Date() };
+        memDb.books.set(id, updated);
+        return { ...updated };
+      }
+    }
+    const id = nextId('b');
+    const now = new Date();
+    const row = { id, ...create, cachedAt: now };
+    memDb.books.set(id, row);
+    return { ...row };
+  },
+  findMany: async ({ where, take, orderBy } = {}) => {
+    const all = [...memDb.books.values()].filter((b) => matchWhere(b, where));
+    if (orderBy?.cachedAt === 'desc') all.sort((a, b) => b.cachedAt - a.cachedAt);
+    return take ? all.slice(0, take).map((b) => ({ ...b })) : all.map((b) => ({ ...b }));
+  },
+});
+
+const makeBookShelfDelegate = () => ({
+  create: async ({ data, include }) => {
+    for (const r of memDb.bookShelves.values()) {
+      if (r.userId === data.userId && r.bookId === data.bookId) {
+        throw new PrismaUniqueViolation(['userId', 'bookId']);
+      }
+    }
+    const id = nextId('bs');
+    const row = {
+      id,
+      rating: null,
+      review: null,
+      completedAt: null,
+      addedAt: new Date(),
+      ...data,
+    };
+    memDb.bookShelves.set(id, row);
+    return include?.book ? { ...row, book: { ...memDb.books.get(row.bookId) } } : { ...row };
+  },
+  findUnique: async ({ where, include }) => {
+    for (const r of memDb.bookShelves.values()) {
+      if (matchWhere(r, where)) {
+        return include?.book
+          ? { ...r, book: memDb.books.get(r.bookId) ? { ...memDb.books.get(r.bookId) } : null }
+          : { ...r };
+      }
+    }
+    return null;
+  },
+  findFirst: async ({ where, include } = {}) => {
+    for (const r of memDb.bookShelves.values()) {
+      if (matchWhere(r, where)) {
+        return include?.book
+          ? { ...r, book: memDb.books.get(r.bookId) ? { ...memDb.books.get(r.bookId) } : null }
+          : { ...r };
+      }
+    }
+    return null;
+  },
+  findMany: async ({ where, orderBy, include, skip, take } = {}) => {
+    const list = [...memDb.bookShelves.values()].filter((r) => matchWhere(r, where));
+    if (orderBy?.addedAt === 'desc') list.sort((a, b) => b.addedAt - a.addedAt);
+    if (orderBy?.addedAt === 'asc') list.sort((a, b) => a.addedAt - b.addedAt);
+    const sliced = skip || take ? list.slice(skip ?? 0, (skip ?? 0) + (take ?? list.length)) : list;
+    return sliced.map((r) =>
+      include?.book
+        ? { ...r, book: memDb.books.get(r.bookId) ? { ...memDb.books.get(r.bookId) } : null }
+        : { ...r },
+    );
+  },
+  count: async ({ where } = {}) =>
+    [...memDb.bookShelves.values()].filter((r) => matchWhere(r, where)).length,
+  update: async ({ where, data, include }) => {
+    for (const [id, r] of memDb.bookShelves) {
+      if (matchWhere(r, where)) {
+        const updated = { ...r, ...data };
+        memDb.bookShelves.set(id, updated);
+        return include?.book
+          ? { ...updated, book: { ...memDb.books.get(updated.bookId) } }
+          : { ...updated };
+      }
+    }
+    throw new Error('BookShelf not found');
+  },
+  delete: async ({ where }) => {
+    for (const [id, r] of memDb.bookShelves) {
+      if (matchWhere(r, where)) {
+        memDb.bookShelves.delete(id);
+        return { ...r };
+      }
+    }
+    throw new Error('BookShelf not found');
+  },
+});
+
 class FakePrismaClient {
   constructor() {
-    this.book = {
-      findUnique: async ({ where }) => {
-        for (const b of memDb.books.values()) {
-          if (matchWhere(b, where)) return { ...b };
-        }
-        return null;
-      },
-      upsert: async ({ where, create, update }) => {
-        for (const [id, b] of memDb.books) {
-          if (matchWhere(b, where)) {
-            const updated = { ...b, ...update, cachedAt: new Date() };
-            memDb.books.set(id, updated);
-            return { ...updated };
-          }
-        }
-        const id = nextId('b');
-        const now = new Date();
-        const row = { id, ...create, cachedAt: now };
-        memDb.books.set(id, row);
-        return { ...row };
-      },
-      findMany: async ({ where, take, orderBy } = {}) => {
-        const all = [...memDb.books.values()].filter((b) => matchWhere(b, where));
-        if (orderBy?.cachedAt === 'desc') all.sort((a, b) => b.cachedAt - a.cachedAt);
-        return take ? all.slice(0, take).map((b) => ({ ...b })) : all.map((b) => ({ ...b }));
-      },
-    };
+    this.book = makeBookDelegate();
+    this.bookShelf = makeBookShelfDelegate();
+  }
+
+  async $transaction(fn) {
+    if (Array.isArray(fn)) return Promise.all(fn);
+    return fn(this);
   }
 
   async $disconnect() {
@@ -107,7 +206,6 @@ let originalDispatcher = null;
 
 /**
  * 현재 활성 MockAgent — kakao 응답 stub 등록용.
- * 테스트에서 `mockKakaoPool().intercept(...).reply(...)` 패턴으로 쓴다.
  *
  * @returns {import('undici').MockPool}
  */

@@ -209,11 +209,69 @@ const makeBoardColumnDelegate = () => ({
   },
 });
 
+const makeCardDelegate = () => ({
+  create: async ({ data }) => {
+    const id = nextId('card');
+    const now = new Date();
+    const row = {
+      id,
+      description: null,
+      assigneeId: null,
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    };
+    memDb.cards.set(id, row);
+    return { ...row };
+  },
+  findUnique: async ({ where }) => {
+    for (const c of memDb.cards.values()) if (matchWhere(c, where)) return { ...c };
+    return null;
+  },
+  findFirst: async ({ where, orderBy } = {}) => {
+    let list = [...memDb.cards.values()];
+    if (where) list = list.filter((c) => matchWhere(c, where));
+    if (orderBy) list.sort(compareBy(orderBy));
+    return list.length ? { ...list[0] } : null;
+  },
+  findMany: async ({ where, orderBy } = {}) => {
+    let list = [...memDb.cards.values()];
+    if (where) list = list.filter((c) => matchWhere(c, where));
+    if (orderBy) list.sort(compareBy(orderBy));
+    return list.map((c) => ({ ...c }));
+  },
+  count: async ({ where } = {}) => {
+    let n = 0;
+    for (const c of memDb.cards.values()) if (matchWhere(c, where)) n++;
+    return n;
+  },
+  update: async ({ where, data }) => {
+    for (const [id, c] of memDb.cards) {
+      if (matchWhere(c, where)) {
+        const updated = { ...c, ...data, updatedAt: new Date() };
+        memDb.cards.set(id, updated);
+        return { ...updated };
+      }
+    }
+    throw new Error('Card not found');
+  },
+  delete: async ({ where }) => {
+    for (const [id, c] of memDb.cards) {
+      if (matchWhere(c, where)) {
+        memDb.cards.delete(id);
+        return { ...c };
+      }
+    }
+    throw new Error('Card not found');
+  },
+});
+
 class FakePrismaClient {
   constructor() {
     this.project = makeProjectDelegate();
     this.projectMember = makeProjectMemberDelegate();
     this.boardColumn = makeBoardColumnDelegate();
+    this.card = makeCardDelegate();
   }
 
   /**
