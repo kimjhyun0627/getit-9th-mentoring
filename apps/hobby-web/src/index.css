@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Playful 시안 (docs/design/hobby/playful.html) 톤.
+ * - 라이트: slate-50 base, rose/fuchsia/violet 액센트
+ * - 다크: slate-950 base, 채도 낮춘 그라데이션 + glow
+ * shadcn 호환 CSS variable 시스템 유지 — 폼 위주 페이지에서 토큰 활용.
+ */
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Playful primary: rose-500 */
+    --primary: 350 89% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 350 100% 95%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 350 89% 60%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 222 47% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 6%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 6%;
+    --popover-foreground: 210 40% 98%;
+
+    /* 다크에선 amber-300 inverse CTA */
+    --primary: 45 96% 65%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 18%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 217 33% 22%;
+    --input: 217 33% 22%;
+    --ring: 45 96% 65%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'ss01', 'tnum';
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Playful backdrop dots — Warm/Minimalist 와 다르게 더 진한 점 패턴. */
+@layer utilities {
+  .bg-dotted {
+    background-image: radial-gradient(rgba(15, 23, 42, 0.08) 1.2px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+  .dark .bg-dotted {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+  }
+}
