@@ -89,10 +89,11 @@ describe('App (landing · Tech-Dark)', () => {
 
   it('Footer에 © GETIT 9기 카피라이트 + github/notion/mail 링크가 노출된다', () => {
     renderApp();
-    expect(screen.getByText(/© GETIT 9기 멘토링/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /github/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /notion/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /mail/i })).toBeInTheDocument();
+    const footer = screen.getByRole('contentinfo');
+    expect(within(footer).getByText(/© GETIT 9기 멘토링/)).toBeInTheDocument();
+    expect(within(footer).getByRole('link', { name: /github/i })).toBeInTheDocument();
+    expect(within(footer).getByRole('link', { name: /notion/i })).toBeInTheDocument();
+    expect(within(footer).getByRole('link', { name: /mail/i })).toBeInTheDocument();
   });
 
   it('PROJECTS 데이터 4개와 카드 그리드 항목 수가 일치한다', () => {
@@ -135,11 +136,12 @@ describe('Hero (#24)', () => {
 
   it('Hero CTA 두 개 (./explore --all → #projects, git remote → GitHub)', () => {
     renderApp();
-    const explore = screen.getByRole('link', { name: /explore/i });
-    const remote = screen.getByRole('link', { name: /git remote/i });
+    const explore = screen.getByRole('link', { name: /전체 프로젝트 보기/ });
+    const remote = screen.getByRole('link', { name: /GitHub 저장소/ });
     expect(explore).toHaveAttribute('href', '#projects');
     expect(remote).toHaveAttribute('href', expect.stringContaining('github.com'));
     expect(remote).toHaveAttribute('target', '_blank');
+    expect(remote).toHaveAccessibleName(/새 탭에서 열림/);
   });
 
   it('Hero에 blink caret 노드가 존재한다 (data-testid="hero-caret")', () => {
@@ -167,8 +169,8 @@ describe('Header nav + Sign in (#24)', () => {
   it('Header nav (services, about) 링크가 앵커를 가진다', () => {
     renderApp();
     const header = screen.getByRole('banner');
-    const services = within(header).getByRole('link', { name: /services/i });
-    const about = within(header).getByRole('link', { name: /about/i });
+    const services = within(header).getByRole('link', { name: /프로젝트 섹션으로 이동/ });
+    const about = within(header).getByRole('link', { name: /소개 섹션으로 이동/ });
     expect(services).toHaveAttribute('href', '#projects');
     expect(about).toHaveAttribute('href', '#about');
   });
@@ -176,7 +178,7 @@ describe('Header nav + Sign in (#24)', () => {
   it('Header Sign in 링크가 auth.get-it.cloud 로 향한다', () => {
     renderApp();
     const header = screen.getByRole('banner');
-    const signIn = within(header).getByRole('link', { name: /sign in/i });
+    const signIn = within(header).getByRole('link', { name: /로그인/ });
     expect(signIn).toHaveAttribute('href', expect.stringContaining('auth.get-it.cloud'));
   });
 });
