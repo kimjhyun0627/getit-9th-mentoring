@@ -2,7 +2,7 @@
 
 공통 인프라 (Docker Compose, Traefik, GCP VM). 배경 / PRD 는 [`.claude/projects/infra.md`](../.claude/projects/infra.md) 참조.
 
-```
+```text
 internet ──► Traefik (80/443) ──► (edge network) ──► web / api containers
                                                        │
                                             (internal network) ──► mysql
@@ -10,23 +10,23 @@ internet ──► Traefik (80/443) ──► (edge network) ──► web / api
 
 ## Layout
 
-```
+```text
 infra/
-├── docker-compose.prod.yml             # 13 services (traefik, mysql, landing, 5×web, 5×api)
-├── .env.prod.example                   # secret template — copy to .env.prod on VM
-├── nginx/spa.conf                      # nginx config baked into all web images
-├── mysql/init/01-create-databases.sql  # idempotent DB bootstrap
+├── docker-compose.prod.yml            # 13 services (traefik, mysql, landing, 5×web, 5×api)
+├── .env.prod.example                  # secret template — copy to .env.prod on VM
+├── nginx/spa.conf                     # nginx config baked into all web images
+├── mysql/init/01-create-databases.sh  # idempotent DB bootstrap (templated from $MYSQL_USER)
 └── traefik/
-    ├── traefik.yml                     # static config (entrypoints, ACME)
-    └── dynamic/middlewares.yml         # security-headers, rate-limit, compress
+    ├── traefik.yml                    # static config (entrypoints, ACME)
+    └── dynamic/middlewares.yml        # security-headers, rate-limit, compress
 ```
 
 ## DNS prerequisites (gabia → VM IP)
 
-| Type | Name | Value      |
-| :--- | :--- | :--------- |
-| A    | `@`  | `<VM IP>`  |
-| A    | `*`  | `<VM IP>`  |
+| Type | Name | Value     |
+| :--- | :--- | :-------- |
+| A    | `@`  | `<VM IP>` |
+| A    | `*`  | `<VM IP>` |
 
 TTL 300s 동안 테스트하고 안정되면 3600 으로. Let's Encrypt HTTP-01 인증서는 각 서브도메인 별로 첫 요청 시 발급된다 (와일드카드 인증서 불필요).
 

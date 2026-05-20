@@ -1,6 +1,6 @@
 # Reusable Traefik middlewares (dynamic config).
 # Attach via docker labels:
-#   traefik.http.routers.<name>.middlewares=security-headers@file,rate-limit@file
+#   traefik.http.routers.<name>.middlewares=security-headers@file,api-rate-limit@file
 
 http:
   middlewares:

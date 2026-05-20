@@ -13,7 +13,8 @@ name: getit
 
 x-api-env: &api-env
   NODE_ENV: production
-  DATABASE_URL: "mysql://${MYSQL_APP_USER}:${MYSQL_APP_PASSWORD}@mysql:3306"
+  # DATABASE_URL is *not* in the shared anchor — each API must point at its own
+  # schema (see init SQL). Per-service override below.
   JWT_SECRET: ${JWT_SECRET}
   JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
   JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
@@ -112,7 +113,8 @@ services:
     environment:
       <<: *api-env
       PORT: "3001"
-      CORS_ORIGINS: "https://get-it.cloud,https://auth.get-it.cloud,https://hobby.get-it.cloud,https://shelf.get-it.cloud,https://board.get-it.cloud,https://letter.get-it.cloud"
+      DATABASE_URL: "mysql://${MYSQL_APP_USER}:${MYSQL_APP_PASSWORD}@mysql:3306/auth"
+      CORS_ORIGINS: "https://get-it.cloud,https://www.get-it.cloud,https://auth.get-it.cloud,https://hobby.get-it.cloud,https://shelf.get-it.cloud,https://board.get-it.cloud,https://letter.get-it.cloud"
     depends_on:
       mysql: { condition: service_healthy }
     networks: [edge, internal]
@@ -145,6 +147,7 @@ services:
     environment:
       <<: *api-env
       PORT: "3002"
+      DATABASE_URL: "mysql://${MYSQL_APP_USER}:${MYSQL_APP_PASSWORD}@mysql:3306/hobby"
       CORS_ORIGINS: "https://hobby.get-it.cloud"
       KAKAO_API_KEY: ${KAKAO_API_KEY:-}
     depends_on:
@@ -179,6 +182,7 @@ services:
     environment:
       <<: *api-env
       PORT: "3003"
+      DATABASE_URL: "mysql://${MYSQL_APP_USER}:${MYSQL_APP_PASSWORD}@mysql:3306/shelf"
       CORS_ORIGINS: "https://shelf.get-it.cloud"
     depends_on:
       mysql: { condition: service_healthy }
@@ -212,6 +216,7 @@ services:
     environment:
       <<: *api-env
       PORT: "3004"
+      DATABASE_URL: "mysql://${MYSQL_APP_USER}:${MYSQL_APP_PASSWORD}@mysql:3306/board"
       CORS_ORIGINS: "https://board.get-it.cloud"
     depends_on:
       mysql: { condition: service_healthy }
@@ -245,6 +250,7 @@ services:
     environment:
       <<: *api-env
       PORT: "3005"
+      DATABASE_URL: "mysql://${MYSQL_APP_USER}:${MYSQL_APP_PASSWORD}@mysql:3306/letter"
       CORS_ORIGINS: "https://letter.get-it.cloud"
     depends_on:
       mysql: { condition: service_healthy }
