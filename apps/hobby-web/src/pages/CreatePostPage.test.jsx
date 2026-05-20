@@ -61,6 +61,39 @@ describe('CreatePostPage', () => {
     expect(screen.getByRole('button', { name: /모임 만들기/ })).toBeInTheDocument();
   });
 
+  it('input/textarea 가 다크 모드 배경 + 글자색 + color-scheme 토큰을 가진다 (#92)', () => {
+    renderPage();
+    // 시안 (playful.html dark) 톤 — bg-zinc-900/60 + text-slate-100 + color-scheme:dark
+    const titleInput = screen.getByLabelText('제목');
+    expect(titleInput.className).toMatch(/dark:bg-zinc-900\/60/);
+    expect(titleInput.className).toMatch(/dark:text-slate-100/);
+    expect(titleInput.className).toMatch(/dark:\[color-scheme:dark\]/);
+
+    const bodyTextarea = screen.getByLabelText('본문');
+    expect(bodyTextarea.className).toMatch(/dark:bg-zinc-900\/60/);
+    expect(bodyTextarea.className).toMatch(/dark:text-slate-100/);
+    expect(bodyTextarea.className).toMatch(/dark:\[color-scheme:dark\]/);
+
+    // datetime-local / number / url 도 같은 FormField 라 동일 클래스 보장
+    const dateInput = screen.getByLabelText('모임 일시');
+    expect(dateInput.className).toMatch(/dark:bg-zinc-900\/60/);
+    const capacityInput = screen.getByLabelText('정원');
+    expect(capacityInput.className).toMatch(/dark:bg-zinc-900\/60/);
+    const urlInput = screen.getByLabelText(/오픈채팅/);
+    expect(urlInput.className).toMatch(/dark:bg-zinc-900\/60/);
+
+    // TagInput — 내부 input 글자색 + 컨테이너 배경/보더/그림자/color-scheme 다 같이 검증
+    const tagInput = screen.getByLabelText('태그');
+    expect(tagInput.className).toMatch(/dark:text-slate-100/);
+    // 컨테이너 div (input 의 parent) 에 다크 배경 + 인셋 그림자 + color-scheme 토큰
+    const tagContainer = tagInput.parentElement;
+    expect(tagContainer).not.toBeNull();
+    expect(tagContainer?.className).toMatch(/dark:bg-zinc-900\/60/);
+    expect(tagContainer?.className).toMatch(/dark:border-white\/10/);
+    expect(tagContainer?.className).toMatch(/dark:shadow-inner/);
+    expect(tagContainer?.className).toMatch(/dark:\[color-scheme:dark\]/);
+  });
+
   it('빈 입력으로 submit 시 검증 에러를 보여준다', async () => {
     const user = userEvent.setup();
     renderPage();
