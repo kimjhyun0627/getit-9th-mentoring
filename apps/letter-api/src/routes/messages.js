@@ -1,0 +1,161 @@
+/**
+ * letter-api 메시지 라우터 — 익명 롤링페이퍼 CRUD.
+ *
+ * 엔드포인트:
+ *  - POST   /api/messages       — 작성 (JWT 필요)
+ *  - GET    /api/messages       — 목록 + is_mine 플래그 (JWT 필요)
+ *  - PATCH  /api/messages/:id   — 본인만 (JWT 필요)
+ *  - DELETE /api/messages/:id   — 본인만 (JWT 필요)
+ *
+ * 익명성 (Spec 핵심 — `.claude/projects/letter.md`):
+ *  - 모든 응답에서 authorId / author 키 절대 노출 X.
+ *  - 본인 식별은 응답의 is_mine boolean 만.
+ *  - DB authorId 는 본인 검증 (JWT sub 와 매칭) 에만 사용.
+ *
+ * 권한 검증 (TOCTOU 회피):
+ *  - DELETE / PATCH 는 `deleteMany` / `updateMany` 로 (id, authorId) 동시 조건.
+ *    count === 1 이면 success, count === 0 이면 findUnique 로 404/403 분기.
+ *
+ * 응답 모양 회귀 (snapshot/contract) 는 #53 (BE-security) 에서 별도.
+ */
+import { requireAuth } from '@getit/auth-utils/server';
+import { MessageCreateInput, MessageIdParam, MessageUpdateInput } from '@getit/schemas/letter';
+import { Router } from 'express';
+
+import { prisma } from '../lib/prisma.js';
+
+/**
+ * Zod 에러를 400 응답 본문으로 변환.
+ *
+ * @param {import('zod').ZodError} err
+ */
+const zodErrorBody = (err) => ({
+  error: 'ValidationError',
+  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+});
+
+/**
+ * Message DB row → API 응답 직렬화.
+ *
+ * ⚠️ authorId 는 명시적으로 제거. 응답에 절대 포함되면 안 됨.
+ *
+ * @param {object} row - prisma Message row
+ * @param {string} viewerSub - JWT sub (본인 식별용)
+ * @returns {object} 응답에 안전한 객체
+ */
+const serializeMessage = (row, viewerSub) => {
+  const isMine = row.authorId === viewerSub;
+  return {
+    id: row.id,
+    content: row.content,
+    color: row.color,
+    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+    updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : row.updatedAt,
+    is_mine: isMine,
+  };
+};
+
+/**
+ * 메시지 라우터 생성.
+ *
+ * @param {{ jwtSecret: string, mutationLimiter: import('express').RequestHandler }} opts
+ * @returns {import('express').Router}
+ */
+export const createMessagesRouter = ({ jwtSecret, mutationLimiter }) => {
+  const router = Router();
+  const auth = requireAuth({ secret: jwtSecret });
+
+  // POST /api/messages — 작성
+  router.post('/messages', auth, mutationLimiter, async (req, res, next) => {
+    try {
+      const parsed = MessageCreateInput.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
+
+      const created = await prisma.message.create({
+        data: {
+          authorId: req.user.sub,
+          content: parsed.data.content,
+          color: parsed.data.color,
+        },
+      });
+
+      return res.status(201).json({ message: serializeMessage(created, req.user.sub) });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // GET /api/messages — 목록 (is_mine 판단 필요해 JWT 필수)
+  router.get('/messages', auth, async (req, res, next) => {
+    try {
+      const rows = await prisma.message.findMany({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      });
+      return res.status(200).json({
+        items: rows.map((r) => serializeMessage(r, req.user.sub)),
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // PATCH /api/messages/:id — 본인만
+  router.patch('/messages/:id', auth, mutationLimiter, async (req, res, next) => {
+    try {
+      const parsedParam = MessageIdParam.safeParse(req.params);
+      if (!parsedParam.success) return res.status(400).json(zodErrorBody(parsedParam.error));
+      const parsedBody = MessageUpdateInput.safeParse(req.body);
+      if (!parsedBody.success) return res.status(400).json(zodErrorBody(parsedBody.error));
+
+      const id = parsedParam.data.id;
+      // TOCTOU 회피: (id, authorId) 동시 조건. 본인만 한 번에 갱신.
+      const result = await prisma.message.updateMany({
+        where: { id, authorId: req.user.sub },
+        data: parsedBody.data,
+      });
+
+      if (result.count === 1) {
+        const updated = await prisma.message.findUnique({ where: { id } });
+        // 동시 race 가드: updateMany 직후 다른 요청이 삭제했을 가능성 → null 가드.
+        // serializeMessage(null, ...) 호출 시 500 터지는 걸 회피.
+        if (!updated) return res.status(404).json({ error: 'MessageNotFound' });
+        return res.status(200).json({ message: serializeMessage(updated, req.user.sub) });
+      }
+
+      // count 0 → 미존재 / 타인 소유 구분.
+      const exists = await prisma.message.findUnique({
+        where: { id },
+        select: { authorId: true },
+      });
+      if (!exists) return res.status(404).json({ error: 'MessageNotFound' });
+      return res.status(403).json({ error: 'Forbidden' });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // DELETE /api/messages/:id — 본인만
+  router.delete('/messages/:id', auth, mutationLimiter, async (req, res, next) => {
+    try {
+      const parsedParam = MessageIdParam.safeParse(req.params);
+      if (!parsedParam.success) return res.status(400).json(zodErrorBody(parsedParam.error));
+
+      const id = parsedParam.data.id;
+      const result = await prisma.message.deleteMany({
+        where: { id, authorId: req.user.sub },
+      });
+      if (result.count === 1) return res.status(204).send();
+
+      const exists = await prisma.message.findUnique({
+        where: { id },
+        select: { authorId: true },
+      });
+      if (!exists) return res.status(404).json({ error: 'MessageNotFound' });
+      return res.status(403).json({ error: 'Forbidden' });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  return router;
+};
