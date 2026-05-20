@@ -33,7 +33,7 @@ export const CardGrid = () => {
           </div>
         </div>
 
-        <ul aria-label="프로젝트 목록" className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <ul aria-label="프로젝트 목록" className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {PROJECTS.map((project) => (
             <ProjectCard key={project.href} {...project} />
           ))}
