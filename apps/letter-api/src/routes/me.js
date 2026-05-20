@@ -29,8 +29,10 @@ export const createMeRouter = ({ jwtSecret }) => {
   const auth = requireAuth({ secret: jwtSecret });
 
   // GET /api/me — 현재 사용자 정보 echo (auth-api 와 동일한 컨트랙트).
+  // JWT 표준 메타데이터(iat, exp 등) 가 외부로 누출되지 않도록 명시적 화이트리스트.
   router.get('/me', auth, (req, res) => {
-    return res.status(200).json({ user: req.user });
+    const { sub, email, name } = req.user;
+    return res.status(200).json({ user: { sub, email, name } });
   });
 
   return router;
