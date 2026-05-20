@@ -1,6 +1,6 @@
 import { ThemeProvider } from '@getit/theme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -183,19 +183,19 @@ describe('BoardPage', () => {
   // #249 — 본인 메시지 삭제 mutation 연결
   it('본인 메시지 삭제 클릭 시 deleteMessage 호출되고 카드가 사라진다 (#249)', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'listMessages').mockResolvedValue({
-      data: {
-        items: [
-          {
-            id: 'mine-del',
-            content: '떼어낼 메시지',
-            color: 'PINK',
-            createdAt: new Date().toISOString(),
-            is_mine: true,
-          },
-        ],
-      },
-    });
+    const mineMsg = {
+      id: 'mine-del',
+      content: '떼어낼 메시지',
+      color: 'PINK',
+      createdAt: new Date().toISOString(),
+      is_mine: true,
+    };
+    // listMessages: 첫 호출은 메시지 1개, 삭제 후 onSettled 의 invalidate
+    // refetch 에는 빈 배열 반환 (서버 진실 모사).
+    const listSpy = vi
+      .spyOn(api, 'listMessages')
+      .mockResolvedValueOnce({ data: { items: [mineMsg] } })
+      .mockResolvedValue({ data: { items: [] } });
     const delSpy = vi.spyOn(api, 'deleteMessage').mockResolvedValue({ status: 204 });
     renderPage();
     expect(await screen.findByText('떼어낼 메시지')).toBeInTheDocument();
@@ -209,7 +209,11 @@ describe('BoardPage', () => {
     await user.click(confirm);
 
     expect(delSpy).toHaveBeenCalledWith('mine-del');
-    // 옵티미스틱 제거 — 카드가 즉시 사라짐.
-    expect(screen.queryByText('떼어낼 메시지')).not.toBeInTheDocument();
+    // 옵티미스틱 + onSettled invalidate (refetch → 빈 배열) — 카드 최종적으로 사라짐.
+    await waitFor(() => {
+      expect(screen.queryByText('떼어낼 메시지')).not.toBeInTheDocument();
+    });
+    // listMessages 가 최소 2회 호출됨 (초기 + onSettled invalidate refetch).
+    expect(listSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 });

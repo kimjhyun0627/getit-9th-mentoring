@@ -52,6 +52,8 @@ export const BoardPage = () => {
   });
 
   // #249 — 삭제 mutation. 옵티미스틱 update 로 즉시 카드 사라짐, 실패 시 롤백.
+  // onSettled 로 성공/실패 무관 invalidate (Gemini #335 review): 옵티미스틱 결과에만
+  // 의존하면 다른 사용자의 동시 변경이 반영되지 않을 수 있어 서버 진실로 다시 sync.
   const deleteMutation = useMutation({
     mutationFn: (id) => api.deleteMessage(id),
     onMutate: async (id) => {
@@ -63,9 +65,11 @@ export const BoardPage = () => {
       return { prev };
     },
     onError: (_err, _id, ctx) => {
+      // 실패 시 옵티미스틱 롤백. 사용자에게는 보드 상단 banner 로 알림 (#249 DoD).
       if (ctx?.prev) queryClient.setQueryData(['messages'], ctx.prev);
-      // 실패 알림: 사용자에게는 보드 상단 banner 로 알린다 (#249 DoD: 실패 피드백).
-      // refetch 으로 서버 진실 동기화.
+    },
+    onSettled: () => {
+      // 성공/실패 무관 — 서버 진실과 다시 sync.
       queryClient.invalidateQueries({ queryKey: ['messages'] });
     },
   });
