@@ -4,6 +4,6 @@ import node from '@getit/config-eslint/node';
 export default [
   ...node,
   {
-    ignores: ['node_modules/**', 'dist/**', 'prisma/migrations/**'],
+    ignores: ['node_modules/**', 'dist/**', 'prisma/migrations/**', 'coverage/**'],
   },
 ];

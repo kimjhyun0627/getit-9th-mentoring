@@ -6,8 +6,8 @@
 - 사용자별 서재(WANT/READING/READ) + 감상평 + 별점
 - 통합 SSO `User.id(cuid)` 를 `userId` 로 받음(cross-DB, 앱 레벨 검증)
 
-> 현재 작업 단계: **Issue #40 — Book + BookShelf Prisma 스키마 + 초기 마이그레이션 + seed**
-> Express 서버 코드는 후속 Issue (#41 외부 API + 캐시, #42 서재 CRUD) 에서 추가.
+> 현재 작업 단계: **Issue #41 — 카카오 도서 API 중계 + Book 24h 캐시**
+> Express 서버 + 검색/상세 엔드포인트. 서재 CRUD 는 후속 Issue #42 에서 추가.
 
 ## 빠른 시작
 
@@ -75,13 +75,39 @@ pnpm --filter @getit/shelf-api prisma:seed
 - **description Text**: 외부 API description 이 1KB 넘는 경우 흔함 → `@db.Text`.
 - **소프트 삭제 미사용**: 사용자가 서재에서 빼면 hard delete.
 
+## API 엔드포인트
+
+| Method | Path                   | 설명                                         |
+| :----- | :--------------------- | :------------------------------------------- |
+| GET    | `/api/health`          | 헬스체크 (public, no rate-limit)             |
+| GET    | `/api/books/search?q=` | 카카오 도서 API 중계 + 결과 Book 으로 upsert |
+| GET    | `/api/books/:isbn`     | 캐시 우선 (TTL 24h). 만료 시 외부 재호출     |
+
+### 캐시 동작
+
+- `Book.cachedAt` (Prisma `@updatedAt`) 가 TTL 시계.
+- `/api/books/:isbn` 호출 시:
+  - 신선 캐시 hit → 외부 호출 없이 즉시 응답 (`cached: true`)
+  - 만료 + 외부 hit → 갱신 (`cached: false`)
+  - 만료 + 외부 실패 → stale 캐시 반환 (`cached: true, stale: true`) — graceful degrade
+  - 캐시 미스 + 외부 hit → upsert 후 응답
+  - 캐시 미스 + 외부 miss → 404 `BookNotFound`
+  - 캐시 미스 + 외부 실패 / 키 미설정 → 503 `ExternalApiUnavailable`
+
+### 보안
+
+- `KAKAO_BOOK_API_KEY` 는 **백엔드 .env 에만** 존재. FE 에 절대 노출 X.
+- 외부 API 4xx (잘못된 키 등) 응답은 503 으로 마스킹 — 클라이언트가 키 상태를 추측 못 하게.
+- helmet + CORS fail-closed (`CORS_ORIGINS` 비면 cross-origin 거부) + `/api/books` 라우터에 rate-limit.
+
 ## 환경 변수
 
 `.env.example` 의 주석 참고. 핵심:
 
 - `DATABASE_URL`: MySQL 접속
 - `BOOK_CACHE_TTL_HOURS`: 외부 API 응답 캐시 TTL (기본 24)
-- 외부 API 키(후속 Issue #41): `KAKAO_BOOK_API_KEY` 등. 절대 commit 금지.
+- `KAKAO_BOOK_API_KEY`: 카카오 REST API 키. 절대 commit 금지.
+- `CORS_ORIGINS`: 허용 origin 콤마 분리. 비우면 fail-closed.
 
 ## 스크립트
 
