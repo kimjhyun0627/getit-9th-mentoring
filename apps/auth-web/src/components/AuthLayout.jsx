@@ -35,7 +35,7 @@ export const AuthLayout = ({ children }) => {
         +
       </div>
 
-      <header className="sticky top-0 z-30 border-b border-hairline bg-white/80 backdrop-blur dark:bg-ink-950/80">
+      <header className="sticky top-0 z-30 border-b border-hairline bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
           <a
             href="https://get-it.cloud"
@@ -72,7 +72,7 @@ export const AuthLayout = ({ children }) => {
 
       <main className="flex flex-1 items-center justify-center px-6 py-12 lg:py-20">
         <div className="w-full max-w-md">
-          <div className="rounded-lg border border-hairline bg-white/70 p-8 backdrop-blur dark:bg-ink-900/60 sm:p-10">
+          <div className="rounded-lg border border-hairline bg-card/70 p-8 backdrop-blur sm:p-10">
             {children}
           </div>
         </div>

@@ -155,7 +155,7 @@
     display: inline-block;
     width: 0.55ch;
     height: 1em;
-    background: currentColor;
+    background: currentcolor;
     animation: blink 1.05s steps(1) infinite;
     margin-left: 0.12em;
     vertical-align: -0.12em;
@@ -179,7 +179,7 @@
     0%,
     100% {
       opacity: 1;
-      box-shadow: 0 0 0 0 currentColor;
+      box-shadow: 0 0 0 0 currentcolor;
     }
     50% {
       opacity: 0.55;
@@ -191,8 +191,8 @@
   .divider-mono {
     background-image: repeating-linear-gradient(
       90deg,
-      currentColor 0,
-      currentColor 6px,
+      currentcolor 0,
+      currentcolor 6px,
       transparent 6px,
       transparent 12px
     );

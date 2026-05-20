@@ -48,7 +48,7 @@ export const SignupPage = () => {
   return (
     <div className="flex flex-col gap-7">
       <header className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-500">
           <span className="text-cyan-700 dark:text-cyan-neon">~/auth/signup</span>
           <span className="text-zinc-300 dark:text-zinc-700">·</span>
           <span>method: post</span>

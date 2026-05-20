@@ -30,7 +30,7 @@ export const SubmitButton = ({
       className={cn(
         'group inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 font-mono text-sm font-semibold text-primary-foreground transition',
         'hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:brightness-100',
-        'dark:shadow-[0_0_0_1px_rgba(34,211,238,0.4),0_0_28px_-4px_rgba(34,211,238,0.55)]',
+        'dark:shadow-[0_0_0_1px_hsla(var(--primary)/0.4),0_0_28px_-4px_hsla(var(--primary)/0.55)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-700 focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:focus-visible:ring-cyan-neon',
         className,
       )}
