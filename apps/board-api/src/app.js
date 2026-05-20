@@ -19,6 +19,7 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 
 import { requireProjectMember } from './middleware/requireProjectMember.js';
+import { createCardsRouter } from './routes/cards.js';
 import { createColumnsRouter } from './routes/columns.js';
 import { createMembersRouter } from './routes/members.js';
 import { createProjectsRouter } from './routes/projects.js';
@@ -91,14 +92,18 @@ export const createApp = (opts = {}) => {
   // (auth 가 먼저면 401 응답으로 빠지면서 잘못된 토큰 폭주가 사실상 무제한이 됨.)
   app.use((req, res, next) => {
     if (req.method === 'GET' || req.method === 'HEAD') return next();
-    if (req.path.startsWith('/api/projects')) return writeLimiter(req, res, next);
+    if (req.path.startsWith('/api/projects') || req.path.startsWith('/api/cards')) {
+      return writeLimiter(req, res, next);
+    }
     return next();
   });
   app.use('/api/projects', auth);
+  app.use('/api/cards', auth);
 
   app.use('/api/projects', createProjectsRouter());
   app.use('/api/projects/:id/members', requireProjectMember(), createMembersRouter());
   app.use('/api/projects/:id/columns', requireProjectMember(), createColumnsRouter());
+  app.use('/api/cards', createCardsRouter());
 
   // 마지막 fallback 에러 핸들러 (4-인자).
   app.use((err, req, res, _next) => {
