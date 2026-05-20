@@ -257,4 +257,23 @@ export const buildNotificationModel = (memDb, nextId) => ({
     rows = pageSlice(rows, { take, cursor, skip });
     return rows.map((n) => ({ ...n }));
   },
+
+  updateMany: async ({ where, data }) => {
+    let count = 0;
+    for (const [id, n] of memDb.notifications) {
+      if (matchWhere(n, where ?? {})) {
+        memDb.notifications.set(id, { ...n, ...data });
+        count += 1;
+      }
+    }
+    return { count };
+  },
+
+  count: async ({ where } = {}) => {
+    let n = 0;
+    for (const row of memDb.notifications.values()) {
+      if (matchWhere(row, where ?? {})) n += 1;
+    }
+    return n;
+  },
 });

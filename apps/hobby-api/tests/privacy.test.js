@@ -133,6 +133,7 @@ describe('hobby-api openChatUrl 프라이버시 정책 (#36)', () => {
           "currentCapacity",
           "id",
           "meetAt",
+          "owner",
           "ownerId",
           "status",
           "tags",

@@ -1,9 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { CapacityMeter } from '../components/CapacityMeter.jsx';
-import { Header } from '../components/Header.jsx';
 import { emojiFor, paletteFor } from '../data/palette.js';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
@@ -14,6 +12,7 @@ import {
   cancelErrorMessage,
   fetchErrorMessage,
 } from './PostDetailPage.errors.js';
+import { PageShell } from './PostDetailPage.shell.jsx';
 
 /**
  * 게시글 상세 + 신청 인터랙션 — Issue #39.
@@ -49,12 +48,9 @@ export const PostDetailPage = () => {
     staleTime: 60_000,
   });
 
-  // 신청 application id (이 세션에서 신청한 직후만 추적).
-  // 페이지 reload 후 "이미 신청한 사람" 식별은 별도 BE 엔드포인트가 필요해 후속 작업으로 미룸.
-  const [myApplicationId, setMyApplicationId] = useState(/** @type {string|null} */ (null));
-  useEffect(() => {
-    setMyApplicationId(null);
-  }, [id]);
+  // #212: 신청 여부 식별은 서버 응답 myApplication 으로. reload 후에도 유지됨.
+  // optimistic 업데이트는 query cache 의 myApplication 을 함께 set/clear.
+  const myApplication = postQuery.data?.post?.myApplication ?? null;
 
   const applyMutation = useMutation({
     mutationFn: () => api.applyPost(id),
@@ -62,28 +58,14 @@ export const PostDetailPage = () => {
       await queryClient.cancelQueries({ queryKey: postKey });
       const prev = queryClient.getQueryData(postKey);
       queryClient.setQueryData(postKey, (old) =>
-        old ? { post: { ...old.post, currentCapacity: old.post.currentCapacity + 1 } } : old,
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(postKey, ctx.prev);
-    },
-    onSuccess: (data) => {
-      // 서버가 +1 했고 optimistic 값과 일치하므로 invalidate 안 함 (불필요한 refetch 절감).
-      // 다음 페이지 진입 시 staleTime 만료되면 자연스럽게 fresh.
-      setMyApplicationId(data.application.id);
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: () => api.cancelApplication(myApplicationId),
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: postKey });
-      const prev = queryClient.getQueryData(postKey);
-      queryClient.setQueryData(postKey, (old) =>
         old
-          ? { post: { ...old.post, currentCapacity: Math.max(0, old.post.currentCapacity - 1) } }
+          ? {
+              post: {
+                ...old.post,
+                currentCapacity: old.post.currentCapacity + 1,
+                myApplication: old.post.myApplication ?? { id: '__pending__', createdAt: '' },
+              },
+            }
           : old,
       );
       return { prev };
@@ -91,9 +73,44 @@ export const PostDetailPage = () => {
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(postKey, ctx.prev);
     },
-    onSuccess: () => {
-      // 서버가 -1 했고 optimistic 값과 일치. invalidate 생략.
-      setMyApplicationId(null);
+    onSuccess: (data) => {
+      // 서버에서 받은 application id 로 cache 갱신.
+      queryClient.setQueryData(postKey, (old) =>
+        old
+          ? {
+              post: {
+                ...old.post,
+                myApplication: { id: data.application.id, createdAt: data.application.createdAt },
+              },
+            }
+          : old,
+      );
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: () => {
+      if (!myApplication?.id) throw new Error('no application to cancel');
+      return api.cancelApplication(myApplication.id);
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: postKey });
+      const prev = queryClient.getQueryData(postKey);
+      queryClient.setQueryData(postKey, (old) =>
+        old
+          ? {
+              post: {
+                ...old.post,
+                currentCapacity: Math.max(0, old.post.currentCapacity - 1),
+                myApplication: null,
+              },
+            }
+          : old,
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(postKey, ctx.prev);
     },
   });
 
@@ -127,7 +144,7 @@ export const PostDetailPage = () => {
   const me = meQuery.data ?? null;
   const isOwner = Boolean(me && me.id === post.ownerId);
   const isFull = post.status === 'FULL' || post.status === 'CLOSED';
-  const isApplied = Boolean(myApplicationId);
+  const isApplied = Boolean(myApplication?.id);
   const palette = paletteFor(post);
   const ownerNick = post.owner?.nickname ?? '익명';
   const errAlert =
@@ -267,43 +284,5 @@ export const PostDetailPage = () => {
         </section>
       </main>
     </PageShell>
-  );
-};
-
-/**
- * 페이지 공통 shell — blob + dotted backdrop + 헤더. 검색 입력은 상세에선 placeholder.
- *
- * @param {{ children: import('react').ReactNode }} props
- */
-const PageShell = ({ children }) => {
-  const [search, setSearch] = useState('');
-  return (
-    <div className="relative overflow-hidden min-h-screen">
-      <div
-        aria-hidden="true"
-        className="blob"
-        style={{
-          width: 340,
-          height: 340,
-          top: -80,
-          left: -60,
-          background: 'radial-gradient(circle,#ff8aae 0%,transparent 65%)',
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="blob"
-        style={{
-          width: 300,
-          height: 300,
-          top: 80,
-          right: -40,
-          background: 'radial-gradient(circle,#a5b4fc 0%,transparent 65%)',
-        }}
-      />
-      <div aria-hidden="true" className="absolute inset-0 bg-dotted pointer-events-none" />
-      <Header search={search} onSearchChange={setSearch} />
-      {children}
-    </div>
   );
 };

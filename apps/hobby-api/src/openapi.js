@@ -53,6 +53,8 @@ const PostResponse = z
     updatedAt: z.string(),
     tags: z.array(TagResponse),
     openChatUrl: z.string().optional(),
+    owner: z.object({ nickname: z.string() }).optional(),
+    myApplication: z.object({ id: z.string(), createdAt: z.string() }).nullable().optional(),
   })
   .openapi({ ref: 'Post' });
 
@@ -86,10 +88,12 @@ export const buildOpenApiDoc = () =>
       },
       '/api/posts': {
         get: {
-          summary: '게시글 리스트 (cursor 페이지네이션)',
+          summary: '게시글 리스트 (cursor 페이지네이션 + 서버 필터)',
           parameters: [
             { in: 'query', name: 'status', schema: PostStatus },
             { in: 'query', name: 'tag', schema: z.string() },
+            { in: 'query', name: 'q', schema: z.string().min(1).max(80) },
+            { in: 'query', name: 'timeWindow', schema: z.enum(['all', 'today', 'week']) },
             { in: 'query', name: 'cursor', schema: z.string() },
             { in: 'query', name: 'limit', schema: z.number().int().min(1).max(50) },
           ],
@@ -134,6 +138,69 @@ export const buildOpenApiDoc = () =>
             401: errResp('Unauthorized'),
             403: errResp('Forbidden'),
             404: errResp('ApplicationNotFound'),
+          },
+        },
+      },
+      '/api/me/posts': {
+        get: {
+          summary: '내가 만든 모임 (JWT 필요, status 무관 CLOSED 포함)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'query', name: 'status', schema: PostStatus },
+            { in: 'query', name: 'cursor', schema: z.string() },
+            { in: 'query', name: 'limit', schema: z.number().int().min(1).max(50) },
+          ],
+          responses: {
+            200: ok(z.object({ items: z.array(PostResponse), nextCursor: z.string().nullable() })),
+            401: errResp('Unauthorized'),
+          },
+        },
+      },
+      '/api/me/applications': {
+        get: {
+          summary: '내가 신청한 모임 (JWT 필요)',
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { in: 'query', name: 'cursor', schema: z.string() },
+            { in: 'query', name: 'limit', schema: z.number().int().min(1).max(50) },
+          ],
+          responses: {
+            200: ok(
+              z.object({
+                items: z.array(
+                  z.object({
+                    id: z.string(),
+                    postId: z.string(),
+                    createdAt: z.string(),
+                    post: PostResponse,
+                  }),
+                ),
+                nextCursor: z.string().nullable(),
+              }),
+            ),
+            401: errResp('Unauthorized'),
+          },
+        },
+      },
+      '/api/notifications/{id}/read': {
+        patch: {
+          summary: '알림 단건 읽음 처리 (JWT 필요, 본인만)',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ in: 'path', name: 'id', required: true, schema: z.string() }],
+          responses: {
+            204: { description: 'No Content' },
+            401: errResp('Unauthorized'),
+            404: errResp('NotificationNotFound'),
+          },
+        },
+      },
+      '/api/notifications/read-all': {
+        post: {
+          summary: '본인 unread 알림 일괄 읽음 (JWT 필요)',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            200: ok(z.object({ updated: z.number().int() })),
+            401: errResp('Unauthorized'),
           },
         },
       },

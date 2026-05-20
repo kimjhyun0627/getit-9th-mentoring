@@ -2,23 +2,28 @@
  * hobby-api 게시글 라우터 — CRUD + 태그 다대다 + cursor 페이지네이션.
  *
  * 엔드포인트:
- *  - GET  /api/posts        — list (status/tag 필터 + cursor)
- *  - GET  /api/posts/:id    — detail (owner 만 openChatUrl 노출)
+ *  - GET  /api/posts        — list (status/tag/q/timeWindow 필터 + cursor)
+ *  - GET  /api/posts/:id    — detail (owner 만 openChatUrl 노출, myApplication 포함)
  *  - POST /api/posts        — create (JWT 필요)
  *  - DELETE /api/posts/:id  — delete (본인만, 타인 403)
  *
  * openChatUrl 마스킹 정책 (#36 — 프라이버시 강화):
- *  - list 응답: 항상 마스킹 (어떤 케이스라도 응답 본문에 포함 X).
+ *  - list 응답: 항상 마스킹.
  *  - detail 응답: (요청자가 방장) OR (요청자가 신청 완료 + status === 'FULL') 일 때만 노출.
- *    - 비신청 외부인은 FULL 이어도 못 봄.
- *    - 신청자도 RECRUITING (아직 마감 전) 단계에선 못 봄.
- *  - 마스킹 시: 키 자체를 응답에서 제외 (null/빈문자 금지 — 외부 노출 표면 최소화).
+ *
+ * 변경(#210/#211/#212/#230):
+ *  - serializePost 가 owner.nickname 을 채움 (ownerName 스냅샷, null → 응답 owner 생략).
+ *  - GET /api/posts 는 meetAt > now() 인 글만 노출 (status=CLOSED 미노출은 기존 정책).
+ *  - GET /api/posts/:id 에 myApplication 포함 (요청자가 신청자인 경우).
+ *  - GET /api/posts 가 q (검색) / timeWindow (today|week) 서버 필터 처리.
  */
 import { requireAuth } from '@getit/auth-utils/server';
 import { PostCreateInput, PostIdParam, PostListQuery } from '@getit/schemas/hobby';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
+
+import { serializePost } from './posts.serialize.js';
 
 const zodErrorBody = (err) => ({
   error: 'ValidationError',
@@ -41,34 +46,31 @@ const normalizeTagNames = (raw) => {
 };
 
 /**
- * Post → 응답 직렬화. include.tags 모양을 평탄화.
+ * timeWindow 를 meetAt 범위 (gte/lt) 로 변환. KST 자정 기준.
  *
- * @param {object} post
- * @param {{ exposeOpenChat?: boolean }} [opts]
+ * KST UTC+9 — 사용자 체감은 한국 시간 기준이지만 DB 는 UTC 저장.
+ * 한국 자정 = UTC 15:00 (전날). 정확성을 위해 9시간 오프셋으로 자정 boundary 계산.
+ *
+ * @param {'all'|'today'|'week'} window
+ * @param {Date} now
+ * @returns {{ gte?: Date, lt?: Date } | null}
  */
-const serializePost = (post, opts = {}) => {
-  const { exposeOpenChat = false } = opts;
-  const tags = Array.isArray(post.tags)
-    ? post.tags
-        .map((row) => row.tag)
-        .filter(Boolean)
-        .map((t) => ({ id: t.id, name: t.name }))
-    : [];
-  const base = {
-    id: post.id,
-    ownerId: post.ownerId,
-    title: post.title,
-    body: post.body,
-    meetAt: post.meetAt instanceof Date ? post.meetAt.toISOString() : post.meetAt,
-    capacity: post.capacity,
-    currentCapacity: post.currentCapacity,
-    status: post.status,
-    createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : post.createdAt,
-    updatedAt: post.updatedAt instanceof Date ? post.updatedAt.toISOString() : post.updatedAt,
-    tags,
-  };
-  if (exposeOpenChat) base.openChatUrl = post.openChatUrl;
-  return base;
+export const meetAtRangeFor = (window, now) => {
+  if (window === 'all') return null;
+  const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  // now 를 KST 로 옮긴 뒤 자정 boundary 를 잡고 다시 UTC 로 환산.
+  const kstNow = new Date(now.getTime() + KST_OFFSET_MS);
+  const kstMidnight = new Date(
+    Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()),
+  );
+  const startUtc = new Date(kstMidnight.getTime() - KST_OFFSET_MS);
+  if (window === 'today') {
+    const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000);
+    return { gte: startUtc, lt: endUtc };
+  }
+  // 'week' — 오늘 자정부터 7일 뒤 자정 직전까지.
+  const endUtc = new Date(startUtc.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return { gte: startUtc, lt: endUtc };
 };
 
 /**
@@ -83,21 +85,34 @@ export const createPostsRouter = ({ jwtSecret }) => {
   const authOptional = requireAuth({ secret: jwtSecret, optional: true });
 
   // GET /api/posts — list
-  router.get('/posts', async (req, res, next) => {
+  router.get('/posts', authOptional, async (req, res, next) => {
     try {
       const parsed = PostListQuery.safeParse(req.query);
       if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
-      const { status, tag, cursor, limit } = parsed.data;
-      // 생성 측 (POST /api/posts) 의 태그 정규화 (trim + lowercase) 와 동일 규칙
-      // 으로 검색해야 결과가 비지 않음. 한 곳만 어긋나면 사용자 체감으론 "버그".
+      const { status, tag, q, timeWindow, cursor, limit } = parsed.data;
       const normalizedTag = tag?.trim().toLowerCase();
+      const userId = req.user?.sub ?? null;
 
       const where = {};
       if (status) where.status = status;
       else where.status = { in: ['RECRUITING', 'FULL'] };
       if (normalizedTag) where.tags = { some: { tag: { name: normalizedTag } } };
 
-      // limit+1 fetch 로 nextCursor 판별.
+      // #211: 과거 시각 모임은 list 에서 자동 제외.
+      // 진행 중인 모임(시작 시각 30분 이내)도 마감 처리되도록 GRACE = 0.
+      where.meetAt = { gt: new Date() };
+
+      // #229: timeWindow 서버 필터 적용 (today / week).
+      const range = meetAtRangeFor(timeWindow, new Date());
+      if (range) {
+        where.meetAt = { ...where.meetAt, ...range };
+      }
+
+      // #229: q 검색 — title/body 부분 일치 (MySQL collation 이 utf8mb4_unicode_ci 라 case-insensitive).
+      if (q) {
+        where.OR = [{ title: { contains: q } }, { body: { contains: q } }];
+      }
+
       const rows = await prisma.post.findMany({
         where,
         include: { tags: { include: { tag: true } } },
@@ -110,8 +125,23 @@ export const createPostsRouter = ({ jwtSecret }) => {
       const page = hasMore ? rows.slice(0, limit) : rows;
       const nextCursor = hasMore ? page[page.length - 1].id : null;
 
+      // #212: list 응답에도 본인 신청 여부(myApplication)는 굳이 필요없지만,
+      // 카드에서 "이미 신청한 모임" 배지를 보여주려면 한 번에 batch lookup 이 효율적.
+      // 비로그인이면 skip.
+      const myAppByPost = userId
+        ? await loadMyApplicationsByPost(
+            page.map((p) => p.id),
+            userId,
+          )
+        : new Map();
+
       return res.status(200).json({
-        items: page.map((p) => serializePost(p, { exposeOpenChat: false })),
+        items: page.map((p) =>
+          serializePost(p, {
+            exposeOpenChat: false,
+            myApplication: myAppByPost.get(p.id) ?? null,
+          }),
+        ),
         nextCursor,
       });
     } catch (err) {
@@ -131,21 +161,20 @@ export const createPostsRouter = ({ jwtSecret }) => {
       });
       if (!post) return res.status(404).json({ error: 'PostNotFound' });
 
-      // openChatUrl 노출 조건 (#36):
-      //  - 방장 본인은 status 무관 항상 노출.
-      //  - 그 외 유저는 (해당 게시글에 신청 완료) AND (status === 'FULL') 일 때만 노출.
-      //  - 비로그인 / 비신청자 / RECRUITING 상태의 신청자 → 응답에서 키 자체 제외.
       const userId = req.user?.sub;
       const isOwner = userId === post.ownerId;
-      let isApplicantOnFull = false;
-      if (!isOwner && userId && post.status === 'FULL') {
+      let myApplication = null;
+      if (!isOwner && userId) {
         const applied = await prisma.application.findUnique({
           where: { postId_userId: { postId: post.id, userId } },
         });
-        isApplicantOnFull = applied != null;
+        if (applied) myApplication = { id: applied.id, createdAt: toIso(applied.createdAt) };
       }
+      const isApplicantOnFull = Boolean(myApplication) && post.status === 'FULL';
       const exposeOpenChat = isOwner || isApplicantOnFull;
-      return res.status(200).json({ post: serializePost(post, { exposeOpenChat }) });
+      return res.status(200).json({
+        post: serializePost(post, { exposeOpenChat, myApplication }),
+      });
     } catch (err) {
       return next(err);
     }
@@ -170,6 +199,7 @@ export const createPostsRouter = ({ jwtSecret }) => {
       const created = await prisma.post.create({
         data: {
           ownerId: req.user.sub,
+          ownerName: req.user.name ?? null,
           title,
           body,
           meetAt,
@@ -180,17 +210,15 @@ export const createPostsRouter = ({ jwtSecret }) => {
         include: { tags: { include: { tag: true } } },
       });
 
-      return res.status(201).json({ post: serializePost(created, { exposeOpenChat: true }) });
+      return res
+        .status(201)
+        .json({ post: serializePost(created, { exposeOpenChat: true, myApplication: null }) });
     } catch (err) {
       return next(err);
     }
   });
 
   // DELETE /api/posts/:id — owner only.
-  //
-  // TOCTOU 회피: findUnique → delete 분리하면 그 사이 다른 요청이 같은 글을
-  // 지웠을 때 Prisma 가 P2025 를 던져서 500 으로 흐름. 대신 `deleteMany` 로
-  // (id, ownerId) 조건을 한 번에 걸고, count 0 일 때 404/403 분기.
   router.delete('/posts/:id', auth, async (req, res, next) => {
     try {
       const parsedParam = PostIdParam.safeParse(req.params);
@@ -202,8 +230,6 @@ export const createPostsRouter = ({ jwtSecret }) => {
       });
       if (result.count === 1) return res.status(204).send();
 
-      // count 0 — id 자체가 없거나, 있는데 owner 가 아니거나. 둘 다 동시 race 가능.
-      // 정확한 분기를 위해 별도 lookup 으로 404/403 구분.
       const exists = await prisma.post.findUnique({
         where: { id },
         select: { ownerId: true },
@@ -216,4 +242,23 @@ export const createPostsRouter = ({ jwtSecret }) => {
   });
 
   return router;
+};
+
+const toIso = (d) => (d instanceof Date ? d.toISOString() : d);
+
+/**
+ * post id 배열 + userId 로 Application 일괄 조회 → Map<postId, { id, createdAt }>.
+ *
+ * @param {string[]} postIds
+ * @param {string} userId
+ */
+const loadMyApplicationsByPost = async (postIds, userId) => {
+  const map = new Map();
+  if (!postIds.length) return map;
+  const rows = await prisma.application.findMany({
+    where: { userId, postId: { in: postIds } },
+    select: { id: true, postId: true, createdAt: true },
+  });
+  for (const r of rows) map.set(r.postId, { id: r.id, createdAt: toIso(r.createdAt) });
+  return map;
 };

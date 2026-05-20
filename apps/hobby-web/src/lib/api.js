@@ -96,13 +96,22 @@ client.interceptors.response.use(onSuccess, onError);
 /**
  * GET /api/posts query string 빌더.
  *
- * @param {{ status?: string; tag?: string; cursor?: string; limit?: number }} params
+ * @param {{
+ *   status?: string;
+ *   tag?: string;
+ *   q?: string;
+ *   timeWindow?: 'all'|'today'|'week';
+ *   cursor?: string;
+ *   limit?: number;
+ * }} params
  * @returns {Record<string, string|number>}
  */
 const buildListParams = (params) => {
   const out = {};
   if (params.status) out.status = params.status;
   if (params.tag) out.tag = params.tag;
+  if (params.q) out.q = params.q;
+  if (params.timeWindow && params.timeWindow !== 'all') out.timeWindow = params.timeWindow;
   if (params.cursor) out.cursor = params.cursor;
   if (params.limit !== undefined) out.limit = params.limit;
   return out;
@@ -208,6 +217,56 @@ export const api = {
   },
 
   /**
+   * GET /api/me/posts — 내가 만든 모임. JWT 필요.
+   *
+   * @param {{ cursor?: string; limit?: number; status?: string }} [params]
+   */
+  listMyPosts: async (params = {}) => {
+    const res = await client.get('/me/posts', { params });
+    assertListShape(res.data);
+    return res.data;
+  },
+
+  /**
+   * GET /api/me/applications — 내가 신청한 모임. JWT 필요.
+   *
+   * @param {{ cursor?: string; limit?: number }} [params]
+   */
+  listMyApplications: async (params = {}) => {
+    const res = await client.get('/me/applications', { params });
+    assertListShape(res.data);
+    return res.data;
+  },
+
+  /**
+   * GET /api/notifications — 본인 알림. JWT 필요.
+   *
+   * @param {{ cursor?: string; limit?: number; unreadOnly?: 'true'|'false' }} [params]
+   */
+  listNotifications: async (params = {}) => {
+    const res = await client.get('/notifications', { params });
+    assertListShape(res.data);
+    return res.data;
+  },
+
+  /**
+   * PATCH /api/notifications/:id/read — 단건 읽음 처리.
+   *
+   * @param {string} id
+   */
+  markNotificationRead: async (id) => {
+    await client.patch(`/notifications/${encodeURIComponent(id)}/read`);
+  },
+
+  /**
+   * POST /api/notifications/read-all — 본인 unread 일괄 읽음.
+   */
+  markAllNotificationsRead: async () => {
+    const res = await client.post('/notifications/read-all');
+    return res.data;
+  },
+
+  /**
    * 게시글 작성.
    *
    * @param {{
@@ -256,10 +315,19 @@ export const api = {
   /**
    * GET (auth-api) /api/me — 현재 사용자. 비로그인이면 401 reject.
    *
+   * auth-api 응답은 `{ user: { sub, email, name } }`. FE 는 `id` 키로 다루는 게
+   * 자연스러우니 여기서 한 번에 정규화 (`{ id, email, name }`).
+   *
    * @returns {Promise<MeResponse>}
    */
   getMe: async () => {
     const res = await authClient.get('/me');
-    return res.data;
+    const user = res.data?.user ?? res.data ?? null;
+    if (!user) throw new Error('invalid /me response');
+    return {
+      id: user.id ?? user.sub,
+      email: user.email,
+      name: user.name,
+    };
   },
 };

@@ -6,18 +6,32 @@
 
 /**
  * Prisma where 절을 in-memory row 에 적용. 라우터에서 쓰는 연산자만 지원.
- * 지원: 단순 동등, `{ contains }`, `{ in: [...] }`, `{ lt/lte/gt/gte }`.
+ * 지원:
+ *  - 단순 동등
+ *  - `{ contains, mode? }` (case-insensitive 기본)
+ *  - `{ in: [...] }`
+ *  - `{ lt | lte | gt | gte }` — 다중 조합 허용 ({ gt, lt } 동시).
  */
 export const matchClause = (row, where) => {
   if (!where) return true;
   return Object.entries(where).every(([k, v]) => {
     if (v !== null && typeof v === 'object' && !(v instanceof Date)) {
       if ('in' in v) return Array.isArray(v.in) && v.in.includes(row[k]);
-      if ('contains' in v) return String(row[k] ?? '').includes(v.contains);
-      if ('lt' in v) return row[k] < v.lt;
-      if ('lte' in v) return row[k] <= v.lte;
-      if ('gt' in v) return row[k] > v.gt;
-      if ('gte' in v) return row[k] >= v.gte;
+      if ('contains' in v) {
+        const needle = String(v.contains);
+        const haystack = String(row[k] ?? '');
+        // MySQL utf8mb4_unicode_ci 가 case-insensitive — 그 동작에 맞춤.
+        return haystack.toLowerCase().includes(needle.toLowerCase());
+      }
+      // 비교 연산자 다중 조합 ({ gt, lt } 등) 도 지원.
+      const hasComparator = 'lt' in v || 'lte' in v || 'gt' in v || 'gte' in v;
+      if (hasComparator) {
+        if ('lt' in v && !(row[k] < v.lt)) return false;
+        if ('lte' in v && !(row[k] <= v.lte)) return false;
+        if ('gt' in v && !(row[k] > v.gt)) return false;
+        if ('gte' in v && !(row[k] >= v.gte)) return false;
+        return true;
+      }
       return false;
     }
     return row[k] === v;
