@@ -52,18 +52,50 @@ describe('Postit', () => {
     expect(within(article).getByRole('button', { name: /삭제/ })).toBeInTheDocument();
   });
 
-  it('편집/삭제 버튼 클릭 시 콜백이 메시지와 함께 호출된다', async () => {
+  it('편집 버튼 클릭 시 onEdit 콜백이 메시지와 함께 호출된다', async () => {
     const user = userEvent.setup();
     const onEdit = vi.fn();
-    const onDelete = vi.fn();
     const mine = { ...base, is_mine: true };
-    render(<Postit message={mine} onEdit={onEdit} onDelete={onDelete} now={fixedNow} />);
+    render(<Postit message={mine} onEdit={onEdit} now={fixedNow} />);
 
     await user.click(screen.getByRole('button', { name: /편집/ }));
     expect(onEdit).toHaveBeenCalledWith(mine);
+  });
 
-    await user.click(screen.getByRole('button', { name: /삭제/ }));
+  it('삭제 버튼 클릭 시 confirm 다이얼로그가 뜨고 즉시 onDelete 가 호출되지 않는다', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    const mine = { ...base, is_mine: true };
+    render(<Postit message={mine} onDelete={onDelete} now={fixedNow} />);
+
+    await user.click(screen.getByRole('button', { name: /이 쪽지 삭제/ }));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('이 쪽지를 떼어낼까요?')).toBeInTheDocument();
+  });
+
+  it('confirm 다이얼로그에서 "그대로 두기" 클릭 시 onDelete 가 호출되지 않고 다이얼로그가 닫힌다', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    const mine = { ...base, is_mine: true };
+    render(<Postit message={mine} onDelete={onDelete} now={fixedNow} />);
+
+    await user.click(screen.getByRole('button', { name: /이 쪽지 삭제/ }));
+    await user.click(screen.getByRole('button', { name: /그대로 두기/ }));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('confirm 다이얼로그에서 "떼어내기" 클릭 시 onDelete 가 메시지와 함께 호출된다', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    const mine = { ...base, is_mine: true };
+    render(<Postit message={mine} onDelete={onDelete} now={fixedNow} />);
+
+    await user.click(screen.getByRole('button', { name: /이 쪽지 삭제/ }));
+    await user.click(screen.getByRole('button', { name: /떼어내기/ }));
     expect(onDelete).toHaveBeenCalledWith(mine);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('색상 prop 별로 다른 배경 클래스를 적용한다 (PINK/MINT/LEMON/LAVENDER)', () => {

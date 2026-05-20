@@ -77,7 +77,7 @@ describe('ComposeModal', () => {
     await user.click(screen.getByRole('radio', { name: /PINK/i }));
     await user.click(screen.getByRole('button', { name: /붙이기|등록/ }));
 
-    expect(await screen.findByText(/메시지 내용을 입력하세요/)).toBeInTheDocument();
+    expect(await screen.findByText(/한 줄 적어주세요/)).toBeInTheDocument();
     expect(createSpy).not.toHaveBeenCalled();
   });
 
@@ -181,6 +181,6 @@ describe('ComposeModal', () => {
     await user.type(screen.getByLabelText('내용'), '안녕!');
     await user.click(screen.getByRole('button', { name: /붙이기|등록/ }));
 
-    expect(await screen.findByText(/잠시 후 다시 시도|서버 오류/)).toBeInTheDocument();
+    expect(await screen.findByText(/서버.*쉬는 중|서버 오류|잠시 후 다시/)).toBeInTheDocument();
   });
 });

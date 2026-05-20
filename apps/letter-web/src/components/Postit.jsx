@@ -1,3 +1,5 @@
+import { useId, useState } from 'react';
+
 import { cn } from '../lib/cn.js';
 import { formatRelative, rotationFromId } from '../lib/time.js';
 
@@ -59,6 +61,8 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
   const palette = PALETTE[message.color] ?? PALETTE.LEMON;
   const rot = `${rotationFromId(message.id)}deg`;
   const tape = tapePosition(message.id);
+  const confirmId = useId();
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <article
@@ -84,15 +88,16 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
             <button
               type="button"
               onClick={() => onEdit?.(message)}
-              aria-label="편집"
               className="inline-flex items-center gap-1 rounded-full border border-ink/15 bg-white/60 px-2.5 py-1 text-xs text-ink transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:border-beige/25 dark:bg-mocha3/65 dark:text-beige dark:hover:bg-mocha3"
             >
               <span aria-hidden="true">✏</span> 편집
             </button>
             <button
               type="button"
-              onClick={() => onDelete?.(message)}
-              aria-label="삭제"
+              onClick={() => setConfirming(true)}
+              aria-label="이 쪽지 삭제"
+              aria-haspopup="dialog"
+              aria-expanded={confirming || undefined}
               className="inline-flex items-center justify-center rounded-full border border-ink/15 bg-white/60 px-2.5 py-1 text-xs text-ink transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:border-beige/25 dark:bg-mocha3/65 dark:text-beige dark:hover:bg-mocha3"
             >
               <span aria-hidden="true">🗑</span>
@@ -100,6 +105,42 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
           </div>
         ) : null}
       </div>
+
+      {confirming ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`${confirmId}-title`}
+          aria-describedby={`${confirmId}-desc`}
+          className="mt-3 rounded-2xl border border-ink/10 bg-white/85 p-3 text-ink shadow-sm dark:border-beige/15 dark:bg-mocha2/90 dark:text-beige"
+        >
+          <p id={`${confirmId}-title`} className="text-sm font-semibold">
+            이 쪽지를 떼어낼까요?
+          </p>
+          <p id={`${confirmId}-desc`} className="mt-1 font-hand text-xs text-ink2 dark:text-beige2">
+            한 번 떼어내면 다시 붙일 수 없어요.
+          </p>
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="rounded-full px-3 py-1 text-xs font-medium text-ink2 transition hover:bg-cream2 dark:text-beige2 dark:hover:bg-mocha3"
+            >
+              그대로 두기
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setConfirming(false);
+                onDelete?.(message);
+              }}
+              className="rounded-full bg-ink px-3 py-1 text-xs font-semibold text-cream shadow-sm transition hover:bg-mocha2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-beige dark:text-mocha dark:hover:bg-beige2"
+            >
+              떼어내기
+            </button>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 };

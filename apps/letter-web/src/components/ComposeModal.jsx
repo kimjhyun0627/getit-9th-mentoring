@@ -22,10 +22,10 @@ const COLOR_VALUES = STICKY_COLORS.map((c) => c.value);
  */
 const ComposeFormSchema = z.object({
   content: z
-    .string({ required_error: '메시지 내용을 입력하세요' })
+    .string({ required_error: '한 줄 적어주세요' })
     .trim()
-    .min(1, '메시지 내용을 입력하세요')
-    .max(500, '메시지는 500자 이내'),
+    .min(1, '한 줄 적어주세요')
+    .max(500, '500자까지 적을 수 있어요'),
   color: z
     .union([z.string(), z.undefined(), z.null()])
     .refine((v) => typeof v === 'string' && COLOR_VALUES.includes(v), {
@@ -41,12 +41,12 @@ const ComposeFormSchema = z.object({
  */
 const toFriendlyError = (err) => {
   const status = /** @type {{response?: {status?: number}}} */ (err)?.response?.status;
-  if (status === 401) return '로그인이 만료됐어. 다시 로그인 후 시도해줘';
-  if (status === 400 || status === 422) return '입력값이 올바르지 않습니다. 다시 확인해주세요';
-  if (status === 429) return '요청이 많아. 잠시 후 다시 시도해줘';
+  if (status === 401) return '로그인이 만료됐어요. 다시 로그인한 뒤 붙여주세요';
+  if (status === 400 || status === 422) return '입력 내용을 다시 확인해주세요';
+  if (status === 429) return '잠시만요, 너무 빨리 보냈어요. 조금 있다 다시 시도해주세요';
   if (typeof status === 'number' && status >= 500)
-    return '서버 오류가 발생했어. 잠시 후 다시 시도해줘';
-  return '메시지 등록에 실패했어. 잠시 후 다시 시도해줘';
+    return '서버가 잠깐 쉬는 중이에요. 잠시 후 다시 붙여주세요';
+  return '쪽지를 붙이지 못했어요. 잠시 후 다시 시도해주세요';
 };
 
 /**
@@ -225,6 +225,9 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
           </h2>
           <p className="font-hand text-sm text-ink2 dark:text-beige2">
             익명으로 부원실 벽에 살며시 붙여둘게요.
+          </p>
+          <p className="font-hand text-xs text-sageDk dark:text-sageW">
+            작성자 이름은 표시되지 않아요.
           </p>
         </header>
 
