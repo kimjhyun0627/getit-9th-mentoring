@@ -18,6 +18,7 @@
 | 8 | **QA Engineer** | TDD 테스트 작성, E2E 시나리오, browse 도구 활용 | `qa`, `qa-only`, `test-driven-development` |
 | 9 | **Code Reviewer / Tech Lead** | PR 리뷰, 아키텍처 가드, 리팩토링, 150/300줄 규칙 감시 | `review`, `plan-eng-review` |
 | 10 | **Security Engineer** | 동시성, 프라이버시, 인증, 익명성, OWASP | `cso`, `security-review` |
+| 11 | **UX Writer / Content Strategist** | 모든 사용자 보이는 텍스트 검토 (버튼/빈상태/에러/카피/aria). **issue 작성만, resolve는 FE 위임** ([상세](ux-writer.md)) | — |
 
 ## 프로젝트별 역할 매핑
 
@@ -35,6 +36,7 @@
 | QA Engineer | L | **H** | **H** | M | **H** | M | — |
 | Code Reviewer | M | M | M | M | M | M | M |
 | Security | — | **H** | **H** | L | M | M | M |
+| UX Writer | M | M | **H** | M | M | **H** | — |
 
 ### 프로젝트별 특이점
 
