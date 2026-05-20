@@ -66,6 +66,22 @@ describe('PostCreateInput', () => {
     expect(r.success).toBe(false);
   });
 
+  it('openChatUrl 다른 도메인 (https://evil.example.com/o/test) → 400', () => {
+    const r = PostCreateInput.safeParse({
+      ...validCreate(),
+      openChatUrl: 'https://evil.example.com/o/test',
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('openChatUrl 경로 prefix 다름 (/abc/test) → 400', () => {
+    const r = PostCreateInput.safeParse({
+      ...validCreate(),
+      openChatUrl: 'https://open.kakao.com/abc/test',
+    });
+    expect(r.success).toBe(false);
+  });
+
   it('tags 6개 → 400', () => {
     const r = PostCreateInput.safeParse({
       ...validCreate(),

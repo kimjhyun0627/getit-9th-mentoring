@@ -150,10 +150,25 @@ describe('hobby-api posts', () => {
       expect(res.body.items[0].title).toBe('food');
     });
 
-    it('list 응답은 openChatUrl 항상 마스킹 (FULL 도 list 에서는 노출 X)', async () => {
+    it('list 응답은 openChatUrl 항상 마스킹 (비owner / RECRUITING)', async () => {
       await createPost(app, 'alice');
       const res = await request(app).get('/api/posts');
       expect(res.status).toBe(200);
+      expect(res.body.items[0].openChatUrl).toBeUndefined();
+    });
+
+    it('list 응답은 openChatUrl 항상 마스킹 (owner + FULL — detail 분기와 무관)', async () => {
+      const create = await createPost(app, 'alice');
+      const { memDb } = await import('./setup.js');
+      const row = memDb.posts.get(create.body.post.id);
+      memDb.posts.set(create.body.post.id, { ...row, status: 'FULL' });
+
+      const res = await request(app)
+        .get('/api/posts')
+        .set('Authorization', `Bearer ${tokenFor('alice')}`);
+      expect(res.status).toBe(200);
+      expect(res.body.items[0].status).toBe('FULL');
+      // list 는 정책상 무조건 마스킹. owner 든 FULL 이든 detail 에서만 노출.
       expect(res.body.items[0].openChatUrl).toBeUndefined();
     });
 

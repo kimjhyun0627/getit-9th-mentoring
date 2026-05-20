@@ -28,7 +28,7 @@ const TagName = z
  *
  * - meetAt: ISO 8601 문자열 → Date 로 coerce. 과거 시각이면 reject.
  * - capacity: 2~20 (방장 포함 가정).
- * - openChatUrl: 카카오 오픈채팅 https URL.
+ * - openChatUrl: 카카오 오픈채팅 https URL (host=open.kakao.com, path=/o/...).
  * - tags: 최대 5개.
  */
 export const PostCreateInput = z.object({
@@ -47,8 +47,23 @@ export const PostCreateInput = z.object({
   openChatUrl: z
     .string()
     .url('유효한 URL이 아닙니다')
-    .startsWith('https://', 'https URL만 허용')
-    .max(512),
+    .max(512)
+    .refine(
+      (v) => {
+        // 카카오 오픈채팅 URL 만 허용 — 도메인/path 까지 고정해서 임의 https 링크 차단.
+        try {
+          const u = new URL(v);
+          return (
+            u.protocol === 'https:' &&
+            u.hostname === 'open.kakao.com' &&
+            u.pathname.startsWith('/o/')
+          );
+        } catch {
+          return false;
+        }
+      },
+      { message: '카카오 오픈채팅 URL (https://open.kakao.com/o/...) 만 허용됩니다' },
+    ),
   tags: z.array(TagName).max(5, '태그는 최대 5개').default([]),
 });
 

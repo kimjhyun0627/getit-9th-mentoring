@@ -11,6 +11,8 @@ import { createApp } from './app.js';
 
 const log = pino({ name: 'hobby-api' });
 
+// Sentry 는 `optionalDependencies` — 운영 이미지에는 설치되고, 로컬/테스트에는
+// 없어도 부팅됨. SENTRY_DSN 이 비어 있으면 import 자체를 건너뜀.
 const initSentry = async () => {
   if (!process.env.SENTRY_DSN) return;
   try {
@@ -18,7 +20,7 @@ const initSentry = async () => {
     Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
     log.info('Sentry initialized');
   } catch (err) {
-    log.warn({ err }, 'Sentry init skipped (@sentry/node missing?)');
+    log.warn({ err }, 'Sentry init skipped (@sentry/node missing — install optional dep?)');
   }
 };
 

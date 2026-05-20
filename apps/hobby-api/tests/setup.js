@@ -126,10 +126,16 @@ class FakePrismaClient {
         return include?.tags ? expandTagsOnPost({ ...row }) : { ...row };
       },
 
-      findUnique: async ({ where, include }) => {
+      findUnique: async ({ where, include, select }) => {
         for (const p of memDb.posts.values()) {
           if (matchWhere(p, where)) {
-            return include?.tags ? expandTagsOnPost({ ...p }) : { ...p };
+            const base = include?.tags ? expandTagsOnPost({ ...p }) : { ...p };
+            if (select) {
+              const picked = {};
+              for (const k of Object.keys(select)) if (select[k]) picked[k] = base[k];
+              return picked;
+            }
+            return base;
           }
         }
         return null;
@@ -188,6 +194,22 @@ class FakePrismaClient {
         const err = new Error('Record to delete does not exist');
         err.code = 'P2025';
         throw err;
+      },
+
+      // 라우터의 TOCTOU 회피 (id + ownerId 동시 조건) 를 흉내내는 deleteMany.
+      // 실 Prisma 와 동일하게 매칭 0 건이면 throw 하지 않고 { count: 0 } 반환.
+      deleteMany: async ({ where }) => {
+        let count = 0;
+        for (const [id, p] of [...memDb.posts]) {
+          if (matchWhere(p, where)) {
+            memDb.posts.delete(id);
+            for (const key of [...memDb.postTags.keys()]) {
+              if (memDb.postTags.get(key).postId === id) memDb.postTags.delete(key);
+            }
+            count += 1;
+          }
+        }
+        return { count };
       },
     };
   }

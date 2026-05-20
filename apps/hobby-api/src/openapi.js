@@ -72,6 +72,7 @@ export const buildOpenApiDoc = () =>
         },
         post: {
           summary: '게시글 작성 (JWT 필요)',
+          security: [{ bearerAuth: [] }],
           requestBody: { content: { 'application/json': { schema: PostCreateInput } } },
           responses: {
             201: ok(z.object({ post: PostResponse })),
@@ -91,6 +92,7 @@ export const buildOpenApiDoc = () =>
         },
         delete: {
           summary: '게시글 삭제 (본인만)',
+          security: [{ bearerAuth: [] }],
           parameters: [{ in: 'path', name: 'id', required: true, schema: z.string() }],
           responses: {
             204: { description: 'No Content' },
@@ -101,6 +103,12 @@ export const buildOpenApiDoc = () =>
         },
       },
     },
-    // PostListQuery 직접 export 도 같이 reference 로 노출.
-    components: { schemas: { PostListQuery: PostListQuery.openapi({ ref: 'PostListQuery' }) } },
+    components: {
+      // PostListQuery 직접 export 도 같이 reference 로 노출.
+      schemas: { PostListQuery: PostListQuery.openapi({ ref: 'PostListQuery' }) },
+      // JWT Bearer — POST/DELETE /api/posts 의 auth 미들웨어와 매핑.
+      securitySchemes: {
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      },
+    },
   });

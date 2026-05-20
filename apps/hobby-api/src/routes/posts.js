@@ -173,18 +173,30 @@ export const createPostsRouter = ({ jwtSecret }) => {
     }
   });
 
-  // DELETE /api/posts/:id — owner only
+  // DELETE /api/posts/:id — owner only.
+  //
+  // TOCTOU 회피: findUnique → delete 분리하면 그 사이 다른 요청이 같은 글을
+  // 지웠을 때 Prisma 가 P2025 를 던져서 500 으로 흐름. 대신 `deleteMany` 로
+  // (id, ownerId) 조건을 한 번에 걸고, count 0 일 때 404/403 분기.
   router.delete('/posts/:id', auth, async (req, res, next) => {
     try {
       const parsedParam = PostIdParam.safeParse(req.params);
       if (!parsedParam.success) return res.status(400).json(zodErrorBody(parsedParam.error));
 
-      const post = await prisma.post.findUnique({ where: { id: parsedParam.data.id } });
-      if (!post) return res.status(404).json({ error: 'PostNotFound' });
-      if (post.ownerId !== req.user.sub) return res.status(403).json({ error: 'Forbidden' });
+      const id = parsedParam.data.id;
+      const result = await prisma.post.deleteMany({
+        where: { id, ownerId: req.user.sub },
+      });
+      if (result.count === 1) return res.status(204).send();
 
-      await prisma.post.delete({ where: { id: parsedParam.data.id } });
-      return res.status(204).send();
+      // count 0 — id 자체가 없거나, 있는데 owner 가 아니거나. 둘 다 동시 race 가능.
+      // 정확한 분기를 위해 별도 lookup 으로 404/403 구분.
+      const exists = await prisma.post.findUnique({
+        where: { id },
+        select: { ownerId: true },
+      });
+      if (!exists) return res.status(404).json({ error: 'PostNotFound' });
+      return res.status(403).json({ error: 'Forbidden' });
     } catch (err) {
       return next(err);
     }
