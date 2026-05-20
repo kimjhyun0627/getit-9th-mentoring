@@ -56,7 +56,9 @@ providers:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: "${ACME_EMAIL}"
+      # email은 docker-compose.prod.yml의 TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL
+      # 환경변수로 주입한다. static config file은 ${...} expansion을 안 하기 때문에
+      # 여기에 적으면 literal "${ACME_EMAIL}"이 Let's Encrypt로 전달돼 invalidContact 에러 발생.
       storage: /letsencrypt/acme.json
       keyType: EC256
       httpChallenge:
