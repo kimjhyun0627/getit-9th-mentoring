@@ -46,7 +46,7 @@ describe('hobby-api P1 새 동작', () => {
   /** @type {import('express').Express} */
   let app;
   beforeAll(() => {
-    app = createApp();
+    app = createApp({ rateLimitMax: 100_000 });
   });
 
   describe('owner.nickname 직렬화 (#210)', () => {

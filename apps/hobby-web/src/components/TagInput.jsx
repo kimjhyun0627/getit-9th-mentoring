@@ -4,6 +4,9 @@ import { cn } from '../lib/cn.js';
 
 const MAX_TAGS = 5;
 const MAX_TAG_LEN = 24;
+// #192: BE Zod (`@getit/schemas/hobby` TagName) 와 동일한 정규식. 글자/숫자/`-`/`_` 만.
+// `\p{L}\p{N}` 로 한글/영문 모두 통과. mismatch 가 hint 의 거짓 약속이 되지 않게.
+const TAG_PATTERN = /^[\p{L}\p{N}_-]+$/u;
 
 /**
  * 칩 기반 태그 입력 — 최대 5개, 각 1~24자.
@@ -30,16 +33,27 @@ export const TagInput = ({
   placeholder = '예: 마라탕, 북문, 스터디',
 }) => {
   const [draft, setDraft] = useState('');
+  const [localError, setLocalError] = useState(/** @type {string|null} */ (null));
   const id = useId();
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
+  // CR review #348: localError 가 떠도 input/컨테이너의 ARIA 상태에 같이 반영해야
+  // 스크린리더가 error 와 input 을 연결할 수 있음.
+  const effectiveError = error ?? localError;
 
-  /** 현재 draft 를 정규화하고 chip 으로 추가. 중복/제한 체크. */
+  /** 현재 draft 를 정규화하고 chip 으로 추가. 중복/제한/정규식 체크 (#192). */
   const commit = () => {
     const next = draft.trim();
+    setLocalError(null);
     if (!next) return;
     if (value.length >= MAX_TAGS) {
+      setLocalError(`태그는 최대 ${MAX_TAGS}개까지`);
       setDraft('');
+      return;
+    }
+    if (!TAG_PATTERN.test(next)) {
+      // BE 가 거부할 패턴이면 즉시 inline error — submit 까지 보내지 않게.
+      setLocalError('태그는 글자/숫자/-_만 사용 가능');
       return;
     }
     const lower = next.toLowerCase();
@@ -82,7 +96,7 @@ export const TagInput = ({
           'flex min-h-[2.75rem] flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition [color-scheme:light]',
           'focus-within:ring-2 focus-within:ring-rose-400 focus-within:ring-offset-2 focus-within:ring-offset-background',
           'dark:border-white/10 dark:bg-zinc-900/60 dark:shadow-inner dark:shadow-black/30 dark:[color-scheme:dark] dark:focus-within:ring-amber-300',
-          error && 'border-rose-500 focus-within:ring-rose-500 dark:border-rose-400',
+          effectiveError && 'border-rose-500 focus-within:ring-rose-500 dark:border-rose-400',
         )}
       >
         {value.map((tag, idx) => (
@@ -107,22 +121,24 @@ export const TagInput = ({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
-          onBlur={commit}
+          // #319: onBlur 자동 commit 제거 — 의도치 않은 태그 박힘 방지.
+          // 명시적 Enter / `,` / Space 로만 chip 으로 굳는다.
+          onBlur={() => setDraft('')}
           maxLength={MAX_TAG_LEN}
           placeholder={value.length === 0 ? placeholder : ''}
-          aria-invalid={Boolean(error) || undefined}
-          aria-describedby={error ? errorId : hint ? hintId : undefined}
+          aria-invalid={Boolean(effectiveError) || undefined}
+          aria-describedby={effectiveError ? errorId : hint ? hintId : undefined}
           className="min-w-[8rem] flex-1 bg-transparent px-2 py-1 text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
         />
       </div>
 
-      {error ? (
+      {error || localError ? (
         <p
           id={errorId}
           role="alert"
           className="text-xs font-medium text-rose-600 dark:text-rose-300"
         >
-          {error}
+          {error || localError}
         </p>
       ) : hint ? (
         <p id={hintId} className="text-xs text-slate-500 dark:text-slate-400">

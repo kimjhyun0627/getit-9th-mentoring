@@ -281,6 +281,64 @@ export const api = {
   createPost: (body) => client.post('/posts', body),
 
   /**
+   * 게시글 수정 (PATCH, owner only) — #333.
+   *
+   * @param {string} id
+   * @param {Partial<{
+   *   title: string;
+   *   body: string;
+   *   meetAt: string;
+   *   capacity: number;
+   *   openChatUrl: string;
+   *   tags: string[];
+   * }>} patch
+   */
+  updatePost: async (id, patch) => {
+    const res = await client.patch(`/posts/${encodeURIComponent(id)}`, patch);
+    return res.data;
+  },
+
+  /**
+   * 게시글 종료 (CLOSED 전이, owner only) — #244.
+   *
+   * @param {string} id
+   */
+  closePost: async (id) => {
+    const res = await client.post(`/posts/${encodeURIComponent(id)}/close`);
+    return res.data;
+  },
+
+  /**
+   * 신청자 목록 (owner only) — #245.
+   *
+   * @param {string} id
+   * @returns {Promise<{ items: Array<{
+   *   id: string;
+   *   userId: string;
+   *   createdAt: string;
+   *   noShow: boolean;
+   *   noShowCount: number;
+   * }>; total: number }>}
+   */
+  listApplicants: async (id) => {
+    const res = await client.get(`/posts/${encodeURIComponent(id)}/applicants`);
+    return res.data;
+  },
+
+  /**
+   * 노쇼 신고 (owner only) — #247.
+   *
+   * @param {string} id
+   * @param {string[]} applicantIds
+   */
+  reportNoShows: async (id, applicantIds) => {
+    const res = await client.post(`/posts/${encodeURIComponent(id)}/no-shows`, {
+      applicantIds,
+    });
+    return res.data;
+  },
+
+  /**
    * GET /api/posts/:id — 단건 상세. JWT 쿠키가 있으면 owner 판정.
    *
    * @param {string} id

@@ -40,12 +40,13 @@ const serializeNotification = (n) => ({
 /**
  * 알림 라우터 생성.
  *
- * @param {{ jwtSecret: string }} opts
+ * @param {{ jwtSecret: string, mutationLimiter?: import('express').RequestHandler }} opts
  * @returns {import('express').Router}
  */
-export const createNotificationsRouter = ({ jwtSecret }) => {
+export const createNotificationsRouter = ({ jwtSecret, mutationLimiter }) => {
   const router = Router();
   const auth = requireAuth({ secret: jwtSecret });
+  const burstLimit = mutationLimiter ?? ((_req, _res, next) => next());
 
   router.get('/notifications', auth, async (req, res, next) => {
     try {
@@ -98,7 +99,7 @@ export const createNotificationsRouter = ({ jwtSecret }) => {
 
   // PATCH /api/notifications/:id/read — 단건 읽음 처리. 본인 소유 검증.
   // updateMany + where: { id, userId } 로 권한 + 존재 체크 한 번에 처리.
-  router.patch('/notifications/:id/read', auth, async (req, res, next) => {
+  router.patch('/notifications/:id/read', burstLimit, auth, async (req, res, next) => {
     try {
       const id = String(req.params.id);
       if (!id || id.length > 64) {
@@ -123,7 +124,7 @@ export const createNotificationsRouter = ({ jwtSecret }) => {
   });
 
   // POST /api/notifications/read-all — 본인의 unread 전체를 읽음 처리.
-  router.post('/notifications/read-all', auth, async (req, res, next) => {
+  router.post('/notifications/read-all', burstLimit, auth, async (req, res, next) => {
     try {
       const userId = req.user.sub;
       const updated = await prisma.notification.updateMany({

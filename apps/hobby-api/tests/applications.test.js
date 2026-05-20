@@ -63,7 +63,7 @@ describe('hobby-api applications', () => {
   let app;
 
   beforeAll(() => {
-    app = createApp();
+    app = createApp({ rateLimitMax: 100_000 });
   });
 
   describe('POST /api/applications', () => {

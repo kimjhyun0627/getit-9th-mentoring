@@ -2,20 +2,21 @@ import { describe, expect, it } from 'vitest';
 
 import { formatMeetAt, initialOf } from './format.js';
 
-const NOW = new Date('2026-05-19T10:00:00');
+// #318: KST 강제. 입력은 UTC ISO 로 줘서 KST 변환 결과를 검증한다.
+// UTC 01:00 + 9h = KST 10:00 — KST 자정 기준 day-diff 계산용 기준점.
+const NOW = new Date('2026-05-19T01:00:00Z');
 
-describe('formatMeetAt', () => {
-  it('오늘이면 "오늘 HH:MM" 형식으로 표시', () => {
-    expect(formatMeetAt(new Date('2026-05-19T18:00:00'), NOW)).toBe('오늘 18:00');
+describe('formatMeetAt — KST 표기 (#318)', () => {
+  it('오늘 KST 18:00 (= UTC 09:00) → "오늘 18:00 (KST)"', () => {
+    expect(formatMeetAt(new Date('2026-05-19T09:00:00Z'), NOW)).toBe('오늘 18:00 (KST)');
   });
 
-  it('내일이면 "내일 HH:MM" 형식으로 표시', () => {
-    expect(formatMeetAt(new Date('2026-05-20T09:30:00'), NOW)).toBe('내일 09:30');
+  it('내일 KST 09:30 (= UTC 2026-05-20 00:30) → "내일 09:30 (KST)"', () => {
+    expect(formatMeetAt(new Date('2026-05-20T00:30:00Z'), NOW)).toBe('내일 09:30 (KST)');
   });
 
-  it('이번 주말이면 "M/D (요일) HH:MM" 형식으로 표시', () => {
-    // 2026-05-23 은 토요일
-    expect(formatMeetAt(new Date('2026-05-23T14:00:00'), NOW)).toBe('5/23 (토) 14:00');
+  it('주말 KST 14:00 (2026-05-23 토 = UTC 05:00) → "5/23 (토) 14:00 (KST)"', () => {
+    expect(formatMeetAt(new Date('2026-05-23T05:00:00Z'), NOW)).toBe('5/23 (토) 14:00 (KST)');
   });
 
   it('잘못된 입력이면 빈 문자열', () => {

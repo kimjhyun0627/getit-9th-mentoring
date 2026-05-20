@@ -51,7 +51,7 @@ describe('hobby-api openChatUrl 프라이버시 정책 (#36)', () => {
   /** @type {import('express').Express} */
   let app;
   beforeAll(() => {
-    app = createApp();
+    app = createApp({ rateLimitMax: 100_000 });
   });
 
   describe('GET /api/posts/:id — detail 응답', () => {
@@ -162,7 +162,7 @@ describe('hobby-api 알림 자동 생성 (#36)', () => {
   /** @type {import('express').Express} */
   let app;
   beforeAll(() => {
-    app = createApp();
+    app = createApp({ rateLimitMax: 100_000 });
   });
 
   it('매칭 FULL 전이 시 — 방장 + 모든 신청자에게 MATCH_FULL 알림 생성', async () => {
@@ -196,7 +196,7 @@ describe('GET /api/notifications (#36)', () => {
   /** @type {import('express').Express} */
   let app;
   beforeAll(() => {
-    app = createApp();
+    app = createApp({ rateLimitMax: 100_000 });
   });
 
   it('비인증 → 401', async () => {

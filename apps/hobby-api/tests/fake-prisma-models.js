@@ -47,6 +47,31 @@ export const buildTagModel = (memDb, nextId) => ({
   },
 });
 
+/**
+ * PostTag 모델 (다대다 조인). 라우터에서 쓰는 패턴만 구현.
+ */
+export const buildPostTagModel = (memDb) => ({
+  create: async ({ data }) => {
+    const key = `${data.postId}::${data.tagId}`;
+    const row = { postId: data.postId, tagId: data.tagId };
+    memDb.postTags.set(key, row);
+    return { ...row };
+  },
+  deleteMany: async ({ where }) => {
+    let count = 0;
+    for (const [key, row] of [...memDb.postTags]) {
+      if (matchWhere(row, where ?? {})) {
+        memDb.postTags.delete(key);
+        count += 1;
+      }
+    }
+    return { count };
+  },
+  findMany: async ({ where } = {}) => {
+    return [...memDb.postTags.values()].filter((r) => matchWhere(r, where ?? {}));
+  },
+});
+
 const linkTags = (memDb, nextId, postId, tagsBlock) => {
   if (!tagsBlock?.create) return;
   for (const link of tagsBlock.create) {
@@ -178,7 +203,8 @@ export const buildApplicationModel = (memDb, nextId) => ({
       }
     }
     const id = data.id ?? nextId('app');
-    const row = { id, createdAt: new Date(), ...data };
+    // schema.prisma 의 default(false) 와 동일하게 noShow 초기값 보장.
+    const row = { id, createdAt: new Date(), noShow: false, ...data };
     memDb.applications.set(id, row);
     return { ...row };
   },
@@ -218,6 +244,17 @@ export const buildApplicationModel = (memDb, nextId) => ({
       for (const k of Object.keys(select)) if (select[k]) picked[k] = a[k];
       return picked;
     });
+  },
+
+  updateMany: async ({ where, data }) => {
+    let count = 0;
+    for (const [id, a] of memDb.applications) {
+      if (matchWhere(a, where ?? {})) {
+        memDb.applications.set(id, { ...a, ...data });
+        count += 1;
+      }
+    }
+    return { count };
   },
 });
 

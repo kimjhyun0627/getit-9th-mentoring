@@ -76,13 +76,14 @@ export const meetAtRangeFor = (window, now) => {
 /**
  * 게시글 라우터 생성.
  *
- * @param {{ jwtSecret: string }} opts
+ * @param {{ jwtSecret: string, mutationLimiter?: import('express').RequestHandler }} opts
  * @returns {import('express').Router}
  */
-export const createPostsRouter = ({ jwtSecret }) => {
+export const createPostsRouter = ({ jwtSecret, mutationLimiter }) => {
   const router = Router();
   const auth = requireAuth({ secret: jwtSecret });
   const authOptional = requireAuth({ secret: jwtSecret, optional: true });
+  const burstLimit = mutationLimiter ?? ((_req, _res, next) => next());
 
   // GET /api/posts — list
   router.get('/posts', authOptional, async (req, res, next) => {
@@ -111,6 +112,21 @@ export const createPostsRouter = ({ jwtSecret }) => {
       // #229: q 검색 — title/body 부분 일치 (MySQL collation 이 utf8mb4_unicode_ci 라 case-insensitive).
       if (q) {
         where.OR = [{ title: { contains: q } }, { body: { contains: q } }];
+      }
+
+      // #267: 잘못된 cursor (존재하지 않거나 위조) 가 들어오면 Prisma findMany 가 500.
+      // 사전에 존재 여부만 가볍게 확인 → 400 ValidationError 로 통일.
+      if (cursor) {
+        const exists = await prisma.post.findUnique({
+          where: { id: cursor },
+          select: { id: true },
+        });
+        if (!exists) {
+          return res.status(400).json({
+            error: 'ValidationError',
+            issues: [{ path: 'cursor', message: '유효하지 않은 cursor' }],
+          });
+        }
       }
 
       const rows = await prisma.post.findMany({
@@ -181,7 +197,7 @@ export const createPostsRouter = ({ jwtSecret }) => {
   });
 
   // POST /api/posts — create
-  router.post('/posts', auth, async (req, res, next) => {
+  router.post('/posts', burstLimit, auth, async (req, res, next) => {
     try {
       const parsed = PostCreateInput.safeParse(req.body);
       if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
@@ -219,7 +235,7 @@ export const createPostsRouter = ({ jwtSecret }) => {
   });
 
   // DELETE /api/posts/:id — owner only.
-  router.delete('/posts/:id', auth, async (req, res, next) => {
+  router.delete('/posts/:id', burstLimit, auth, async (req, res, next) => {
     try {
       const parsedParam = PostIdParam.safeParse(req.params);
       if (!parsedParam.success) return res.status(400).json(zodErrorBody(parsedParam.error));

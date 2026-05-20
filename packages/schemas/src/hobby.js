@@ -102,12 +102,82 @@ export const PostIdParam = z.object({
 });
 
 /**
+ * 게시글 수정 입력 — partial update (PATCH).
+ *
+ * 정책 (#333):
+ *  - 방장만 수정 가능 (BE 권한 검증).
+ *  - meetAt: 변경하려면 ISO 8601 + 미래 시각.
+ *  - capacity: 신청자 수보다 작게 낮추면 422 (BE 검증).
+ *  - status: 직접 변경 불가 — 별도 close 엔드포인트 사용.
+ *  - openChatUrl: 동일 카카오 도메인 규칙.
+ *  - tags: 전체 교체 (현재 connect 패턴과 동일하게 BE 재구성).
+ */
+export const PostUpdateInput = z
+  .object({
+    title: z.string().trim().min(2, '제목은 2자 이상').max(80, '제목은 80자 이내').optional(),
+    body: z.string().trim().min(1, '본문을 입력하세요').max(2000, '본문은 2000자 이내').optional(),
+    meetAt: z
+      .string({ invalid_type_error: '유효한 일시가 아닙니다' })
+      .datetime({ offset: true, message: '유효한 ISO 8601 일시 문자열이 아닙니다' })
+      .transform((s) => new Date(s))
+      .refine((d) => d.getTime() > Date.now(), { message: '과거 시각은 입력할 수 없습니다' })
+      .optional(),
+    capacity: z
+      .number({ invalid_type_error: '정원은 숫자여야 합니다' })
+      .int('정원은 정수여야 합니다')
+      .min(2, '정원은 2명 이상')
+      .max(20, '정원은 20명 이하')
+      .optional(),
+    openChatUrl: z
+      .string()
+      .url('유효한 URL이 아닙니다')
+      .max(512)
+      .refine(
+        (v) => {
+          try {
+            const u = new URL(v);
+            return (
+              u.protocol === 'https:' &&
+              u.hostname === 'open.kakao.com' &&
+              u.pathname.startsWith('/o/')
+            );
+          } catch {
+            return false;
+          }
+        },
+        { message: '카카오 오픈채팅 URL (https://open.kakao.com/o/...) 만 허용됩니다' },
+      )
+      .optional(),
+    tags: z.array(TagName).max(5, '태그는 최대 5개').optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: '수정할 필드를 1개 이상 보내야 합니다',
+  });
+
+/**
  * 매칭 신청 입력.
  * - postId: 신청할 게시글 id.
  * userId 는 JWT 의 sub 를 사용 (body 로 받지 않음 — spoof 방지).
  */
 export const ApplicationCreateInput = z.object({
   postId: z.string().min(1).max(64),
+});
+
+/**
+ * 노쇼 신고 입력 (#247).
+ * - applicantIds: 노쇼로 신고할 신청자 userId 배열 (방장이 호출).
+ *   1개 이상 20개 이하. cuid/userId 문자열 1~64자.
+ *
+ * 정책:
+ *  - 방장만 호출. 해당 post 의 application 에 속한 userId 만 허용 (BE 검증).
+ *  - meetAt 이 지난 모임만 허용 (모임 끝나기 전 신고 금지).
+ *  - 멱등: 이미 NO_SHOW 마크된 application 은 무시 (재신고 시 count 안 올라감).
+ */
+export const NoShowReportInput = z.object({
+  applicantIds: z
+    .array(z.string().min(1).max(64))
+    .min(1, '신고할 신청자를 1명 이상 선택하세요')
+    .max(20, '한 번에 20명까지'),
 });
 
 /** 경로 파라미터 :id (Application.id). */
@@ -119,7 +189,12 @@ export const ApplicationIdParam = z.object({
  * 알림 종류. enum 미강제 (BE schema.prisma 의 String kind 와 일치) — 향후 확장 자유.
  * 알려진 값만 클라이언트가 표시 분기에 쓰면 됨.
  */
-export const NotificationKind = z.enum(['MATCH_FULL', 'APPLICATION_CANCELED', 'NO_SHOW_REPORTED']);
+export const NotificationKind = z.enum([
+  'MATCH_FULL',
+  'APPLICATION_CANCELED',
+  'NO_SHOW_REPORTED',
+  'POST_CLOSED',
+]);
 
 /**
  * 알림 리스트 조회 query.
@@ -154,10 +229,12 @@ export const MyApplicationListQuery = z.object({
 
 /**
  * @typedef {z.infer<typeof PostCreateInput>} PostCreateInputT
+ * @typedef {z.infer<typeof PostUpdateInput>} PostUpdateInputT
  * @typedef {z.infer<typeof PostListQuery>} PostListQueryT
  * @typedef {z.infer<typeof PostStatus>} PostStatusT
  * @typedef {z.infer<typeof TimeWindow>} TimeWindowT
  * @typedef {z.infer<typeof ApplicationCreateInput>} ApplicationCreateInputT
+ * @typedef {z.infer<typeof NoShowReportInput>} NoShowReportInputT
  * @typedef {z.infer<typeof NotificationListQuery>} NotificationListQueryT
  * @typedef {z.infer<typeof NotificationKind>} NotificationKindT
  * @typedef {z.infer<typeof MyPostListQuery>} MyPostListQueryT

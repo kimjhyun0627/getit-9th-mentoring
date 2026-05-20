@@ -18,6 +18,8 @@ const renderPage = (initialEntry = '/new') => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  // #331: 폼 렌더 동기적 통과를 위해 me 캐시를 미리 채워둠. mock spy 도 동시에 살아있음.
+  queryClient.setQueryData(['me'], { id: 'alice', email: 'a@x.com', name: 'Alice' });
   return render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
@@ -43,6 +45,8 @@ const futureLocal = () => {
 describe('CreatePostPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // #331: 폼 자체 렌더는 로그인 후. 테스트 환경에선 getMe 를 mock 으로 즉시 통과시킴.
+    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'alice', email: 'a@x.com', name: 'Alice' });
   });
 
   afterEach(() => {
@@ -53,7 +57,7 @@ describe('CreatePostPage', () => {
     renderPage();
     expect(screen.getByLabelText('제목')).toBeInTheDocument();
     expect(screen.getByLabelText('본문')).toBeInTheDocument();
-    expect(screen.getByLabelText('모임 일시')).toBeInTheDocument();
+    expect(screen.getByLabelText(/모임 일시/i)).toBeInTheDocument();
     expect(screen.getByLabelText('장소')).toBeInTheDocument();
     expect(screen.getByLabelText('정원')).toBeInTheDocument();
     expect(screen.getByLabelText(/오픈채팅/)).toBeInTheDocument();
@@ -75,7 +79,7 @@ describe('CreatePostPage', () => {
     expect(bodyTextarea.className).toMatch(/dark:\[color-scheme:dark\]/);
 
     // datetime-local / number / url 도 같은 FormField 라 동일 클래스 보장
-    const dateInput = screen.getByLabelText('모임 일시');
+    const dateInput = screen.getByLabelText(/모임 일시/i);
     expect(dateInput.className).toMatch(/dark:bg-zinc-900\/60/);
     const capacityInput = screen.getByLabelText('정원');
     expect(capacityInput.className).toMatch(/dark:bg-zinc-900\/60/);
@@ -117,7 +121,7 @@ describe('CreatePostPage', () => {
     const past = new Date(Date.now() - 60 * 60 * 1000);
     const pad = (n) => String(n).padStart(2, '0');
     const localPast = `${past.getFullYear()}-${pad(past.getMonth() + 1)}-${pad(past.getDate())}T${pad(past.getHours())}:${pad(past.getMinutes())}`;
-    await user.type(screen.getByLabelText('모임 일시'), localPast);
+    await user.type(screen.getByLabelText(/모임 일시/i), localPast);
     await user.click(screen.getByRole('button', { name: /모임 만들기/ }));
     expect(await screen.findByText(/과거 시각은 안 돼/)).toBeInTheDocument();
   });
@@ -131,7 +135,7 @@ describe('CreatePostPage', () => {
 
     await user.type(screen.getByLabelText('제목'), '북문 마라탕 같이 갈 사람');
     await user.type(screen.getByLabelText('본문'), '오늘 18시 북문 라화방에서 보자.');
-    await user.type(screen.getByLabelText('모임 일시'), futureLocal());
+    await user.type(screen.getByLabelText(/모임 일시/i), futureLocal());
     await user.type(screen.getByLabelText('장소'), '북문 라화방');
     await user.clear(screen.getByLabelText('정원'));
     await user.type(screen.getByLabelText('정원'), '4');
@@ -171,7 +175,7 @@ describe('CreatePostPage', () => {
 
     await user.type(screen.getByLabelText('제목'), '테스트 모임');
     await user.type(screen.getByLabelText('본문'), '본문 내용입니다.');
-    await user.type(screen.getByLabelText('모임 일시'), futureLocal());
+    await user.type(screen.getByLabelText(/모임 일시/i), futureLocal());
     await user.type(screen.getByLabelText('장소'), '북문');
     await user.clear(screen.getByLabelText('정원'));
     await user.type(screen.getByLabelText('정원'), '3');
@@ -192,7 +196,7 @@ describe('CreatePostPage', () => {
 
     await user.type(screen.getByLabelText('제목'), '테스트 모임');
     await user.type(screen.getByLabelText('본문'), '본문 내용입니다.');
-    await user.type(screen.getByLabelText('모임 일시'), futureLocal());
+    await user.type(screen.getByLabelText(/모임 일시/i), futureLocal());
     await user.type(screen.getByLabelText('장소'), '북문');
     await user.clear(screen.getByLabelText('정원'));
     await user.type(screen.getByLabelText('정원'), '3');
@@ -213,7 +217,7 @@ describe('CreatePostPage', () => {
 
     await user.type(screen.getByLabelText('제목'), '테스트 모임');
     await user.type(screen.getByLabelText('본문'), '본문 내용입니다.');
-    await user.type(screen.getByLabelText('모임 일시'), futureLocal());
+    await user.type(screen.getByLabelText(/모임 일시/i), futureLocal());
     await user.type(screen.getByLabelText('장소'), '북문');
     await user.clear(screen.getByLabelText('정원'));
     await user.type(screen.getByLabelText('정원'), '3');

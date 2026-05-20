@@ -261,17 +261,27 @@
   }
 }
 
-/* Focus a11y — 시안 동일. dark 모드는 amber 링. */
+/* Focus a11y (#289) — 시안 동일. 모든 인터랙티브 요소 + textarea/select/tab/role=button. */
 a:focus-visible,
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role='tab']:focus-visible,
+[role='button']:focus-visible,
+[tabindex]:focus-visible {
   outline: 3px solid #6366f1;
   outline-offset: 3px;
   border-radius: 14px;
 }
 .dark a:focus-visible,
 .dark button:focus-visible,
-.dark input:focus-visible {
+.dark input:focus-visible,
+.dark textarea:focus-visible,
+.dark select:focus-visible,
+.dark [role='tab']:focus-visible,
+.dark [role='button']:focus-visible,
+.dark [tabindex]:focus-visible {
   outline-color: #fde68a;
 }
 

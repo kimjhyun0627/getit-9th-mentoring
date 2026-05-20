@@ -45,7 +45,7 @@ describe('hobby-api posts', () => {
   let app;
 
   beforeAll(() => {
-    app = createApp();
+    app = createApp({ rateLimitMax: 100_000 });
   });
 
   describe('POST /api/posts', () => {

@@ -2,13 +2,16 @@
  * Express 앱 팩토리. server.js 의 listen() 과 분리해 supertest 친화적.
  *
  * 미들웨어 스택:
- *   helmet → cors → cookieParser → json → pino-http
- *   → /api/health, /api/posts/*
+ *   helmet → cors → cookieParser → json → pino-http (openChatUrl redact)
+ *   → /api/health
+ *   → mutationLimiter on POST/PATCH/DELETE
+ *   → /api/posts/*, /api/applications/*, /api/notifications/*, /api/me/*
  *   → /api/docs (swagger UI)
  */
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
@@ -18,6 +21,7 @@ import { createApplicationsRouter } from './routes/applications.js';
 import { createMeRouter } from './routes/me.js';
 import { createNotificationsRouter } from './routes/notifications.js';
 import { createPostsRouter } from './routes/posts.js';
+import { createPostMutationsRouter } from './routes/posts.mutations.js';
 
 const parseOrigins = (raw) =>
   (raw ?? '')
@@ -36,11 +40,17 @@ const readJwtSecret = () => {
 /**
  * Express 앱 인스턴스 생성.
  *
- * @param {{ trustProxy?: boolean }} [opts]
+ * @param {{ trustProxy?: boolean, rateLimitMax?: number, rateLimitWindowMs?: number }} [opts]
  * @returns {import('express').Express}
  */
 export const createApp = (opts = {}) => {
-  const { trustProxy = true } = opts;
+  const envMax = Number.parseInt(process.env.RATE_LIMIT_MAX ?? '30', 10);
+  const envWindow = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '60000', 10);
+  // express-rate-limit v7: max=0 은 모든 요청 차단, 음수는 미정의 동작.
+  // 1 이상 정수만 허용. 아니면 기본값으로 fallback (CR review #348).
+  const safeEnvMax = Number.isInteger(envMax) && envMax > 0 ? envMax : 30;
+  const safeEnvWindow = Number.isInteger(envWindow) && envWindow > 0 ? envWindow : 60_000;
+  const { trustProxy = true, rateLimitMax = safeEnvMax, rateLimitWindowMs = safeEnvWindow } = opts;
   const app = express();
 
   if (trustProxy) {
@@ -62,15 +72,41 @@ export const createApp = (opts = {}) => {
   app.use(express.json({ limit: '64kb' }));
 
   if (process.env.NODE_ENV !== 'test') {
-    app.use(pinoHttp({ redact: ['req.headers.cookie', 'req.headers.authorization'] }));
+    // #320: openChatUrl 은 PII 에 준하는 민감 정보 — request body / response body 로그에
+    // 그대로 찍히면 액세스 로그/Sentry breadcrumb 으로 흘러나갈 수 있음. pino redact 로 마스킹.
+    app.use(
+      pinoHttp({
+        redact: {
+          paths: [
+            'req.headers.cookie',
+            'req.headers.authorization',
+            'req.body.openChatUrl',
+            'res.body.post.openChatUrl',
+            'res.body.openChatUrl',
+          ],
+          censor: '[REDACTED]',
+        },
+      }),
+    );
   }
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'hobby-api' }));
 
+  // #290: POST/PATCH/DELETE 만 burst 차단. GET 은 free (목록/상세 조회 부하 적음).
+  // letter-api 와 동일 패턴: 단일 IP 1분 30회. 환경변수로 운영 중 조절.
+  const mutationLimiter = rateLimit({
+    windowMs: rateLimitWindowMs,
+    max: rateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'RateLimitExceeded' },
+  });
+
   const jwtSecret = readJwtSecret();
-  app.use('/api', createPostsRouter({ jwtSecret }));
-  app.use('/api', createApplicationsRouter({ jwtSecret }));
-  app.use('/api', createNotificationsRouter({ jwtSecret }));
+  app.use('/api', createPostsRouter({ jwtSecret, mutationLimiter }));
+  app.use('/api', createPostMutationsRouter({ jwtSecret, mutationLimiter }));
+  app.use('/api', createApplicationsRouter({ jwtSecret, mutationLimiter }));
+  app.use('/api', createNotificationsRouter({ jwtSecret, mutationLimiter }));
   app.use('/api', createMeRouter({ jwtSecret }));
 
   const openapi = buildOpenApiDoc();
