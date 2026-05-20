@@ -1,5 +1,5 @@
 // board-api Prisma schema
-// 팀 칸반 보드의 5 테이블 (Project / ProjectMember / BoardColumn / Card).
+// 팀 칸반 보드의 4 테이블 (Project / ProjectMember / BoardColumn / Card).
 // User는 auth-api 의 통합 SSO Users 테이블에 있으므로 여기선 String FK(userId)만 참조.
 // (논리적 FK — physical FK는 다른 DB/스키마라 미설정.)
 //
@@ -54,6 +54,7 @@ enum MemberRole {
 
 /// 보드 컬럼 (Todo / Doing / Done 등).
 /// - order: Float — between-keys 알고리즘
+/// - 인덱스 (projectId, order, id): 동일 order 충돌 시 id 보조 정렬키로 결정적 순서 보장
 model BoardColumn {
   id        String  @id @default(cuid())
   projectId String
@@ -62,13 +63,14 @@ model BoardColumn {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   cards     Card[]
 
-  @@index([projectId, order])
+  @@index([projectId, order, id])
 }
 
 /// 카드 (Trello card 단위).
 /// - assigneeId: 담당자 (auth-api User.id, 논리적 FK). null이면 미배정.
 /// - order: Float — between-keys 알고리즘
 /// - description: Text — 긴 본문 허용
+/// - 인덱스 (columnId, order, id): 동일 order 충돌 시 id 보조 정렬키로 결정적 순서 보장
 model Card {
   id          String      @id @default(cuid())
   columnId    String
@@ -80,6 +82,6 @@ model Card {
   updatedAt   DateTime    @updatedAt
   column      BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
 
-  @@index([columnId, order])
+  @@index([columnId, order, id])
   @@index([assigneeId])
 }

@@ -31,7 +31,7 @@ CREATE TABLE `BoardColumn` (
     `name` VARCHAR(191) NOT NULL,
     `order` DOUBLE NOT NULL,
 
-    INDEX `BoardColumn_projectId_order_idx`(`projectId`, `order`),
+    INDEX `BoardColumn_projectId_order_id_idx`(`projectId`, `order`, `id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -46,7 +46,7 @@ CREATE TABLE `Card` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    INDEX `Card_columnId_order_idx`(`columnId`, `order`),
+    INDEX `Card_columnId_order_id_idx`(`columnId`, `order`, `id`),
     INDEX `Card_assigneeId_idx`(`assigneeId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

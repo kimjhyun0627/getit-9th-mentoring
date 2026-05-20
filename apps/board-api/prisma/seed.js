@@ -43,23 +43,27 @@ const seedProject = async () => {
     return null;
   }
 
-  // 같은 (ownerId, name)으로 중복 생성 방지를 위해 findFirst → create/update
-  const existing = await prisma.project.findFirst({
-    where: { ownerId: SEED_OWNER_ID, name: 'GETIT 9기 멘토링' },
-  });
+  // 같은 (ownerId, name)으로 중복 생성 방지. findFirst → create/update 사이의
+  // race condition 회피를 위해 $transaction 으로 atomic 하게 묶는다.
+  const project = await prisma.$transaction(async (tx) => {
+    const existing = await tx.project.findFirst({
+      where: { ownerId: SEED_OWNER_ID, name: 'GETIT 9기 멘토링' },
+    });
 
-  const project = existing
-    ? await prisma.project.update({
+    if (existing) {
+      return tx.project.update({
         where: { id: existing.id },
         data: { description: '멘토링 9기 운영 보드 (seed)' },
-      })
-    : await prisma.project.create({
-        data: {
-          ownerId: SEED_OWNER_ID,
-          name: 'GETIT 9기 멘토링',
-          description: '멘토링 9기 운영 보드 (seed)',
-        },
       });
+    }
+    return tx.project.create({
+      data: {
+        ownerId: SEED_OWNER_ID,
+        name: 'GETIT 9기 멘토링',
+        description: '멘토링 9기 운영 보드 (seed)',
+      },
+    });
+  });
 
   console.log(`  project: ${project.name} (id=${project.id})`);
   return project;
@@ -67,61 +71,76 @@ const seedProject = async () => {
 
 const seedMembers = async (projectId) => {
   const members = [{ userId: SEED_OWNER_ID, role: 'OWNER' }];
-  if (SEED_MEMBER_ID) {
+  // OWNER 와 같은 id를 가진 MEMBER 푸시 금지 — upsert 가 OWNER role을 MEMBER로 덮어쓴다.
+  if (SEED_MEMBER_ID && SEED_MEMBER_ID !== SEED_OWNER_ID) {
     members.push({ userId: SEED_MEMBER_ID, role: 'MEMBER' });
   }
 
-  for (const m of members) {
-    await prisma.projectMember.upsert({
-      where: { projectId_userId: { projectId, userId: m.userId } },
-      update: { role: m.role },
-      create: { projectId, userId: m.userId, role: m.role },
-    });
-    console.log(`  member: user=${m.userId} role=${m.role}`);
-  }
+  // 멤버 upsert는 (projectId, userId) unique 기준이라 서로 독립적 → 병렬 실행 가능.
+  await Promise.all(
+    members.map(async (m) => {
+      await prisma.projectMember.upsert({
+        where: { projectId_userId: { projectId, userId: m.userId } },
+        update: { role: m.role },
+        create: { projectId, userId: m.userId, role: m.role },
+      });
+      console.log(`  member: user=${m.userId} role=${m.role}`);
+    }),
+  );
 };
 
 const seedColumns = async (projectId) => {
-  const created = [];
-  for (const c of COLUMNS) {
-    const existing = await prisma.boardColumn.findFirst({
-      where: { projectId, name: c.name },
-    });
-    const column = existing
-      ? await prisma.boardColumn.update({
-          where: { id: existing.id },
-          data: { order: c.order },
-        })
-      : await prisma.boardColumn.create({
-          data: { projectId, name: c.name, order: c.order },
+  // 컬럼은 같은 projectId 안에서 name이 unique 하지 않아 findFirst → create/update.
+  // race 방지 위해 각 컬럼 처리를 $transaction 으로 묶고, 컬럼 간엔 독립이라 병렬.
+  const created = await Promise.all(
+    COLUMNS.map((c) =>
+      prisma.$transaction(async (tx) => {
+        const existing = await tx.boardColumn.findFirst({
+          where: { projectId, name: c.name },
         });
-    console.log(`  column: ${column.name} (order=${column.order})`);
-    created.push(column);
-  }
+        const column = existing
+          ? await tx.boardColumn.update({
+              where: { id: existing.id },
+              data: { order: c.order },
+            })
+          : await tx.boardColumn.create({
+              data: { projectId, name: c.name, order: c.order },
+            });
+        console.log(`  column: ${column.name} (order=${column.order})`);
+        return column;
+      }),
+    ),
+  );
   return created;
 };
 
 const seedCards = async (todoColumnId) => {
-  for (const c of CARDS_IN_TODO) {
-    const existing = await prisma.card.findFirst({
-      where: { columnId: todoColumnId, title: c.title },
-    });
-    const card = existing
-      ? await prisma.card.update({
-          where: { id: existing.id },
-          data: { description: c.description, order: c.order, assigneeId: SEED_OWNER_ID },
-        })
-      : await prisma.card.create({
-          data: {
-            columnId: todoColumnId,
-            title: c.title,
-            description: c.description,
-            order: c.order,
-            assigneeId: SEED_OWNER_ID,
-          },
+  // 카드도 (columnId, title) 기준 멱등 처리. 각 카드 독립이라 병렬 + 트랜잭션.
+  await Promise.all(
+    CARDS_IN_TODO.map((c) =>
+      prisma.$transaction(async (tx) => {
+        const existing = await tx.card.findFirst({
+          where: { columnId: todoColumnId, title: c.title },
         });
-    console.log(`  card: ${card.title} (order=${card.order})`);
-  }
+        const card = existing
+          ? await tx.card.update({
+              where: { id: existing.id },
+              data: { description: c.description, order: c.order, assigneeId: SEED_OWNER_ID },
+            })
+          : await tx.card.create({
+              data: {
+                columnId: todoColumnId,
+                title: c.title,
+                description: c.description,
+                order: c.order,
+                assigneeId: SEED_OWNER_ID,
+              },
+            });
+        console.log(`  card: ${card.title} (order=${card.order})`);
+        return card;
+      }),
+    ),
+  );
 };
 
 const main = async () => {
@@ -138,7 +157,9 @@ const main = async () => {
   console.log('done.');
 };
 
-main()
+// 의도적으로 top-level promise 핸들링: catch/finally 가 이미 붙어있음을
+// 정적분석에 명시하기 위해 void 로 표기.
+void main()
   .catch((err) => {
     console.error('seed failed:', err);
     process.exitCode = 1;
