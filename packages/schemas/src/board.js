@@ -88,12 +88,17 @@ export const CardCreateInput = z.object({
 /**
  * Card 수정 입력 — title / description / assigneeId 중 최소 1개.
  * order 변경은 별도 move 엔드포인트가 담당하므로 여기엔 없다.
+ *
+ * #253 conflict detection:
+ *  - `expectedUpdatedAt`: optional ISO timestamp. 들어오면 라우터가 현재 row 의 updatedAt 과
+ *    비교해 다르면 409 Conflict 응답. 미입력 시 기존처럼 last-write-wins (backward compat).
  */
 export const CardUpdateInput = z
   .object({
     title: z.string().trim().min(1, '카드 제목이 필요합니다').max(200).optional(),
     description: z.string().max(5000).optional().nullable(),
     assigneeId: z.string().trim().min(1).optional().nullable(),
+    expectedUpdatedAt: z.string().datetime().optional(),
   })
   .refine(
     (d) => d.title !== undefined || d.description !== undefined || d.assigneeId !== undefined,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '../lib/cn.js';
+import { columnAccentClass } from '../lib/columnAccent.js';
 
 /**
  * 컬럼 헤더 — accent + 이름 + 카드 카운트 + (rename/delete 액션).
@@ -50,7 +51,7 @@ export const BoardColumnHeader = ({ column, cardCount, onRename, onDelete, canDe
       <div className="flex min-w-0 items-center gap-2">
         <span
           aria-hidden="true"
-          className={cn('h-1.5 w-1.5 rounded-full', columnAccent(column.name))}
+          className={cn('h-1.5 w-1.5 rounded-full', columnAccentClass(column.name))}
         />
         {editing ? (
           <input
@@ -116,16 +117,4 @@ export const BoardColumnHeader = ({ column, cardCount, onRename, onDelete, canDe
       ) : null}
     </header>
   );
-};
-
-/**
- * 컬럼 이름별 헤더 도트 컬러 — 기본 3개 외엔 회색.
- *
- * @param {string} name
- */
-const columnAccent = (name) => {
-  if (name === 'Doing') return 'bg-indigo-accent';
-  if (name === 'Done') return 'bg-foreground';
-  if (name === 'Todo') return 'bg-muted-foreground/60';
-  return 'bg-muted-foreground/40';
 };

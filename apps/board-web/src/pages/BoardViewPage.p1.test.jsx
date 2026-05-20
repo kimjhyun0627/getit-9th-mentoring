@@ -148,8 +148,13 @@ describe('BoardViewPage P1 (Phase 6b)', () => {
     await user.type(titleInput, '카드 A 수정');
     await user.click(screen.getByRole('button', { name: '저장' }));
     await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledWith('k1', { title: '카드 A 수정' });
+      // #253: updateCard 가 expectedUpdatedAt 도 함께 보내므로 partial match.
+      expect(updateSpy).toHaveBeenCalledWith(
+        'k1',
+        expect.objectContaining({ title: '카드 A 수정' }),
+      );
     });
+    expect(updateSpy.mock.calls[0][1]).toHaveProperty('expectedUpdatedAt');
   });
 
   it('편집 모달에서 담당자 변경 → PATCH 호출에 assigneeId 포함 (#200)', async () => {
@@ -168,7 +173,8 @@ describe('BoardViewPage P1 (Phase 6b)', () => {
     await user.click(screen.getByRole('option', { name: /bob/ }));
     await user.click(screen.getByRole('button', { name: '저장' }));
     await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledWith('k1', { assigneeId: 'bob' });
+      // #253: expectedUpdatedAt 가 추가되므로 partial match.
+      expect(updateSpy).toHaveBeenCalledWith('k1', expect.objectContaining({ assigneeId: 'bob' }));
     });
   });
 

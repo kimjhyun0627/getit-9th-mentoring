@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useMemo, useState } from 'react';
 
 import { cn } from '../lib/cn.js';
 
@@ -51,6 +53,12 @@ export const BoardColumn = ({
   canDeleteColumn = true,
 }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // #274: DnD — 컬럼 자체를 droppable 로, 카드 리스트를 SortableContext 로.
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: `col-${column.id}`,
+    data: { type: 'column', columnId: column.id },
+  });
+  const cardIds = useMemo(() => cards.map((c) => c.id), [cards]);
   return (
     <section aria-label={`${column.name} 컬럼`} className="flex flex-col bg-background">
       <BoardColumnHeader
@@ -68,37 +76,43 @@ export const BoardColumn = ({
           ))}
         </div>
       ) : (
-        <ul className={cn('card-stack flex flex-col')}>
-          {cards.length === 0 ? (
-            // #282: composer 와 중복 카피 제거. 시각적 여백만 유지.
-            <li
-              aria-hidden="true"
-              className="px-5 py-2 text-center text-[11px] text-muted-foreground/0"
-            >
-              &nbsp;
-            </li>
-          ) : (
-            cards.map((card, idx) => (
-              <KanbanCard
-                key={card.id}
-                card={card}
-                columnName={column.name}
-                otherColumns={otherColumns}
-                onMove={(targetColumnId) => onMoveCard(card.id, targetColumnId)}
-                onDelete={() => onDeleteCard(card.id)}
-                onEdit={onEditCard ? () => onEditCard(card.id) : undefined}
-                onReorder={
-                  onReorderCard ? (direction) => onReorderCard(card.id, direction) : undefined
-                }
-                canReorderUp={idx > 0}
-                canReorderDown={idx < cards.length - 1}
-                assigneeName={
-                  card.assigneeId ? (memberNameByUserId[card.assigneeId] ?? null) : null
-                }
-              />
-            ))
-          )}
-        </ul>
+        <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
+          <ul
+            ref={setDroppableRef}
+            data-testid={`column-droppable-${column.id}`}
+            className={cn('card-stack flex flex-col transition', isOver && 'bg-foreground/[0.02]')}
+          >
+            {cards.length === 0 ? (
+              // #282: composer 와 중복 카피 제거. 시각적 여백만 유지.
+              <li
+                aria-hidden="true"
+                className="px-5 py-2 text-center text-[11px] text-muted-foreground/0"
+              >
+                &nbsp;
+              </li>
+            ) : (
+              cards.map((card, idx) => (
+                <KanbanCard
+                  key={card.id}
+                  card={card}
+                  columnName={column.name}
+                  otherColumns={otherColumns}
+                  onMove={(targetColumnId) => onMoveCard(card.id, targetColumnId)}
+                  onDelete={() => onDeleteCard(card.id)}
+                  onEdit={onEditCard ? () => onEditCard(card.id) : undefined}
+                  onReorder={
+                    onReorderCard ? (direction) => onReorderCard(card.id, direction) : undefined
+                  }
+                  canReorderUp={idx > 0}
+                  canReorderDown={idx < cards.length - 1}
+                  assigneeName={
+                    card.assigneeId ? (memberNameByUserId[card.assigneeId] ?? null) : null
+                  }
+                />
+              ))
+            )}
+          </ul>
+        </SortableContext>
       )}
 
       <CardComposer onSubmit={onAddCard} submitting={isAddingCard} />

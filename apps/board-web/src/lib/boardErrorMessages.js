@@ -14,6 +14,9 @@ export const toFriendlyCardError = (err) => {
   const code = /** @type {{ response?: { data?: { error?: string } } }} */ (err)?.response?.data
     ?.error;
   if (code === 'AssigneeNotMember' || status === 422) return '담당자는 프로젝트 멤버여야 합니다.';
+  // #253: 다른 사용자가 먼저 수정함 — 새로고침 안내.
+  if (status === 409 || code === 'Conflict')
+    return '다른 사용자가 먼저 이 카드를 수정했어요. 새로고침 후 다시 시도해 주세요.';
   if (status === 400) return '입력을 확인해 주세요.';
   if (status === 403) return '권한이 없습니다.';
   if (status === 404) return '카드를 찾을 수 없습니다.';

@@ -1,3 +1,6 @@
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 import { cn } from '../lib/cn.js';
 
 import { MemberAvatar } from './MemberAvatar.jsx';
@@ -44,10 +47,28 @@ export const KanbanCard = ({
   const isDoing = columnName === 'Doing';
   const isDone = columnName === 'Done';
 
+  // #274: sortable wiring. temp- 카드 (optimistic) 는 drag disabled —
+  // 서버 id 없는 상태에서 drop 하면 mutation 가 잘못된 id 로 호출됨.
+  const isTemp = typeof card.id === 'string' && card.id.startsWith('temp-');
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: card.id,
+    data: { type: 'card', columnId: card.columnId },
+    disabled: isTemp,
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : undefined,
+  };
+
   return (
     <li
+      ref={setNodeRef}
+      style={style}
       className={cn(
         'kanban-card group relative block px-5 py-4 transition hover:bg-foreground/[0.03]',
+        isDragging && 'z-10',
       )}
     >
       {isDoing ? (
@@ -59,6 +80,12 @@ export const KanbanCard = ({
       ) : null}
 
       <div className="flex items-start justify-between gap-3">
+        <DragHandle
+          attributes={attributes}
+          listeners={listeners}
+          cardTitle={card.title}
+          disabled={isTemp}
+        />
         <button
           type="button"
           onClick={onEdit}
@@ -110,6 +137,41 @@ export const KanbanCard = ({
     </li>
   );
 };
+
+/**
+ * 드래그 핸들 — 카드 좌측의 작은 그립. listeners/attributes 만 부착해
+ * 카드 본문 클릭 (편집 모달) 과 드래그를 분리한다 (#274).
+ *
+ * @param {{
+ *   attributes: import('react').HTMLAttributes<HTMLButtonElement>;
+ *   listeners: import('react').HTMLAttributes<HTMLButtonElement> | undefined;
+ *   cardTitle: string;
+ *   disabled?: boolean;
+ * }} props
+ */
+const DragHandle = ({ attributes, listeners, cardTitle, disabled = false }) => (
+  <button
+    type="button"
+    {...attributes}
+    {...(disabled ? {} : listeners)}
+    aria-label={`${cardTitle} 드래그하여 이동`}
+    disabled={disabled}
+    title={disabled ? '저장 중…' : '드래그해 이동'}
+    className={cn(
+      'flex h-5 w-3 shrink-0 cursor-grab items-center justify-center text-muted-foreground/60 transition hover:text-foreground active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+      disabled && 'cursor-not-allowed opacity-30',
+    )}
+  >
+    <svg aria-hidden="true" className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="9" cy="6" r="1.2" />
+      <circle cx="15" cy="6" r="1.2" />
+      <circle cx="9" cy="12" r="1.2" />
+      <circle cx="15" cy="12" r="1.2" />
+      <circle cx="9" cy="18" r="1.2" />
+      <circle cx="15" cy="18" r="1.2" />
+    </svg>
+  </button>
+);
 
 /**
  * 같은 컬럼 안에서 위/아래로 1칸 이동하는 버튼 쌍 (#214).

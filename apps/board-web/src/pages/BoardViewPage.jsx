@@ -71,6 +71,7 @@ export const BoardViewPage = () => {
   }, [membersOpen, membersQuery.isError, membersError]);
 
   const cardMut = useBoardCardMutations({
+    projectId,
     onUpdateError: setEditServerError,
     onUpdateSuccess: () => {
       setEditingCardId(null);
@@ -105,8 +106,10 @@ export const BoardViewPage = () => {
     setAddingColumnId(columnId);
     cardMut.create.mutate({ columnId, title }, { onSettled: () => setAddingColumnId(null) });
   };
-  const handleMove = (cardId, sourceColumnId, targetColumnId) => {
-    cardMut.move.mutate({ cardId, sourceColumnId, targetColumnId });
+  // #274: 4번째 인자 order — DnD 에서는 between-keys 계산값을 BE 로 전달.
+  // MoveMenu 경로는 기존처럼 order 미지정 → BE 가 끝에 append.
+  const handleMove = (cardId, sourceColumnId, targetColumnId, order) => {
+    cardMut.move.mutate({ cardId, sourceColumnId, targetColumnId, order });
   };
   // #219: 즉시 삭제 대신 확인 다이얼로그 후 mutate. UX-wise destructive 보호.
   const handleDelete = (cardId, columnId) => {

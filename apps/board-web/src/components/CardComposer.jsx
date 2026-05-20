@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '../lib/cn.js';
 
@@ -6,6 +6,7 @@ import { cn } from '../lib/cn.js';
  * 인라인 "+ 카드 추가" 컴포저.
  * - 기본: dashed border CTA 버튼 (시안의 `empty-add` 톤)
  * - 활성화: 텍스트 입력 + 추가/취소 버튼
+ * - #315: Esc 키 / outside click 으로 reset. unsaved 텍스트는 silent drop (별도 confirm X).
  *
  * @param {{
  *   onSubmit: (title: string) => void;
@@ -16,11 +17,24 @@ export const CardComposer = ({ onSubmit, submitting = false }) => {
   const [active, setActive] = useState(false);
   const [title, setTitle] = useState('');
   const inputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
+  const formRef = useRef(/** @type {HTMLFormElement | null} */ (null));
 
   const reset = () => {
     setTitle('');
     setActive(false);
   };
+
+  // #315: outside click 으로 reset — submit 중엔 막지 않는다 (race 회피).
+  useEffect(() => {
+    if (!active) return undefined;
+    const handler = (e) => {
+      if (submitting) return;
+      const form = formRef.current;
+      if (form && !form.contains(e.target)) reset();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [active, submitting]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -69,7 +83,7 @@ export const CardComposer = ({ onSubmit, submitting = false }) => {
   const nearLimit = trimmedLen >= 180 && trimmedLen < 200;
   const tooLong = trimmedLen >= 200;
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-5 py-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-2 px-5 py-4">
       <label className="flex flex-col gap-1.5">
         <span className="sr-only">카드 제목</span>
         <input

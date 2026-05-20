@@ -217,7 +217,8 @@ export const createCardsRouter = () => {
     }
   });
 
-  // PATCH /api/cards/:id — title/description/assigneeId 수정 (order 변경은 /move 전담)
+  // PATCH /api/cards/:id — title/description/assigneeId 수정 (order 는 /move 전담).
+  // #253: body.expectedUpdatedAt 있으면 row.updatedAt 과 비교 → 다르면 409 Conflict.
   router.patch('/:id', async (req, res, next) => {
     try {
       const parsed = CardUpdateInput.safeParse(req.body);
@@ -226,15 +227,24 @@ export const createCardsRouter = () => {
       const access = await lookupCardAccess(req.params.id, req.user.sub);
       if (!access.ok) return res.status(access.status).json(access.body);
 
-      if ('assigneeId' in parsed.data) {
-        if (!(await isValidAssignee(parsed.data.assigneeId, access.projectId))) {
+      // expectedUpdatedAt 은 Prisma data 가 아니라 비교용 — 분리.
+      const { expectedUpdatedAt, ...data } = parsed.data;
+      if (expectedUpdatedAt) {
+        const current = new Date(access.card.updatedAt).toISOString();
+        if (current !== new Date(expectedUpdatedAt).toISOString()) {
+          return res.status(409).json({ error: 'Conflict', card: publicCard(access.card) });
+        }
+      }
+
+      if ('assigneeId' in data) {
+        if (!(await isValidAssignee(data.assigneeId, access.projectId))) {
           return res.status(422).json({ error: 'AssigneeNotMember' });
         }
       }
 
       const updated = await prisma.card.update({
         where: { id: req.params.id },
-        data: parsed.data,
+        data,
       });
       return res.status(200).json({ card: publicCard(updated) });
     } catch (err) {
