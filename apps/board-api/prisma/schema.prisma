@@ -1,0 +1,85 @@
+// board-api Prisma schema
+// 팀 칸반 보드의 5 테이블 (Project / ProjectMember / BoardColumn / Card).
+// User는 auth-api 의 통합 SSO Users 테이블에 있으므로 여기선 String FK(userId)만 참조.
+// (논리적 FK — physical FK는 다른 DB/스키마라 미설정.)
+//
+// order 필드는 Float — between-keys 알고리즘: 이동 시 prev/next 평균값 부여로
+// 다른 카드 재정렬 없이 O(1) 이동 가능. ID 충돌 위험 시 정리 작업 별도.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// 칸반 프로젝트 (Trello board 단위).
+/// - ownerId: 생성자 (auth-api User.id, 논리적 FK)
+/// - columns/members/카드 cascade delete: 프로젝트 삭제 시 자식 데이터 모두 정리
+model Project {
+  id          String          @id @default(cuid())
+  ownerId     String
+  name        String
+  description String?         @db.Text
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  columns     BoardColumn[]
+  members     ProjectMember[]
+
+  @@index([ownerId])
+}
+
+/// 프로젝트 멤버십 (다대다 + 권한).
+/// - role: OWNER | MEMBER
+/// - userId: auth-api User.id (논리적 FK)
+/// - (projectId, userId) unique — 한 유저는 한 프로젝트에서 한 역할만
+model ProjectMember {
+  id        String     @id @default(cuid())
+  projectId String
+  userId    String
+  role      MemberRole @default(MEMBER)
+  joinedAt  DateTime   @default(now())
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+enum MemberRole {
+  OWNER
+  MEMBER
+}
+
+/// 보드 컬럼 (Todo / Doing / Done 등).
+/// - order: Float — between-keys 알고리즘
+model BoardColumn {
+  id        String  @id @default(cuid())
+  projectId String
+  name      String
+  order     Float
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  cards     Card[]
+
+  @@index([projectId, order])
+}
+
+/// 카드 (Trello card 단위).
+/// - assigneeId: 담당자 (auth-api User.id, 논리적 FK). null이면 미배정.
+/// - order: Float — between-keys 알고리즘
+/// - description: Text — 긴 본문 허용
+model Card {
+  id          String      @id @default(cuid())
+  columnId    String
+  title       String
+  description String?     @db.Text
+  assigneeId  String?
+  order       Float
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  column      BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@index([columnId, order])
+  @@index([assigneeId])
+}
