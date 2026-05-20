@@ -5,6 +5,8 @@ import { afterEach } from 'vitest';
 // `globals: false`라 RTL auto-cleanup이 안 걸림. 명시적으로 등록.
 afterEach(() => {
   cleanup();
+  // 전역 localStorage 인스턴스 재사용 시 테스트 간 상태 누수 방지.
+  window.localStorage.clear();
 });
 
 // Node 25 실험적 localstorage 충돌 회피 — 인메모리 stub.

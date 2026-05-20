@@ -1,4 +1,6 @@
+import { ShelfAddInput } from '@getit/schemas/shelf';
 import axios from 'axios';
+import { z } from 'zod';
 
 /**
  * shelf-web 전용 axios 인스턴스.
@@ -40,9 +42,21 @@ client.interceptors.response.use(
 );
 
 /**
+ * 검색 응답 — items 배열만 강제. 각 책은 외부 출처(KAKAO 등) → record 허용.
+ * 잘못된 형태가 오면 빈 배열로 fallback해 UI 폭주 방지.
+ */
+const bookItemSchema = z.record(z.unknown());
+const searchResponseSchema = z.object({
+  items: z.array(bookItemSchema).default([]),
+});
+
+/**
  * 서재 API — 페이지에서 axios 직접 노출 X.
  *
- * GET /shelves/me, PATCH /shelves/:bookId, DELETE /shelves/:bookId 백엔드 매핑.
+ * - listMyShelves / updateShelf / removeShelf — 내 서재 관리 (#44).
+ * - searchBooks / addToShelf — 책 검색 + 서재 추가 (#43).
+ *
+ * 외부 데이터 경계에서 zod 로 런타임 검증해서 UI 상태 깨짐 방지.
  */
 export const api = {
   /**
@@ -59,4 +73,22 @@ export const api = {
    * @param {string} bookId
    */
   removeShelf: (bookId) => client.delete(`/shelves/${encodeURIComponent(bookId)}`),
+
+  /**
+   * @param {string} q
+   * @returns {Promise<{ items: Array<Record<string, unknown>> }>}
+   */
+  searchBooks: async (q) => {
+    const res = await client.get('/books/search', { params: { q } });
+    return searchResponseSchema.parse(res.data ?? {});
+  },
+
+  /**
+   * @param {{ isbn?: string; bookId?: string; status?: 'WANT'|'READING'|'READ'; rating?: number; review?: string | null }} body
+   * @returns {Promise<import('axios').AxiosResponse<{ shelf: Record<string, unknown> }>>}
+   */
+  addToShelf: (body) => {
+    const parsed = ShelfAddInput.parse(body);
+    return client.post('/shelves', parsed);
+  },
 };
