@@ -1,0 +1,108 @@
+/**
+ * letter-api Express 앱 팩토리. server.js 의 listen() 과 분리해 supertest 친화적.
+ *
+ * 미들웨어 스택:
+ *   helmet → cors (fail-closed) → cookieParser → json (64kb)
+ *   → pino-http (test 제외)
+ *   → /api/health (public)
+ *   → /api/messages/* (JWT 필요, mutation 은 rate-limit)
+ */
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express from 'express';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import pinoHttp from 'pino-http';
+
+import { createMessagesRouter } from './routes/messages.js';
+
+/**
+ * 콤마 분리 ORIGIN 목록 파싱.
+ *
+ * @param {string | undefined} raw
+ * @returns {string[]}
+ */
+const parseOrigins = (raw) =>
+  (raw ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+/**
+ * 환경변수에서 JWT_SECRET 읽기. 32자 이상 강제. 부팅 시 fail-fast.
+ *
+ * @returns {string}
+ */
+const readJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('JWT_SECRET env must be set (32+ chars).');
+  }
+  return secret;
+};
+
+/**
+ * Express 앱 인스턴스 생성.
+ *
+ * @param {{ rateLimitMax?: number, rateLimitWindowMs?: number, trustProxy?: boolean }} [opts]
+ * @returns {import('express').Express}
+ */
+export const createApp = (opts = {}) => {
+  const envMax = Number.parseInt(process.env.RATE_LIMIT_MAX ?? '30', 10);
+  const envWindow = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '60000', 10);
+  const {
+    rateLimitMax = Number.isFinite(envMax) ? envMax : 30,
+    rateLimitWindowMs = Number.isFinite(envWindow) ? envWindow : 60_000,
+    trustProxy = true,
+  } = opts;
+
+  const app = express();
+
+  if (trustProxy) {
+    const raw = process.env.TRUST_PROXY;
+    const n = raw === undefined ? 1 : Number.parseInt(raw, 10);
+    app.set('trust proxy', Number.isFinite(n) && n >= 0 ? n : raw);
+  }
+
+  // CORS fail-closed: CORS_ORIGINS 비면 cross-origin 전면 거부 + credentials 끔.
+  const allowedOrigins = parseOrigins(process.env.CORS_ORIGINS);
+  app.use(helmet());
+  app.use(
+    cors({
+      origin: allowedOrigins.length ? allowedOrigins : false,
+      credentials: allowedOrigins.length > 0,
+    }),
+  );
+  app.use(cookieParser());
+  app.use(express.json({ limit: '64kb' }));
+
+  if (process.env.NODE_ENV !== 'test') {
+    app.use(pinoHttp({ redact: ['req.headers.cookie', 'req.headers.authorization'] }));
+  }
+
+  app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'letter-api' }));
+
+  // POST/PATCH/DELETE 만 burst 차단. GET 은 free (목록 조회 부하 적음).
+  const mutationLimiter = rateLimit({
+    windowMs: rateLimitWindowMs,
+    max: rateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'RateLimitExceeded' },
+  });
+
+  const jwtSecret = readJwtSecret();
+  app.use('/api', createMessagesRouter({ jwtSecret, mutationLimiter }));
+
+  // 마지막 fallback 에러 핸들러 (4-인자 시그니처 유지).
+  app.use((err, req, res, next) => {
+    if (res.headersSent) return next(err);
+    const status = err.status ?? 500;
+    if (status >= 500) {
+      req.log?.error({ err }, 'unhandled error');
+    }
+    res.status(status).json({ error: err.code ?? 'InternalServerError' });
+  });
+
+  return app;
+};

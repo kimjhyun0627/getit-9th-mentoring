@@ -10,6 +10,7 @@
     "./auth": "./src/auth.js",
     "./board": "./src/board.js",
     "./hobby": "./src/hobby.js",
+    "./letter": "./src/letter.js",
     "./shelf": "./src/shelf.js"
   },
   "scripts": {
