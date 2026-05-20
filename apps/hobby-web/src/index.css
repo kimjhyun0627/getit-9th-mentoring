@@ -80,7 +80,10 @@
   }
 }
 
-/* Playful backdrop dots — Warm/Minimalist 와 다르게 더 진한 점 패턴. */
+/**
+ * Playful 페르소나 유틸 — Backdrop dots / blob / card 그라데이션 / tilt / hover bounce.
+ * 시안 (docs/design/hobby/playful.html) inline <style> 1:1 이식. CDN Tailwind 없이도 동작.
+ */
 @layer utilities {
   .bg-dotted {
     background-image: radial-gradient(rgba(15, 23, 42, 0.08) 1.2px, transparent 1.2px);
@@ -88,5 +91,208 @@
   }
   .dark .bg-dotted {
     background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+  }
+
+  .blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(60px);
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .dark .blob {
+    opacity: 0.35;
+    filter: blur(70px);
+  }
+
+  .card-coral {
+    background-image: linear-gradient(135deg, #ffb199 0%, #ff6a88 55%, #ff3d7f 100%);
+  }
+  .card-lime {
+    background-image: linear-gradient(135deg, #c8f284 0%, #6ee7b7 55%, #14b8a6 100%);
+  }
+  .card-violet {
+    background-image: linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 55%, #6366f1 100%);
+  }
+  .card-sun {
+    background-image: linear-gradient(135deg, #fde68a 0%, #fb923c 55%, #f43f5e 100%);
+  }
+  .card-sky {
+    background-image: linear-gradient(135deg, #bae6fd 0%, #60a5fa 55%, #6366f1 100%);
+  }
+  .card-mint {
+    background-image: linear-gradient(135deg, #d9f99d 0%, #34d399 55%, #0ea5e9 100%);
+  }
+
+  .dark .card-coral {
+    background-image: linear-gradient(135deg, #b86b6b 0%, #c0466a 55%, #b03070 100%);
+    box-shadow:
+      0 18px 50px -18px rgba(255, 61, 127, 0.45),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .dark .card-lime {
+    background-image: linear-gradient(135deg, #7fae5a 0%, #4fa78b 55%, #0f7a72 100%);
+    box-shadow:
+      0 18px 50px -18px rgba(110, 231, 183, 0.4),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .dark .card-violet {
+    background-image: linear-gradient(135deg, #8c79c4 0%, #6e44c8 55%, #4a4cc0 100%);
+    box-shadow:
+      0 18px 50px -18px rgba(139, 92, 246, 0.5),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .dark .card-sun {
+    background-image: linear-gradient(135deg, #c5a35e 0%, #c47238 55%, #b03350 100%);
+    box-shadow:
+      0 18px 50px -18px rgba(251, 146, 60, 0.45),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .dark .card-sky {
+    background-image: linear-gradient(135deg, #6e8fb8 0%, #4870b8 55%, #4a4cc0 100%);
+    box-shadow:
+      0 18px 50px -18px rgba(96, 165, 250, 0.4),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .dark .card-mint {
+    background-image: linear-gradient(135deg, #7fae4c 0%, #2a946d 55%, #0a6e9e 100%);
+    box-shadow:
+      0 18px 50px -18px rgba(52, 211, 153, 0.4),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  .tilt-l {
+    transform: rotate(-1.8deg);
+  }
+  .tilt-r {
+    transform: rotate(1.6deg);
+  }
+  .tilt-l2 {
+    transform: rotate(-0.9deg);
+  }
+  .tilt-r2 {
+    transform: rotate(1.1deg);
+  }
+
+  .card {
+    transition:
+      transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 280ms ease;
+    will-change: transform;
+  }
+  .card:hover:not(.is-closed) {
+    transform: rotate(0deg) translateY(-8px) scale(1.025);
+    box-shadow:
+      0 32px 60px -22px rgba(0, 0, 0, 0.28),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  }
+  .dark .card:hover:not(.is-closed) {
+    box-shadow:
+      0 32px 60px -22px rgba(0, 0, 0, 0.6),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 0 40px -10px rgba(255, 255, 255, 0.12);
+  }
+  .card.is-closed {
+    filter: grayscale(0.7) brightness(0.95);
+    opacity: 0.65;
+  }
+  .dark .card.is-closed {
+    filter: grayscale(0.65) brightness(0.7);
+    opacity: 0.55;
+  }
+
+  .emoji {
+    display: inline-block;
+    transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .card:hover:not(.is-closed) .emoji {
+    animation: hobby-bounce 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+  }
+  @keyframes hobby-bounce {
+    0% {
+      transform: translateY(0) rotate(0);
+    }
+    30% {
+      transform: translateY(-12px) rotate(-8deg);
+    }
+    60% {
+      transform: translateY(2px) rotate(6deg);
+    }
+    100% {
+      transform: translateY(0) rotate(0);
+    }
+  }
+
+  .arrow {
+    transition: transform 240ms ease;
+  }
+  .card:hover:not(.is-closed) .arrow {
+    transform: translateX(6px) rotate(-12deg);
+  }
+
+  .float-slow {
+    animation: hobby-float 6s ease-in-out infinite;
+  }
+  .float-mid {
+    animation: hobby-float 4.5s ease-in-out infinite;
+    animation-delay: -1.2s;
+  }
+  .float-fast {
+    animation: hobby-float 3.5s ease-in-out infinite;
+    animation-delay: -2.4s;
+  }
+  @keyframes hobby-float {
+    0%,
+    100% {
+      transform: translateY(0) rotate(var(--r, 0deg));
+    }
+    50% {
+      transform: translateY(-10px) rotate(calc(var(--r, 0deg) + 4deg));
+    }
+  }
+
+  .chip-pop {
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .chip-pop:hover,
+  .chip-pop:focus-visible {
+    transform: translateY(-2px) scale(1.06) rotate(-2deg);
+  }
+}
+
+/* Focus a11y — 시안 동일. dark 모드는 amber 링. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #6366f1;
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+.dark a:focus-visible,
+.dark button:focus-visible,
+.dark input:focus-visible {
+  outline-color: #fde68a;
+}
+
+/* prefers-reduced-motion — 모션 민감 사용자는 회전/플로팅 제거. */
+@media (prefers-reduced-motion: reduce) {
+  .tilt-l,
+  .tilt-r,
+  .tilt-l2,
+  .tilt-r2 {
+    transform: none !important;
+  }
+  .card,
+  .card:hover:not(.is-closed),
+  .card:hover:not(.is-closed) .emoji,
+  .card:hover:not(.is-closed) .arrow,
+  .float-slow,
+  .float-mid,
+  .float-fast,
+  .chip-pop {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }

@@ -9,7 +9,8 @@ import './index.css';
 
 /**
  * React 19 + ThemeProvider + Router + QueryClient.
- * 폼 위주 화면이라 retry 0, staleTime 0 (auth-web 과 동일).
+ * - 리스트는 GET 위주라 staleTime 30s, retry 1.
+ * - 작성 페이지 mutation 은 retry 비활성.
  */
 const container = document.getElementById('root');
 if (!container) {
@@ -18,7 +19,11 @@ if (!container) {
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: false, staleTime: 0, refetchOnWindowFocus: false },
+    queries: {
+      retry: 1,
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+    },
     mutations: { retry: false },
   },
 });
