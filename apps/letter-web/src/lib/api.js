@@ -14,6 +14,18 @@ export const client = axios.create({
 });
 
 /**
+ * auth-api 와 통신할 axios 인스턴스 (#252, #305). VITE_AUTH_API_URL 우선,
+ * 없으면 letter-api 와 동일 origin (`/api`) 가정 (Traefik path-based routing 시).
+ * 익명 보드 진입 전 GET /api/me 핑 — 비로그인이면 401 → setUnauthorizedHandler 발화.
+ */
+const authBaseURL = import.meta.env?.VITE_AUTH_API_URL ?? '/api';
+export const authClient = axios.create({
+  baseURL: authBaseURL,
+  withCredentials: true,
+  timeout: 10000,
+});
+
+/**
  * 401 시 상위 콜백 실행 (옵션).
  *
  * @type {{ onUnauthorized: (() => void) | null }}
@@ -29,15 +41,29 @@ export const setUnauthorizedHandler = (fn) => {
   handlers.onUnauthorized = fn;
 };
 
-client.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err?.response?.status === 401 && handlers.onUnauthorized) {
-      handlers.onUnauthorized();
-    }
-    return Promise.reject(err);
-  },
-);
+/**
+ * @param {unknown} err
+ * @returns {Promise<never>}
+ */
+const onError = (err) => {
+  if (
+    /** @type {{ response?: { status?: number } }} */ (err)?.response?.status === 401 &&
+    handlers.onUnauthorized
+  ) {
+    handlers.onUnauthorized();
+  }
+  return Promise.reject(err);
+};
+
+client.interceptors.response.use((res) => res, onError);
+// auth-api 응답도 동일하게 401 → onUnauthorized 발화. 비인증 진입을 board 뷰
+// 마운트 직후에 잡으려면 getMe 호출이 401 이어도 redirect 가 발화돼야 함.
+authClient.interceptors.response.use((res) => res, onError);
+
+/**
+ * @typedef {object} MeResponse
+ * @property {{ sub: string; email?: string; name?: string }} user - JWT payload
+ */
 
 /**
  * 페이지에서 axios 를 직접 다루지 않고 이 헬퍼만 import 한다.
@@ -76,4 +102,15 @@ export const api = {
    * @param {string} id
    */
   deleteMessage: (id) => client.delete(`/messages/${id}`),
+
+  /**
+   * GET (auth-api) /api/me — 현재 사용자. 비로그인이면 401 → setUnauthorizedHandler
+   * 가 SSO redirect. BoardPage 진입 시 호출 (#305).
+   *
+   * @returns {Promise<MeResponse>}
+   */
+  getMe: async () => {
+    const res = await authClient.get('/me');
+    return res.data;
+  },
 };

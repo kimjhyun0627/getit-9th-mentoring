@@ -6,10 +6,13 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { App } from './App.jsx';
 import './index.css';
+import { setUnauthorizedHandler } from './lib/api.js';
 
 /**
  * React 19 + ThemeProvider + Router + QueryClient.
- * 보드 뷰가 들어오면 staleTime / refetchOnFocus 를 조정.
+ *
+ * 401 발생 시 auth.get-it.cloud 로 redirect (SSO 회로 — #252).
+ * dev 환경에선 VITE_AUTH_URL 로 override 가능. 로그인 완료되면 ?redirect= 로 복귀.
  */
 const container = document.getElementById('root');
 if (!container) {
@@ -21,6 +24,12 @@ const queryClient = new QueryClient({
     queries: { retry: false, staleTime: 0, refetchOnWindowFocus: false },
     mutations: { retry: false },
   },
+});
+
+setUnauthorizedHandler(() => {
+  const here = encodeURIComponent(window.location.href);
+  const authBase = import.meta.env?.VITE_AUTH_URL ?? 'https://auth.get-it.cloud';
+  window.location.replace(`${authBase}/login?redirect=${here}`);
 });
 
 createRoot(container).render(

@@ -15,7 +15,8 @@ import { Postit } from './Postit.jsx';
  */
 describe('Postit', () => {
   // 실시간 시계에 의존하면 "5분 전" 같은 상대시간 단언이 실행 타이밍에 따라 깜박이므로
-  // 고정된 now 를 만들어 Postit 에 주입하고 createdAt/updatedAt 도 거기서 역산한다.
+  // 고정된 now 를 만들어 Postit 에 주입하고 createdAt 도 거기서 역산한다.
+  // updatedAt 은 BE 응답에 포함되지 않으니 fixture 에서도 제외 (#251).
   const fixedNow = new Date('2026-05-20T12:00:00.000Z');
   const fiveMinutesAgo = new Date(fixedNow.getTime() - 5 * 60_000).toISOString();
   const base = {
@@ -23,7 +24,6 @@ describe('Postit', () => {
     content: '9기 화이팅! 한 학기 같이 잘해봐요.',
     color: 'LEMON',
     createdAt: fiveMinutesAgo,
-    updatedAt: fiveMinutesAgo,
     is_mine: false,
   };
 

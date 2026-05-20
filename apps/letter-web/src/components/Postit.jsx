@@ -25,9 +25,11 @@ const PALETTE = /** @type {const} */ ({
  * @property {string} id - 메시지 PK (cuid).
  * @property {string} content - 본문 (1~500자).
  * @property {'PINK'|'MINT'|'LEMON'|'LAVENDER'} color - 포스트잇 색상.
- * @property {string} createdAt - ISO string.
- * @property {string} updatedAt - ISO string.
+ * @property {string} createdAt - ISO string (BE 가 분 단위로 truncate — #250).
  * @property {boolean} is_mine - 본인 메시지 여부 (서버가 JWT 로 판단).
+ *
+ * NOTE (#251): `updatedAt` 은 응답에 포함되지 않음. 편집 시점 누설 → deanonymize
+ * 표면이라 BE 응답에서 제거됨.
  */
 
 /**
