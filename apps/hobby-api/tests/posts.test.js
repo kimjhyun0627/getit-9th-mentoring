@@ -221,22 +221,23 @@ describe('hobby-api posts', () => {
       expect(res.body.post.openChatUrl).toBeUndefined();
     });
 
-    it('status=FULL 게시글 → 비owner 도 openChatUrl 노출 (이 PR scope 의 1차 분기)', async () => {
+    it('status=FULL 게시글 → 비신청 외부인은 여전히 마스킹 (#36 강화)', async () => {
       const create = await createPost(app, 'alice');
       const id = create.body.post.id;
       // 라우터 분기만 검증하기 위해 fake DB 의 status 를 직접 FULL 로 변경.
-      // 실 흐름 (#35 매칭 정원 마감) 은 후속 이슈에서.
+      // (정상 흐름 — 신청자가 봤을 때 노출되는 케이스는 privacy.test.js 에서 다룸)
       const { memDb } = await import('./setup.js');
       const row = memDb.posts.get(id);
       memDb.posts.set(id, { ...row, status: 'FULL' });
 
-      const token = tokenFor('bob');
+      const token = tokenFor('bob'); // bob 은 신청 안 한 외부인
       const res = await request(app)
         .get(`/api/posts/${id}`)
         .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
       expect(res.body.post.status).toBe('FULL');
-      expect(res.body.post.openChatUrl).toBe('https://open.kakao.com/o/test');
+      // #36: 비신청자는 FULL 이어도 노출 X.
+      expect(res.body.post.openChatUrl).toBeUndefined();
     });
   });
 

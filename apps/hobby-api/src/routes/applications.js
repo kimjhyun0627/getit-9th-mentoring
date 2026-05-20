@@ -123,6 +123,36 @@ export const createApplicationsRouter = ({ jwtSecret }) => {
               where: { id: postId },
               data: { status: 'FULL' },
             });
+
+            // FULL 전이 훅: 방장 + 모든 신청자에게 MATCH_FULL 알림 생성 (#36).
+            // - 같은 트랜잭션 안 → FULL 전이가 롤백되면 알림도 같이 롤백 (정합성).
+            // - 방장 ownerId 는 post 의 정보. 신청자는 application 조회.
+            // - 두 쿼리는 서로 독립이므로 Promise.all 로 병렬화 — 트랜잭션 점유 단축
+            //   (Gemini 제안 적용).
+            const [ownerRow, apps] = await Promise.all([
+              tx.post.findUnique({
+                where: { id: postId },
+                select: { ownerId: true, title: true },
+              }),
+              tx.application.findMany({
+                where: { postId },
+                select: { userId: true },
+              }),
+            ]);
+            const recipientSet = new Set(apps.map((a) => a.userId));
+            if (ownerRow?.ownerId) recipientSet.add(ownerRow.ownerId);
+            const title = ownerRow?.title ?? '';
+            const message = title
+              ? `「${title}」 모집이 마감됐어요. 오픈채팅으로 들어가 보세요.`
+              : '모집이 마감됐어요. 오픈채팅으로 들어가 보세요.';
+            await tx.notification.createMany({
+              data: [...recipientSet].map((userId) => ({
+                userId,
+                postId,
+                kind: 'MATCH_FULL',
+                message,
+              })),
+            });
           }
 
           return { kind: 'Ok', application };

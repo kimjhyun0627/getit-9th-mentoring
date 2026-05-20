@@ -102,8 +102,28 @@ export const ApplicationIdParam = z.object({
 });
 
 /**
+ * 알림 종류. enum 미강제 (BE schema.prisma 의 String kind 와 일치) — 향후 확장 자유.
+ * 알려진 값만 클라이언트가 표시 분기에 쓰면 됨.
+ */
+export const NotificationKind = z.enum(['MATCH_FULL', 'APPLICATION_CANCELED', 'NO_SHOW_REPORTED']);
+
+/**
+ * 알림 리스트 조회 query.
+ * - limit: 1~50, 기본 20.
+ * - cursor: 이전 page 의 마지막 id.
+ * - unreadOnly: 'true' 면 readAt is null 만 (query string 은 항상 string).
+ */
+export const NotificationListQuery = z.object({
+  cursor: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  unreadOnly: z.enum(['true', 'false', '1', '0']).optional().default('false'),
+});
+
+/**
  * @typedef {z.infer<typeof PostCreateInput>} PostCreateInputT
  * @typedef {z.infer<typeof PostListQuery>} PostListQueryT
  * @typedef {z.infer<typeof PostStatus>} PostStatusT
  * @typedef {z.infer<typeof ApplicationCreateInput>} ApplicationCreateInputT
+ * @typedef {z.infer<typeof NotificationListQuery>} NotificationListQueryT
+ * @typedef {z.infer<typeof NotificationKind>} NotificationKindT
  */

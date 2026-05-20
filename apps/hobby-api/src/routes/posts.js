@@ -7,11 +7,12 @@
  *  - POST /api/posts        — create (JWT 필요)
  *  - DELETE /api/posts/:id  — delete (본인만, 타인 403)
  *
- * openChatUrl 마스킹 정책 (이 PR scope 의 1차 보호선 — #36 에서 더 정교화):
- *  - list 응답: 항상 마스킹.
- *  - detail 응답: 요청자가 owner 이거나 status === 'FULL' 일 때만 노출.
- *
- * Race condition / Privacy 의 더 강한 보호선은 후속 이슈 (#35 / #36) 에서 다룸.
+ * openChatUrl 마스킹 정책 (#36 — 프라이버시 강화):
+ *  - list 응답: 항상 마스킹 (어떤 케이스라도 응답 본문에 포함 X).
+ *  - detail 응답: (요청자가 방장) OR (요청자가 신청 완료 + status === 'FULL') 일 때만 노출.
+ *    - 비신청 외부인은 FULL 이어도 못 봄.
+ *    - 신청자도 RECRUITING (아직 마감 전) 단계에선 못 봄.
+ *  - 마스킹 시: 키 자체를 응답에서 제외 (null/빈문자 금지 — 외부 노출 표면 최소화).
  */
 import { requireAuth } from '@getit/auth-utils/server';
 import { PostCreateInput, PostIdParam, PostListQuery } from '@getit/schemas/hobby';
@@ -130,8 +131,20 @@ export const createPostsRouter = ({ jwtSecret }) => {
       });
       if (!post) return res.status(404).json({ error: 'PostNotFound' });
 
-      const isOwner = req.user?.sub === post.ownerId;
-      const exposeOpenChat = isOwner || post.status === 'FULL';
+      // openChatUrl 노출 조건 (#36):
+      //  - 방장 본인은 status 무관 항상 노출.
+      //  - 그 외 유저는 (해당 게시글에 신청 완료) AND (status === 'FULL') 일 때만 노출.
+      //  - 비로그인 / 비신청자 / RECRUITING 상태의 신청자 → 응답에서 키 자체 제외.
+      const userId = req.user?.sub;
+      const isOwner = userId === post.ownerId;
+      let isApplicantOnFull = false;
+      if (!isOwner && userId && post.status === 'FULL') {
+        const applied = await prisma.application.findUnique({
+          where: { postId_userId: { postId: post.id, userId } },
+        });
+        isApplicantOnFull = applied != null;
+      }
+      const exposeOpenChat = isOwner || isApplicantOnFull;
       return res.status(200).json({ post: serializePost(post, { exposeOpenChat }) });
     } catch (err) {
       return next(err);
