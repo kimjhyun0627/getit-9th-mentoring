@@ -78,9 +78,8 @@ const cardsByCol = {
 const stubHappyPath = () => {
   vi.spyOn(api, 'getProject').mockResolvedValue({ data: { project: PROJECT } });
   vi.spyOn(api, 'listColumns').mockResolvedValue({ data: { columns: COLUMNS } });
-  vi.spyOn(api, 'listCards').mockImplementation((columnId) =>
-    Promise.resolve({ data: { cards: cardsByCol[columnId] ?? [] } }),
-  );
+  // #258: batch endpoint 로 전환.
+  vi.spyOn(api, 'listCardsBatch').mockResolvedValue({ data: { cardsByColumn: cardsByCol } });
 };
 
 const renderPage = (initialEntry = '/boards/p1') => {
@@ -256,7 +255,7 @@ describe('BoardViewPage P1 (Phase 6b)', () => {
       data: { project: { ...PROJECT, role: 'MEMBER', currentUserId: 'bob' } },
     });
     vi.spyOn(api, 'listColumns').mockResolvedValue({ data: { columns: COLUMNS } });
-    vi.spyOn(api, 'listCards').mockResolvedValue({ data: { cards: [] } });
+    vi.spyOn(api, 'listCardsBatch').mockResolvedValue({ data: { cardsByColumn: {} } });
     vi.spyOn(api, 'listMembers').mockResolvedValue({
       data: {
         members: [

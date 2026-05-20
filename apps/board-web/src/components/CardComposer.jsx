@@ -64,6 +64,10 @@ export const CardComposer = ({ onSubmit, submitting = false }) => {
     );
   }
 
+  // #263: 200자 카운터 + 근접 시 색 변화 (180+ 경고, 200 도달 시 destructive).
+  const trimmedLen = title.length;
+  const nearLimit = trimmedLen >= 180 && trimmedLen < 200;
+  const tooLong = trimmedLen >= 200;
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-5 py-4">
       <label className="flex flex-col gap-1.5">
@@ -73,27 +77,45 @@ export const CardComposer = ({ onSubmit, submitting = false }) => {
           aria-label="카드 제목"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              reset();
+            }
+          }}
           maxLength={200}
           placeholder="새 카드 제목"
           className="h-9 rounded-md border border-hairline bg-background px-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         />
       </label>
-      <div className="flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={reset}
-          disabled={submitting}
-          className="inline-flex h-8 items-center justify-center rounded-md border border-hairline px-3 text-xs font-medium text-foreground transition hover:bg-foreground/[0.04] disabled:opacity-60"
+      <div className="flex items-center justify-between gap-2">
+        <span
+          data-testid="card-title-counter"
+          className={cn(
+            'font-mono text-[10px] text-muted-foreground',
+            nearLimit && 'text-amber-500',
+            tooLong && 'text-destructive',
+          )}
         >
-          취소
-        </button>
-        <button
-          type="submit"
-          disabled={submitting || !title.trim()}
-          className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {submitting ? '추가 중…' : '추가'}
-        </button>
+          {trimmedLen}/200
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={reset}
+            disabled={submitting}
+            className="inline-flex h-8 items-center justify-center rounded-md border border-hairline px-3 text-xs font-medium text-foreground transition hover:bg-foreground/[0.04] disabled:opacity-60"
+          >
+            취소
+          </button>
+          <button
+            type="submit"
+            disabled={submitting || !title.trim()}
+            className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? '추가 중…' : '추가'}
+          </button>
+        </div>
       </div>
     </form>
   );
