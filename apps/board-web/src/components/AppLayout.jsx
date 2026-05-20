@@ -13,7 +13,7 @@ export const AppLayout = ({ children }) => {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b border-hairline bg-background/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6 lg:px-10">
-          <Link to="/" className="group flex items-center gap-2" aria-label="board 홈">
+          <Link to="/" className="group flex items-center gap-2" aria-label="Board 홈으로 이동">
             <span
               aria-hidden="true"
               className="grid h-7 w-7 place-items-center rounded-md bg-foreground text-[11px] font-bold tracking-tight text-background"

@@ -214,8 +214,11 @@ const SubHeader = ({ project, isLoading }) => (
   <section className="border-b border-hairline">
     <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">— Project</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tightest text-foreground md:text-4xl">
-        {isLoading ? '불러오는 중…' : (project?.name ?? '보드')}
+      <h1
+        className="mt-3 text-3xl font-semibold tracking-tightest text-foreground md:text-4xl"
+        aria-busy={isLoading || undefined}
+      >
+        {isLoading ? '보드 불러오는 중…' : (project?.name ?? '보드')}
       </h1>
       {project?.description ? (
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
@@ -237,7 +240,7 @@ const BoardError = ({ onRetry }) => (
     >
       <p className="text-sm font-medium text-foreground">보드를 불러오지 못했어요</p>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        네트워크 상태를 확인한 뒤 다시 시도해줘.
+        네트워크 상태를 확인한 뒤 다시 시도해 주세요.
       </p>
       <button
         type="button"

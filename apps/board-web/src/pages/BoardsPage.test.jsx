@@ -58,14 +58,14 @@ describe('BoardsPage', () => {
   it('헤더와 "+ New Project" CTA, 페이지 타이틀을 렌더한다', async () => {
     vi.spyOn(api, 'listProjects').mockResolvedValue({ data: { projects: [] } });
     renderPage();
-    expect(screen.getByRole('heading', { level: 1, name: '내 보드' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: '내 프로젝트' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /New Project/i })).toBeInTheDocument();
   });
 
   it('프로젝트 0개면 빈 상태 placeholder + CTA를 보여준다', async () => {
     vi.spyOn(api, 'listProjects').mockResolvedValue({ data: { projects: [] } });
     renderPage();
-    expect(await screen.findByText('아직 프로젝트가 없어요')).toBeInTheDocument();
+    expect(await screen.findByText('프로젝트가 없습니다')).toBeInTheDocument();
     expect(
       screen.getAllByRole('button', { name: /새 프로젝트|New Project/ }).length,
     ).toBeGreaterThan(0);
@@ -152,7 +152,7 @@ describe('BoardsPage', () => {
     });
 
     renderPage();
-    await screen.findByText('아직 프로젝트가 없어요');
+    await screen.findByText('프로젝트가 없습니다');
 
     // header 의 + New Project (CTA가 두 개라 첫 번째 선택)
     const ctas = screen.getAllByRole('button', { name: /New Project|새 프로젝트/ });
@@ -174,7 +174,7 @@ describe('BoardsPage', () => {
     const createSpy = vi.spyOn(api, 'createProject');
 
     renderPage();
-    await screen.findByText('아직 프로젝트가 없어요');
+    await screen.findByText('프로젝트가 없습니다');
     const ctas = screen.getAllByRole('button', { name: /New Project|새 프로젝트/ });
     await user.click(ctas[0]);
 
@@ -192,13 +192,13 @@ describe('BoardsPage', () => {
     });
 
     renderPage();
-    await screen.findByText('아직 프로젝트가 없어요');
+    await screen.findByText('프로젝트가 없습니다');
     const ctas = screen.getAllByRole('button', { name: /New Project|새 프로젝트/ });
     await user.click(ctas[0]);
     await user.type(screen.getByLabelText('프로젝트 이름'), 'Bad Project');
     await user.click(screen.getByRole('button', { name: '만들기' }));
 
-    expect(await screen.findByText(/서버 오류가 발생했어/)).toBeInTheDocument();
+    expect(await screen.findByText(/서버 오류가 발생했습니다/)).toBeInTheDocument();
     // 다이얼로그는 여전히 열려있어야 함
     expect(screen.getByRole('heading', { name: '새 프로젝트 만들기' })).toBeInTheDocument();
   });

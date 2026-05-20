@@ -16,11 +16,7 @@ export const MemberAvatarGroup = ({ members, max = 4, size = 'sm' }) => {
   const overflow = safeMembers.length - visible.length;
 
   if (safeMembers.length === 0) {
-    return (
-      <span className="text-[11px] text-muted-foreground" aria-label="멤버 없음">
-        멤버 없음
-      </span>
-    );
+    return <span className="text-[11px] text-muted-foreground">멤버 없음</span>;
   }
 
   return (

@@ -171,7 +171,7 @@ describe('BoardViewPage', () => {
     const createSpy = vi.spyOn(api, 'createCard').mockReturnValue(d.promise);
     renderPage();
     const todoRegion = await screen.findByRole('region', { name: /Todo 컬럼/ });
-    await user.click(within(todoRegion).getByRole('button', { name: /Add card/i }));
+    await user.click(within(todoRegion).getByRole('button', { name: /카드 추가/ }));
     const input = within(todoRegion).getByLabelText(/카드 제목/);
     await user.type(input, '새 카드');
     await user.click(within(todoRegion).getByRole('button', { name: /추가/ }));
@@ -213,7 +213,7 @@ describe('BoardViewPage', () => {
     });
     await user.click(moveBtn);
     // 메뉴에서 Doing 선택
-    await user.click(screen.getByRole('menuitem', { name: 'Doing' }));
+    await user.click(screen.getByRole('menuitem', { name: /Doing/ }));
 
     const doingRegion = screen.getByRole('region', { name: /Doing 컬럼/ });
     // 서버 응답 전 optimistic: Doing 컬럼에 즉시 등장
@@ -244,7 +244,7 @@ describe('BoardViewPage', () => {
       name: /SSO 토큰 만료 정책 정리 이동/,
     });
     await user.click(moveBtn);
-    await user.click(screen.getByRole('menuitem', { name: 'Done' }));
+    await user.click(screen.getByRole('menuitem', { name: /Done/ }));
 
     // 1) 먼저 optimistic 이동 확인 — Done 에 즉시 등장
     const doneRegion = screen.getByRole('region', { name: /Done 컬럼/ });

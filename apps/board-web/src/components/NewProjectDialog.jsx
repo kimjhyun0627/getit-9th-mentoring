@@ -77,7 +77,7 @@ export const NewProjectDialog = ({ open, onClose, onCreate, submitting, serverEr
             새 프로젝트 만들기
           </h2>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            기본 컬럼(Todo · Doing · Done)이 자동 생성됩니다.
+            기본 컬럼 Todo · Doing · Done 이 함께 만들어집니다.
           </p>
         </header>
 
