@@ -1,5 +1,5 @@
 import { useTheme } from '@getit/theme';
-import { useCallback, useId, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 
 import { cn } from '../lib/cn.js';
 
@@ -44,7 +44,6 @@ export const ThemeSegmented = ({ className }) => {
   // store ⇄ UI 매핑. store: 'system' / UI: 'auto'.
   const mode = preference === 'system' ? 'auto' : preference;
 
-  const groupId = useId();
   /** @type {import('react').MutableRefObject<(HTMLButtonElement | null)[]>} */
   const buttonsRef = useRef([]);
 
@@ -97,7 +96,6 @@ export const ThemeSegmented = ({ className }) => {
     <div
       role="radiogroup"
       aria-label="테마 모드"
-      id={groupId}
       data-mode={mode}
       className={cn(
         // 컨테이너: inline-grid 3-col → 각 셀이 정확히 1/3 너비.
