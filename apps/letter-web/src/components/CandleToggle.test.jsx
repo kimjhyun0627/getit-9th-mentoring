@@ -67,6 +67,18 @@ describe('CandleToggle', () => {
     expect(sw).toHaveAttribute('aria-checked', 'true');
   });
 
+  it('키보드 Enter 로도 토글된다 (button 기본 동작)', async () => {
+    const user = userEvent.setup();
+    renderToggle();
+
+    const sw = screen.getByRole('switch');
+    sw.focus();
+    await user.keyboard('{Enter}');
+
+    expect(useTheme.getState().resolved).toBe('dark');
+    expect(sw).toHaveAttribute('aria-checked', 'true');
+  });
+
   it('두 번 토글 → 라이트로 복귀', async () => {
     const user = userEvent.setup();
     renderToggle();
