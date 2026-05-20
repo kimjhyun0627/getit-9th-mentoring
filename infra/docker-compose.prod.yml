@@ -40,8 +40,9 @@ volumes:
 services:
   # ────────────────────────── Reverse proxy ──────────────────────────
   traefik:
-    # v3.7.1: docker 29+ SDK API negotiation 호환 확인됨.
-    # 이전 v3.5/v3.0은 docker SDK가 API 1.24로 negotiate 시도하다 fail.
+    # v3.7.1: Docker 29+ 자동 API 버전 협상 지원 (v3.6.1+부터 도입).
+    # 이전 v3.5/v3.0은 하드코딩된 API v1.24만 지원 →
+    # Docker 29의 최소 요구 버전(1.44)과 맞지 않아 "Minimum supported API version is 1.44" 에러 발생.
     image: traefik:v3.7.1
     <<: *restart
     command:
@@ -53,7 +54,7 @@ services:
       # Traefik static config (traefik.yml)은 env var expansion을 하지 않는다.
       # ACME email은 환경변수 override로 주입해야 Let's Encrypt가 실제 값을 받는다.
       # ref: https://doc.traefik.io/traefik/reference/static-configuration/env/
-      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL: ${ACME_EMAIL}
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL 변수가 필요합니다. .env.prod 파일에 설정해주세요.}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
