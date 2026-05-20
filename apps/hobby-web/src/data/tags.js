@@ -48,3 +48,21 @@ export const TIME_CHIPS = [
   { key: 'today', label: '오늘', emoji: '🌞' },
   { key: 'week', label: '이번주', emoji: '🗓' },
 ];
+
+/**
+ * 모임 만들기/수정 폼의 태그 입력에서 원클릭으로 추가할 수 있는 추천 태그.
+ * - FilterChips 의 TAG_CHIPS 와 별도 — 필터는 5개 카테고리, 입력 추천은 8개 (#357).
+ * - 라벨은 BE Zod TagName 정규식 (`\p{L}\p{N}_-`) 통과해야 한다.
+ *
+ * @type {Array<{ key: string; label: string; emoji: string }>}
+ */
+export const SUGGESTED_TAGS = [
+  { key: '맛집', label: '맛집', emoji: '🍽' },
+  { key: '스포츠', label: '스포츠', emoji: '⚽' },
+  { key: '스터디', label: '스터디', emoji: '🧠' },
+  { key: '게임', label: '게임', emoji: '🎮' },
+  { key: '영화', label: '영화', emoji: '🎬' },
+  { key: '카페', label: '카페', emoji: '☕' },
+  { key: '산책', label: '산책', emoji: '🚶' },
+  { key: '운동', label: '운동', emoji: '💪' },
+];
