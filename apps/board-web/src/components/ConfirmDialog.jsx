@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 import { cn } from '../lib/cn.js';
 
@@ -32,6 +32,8 @@ export const ConfirmDialog = ({
   onClose,
 }) => {
   const ref = useRef(/** @type {HTMLDialogElement | null} */ (null));
+  // 다이얼로그 N개가 동시에 마운트돼도 aria-labelledby 가 충돌 안 하게 instance id 사용.
+  const titleId = useId();
 
   useEffect(() => {
     const node = ref.current;
@@ -44,7 +46,7 @@ export const ConfirmDialog = ({
     <dialog
       ref={ref}
       role="alertdialog"
-      aria-labelledby="confirm-title"
+      aria-labelledby={titleId}
       onClose={onClose}
       onCancel={(e) => {
         e.preventDefault();
@@ -57,7 +59,7 @@ export const ConfirmDialog = ({
     >
       <div className="flex flex-col gap-4 p-6">
         <header className="flex flex-col gap-1">
-          <h2 id="confirm-title" className="text-base font-semibold tracking-tight">
+          <h2 id={titleId} className="text-base font-semibold tracking-tight">
             {title}
           </h2>
           {description ? (

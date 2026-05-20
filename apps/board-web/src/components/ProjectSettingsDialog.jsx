@@ -60,6 +60,11 @@ export const ProjectSettingsDialog = ({
     }
   }, [open, project, reset]);
 
+  // 부모 다이얼로그가 닫힐 때 삭제 확인 모달도 같이 닫는다 — 고아 상태 방지.
+  useEffect(() => {
+    if (!open) setConfirmDelete(false);
+  }, [open]);
+
   if (!project) return null;
   const isOwner = project.role === 'OWNER';
 

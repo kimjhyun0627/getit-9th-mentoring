@@ -64,8 +64,9 @@ export const CardComposer = ({ onSubmit, submitting = false }) => {
     );
   }
 
-  // #263: 200자 카운터 + truncate 게이트. 200자 도달 시 silent truncate 대신 명시 안내.
+  // #263: 200자 카운터 + 근접 시 색 변화 (180+ 경고, 200 도달 시 destructive).
   const trimmedLen = title.length;
+  const nearLimit = trimmedLen >= 180 && trimmedLen < 200;
   const tooLong = trimmedLen >= 200;
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-5 py-4">
@@ -91,7 +92,8 @@ export const CardComposer = ({ onSubmit, submitting = false }) => {
         <span
           data-testid="card-title-counter"
           className={cn(
-            'text-[10px] font-mono text-muted-foreground',
+            'font-mono text-[10px] text-muted-foreground',
+            nearLimit && 'text-amber-500',
             tooLong && 'text-destructive',
           )}
         >

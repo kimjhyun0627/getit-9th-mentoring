@@ -115,8 +115,12 @@ export const BoardViewPage = () => {
   };
   const handleConfirmDelete = () => {
     if (!pendingDelete) return;
-    cardMut.remove.mutate({ cardId: pendingDelete.cardId, columnId: pendingDelete.columnId });
-    setPendingDelete(null);
+    // 실패 시 사용자 맥락 유지를 위해 onSuccess 에서만 다이얼로그 닫음 — onError 면 다이얼로그
+    // 그대로 둬서 재시도 동선 살림.
+    cardMut.remove.mutate(
+      { cardId: pendingDelete.cardId, columnId: pendingDelete.columnId },
+      { onSuccess: () => setPendingDelete(null) },
+    );
   };
 
   const handleReorder = (cardId, direction) => {
@@ -183,7 +187,9 @@ export const BoardViewPage = () => {
         cardsByColumn={cardsByColumn}
         addingColumnId={addingColumnId}
         isAddingCardPending={cardMut.create.isPending}
-        isBoardLoading={cardsBatchQuery.isLoading}
+        isBoardLoading={
+          projectQuery.isLoading || columnsQuery.isLoading || cardsBatchQuery.isLoading
+        }
         memberNameByUserId={memberNameByUserId}
         onAddCard={handleAdd}
         onMoveCard={handleMove}

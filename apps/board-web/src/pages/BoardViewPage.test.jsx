@@ -302,7 +302,9 @@ describe('BoardViewPage', () => {
     vi.spyOn(api, 'listColumns').mockResolvedValue({ data: { columns: [] } });
     vi.spyOn(api, 'listCards').mockResolvedValue({ data: { cards: [] } });
     renderPage();
-    expect(await screen.findByText(/보드를 불러오지 못했어요/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/보드를 불러오지 못했어요/, undefined, { timeout: 5000 }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument();
   });
 
@@ -314,7 +316,9 @@ describe('BoardViewPage', () => {
       .mockRejectedValue({ isAxiosError: true, response: { status: 500 } });
     vi.spyOn(api, 'listCardsBatch').mockResolvedValue({ data: { cardsByColumn: {} } });
     renderPage();
-    expect(await screen.findByText(/보드를 불러오지 못했어요/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/보드를 불러오지 못했어요/, undefined, { timeout: 5000 }),
+    ).toBeInTheDocument();
     columnsSpy.mockClear();
     await user.click(screen.getByRole('button', { name: '다시 시도' }));
     await waitFor(() => {
@@ -330,7 +334,9 @@ describe('BoardViewPage', () => {
       .spyOn(api, 'listCardsBatch')
       .mockRejectedValue({ isAxiosError: true, response: { status: 500 } });
     renderPage();
-    expect(await screen.findByText(/보드를 불러오지 못했어요/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/보드를 불러오지 못했어요/, undefined, { timeout: 5000 }),
+    ).toBeInTheDocument();
     cardsSpy.mockClear();
     await user.click(screen.getByRole('button', { name: '다시 시도' }));
     await waitFor(() => {

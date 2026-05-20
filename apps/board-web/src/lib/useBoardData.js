@@ -19,6 +19,13 @@ import { api } from './api.js';
 export const useBoardData = (projectId) => {
   const queryClient = useQueryClient();
 
+  // 403/404 는 재시도 안 함 (권한/존재 문제는 retry 무의미). #238
+  const shouldRetry = (count, err) => {
+    const status = /** @type {{ response?: { status?: number } }} */ (err)?.response?.status;
+    if (status === 403 || status === 404) return false;
+    return count < 2;
+  };
+
   const projectQuery = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
@@ -26,11 +33,7 @@ export const useBoardData = (projectId) => {
       return res.data?.project;
     },
     enabled: Boolean(projectId),
-    retry: (count, err) => {
-      const status = /** @type {{ response?: { status?: number } }} */ (err)?.response?.status;
-      if (status === 403 || status === 404) return false;
-      return count < 2;
-    },
+    retry: shouldRetry,
   });
 
   const columnsQuery = useQuery({
@@ -40,6 +43,7 @@ export const useBoardData = (projectId) => {
       return res.data?.columns ?? [];
     },
     enabled: Boolean(projectId),
+    retry: shouldRetry,
   });
 
   const cardsBatchQuery = useQuery({
@@ -49,6 +53,7 @@ export const useBoardData = (projectId) => {
       return res.data?.cardsByColumn ?? {};
     },
     enabled: Boolean(projectId),
+    retry: shouldRetry,
   });
 
   const columns = useMemo(() => columnsQuery.data ?? [], [columnsQuery.data]);

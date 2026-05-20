@@ -61,7 +61,8 @@ export const BoardColumnHeader = ({ column, cardCount, onRename, onDelete, canDe
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                commit();
+                // blur 를 트리거해 commit() 한 번만 — Enter + onBlur 두 번 호출 방지.
+                e.currentTarget.blur();
               } else if (e.key === 'Escape') {
                 e.preventDefault();
                 cancel();
