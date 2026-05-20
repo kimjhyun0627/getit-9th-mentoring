@@ -59,12 +59,19 @@ export const createApp = (opts = {}) => {
   const envWindow = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '60000', 10);
   const envReadMax = Number.parseInt(process.env.RATE_LIMIT_READ_MAX ?? '60', 10);
   const {
-    rateLimitMax = Number.isFinite(envMax) && envMax >= 1 ? envMax : 30,
-    rateLimitWindowMs = Number.isFinite(envWindow) && envWindow >= 1 ? envWindow : 60_000,
+    rateLimitMax: rawMax = Number.isFinite(envMax) && envMax >= 1 ? envMax : 30,
+    rateLimitWindowMs: rawWindow = Number.isFinite(envWindow) && envWindow >= 1
+      ? envWindow
+      : 60_000,
     // CR #345 — 0/음수 방어. 잘못된 배포 설정에서 조회 전면 차단 회피.
-    readRateLimitMax = Number.isFinite(envReadMax) && envReadMax >= 1 ? envReadMax : 60,
+    readRateLimitMax: rawReadMax = Number.isFinite(envReadMax) && envReadMax >= 1 ? envReadMax : 60,
     trustProxy = true,
   } = opts;
+  // CR #345 round 2 — caller 가 createApp({ rateLimitMax: 0 }) 같이 직접 invalid 를
+  // 넘겨도 limiter 가 받지 못하도록 한 번 더 coerce.
+  const rateLimitMax = Number.isFinite(rawMax) && rawMax >= 1 ? rawMax : 30;
+  const rateLimitWindowMs = Number.isFinite(rawWindow) && rawWindow >= 1 ? rawWindow : 60_000;
+  const readRateLimitMax = Number.isFinite(rawReadMax) && rawReadMax >= 1 ? rawReadMax : 60;
 
   const app = express();
 
