@@ -173,14 +173,14 @@ export const HomePage = () => {
             <p role="status" className="text-slate-500 dark:text-slate-400 font-round">
               모집을 불러오는 중...
             </p>
-          ) : (
+          ) : !isError ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
               {posts.map((post) => (
                 <MeetupCard key={post.id} post={post} />
               ))}
               <EmptyCard />
             </div>
-          )}
+          ) : null}
 
           {query.hasNextPage ? (
             <div className="mt-10 flex items-center justify-center gap-3">
