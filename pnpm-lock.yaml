@@ -36,7 +36,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/schemas
       '@prisma/client':
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
       bcrypt:
         specifier: ^5.1.1
@@ -85,7 +85,7 @@ importers:
         specifier: ^9.18.0
         version: 9.39.4(jiti@2.7.0)
       prisma:
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(typescript@6.0.3)
       supertest:
         specifier: ^7.0.0
@@ -191,7 +191,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/schemas
       '@prisma/client':
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
       cookie-parser:
         specifier: ^1.4.7
@@ -231,7 +231,7 @@ importers:
         specifier: ^9.0.2
         version: 9.0.3
       prisma:
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(typescript@6.0.3)
       supertest:
         specifier: ^7.0.0
@@ -334,7 +334,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/schemas
       '@prisma/client':
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
       cookie-parser:
         specifier: ^1.4.7
@@ -381,7 +381,7 @@ importers:
         specifier: ^9.18.0
         version: 9.39.4(jiti@2.7.0)
       prisma:
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(typescript@6.0.3)
       supertest:
         specifier: ^7.0.0
@@ -542,7 +542,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/schemas
       '@prisma/client':
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
       cookie-parser:
         specifier: ^1.4.7
@@ -579,7 +579,7 @@ importers:
         specifier: ^9.18.0
         version: 9.39.4(jiti@2.7.0)
       prisma:
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(typescript@6.0.3)
       supertest:
         specifier: ^7.0.0
@@ -647,13 +647,13 @@ importers:
         version: 14.6.1(@testing-library/dom@10.4.1)
       '@vitejs/plugin-react':
         specifier: ^4.3.4
-        version: 4.7.0(vite@6.4.2(@types/node@25.9.1)(jiti@1.21.7)(yaml@2.9.0))
+        version: 4.7.0(vite@6.4.2(@types/node@25.9.1)(jiti@2.7.0)(yaml@2.9.0))
       autoprefixer:
         specifier: ^10.4.20
         version: 10.5.0(postcss@8.5.15)
       eslint:
         specifier: ^9.18.0
-        version: 9.39.4(jiti@1.21.7)
+        version: 9.39.4(jiti@2.7.0)
       jsdom:
         specifier: ^25.0.1
         version: 25.0.1
@@ -665,7 +665,7 @@ importers:
         version: 3.4.19(yaml@2.9.0)
       vite:
         specifier: ^6.0.7
-        version: 6.4.2(@types/node@25.9.1)(jiti@1.21.7)(yaml@2.9.0)
+        version: 6.4.2(@types/node@25.9.1)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@25.9.1)(jsdom@25.0.1)
@@ -679,7 +679,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/schemas
       '@prisma/client':
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
       cookie-parser:
         specifier: ^1.4.7
@@ -723,7 +723,7 @@ importers:
         specifier: ^9.0.2
         version: 9.0.3
       prisma:
-        specifier: ^6.2.1
+        specifier: 6.19.3
         version: 6.19.3(typescript@6.0.3)
       rimraf:
         specifier: ^6.0.1
