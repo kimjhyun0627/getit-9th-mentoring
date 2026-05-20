@@ -1,0 +1,50 @@
+// letter-api Prisma schema
+// 익명 롤링페이퍼 — Message 단일 테이블.
+//
+// 익명성 핵심: authorId는 DB에 저장하되 (본인 검증 + 본인 메시지 식별용),
+// 외부 API 응답에는 절대 노출 X. BE 응답 매핑에서 강제 (이 PR은 schema 범위만,
+// BE 검증은 후속 sub #52/#53에서).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// 포스트잇 색상 enum.
+/// FE의 화이트보드 UX에서 4색 포스트잇 그리드로 렌더.
+enum MessageColor {
+  PINK
+  MINT
+  LEMON
+  LAVENDER
+}
+
+/// 익명 롤링페이퍼 메시지.
+/// - id: cuid (FE 라우팅/삭제 PK)
+/// - authorId: 작성자 cuid (auth-api User.id 참조 — cross-DB FK는 미사용,
+///   String 컬럼만 둠. 본인 검증은 BE에서 JWT sub 와 비교).
+/// - content: 메시지 본문 (Text — 길이 제한은 BE Zod에서 강제)
+/// - color: 포스트잇 색상 (PINK | MINT | LEMON | LAVENDER)
+/// - createdAt / updatedAt: 자동
+///
+/// 인덱스:
+/// - createdAt 단일 — 목록 조회 정렬용 (최신 순)
+/// - authorId 단일 — 본인 메시지 식별 + 본인 검증 쿼리용
+///
+/// ⚠️ authorId 응답 노출 금지: 다른 유저 응답에서 author 정보 누설 시
+/// 익명성 깨짐. is_mine boolean 으로만 본인 식별.
+model Message {
+  id        String       @id @default(cuid())
+  authorId  String
+  content   String       @db.Text
+  color     MessageColor
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([createdAt])
+  @@index([authorId])
+}
