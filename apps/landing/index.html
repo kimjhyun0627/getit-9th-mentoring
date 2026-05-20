@@ -11,6 +11,19 @@
     <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)" />
 
+    <!--
+      Favicons + PWA manifest (#213).
+      - .ico: 레거시/메일 클라이언트 호환
+      - .svg: modern 브라우저 (선명·테마 대응)
+      - apple-touch-icon: iOS 홈 스크린
+      - manifest: PWA install + Android
+    -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="canonical" href="https://get-it.cloud/" />
+
     <!-- Open Graph -->
     <meta property="og:title" content="GETIT 9기 멘토링" />
     <meta

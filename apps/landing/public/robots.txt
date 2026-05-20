@@ -1,0 +1,7 @@
+# GETIT 9기 멘토링 — robots.txt
+# https://get-it.cloud/
+
+User-agent: *
+Allow: /
+
+Sitemap: https://get-it.cloud/sitemap.xml
