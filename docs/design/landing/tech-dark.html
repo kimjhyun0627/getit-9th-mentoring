@@ -17,6 +17,27 @@
       rel="stylesheet"
     />
 
+    <!-- Theme bootstrap (must run before first paint to avoid flash). -->
+    <script>
+      (function () {
+        try {
+          var root = document.documentElement;
+          var KEY = 'getit-theme';
+          var stored = null;
+          try {
+            stored = localStorage.getItem(KEY);
+          } catch (e) {
+            // localStorage 접근 차단(시크릿 모드 등) — stored 는 null 유지
+          }
+          var initial = stored || 'dark';
+          if (initial === 'dark') root.classList.add('dark');
+          else root.classList.remove('dark');
+        } catch (e) {
+          // 어떤 이유로든 실패해도 마크업 기본값(class="dark")이 적용됨
+        }
+      })();
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -194,8 +215,7 @@
     </style>
   </head>
 
-  <body class="bg-ink-950 text-zinc-200 dark:bg-ink-950 dark:text-zinc-200 antialiased
-               [&:not(.dark)]:bg-stone-50 [&:not(.dark)]:text-zinc-900">
+  <body class="bg-stone-50 text-zinc-900 dark:bg-ink-950 dark:text-zinc-200 antialiased">
     <!-- POLISH NOTES (HTML 코멘트로 차별 포인트 기록)
          ─────────────────────────────────────────────────────────────
          1) 2×2 카드 그리드: hobby / shelf / board / letter
@@ -641,23 +661,20 @@
 
     <script>
       // Theme toggle — class='dark' on <html>, persisted via localStorage.
-      // Default = dark (Tech-Dark는 다크가 기본).
+      // 초기 클래스 적용은 <head>의 부트스트랩 스크립트가 담당 (paint 전 적용 → 깜빡임 방지).
       (function () {
         const root = document.documentElement;
         const KEY = 'getit-theme';
-        const stored = localStorage.getItem(KEY);
-        // explicit default = dark (override system preference for Tech-Dark)
-        const initial = stored || 'dark';
-        if (initial === 'dark') root.classList.add('dark');
-        else root.classList.remove('dark');
-
         const btn = document.getElementById('themeToggle');
-        if (btn) {
-          btn.addEventListener('click', function () {
-            const isDark = root.classList.toggle('dark');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+          const isDark = root.classList.toggle('dark');
+          try {
             localStorage.setItem(KEY, isDark ? 'dark' : 'light');
-          });
-        }
+          } catch (e) {
+            // localStorage 접근 차단(시크릿 모드 등) — 토글 자체는 정상 동작
+          }
+        });
       })();
     </script>
   </body>
