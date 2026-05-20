@@ -1,10 +1,13 @@
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { SubmitButton } from './SubmitButton.jsx';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Issue #91 가드 — 다크 모드 primary CTA 컨트라스트.
