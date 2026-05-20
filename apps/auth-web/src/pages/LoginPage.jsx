@@ -121,7 +121,7 @@ export const LoginPage = () => {
       <div className="divider-mono text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
 
       <p className="text-center font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-        아직 계정이 없나요?{' '}
+        계정이 없으신가요?{' '}
         <Link
           to={`/signup${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
           className="font-semibold text-cyan-700 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none dark:text-cyan-neon"
