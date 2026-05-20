@@ -61,11 +61,46 @@ describe('GET /api/shelves/me', () => {
     expect(res.body.shelves).toHaveLength(1);
     expect(res.body.shelves[0]).toMatchObject({ bookId: book1.id, status: 'WANT' });
     expect(res.body.shelves[0].book).toMatchObject({ title: 'A' });
+    expect(res.body.pagination).toMatchObject({ page: 1, pageSize: 20, total: 1 });
   });
 
-  it('빈 서재 → 200 + 빈 배열', async () => {
+  it('빈 서재 → 200 + 빈 배열 + total 0', async () => {
     const res = await request(app).get('/api/shelves/me').set(authHeader(ALICE));
     expect(res.status).toBe(200);
     expect(res.body.shelves).toEqual([]);
+    expect(res.body.pagination).toMatchObject({ page: 1, pageSize: 20, total: 0 });
+  });
+
+  it('pagination — page/pageSize 적용 + total 정확', async () => {
+    const books = await Promise.all(
+      Array.from({ length: 5 }, (_, i) =>
+        seedBook({ isbn: `97889329172${i}${i}`, title: `T${i}` }),
+      ),
+    );
+    books.forEach((b, i) => {
+      memDb.bookShelves.set(`bs_p_${i}`, {
+        id: `bs_p_${i}`,
+        userId: ALICE,
+        bookId: b.id,
+        status: 'WANT',
+        rating: null,
+        review: null,
+        addedAt: new Date(`2026-05-${10 + i}`),
+        completedAt: null,
+      });
+    });
+
+    const res = await request(app).get('/api/shelves/me?page=2&pageSize=2').set(authHeader(ALICE));
+    expect(res.status).toBe(200);
+    expect(res.body.shelves).toHaveLength(2);
+    expect(res.body.pagination).toMatchObject({ page: 2, pageSize: 2, total: 5 });
+  });
+
+  it('pageSize 상한 100 적용', async () => {
+    const res = await request(app)
+      .get('/api/shelves/me?page=1&pageSize=999')
+      .set(authHeader(ALICE));
+    expect(res.status).toBe(200);
+    expect(res.body.pagination.pageSize).toBe(100);
   });
 });

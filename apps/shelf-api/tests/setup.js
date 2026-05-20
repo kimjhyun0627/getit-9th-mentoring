@@ -142,16 +142,19 @@ const makeBookShelfDelegate = () => ({
     }
     return null;
   },
-  findMany: async ({ where, orderBy, include } = {}) => {
+  findMany: async ({ where, orderBy, include, skip, take } = {}) => {
     const list = [...memDb.bookShelves.values()].filter((r) => matchWhere(r, where));
     if (orderBy?.addedAt === 'desc') list.sort((a, b) => b.addedAt - a.addedAt);
     if (orderBy?.addedAt === 'asc') list.sort((a, b) => a.addedAt - b.addedAt);
-    return list.map((r) =>
+    const sliced = skip || take ? list.slice(skip ?? 0, (skip ?? 0) + (take ?? list.length)) : list;
+    return sliced.map((r) =>
       include?.book
         ? { ...r, book: memDb.books.get(r.bookId) ? { ...memDb.books.get(r.bookId) } : null }
         : { ...r },
     );
   },
+  count: async ({ where } = {}) =>
+    [...memDb.bookShelves.values()].filter((r) => matchWhere(r, where)).length,
   update: async ({ where, data, include }) => {
     for (const [id, r] of memDb.bookShelves) {
       if (matchWhere(r, where)) {

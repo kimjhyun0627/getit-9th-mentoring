@@ -91,13 +91,15 @@ const findOrFetchBookByIsbn = async (isbn) => {
 };
 
 /**
- * Prisma P2002 (unique) 에러 판별.
+ * Prisma P2002 (unique constraint violation) 에러 판별.
+ *
+ * `PrismaClientKnownRequestError` name 만으로 판별하면 P2025 (record not found),
+ * P2003 (FK violation) 등 다른 known error 까지 unique 충돌로 오해됨 → code 만 확인.
  *
  * @param {any} err
  * @returns {boolean}
  */
-const isUniqueViolation = (err) =>
-  err && (err.code === 'P2002' || err.name === 'PrismaClientKnownRequestError');
+const isUniqueViolation = (err) => err?.code === 'P2002';
 
 /**
  * Shelves 라우터.
@@ -113,15 +115,31 @@ export const createShelvesRouter = () => {
 
   router.use(auth);
 
-  // GET /me — 내 서재
+  // GET /me — 내 서재 (page-based pagination: ?page=1&pageSize=20, 최대 100)
   router.get('/me', async (req, res, next) => {
     try {
-      const rows = await prisma.bookShelf.findMany({
-        where: { userId: req.user.sub },
-        orderBy: { addedAt: 'desc' },
-        include: { book: true },
+      const pageRaw = Number.parseInt(req.query.page, 10);
+      const pageSizeRaw = Number.parseInt(req.query.pageSize, 10);
+      const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1;
+      const pageSize =
+        Number.isFinite(pageSizeRaw) && pageSizeRaw >= 1 ? Math.min(pageSizeRaw, 100) : 20;
+      const skip = (page - 1) * pageSize;
+
+      const where = { userId: req.user.sub };
+      const [total, rows] = await Promise.all([
+        prisma.bookShelf.count({ where }),
+        prisma.bookShelf.findMany({
+          where,
+          orderBy: { addedAt: 'desc' },
+          include: { book: true },
+          skip,
+          take: pageSize,
+        }),
+      ]);
+      return res.status(200).json({
+        shelves: rows.map(publicShelf),
+        pagination: { page, pageSize, total },
       });
-      return res.status(200).json({ shelves: rows.map(publicShelf) });
     } catch (err) {
       return next(err);
     }

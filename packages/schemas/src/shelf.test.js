@@ -29,6 +29,18 @@ describe('ShelfAddInput', () => {
     expect(r.success).toBe(false);
   });
 
+  it('하이픈 포함 isbn 정규화 후 통과', () => {
+    const r = ShelfAddInput.safeParse({ isbn: '978-89-329-1724-5' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.isbn).toBe('9788932917245');
+  });
+
+  it('공백 포함 isbn 정규화 후 통과', () => {
+    const r = ShelfAddInput.safeParse({ isbn: '9788932917245 ' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.isbn).toBe('9788932917245');
+  });
+
   it('isbn/bookId 모두 누락 거부', () => {
     const r = ShelfAddInput.safeParse({ status: 'WANT' });
     expect(r.success).toBe(false);

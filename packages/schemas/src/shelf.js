@@ -30,12 +30,20 @@ const reviewSchema = z.string().max(5000, '감상평은 5000자 이내').nullabl
  * - isbn: 캐시 미스면 라우터에서 외부 API 호출 후 Book upsert
  * - bookId: 이미 캐시된 Book.id 직접 지정
  */
+/**
+ * ISBN 입력 — 하이픈/공백 정규화 후 ISBN-10 / ISBN-13 검증.
+ *
+ * 실제 입력은 `978-89-329-1724-5`, `9788932917245` 둘 다 흔함 → 입력 시 strip 하고 검증.
+ * 정규화된 값은 캐시 키로도 안전하다 (DB 저장 형식 = 하이픈 없는 숫자열).
+ */
+const isbnSchema = z.preprocess(
+  (v) => (typeof v === 'string' ? v.replace(/[\s-]/g, '') : v),
+  z.string().regex(/^(?:\d{10}|\d{9}[Xx]|\d{13})$/, 'invalid isbn'),
+);
+
 export const ShelfAddInput = z
   .object({
-    isbn: z
-      .string()
-      .regex(/^(?:\d{10}|\d{9}[Xx]|\d{13})$/, 'invalid isbn')
-      .optional(),
+    isbn: isbnSchema.optional(),
     bookId: z.string().trim().min(1).optional(),
     status: ShelfStatus.default('WANT'),
     rating: ratingSchema.optional(),
