@@ -41,7 +41,11 @@ describe('App (landing · Tech-Dark)', () => {
     renderApp();
     const titles = ['취미메이트', '스마트 서재', '팀 칸반', '익명 롤링페이퍼'];
     for (const title of titles) {
-      expect(screen.getByRole('heading', { name: new RegExp(title) })).toBeInTheDocument();
+      const heading = screen.getByRole('heading', { level: 3, name: new RegExp(title) });
+      expect(heading).toBeInTheDocument();
+      const link = heading.closest('a');
+      expect(link).not.toBeNull();
+      expect(within(link).getByText(/새 탭에서 열림/)).toBeInTheDocument();
     }
   });
 

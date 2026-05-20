@@ -3,15 +3,17 @@ import { ThemeToggle } from '@getit/theme';
 const AUTH_ORIGIN = import.meta.env.VITE_AUTH_ORIGIN || 'https://auth.get-it.cloud';
 
 /**
- * `auth.get-it.cloud/login?redirect=<현재 URL>` 빌더.
+ * `auth.get-it.cloud/login?redirect=<origin+pathname>` 빌더.
  * SSR/JSDOM에서 window 가드.
+ * 쿼리/프래그먼트에 붙은 토큰·식별자가 auth 도메인으로 새는 걸 막기 위해
+ * `href` 전체가 아닌 `origin + pathname`만 redirect로 넘긴다.
  *
  * @returns {string}
  */
 const buildLoginUrl = () => {
   const back =
     typeof window !== 'undefined' && window.location
-      ? window.location.href
+      ? `${window.location.origin}${window.location.pathname}`
       : 'https://get-it.cloud';
   return `${AUTH_ORIGIN}/login?redirect=${encodeURIComponent(back)}`;
 };
