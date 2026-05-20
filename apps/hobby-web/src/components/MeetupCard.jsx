@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 import { emojiFor, paletteFor } from '../data/palette.js';
 import { cn } from '../lib/cn.js';
 import { formatMeetAt, initialOf } from '../lib/format.js';
@@ -129,8 +131,8 @@ export const MeetupCard = ({ post }) => {
             정원 마감
           </span>
         ) : (
-          <a
-            href={`/posts/${post.id}`}
+          <Link
+            to={`/posts/${post.id}`}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-4 py-2 font-display font-extrabold text-sm shadow',
               palette.btn,
@@ -140,7 +142,7 @@ export const MeetupCard = ({ post }) => {
             <span aria-hidden="true" className="arrow">
               →
             </span>
-          </a>
+          </Link>
         )}
       </div>
     </div>

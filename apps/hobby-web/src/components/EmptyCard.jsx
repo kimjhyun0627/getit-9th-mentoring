@@ -1,10 +1,12 @@
+import { Link } from 'react-router-dom';
+
 /**
  * 빈 자리 placeholder 카드 — 시안 (playful.html) 의 카드 7 (dashed border) 1:1.
- * "찾는 모임 없으면 직접 만들자" CTA.
+ * "찾는 모임 없으면 직접 만들자" CTA. 내부 라우팅이라 `Link` 사용 (SPA 상태 보존).
  */
 export const EmptyCard = () => (
-  <a
-    href="/new"
+  <Link
+    to="/new"
     data-testid="empty-card"
     className="group block rounded-[28px] p-6 relative overflow-hidden border-2 border-dashed border-slate-300 dark:border-white/15 bg-white/60 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:-rotate-1 hover:scale-[1.02] transition shadow-sm"
   >
@@ -22,5 +24,5 @@ export const EmptyCard = () => (
         ＋ 새 모임 만들기
       </span>
     </div>
-  </a>
+  </Link>
 );

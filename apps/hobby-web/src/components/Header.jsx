@@ -1,16 +1,20 @@
 import { ThemeToggle } from '@getit/theme';
+import { Link } from 'react-router-dom';
 
 /**
  * Playful 페르소나 헤더 — 로고 + 검색 + 다크 토글 + Sign in.
  * 시안 (docs/design/hobby/playful.html) 의 <header> 1:1 변환.
+ *
+ * 내부 라우팅은 react-router 의 `Link` 사용 — `<a href>` 는 전체 페이지 새로고침 +
+ * QueryClient 캐시/테마 상태 초기화를 유발해서 SPA 체감 깨짐.
  *
  * @param {{ search: string; onSearchChange: (v: string) => void }} props
  */
 export const Header = ({ search, onSearchChange }) => {
   return (
     <header className="relative z-10 max-w-[1280px] mx-auto px-5 lg:px-10 pt-6 flex items-center gap-3 sm:gap-5">
-      <a
-        href="/"
+      <Link
+        to="/"
         className="group inline-flex items-center gap-2.5 shrink-0"
         aria-label="취미메이트 홈"
       >
@@ -23,7 +27,7 @@ export const Header = ({ search, onSearchChange }) => {
         <span className="font-display text-lg font-extrabold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
           취미<span className="text-rose-500 dark:text-rose-300">메이트</span>
         </span>
-      </a>
+      </Link>
 
       <label className="relative flex-1 max-w-xl hidden sm:block">
         <span

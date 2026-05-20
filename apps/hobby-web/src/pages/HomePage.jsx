@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { EmptyCard } from '../components/EmptyCard.jsx';
 import { FilterChips } from '../components/FilterChips.jsx';
@@ -127,8 +128,8 @@ export const HomePage = () => {
             </p>
           </div>
 
-          <a
-            href="/new"
+          <Link
+            to="/new"
             className="group relative inline-flex items-center gap-3 rounded-full card-coral text-white px-7 py-4 font-display font-extrabold text-lg shadow-xl shadow-rose-400/40 hover:scale-[1.04] hover:-rotate-2 transition self-start"
           >
             <span aria-hidden="true" className="text-2xl emoji">
@@ -138,7 +139,7 @@ export const HomePage = () => {
             <span aria-hidden="true" className="arrow">
               →
             </span>
-          </a>
+          </Link>
         </div>
 
         <FilterChips

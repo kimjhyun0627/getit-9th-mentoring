@@ -1,6 +1,7 @@
 import { ThemeProvider } from '@getit/theme';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Header } from './Header.jsx';
@@ -9,7 +10,9 @@ const renderHeader = (props = {}) => {
   const onSearchChange = props.onSearchChange ?? vi.fn();
   return render(
     <ThemeProvider>
-      <Header search={props.search ?? ''} onSearchChange={onSearchChange} />
+      <MemoryRouter>
+        <Header search={props.search ?? ''} onSearchChange={onSearchChange} />
+      </MemoryRouter>
     </ThemeProvider>,
   );
 };

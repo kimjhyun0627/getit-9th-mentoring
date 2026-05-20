@@ -50,7 +50,7 @@ const buildListParams = (params) => {
   if (params.status) out.status = params.status;
   if (params.tag) out.tag = params.tag;
   if (params.cursor) out.cursor = params.cursor;
-  if (params.limit) out.limit = params.limit;
+  if (params.limit !== undefined) out.limit = params.limit;
   return out;
 };
 

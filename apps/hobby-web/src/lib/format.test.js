@@ -31,4 +31,13 @@ describe('initialOf', () => {
   it('빈 문자열이면 "?"', () => {
     expect(initialOf('')).toBe('?');
   });
+
+  it('공백 전용 입력이면 "?" (CR 회귀 가드)', () => {
+    expect(initialOf('   ')).toBe('?');
+  });
+
+  it('null/undefined 도 "?"', () => {
+    expect(initialOf(null)).toBe('?');
+    expect(initialOf(undefined)).toBe('?');
+  });
 });

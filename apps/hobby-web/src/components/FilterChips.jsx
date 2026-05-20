@@ -40,13 +40,13 @@ export const FilterChips = ({ timeKey, onTimeChange, tagKey, onTagChange }) => {
         className="mx-1 hidden sm:inline-block h-5 w-px bg-slate-300/70 dark:bg-white/10"
       />
       {TAG_CHIPS.map((c) => {
-        const active = tagKey === c.label;
+        const active = tagKey === c.key;
         return (
           <button
             key={c.key}
             type="button"
             aria-pressed={active}
-            onClick={() => onTagChange(active ? null : c.label)}
+            onClick={() => onTagChange(active ? null : c.key)}
             className={cn(
               'chip-pop inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-round font-bold',
               active
