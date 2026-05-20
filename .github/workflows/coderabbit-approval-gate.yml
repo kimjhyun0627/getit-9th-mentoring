@@ -2,11 +2,15 @@ name: coderabbit approval gate
 
 # CodeRabbit은 APPROVE/REQUEST_CHANGES 둘 다 줄 수 있음 (.coderabbit.yaml의
 # request_changes_workflow: true 설정으로 강제).
-# 게이트 정책: 마지막 CR 리뷰 state가 APPROVED 일 때만 통과.
+# 게이트 정책: 마지막 *decisive* CR 리뷰 state가 APPROVED 일 때만 통과.
 #
 # 흐름: PR opened → CR 자동 리뷰 → REQUEST_CHANGES(라인 코멘트) 또는 APPROVED
 #       → 라인 코멘트 적용/보류 답글 + resolve → `@coderabbitai full review` 로 재리뷰
 #       → CR이 clean하다고 판단하면 APPROVED → 게이트 통과
+#
+# 주의: CR가 APPROVED 직후 본문 빈 `COMMENTED` review row를 추가로 submit하는
+# 패턴이 있음. 마지막 row만 보면 영구히 막힘 → COMMENTED는 noise로 무시하고
+# APPROVED/CHANGES_REQUESTED 중 가장 최근만 본다 ("decisive" review).
 #
 # Gemini는 별도 engagement gate (APPROVE 미지원이라 다른 모델).
 
@@ -57,9 +61,23 @@ jobs:
               return;
             }
 
-            const latest = cr[0];
+            // COMMENTED는 noise (CR가 APPROVED 직후 빈 COMMENTED row를 추가하는 패턴).
+            // 최종 결정은 APPROVED 또는 CHANGES_REQUESTED 중 가장 최근으로 본다.
+            const decisive = cr.filter(
+              (r) => r.state === 'APPROVED' || r.state === 'CHANGES_REQUESTED',
+            );
+
+            if (decisive.length === 0) {
+              core.setFailed(
+                'CodeRabbit decisive review (APPROVED/CHANGES_REQUESTED) 가 아직 없음. ' +
+                  '`@coderabbitai full review` 로 새 리뷰 트리거.',
+              );
+              return;
+            }
+
+            const latest = decisive[0];
             core.info(
-              `CodeRabbit 마지막 리뷰: state=${latest.state}, submitted_at=${latest.submitted_at}`,
+              `CodeRabbit 마지막 decisive 리뷰: state=${latest.state}, submitted_at=${latest.submitted_at}`,
             );
 
             if (latest.state === 'APPROVED') {
@@ -68,6 +86,6 @@ jobs:
             }
 
             core.setFailed(
-              `CodeRabbit 리뷰 state=${latest.state}. APPROVED 필요. ` +
+              `CodeRabbit 마지막 decisive 리뷰 state=${latest.state}. APPROVED 필요. ` +
                 `라인 코멘트 적용/보류 답글 + resolve 후 \`@coderabbitai full review\` 로 재리뷰 요청.`,
             );
