@@ -131,14 +131,21 @@ describe('hobby-api posts', () => {
       expect(pages).toBe(3);
     });
 
-    it('limit 기본 20 — limit 미지정 시 20개 이하', async () => {
-      for (let i = 0; i < 3; i++) {
+    it('limit 기본 20 — 21개 넣으면 첫 페이지 20 + nextCursor 존재', async () => {
+      for (let i = 0; i < 21; i++) {
         // eslint-disable-next-line no-await-in-loop
         await createPost(app, 'alice', { title: `post-${i}` });
       }
       const res = await request(app).get('/api/posts');
-      expect(res.body.items.length).toBe(3);
-      expect(res.body.nextCursor).toBeNull();
+      expect(res.status).toBe(200);
+      expect(res.body.items).toHaveLength(20);
+      expect(res.body.nextCursor).toBeTruthy();
+
+      // 두 번째 페이지로 나머지 1개 확인.
+      const res2 = await request(app).get(`/api/posts?cursor=${res.body.nextCursor}`);
+      expect(res2.status).toBe(200);
+      expect(res2.body.items).toHaveLength(1);
+      expect(res2.body.nextCursor).toBeNull();
     });
 
     it('태그 필터 — tag=음식 으로 매칭만', async () => {

@@ -72,7 +72,11 @@ export const createApp = (opts = {}) => {
   app.get('/api/openapi.json', (_req, res) => res.json(openapi));
 
   // 마지막 fallback 에러 핸들러 (4-인자 시그니처 유지).
-  app.use((err, req, res, _next) => {
+  app.use((err, req, res, next) => {
+    // 응답이 이미 시작된 경우 (스트리밍/SSE 등) 추가 헤더/바디 쓰지 않고 Express 기본 핸들러로 위임.
+    if (res.headersSent) {
+      return next(err);
+    }
     const status = err.status ?? 500;
     if (status >= 500) {
       req.log?.error({ err }, 'unhandled error');
