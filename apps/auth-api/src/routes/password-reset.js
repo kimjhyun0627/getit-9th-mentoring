@@ -29,12 +29,17 @@ const RESET_TOKEN_TTL_MIN = Number.parseInt(process.env.RESET_TOKEN_TTL_MIN ?? '
  * 환경변수 기반 dev 토큰 노출 여부.
  *
  * dev/staging 에선 응답 본문에 token 을 노출해 이메일 인프라 없이도 흐름 검증 가능.
- * 운영에선 반드시 false → console.log 만 남기고 토큰은 이메일로만 전달.
+ * 운영에선 반드시 false → 토큰은 이메일로만 전달.
+ *
+ * 운영 사고 방지 (CodeRabbit): NODE_ENV=production 일 땐 RESET_TOKEN_DEV_RETURN
+ * 환경변수가 실수로 켜져 있어도 무시한다. 명시적 NODE_ENV gate 가 우선.
  *
  * @returns {boolean}
  */
-const shouldReturnTokenInResponse = () =>
-  process.env.RESET_TOKEN_DEV_RETURN === 'true' || process.env.NODE_ENV === 'test';
+const shouldReturnTokenInResponse = () => {
+  if (process.env.NODE_ENV === 'production') return false;
+  return process.env.RESET_TOKEN_DEV_RETURN === 'true' || process.env.NODE_ENV === 'test';
+};
 
 /**
  * Zod 에러 → 400 본문.

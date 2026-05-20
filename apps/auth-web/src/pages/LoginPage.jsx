@@ -135,7 +135,7 @@ export const LoginPage = () => {
         </p>
         <p>
           <Link
-            to="/forgot-password"
+            to={`/forgot-password${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
             className="text-zinc-500 underline-offset-4 hover:text-cyan-700 hover:underline focus-visible:outline-none dark:text-zinc-500 dark:hover:text-cyan-neon"
           >
             비밀번호 찾기 <span aria-hidden="true">./forgot</span>

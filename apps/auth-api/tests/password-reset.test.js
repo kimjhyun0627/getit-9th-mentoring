@@ -17,7 +17,7 @@
 import { createHash } from 'node:crypto';
 
 import request from 'supertest';
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { createApp } from '../src/app.js';
 import { memDb } from './setup.js';
@@ -34,7 +34,7 @@ const sha256 = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 describe('password-reset', () => {
   /** @type {import('express').Express} */
   let app;
-  /** @type {string} */
+  /** @type {string | undefined} */
   let originalDevToken;
 
   beforeAll(() => {
@@ -42,6 +42,15 @@ describe('password-reset', () => {
     originalDevToken = process.env.RESET_TOKEN_DEV_RETURN;
     process.env.RESET_TOKEN_DEV_RETURN = 'true';
     app = createApp({ rateLimitMax: 1000 });
+  });
+
+  afterAll(() => {
+    // 환경변수 원복 — 다른 테스트 파일/배치로 누수 방지.
+    if (originalDevToken === undefined) {
+      delete process.env.RESET_TOKEN_DEV_RETURN;
+    } else {
+      process.env.RESET_TOKEN_DEV_RETURN = originalDevToken;
+    }
   });
 
   beforeEach(async () => {

@@ -132,10 +132,14 @@ describe('auth-api', () => {
         return Number(process.hrtime.bigint() - start);
       };
 
-      // 두 케이스 모두 3번 측정 후 중간값 비교 → 노이즈 흡수
+      // Warm-up: JIT/bcrypt 초기화 비용을 측정에서 제외 (CodeRabbit 권고).
+      await measure({ email: VALID_SIGNUP.email, password: 'wrong-password-xxx' });
+      await measure({ email: 'warmup-nobody@get-it.cloud', password: 'password1234' });
+
+      // 표본 수 9개 → median 안정성 ↑ (3개는 환경 노이즈에 흔들림).
       const existingTimes = [];
       const missingTimes = [];
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 9; i++) {
         existingTimes.push(
           await measure({ email: VALID_SIGNUP.email, password: 'wrong-password-xxx' }),
         );
@@ -143,7 +147,7 @@ describe('auth-api', () => {
           await measure({ email: `nobody${i}@get-it.cloud`, password: 'password1234' }),
         );
       }
-      const median = (arr) => arr.sort((a, b) => a - b)[Math.floor(arr.length / 2)];
+      const median = (arr) => arr.slice().sort((a, b) => a - b)[Math.floor(arr.length / 2)];
       const existingMed = median(existingTimes);
       const missingMed = median(missingTimes);
       // 더미 hash 가 실행되지 않으면 missing 이 existing 의 1/3 미만으로 짧다.
@@ -159,8 +163,11 @@ describe('auth-api', () => {
       const b = await request(app)
         .post('/api/login')
         .send({ email: 'nobody@get-it.cloud', password: 'password1234' });
-      expect(a.status).toBe(b.status);
-      expect(a.body).toEqual(b.body);
+      // 두 응답이 (1) 일치해야 하고 (2) 정확히 401/InvalidCredentials 여야 한다.
+      expect(a.status).toBe(401);
+      expect(b.status).toBe(401);
+      expect(a.body).toEqual({ error: 'InvalidCredentials' });
+      expect(b.body).toEqual({ error: 'InvalidCredentials' });
     });
   });
 
