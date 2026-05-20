@@ -40,7 +40,7 @@ volumes:
 services:
   # ────────────────────────── Reverse proxy ──────────────────────────
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.5
     <<: *restart
     command:
       - --configFile=/etc/traefik/traefik.yml
