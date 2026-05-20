@@ -56,6 +56,20 @@ export const createNotificationsRouter = ({ jwtSecret }) => {
       const where = { userId };
       if (onlyUnread) where.readAt = null;
 
+      // cursor 선검증: 존재 + 본인 소유 여야 함. 안 그러면 Prisma 가 500 으로 흘러.
+      // 잘못된 cursor 는 400 ValidationError 로 명확히 거부.
+      if (cursor) {
+        const ownsCursor = await prisma.notification.findUnique({
+          where: { id: cursor },
+        });
+        if (!ownsCursor || ownsCursor.userId !== userId) {
+          return res.status(400).json({
+            error: 'ValidationError',
+            issues: [{ path: 'cursor', message: '유효하지 않은 cursor' }],
+          });
+        }
+      }
+
       const rows = await prisma.notification.findMany({
         where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],

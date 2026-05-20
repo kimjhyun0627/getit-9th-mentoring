@@ -222,6 +222,13 @@ export const buildApplicationModel = (memDb, nextId) => ({
 });
 
 export const buildNotificationModel = (memDb, nextId) => ({
+  findUnique: async ({ where }) => {
+    for (const n of memDb.notifications.values()) {
+      if (matchWhere(n, where)) return { ...n };
+    }
+    return null;
+  },
+
   create: async ({ data }) => {
     const id = data.id ?? nextId('notif');
     const row = { id, createdAt: new Date(), readAt: null, postId: null, ...data };

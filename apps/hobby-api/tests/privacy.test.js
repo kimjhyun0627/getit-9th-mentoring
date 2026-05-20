@@ -241,6 +241,33 @@ describe('GET /api/notifications (#36)', () => {
     expect(resDave.body.items).toEqual([]);
   });
 
+  it('유효하지 않은 cursor → 400 ValidationError (Prisma 500 회귀 방지)', async () => {
+    const res = await request(app)
+      .get('/api/notifications?cursor=nonexistent_id')
+      .set('Authorization', `Bearer ${tokenFor('bob')}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('ValidationError');
+  });
+
+  it('타인 알림의 cursor → 400 (권한 우회 차단)', async () => {
+    // alice 가 게시글 만들고 FULL → 본인 알림 1개 보유.
+    const c = await createPostAs(app, 'alice', { capacity: 2 });
+    await applyAs(app, 'bob', c.body.post.id);
+    await applyAs(app, 'carol', c.body.post.id);
+
+    const aliceList = await request(app)
+      .get('/api/notifications')
+      .set('Authorization', `Bearer ${tokenFor('alice')}`);
+    const aliceNotifId = aliceList.body.items[0].id;
+
+    // dave 가 alice 알림 id 를 cursor 로 박아도 거부.
+    const res = await request(app)
+      .get(`/api/notifications?cursor=${aliceNotifId}`)
+      .set('Authorization', `Bearer ${tokenFor('dave')}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('ValidationError');
+  });
+
   it('최신순 정렬 (createdAt desc)', async () => {
     // alice 가 게시글 2개 만들고 둘 다 FULL 까지.
     const c1 = await createPostAs(app, 'alice', { capacity: 2 });

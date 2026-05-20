@@ -144,7 +144,11 @@ export const buildOpenApiDoc = () =>
           parameters: [
             { in: 'query', name: 'cursor', schema: z.string() },
             { in: 'query', name: 'limit', schema: z.number().int().min(1).max(50) },
-            { in: 'query', name: 'unreadOnly', schema: z.boolean() },
+            {
+              in: 'query',
+              name: 'unreadOnly',
+              schema: z.enum(['true', 'false', '1', '0']),
+            },
           ],
           responses: {
             200: ok(
