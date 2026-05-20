@@ -1,4 +1,9 @@
-import { CardCreateInput, CardMoveInput, CardUpdateInput } from '@getit/schemas/board';
+import {
+  CardCreateInput,
+  CardMoveInput,
+  CardUpdateInput,
+  ProjectMemberInput,
+} from '@getit/schemas/board';
 import axios from 'axios';
 
 /**
@@ -89,6 +94,29 @@ export const api = {
    * @param {string} projectId
    */
   listColumns: (projectId) => client.get(`/projects/${projectId}/columns`),
+  /**
+   * 프로젝트 멤버 목록 (담당자 picker / 멤버 관리용).
+   *
+   * @param {string} projectId
+   */
+  listMembers: (projectId) => client.get(`/projects/${projectId}/members`),
+  /**
+   * 프로젝트 멤버 초대 (OWNER 전용).
+   *
+   * @param {string} projectId
+   * @param {{ userId: string; role?: 'OWNER'|'MEMBER' }} body
+   */
+  inviteMember: (projectId, body) =>
+    parseOrReject(ProjectMemberInput, body).then((parsed) =>
+      client.post(`/projects/${projectId}/members`, parsed),
+    ),
+  /**
+   * 프로젝트 멤버 제거 (본인 탈퇴 또는 OWNER 추방).
+   *
+   * @param {string} projectId
+   * @param {string} userId
+   */
+  removeMember: (projectId, userId) => client.delete(`/projects/${projectId}/members/${userId}`),
   /**
    * 컬럼별 카드 목록 (order asc).
    *

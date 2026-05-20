@@ -60,6 +60,7 @@ export const makeMatchWhere = (memDb) => {
         if ('gte' in v) return row[k] >= v.gte;
         if ('lt' in v) return row[k] < v.lt;
         if ('lte' in v) return row[k] <= v.lte;
+        if ('in' in v) return Array.isArray(v.in) && v.in.includes(row[k]);
         return false;
       }
       return row[k] === v;

@@ -39,6 +39,26 @@ const publicMember = (m) => ({
 export const createMembersRouter = () => {
   const router = Router({ mergeParams: true });
 
+  // GET /projects/:id/members — 멤버 누구나 (담당자 picker 용, #200).
+  // SSO User 테이블이 다른 DB에 있어 name 은 일단 null. 추후 user lookup 연동 지점.
+  router.get('/', async (req, res, next) => {
+    try {
+      const projectId = req.params.id;
+      const rows = await prisma.projectMember.findMany({
+        where: { projectId },
+      });
+      const members = rows.map((m) => ({
+        userId: m.userId,
+        role: m.role,
+        joinedAt: m.joinedAt,
+        name: null,
+      }));
+      return res.status(200).json({ members });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
   // POST /projects/:id/members — OWNER만
   router.post('/', async (req, res, next) => {
     try {
