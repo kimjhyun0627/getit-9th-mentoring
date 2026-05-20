@@ -8,6 +8,7 @@ import 'dotenv/config';
 import pino from 'pino';
 
 import { createApp } from './app.js';
+import { validateEnv } from './lib/env.js';
 
 const log = pino({ name: 'shelf-api' });
 
@@ -23,6 +24,10 @@ const initSentry = async () => {
 };
 
 const main = async () => {
+  // boot 시점에 1회 — production 누락 시 throw → 컨테이너 즉시 종료.
+  const warnings = validateEnv(process.env);
+  for (const w of warnings) log.warn({ env: 'validation' }, w);
+
   await initSentry();
 
   // 운영 환경에선 Traefik 프록시 뒤에 있으므로 trustProxy 명시 활성화.

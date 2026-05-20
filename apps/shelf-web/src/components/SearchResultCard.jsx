@@ -6,6 +6,8 @@
  *
  * Pure presentational. 부모가 onAdd / isPending / isAdded 를 주입한다.
  *
+ * book.stale === true 면 "캐시된 정보" 안내 라벨 노출 (#236 graceful degrade).
+ *
  * @param {{
  *   book: {
  *     id?: string,
@@ -14,6 +16,7 @@
  *     author?: string | null,
  *     publisher?: string | null,
  *     coverUrl?: string | null,
+ *     stale?: boolean,
  *   },
  *   onAdd: (book: { isbn?: string, bookId?: string }) => void,
  *   isPending?: boolean,
@@ -58,6 +61,11 @@ export const SearchResultCard = ({ book, onAdd, isPending = false, isAdded = fal
           <p className="font-serif text-sm text-meta line-clamp-1">{book.author}</p>
         ) : null}
         {book.publisher ? <p className="smallcaps text-[11px]">{book.publisher}</p> : null}
+        {book.stale ? (
+          <p className="smallcaps mt-1 text-[10px] text-meta" data-testid="stale-label">
+            잠시 캐시된 정보입니다
+          </p>
+        ) : null}
       </div>
 
       <button

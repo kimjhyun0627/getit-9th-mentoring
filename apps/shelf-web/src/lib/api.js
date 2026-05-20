@@ -60,10 +60,12 @@ const searchResponseSchema = z.object({
  */
 export const api = {
   /**
-   * @param {{ page?: number; pageSize?: number }} [opts]
+   * @param {{ page?: number; pageSize?: number; sort?: string }} [opts]
    */
   listMyShelves: (opts = {}) =>
-    client.get('/shelves/me', { params: { page: opts.page, pageSize: opts.pageSize } }),
+    client.get('/shelves/me', {
+      params: { page: opts.page, pageSize: opts.pageSize, sort: opts.sort },
+    }),
   /**
    * @param {string} bookId
    * @param {{ status?: 'WANT'|'READING'|'READ'; rating?: number|null; review?: string|null }} body

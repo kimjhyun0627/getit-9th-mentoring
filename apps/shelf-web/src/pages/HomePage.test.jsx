@@ -160,4 +160,30 @@ describe('HomePage', () => {
     renderHome();
     expect(await screen.findByText(/지금은 서재를 펼칠 수 없습니다/)).toBeInTheDocument();
   });
+
+  it('SortControl 노출 + 변경 시 listMyShelves 가 새 sort 파라미터로 호출된다 (#196)', async () => {
+    const user = userEvent.setup();
+    const spy = vi.spyOn(api, 'listMyShelves').mockResolvedValue({
+      data: { shelves, pagination: { page: 1, pageSize: 100, total: 3 } },
+    });
+    renderHome();
+    await screen.findByRole('heading', { name: '읽기의 계절' });
+
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ sort: 'addedAt-desc' }));
+
+    await user.selectOptions(screen.getByRole('combobox', { name: /정렬/ }), 'rating-desc');
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ sort: 'rating-desc' }));
+    });
+
+    // 기본값으로 되돌리면 URL 의 ?sort=가 제거되어 default 로 재호출 (회귀 가드).
+    // 초기 마운트 시 이미 addedAt-desc 로 호출되므로 toHaveBeenCalledWith 만으론 가짜 성공.
+    // 호출 횟수 증가 + 마지막 호출 인수까지 검증.
+    const beforeResetCalls = spy.mock.calls.length;
+    await user.selectOptions(screen.getByRole('combobox', { name: /정렬/ }), 'addedAt-desc');
+    await waitFor(() => {
+      expect(spy.mock.calls.length).toBeGreaterThan(beforeResetCalls);
+      expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ sort: 'addedAt-desc' }));
+    });
+  });
 });

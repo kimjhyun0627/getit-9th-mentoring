@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { SearchResultCard } from '../components/SearchResultCard.jsx';
 import { Toast } from '../components/Toast.jsx';
+import { useMyShelves } from '../hooks/useShelves.js';
 import { api } from '../lib/api.js';
 import { useDebounce } from '../lib/useDebounce.js';
 
@@ -65,10 +66,26 @@ export const SearchPage = () => {
   const [toast, setToast] = useState(
     /** @type {{ message: string, variant: 'success'|'error' } | null} */ (null),
   );
-  const addedKeys = useRef(new Set());
+  // 낙관 추가 직후 즉시 UI 반영용. 새로고침 시 휘발되어도 OK —
+  // 서버 truth (myShelves) 가 cross-reference 로 isAdded 를 다시 채운다.
+  const optimisticKeys = useRef(new Set());
   const [, forceRerender] = useState(0);
 
   const queryClient = useQueryClient();
+
+  // 내 서재 — search 결과와 cross-reference 로 isAdded 영속 (#217).
+  // pageSize 100 (BE max) 으로 받아오고, 그 이상 보유 시엔 lightweight bookIds 엔드포인트
+  // 도입 전까지는 100 권 이상 보유 유저는 "담김" 표시가 일부 안 보일 수 있음 — known trade-off.
+  // 검색 결과 카드의 disabled 상태가 아니어도 422 응답 직후 즉시 optimistic 반영되어 회복.
+  const myShelves = useMyShelves({ pageSize: 100 });
+  const shelvedKeys = useMemo(() => {
+    const set = new Set();
+    for (const s of myShelves.data?.shelves ?? []) {
+      if (s.bookId) set.add(s.bookId);
+      if (s.book?.isbn) set.add(s.book.isbn);
+    }
+    return set;
+  }, [myShelves.data]);
 
   const trimmed = debouncedQuery.trim();
   const isQueryable = trimmed.length >= MIN_QUERY;
@@ -96,13 +113,23 @@ export const SearchPage = () => {
     onSuccess: (_data, vars) => {
       const key = vars.bookId ?? vars.isbn;
       if (key) {
-        addedKeys.current.add(key);
+        optimisticKeys.current.add(key);
         forceRerender((n) => n + 1);
       }
       setToast({ message: '서재에 담았습니다.', variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['shelves', 'me'] });
     },
-    onError: (err) => {
+    onError: (err, vars) => {
+      // 422 (이미 존재) 도 결과적으로 "담겨 있음" 이 진실 → optimistic key 추가해 UI 즉시 갱신.
+      // 서버 truth 가 다음 refetch 에서 확정.
+      if (err?.response?.status === 422) {
+        const key = vars.bookId ?? vars.isbn;
+        if (key) {
+          optimisticKeys.current.add(key);
+          forceRerender((n) => n + 1);
+        }
+        queryClient.invalidateQueries({ queryKey: ['shelves', 'me'] });
+      }
       setToast({ message: addErrorMessage(err), variant: 'error' });
     },
   });
@@ -154,7 +181,8 @@ export const SearchPage = () => {
             items={items}
             onAdd={handleAdd}
             pendingKey={addMutation.isPending ? pendingKey : null}
-            addedKeys={addedKeys.current}
+            shelvedKeys={shelvedKeys}
+            optimisticKeys={optimisticKeys.current}
           />
         )}
       </div>
@@ -215,10 +243,11 @@ const EmptyResults = ({ query }) => (
  *   items: BookItem[],
  *   onAdd: (vars: { isbn?: string, bookId?: string }) => void,
  *   pendingKey: string | null,
- *   addedKeys: Set<string>,
+ *   shelvedKeys: Set<string>,
+ *   optimisticKeys: Set<string>,
  * }} props
  */
-const ResultsGrid = ({ items, onAdd, pendingKey, addedKeys }) => (
+const ResultsGrid = ({ items, onAdd, pendingKey, shelvedKeys, optimisticKeys }) => (
   <ul
     className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
     data-testid="results-grid"
@@ -227,13 +256,20 @@ const ResultsGrid = ({ items, onAdd, pendingKey, addedKeys }) => (
       const identity = book.id ?? book.isbn ?? null;
       // 식별자 없으면 동명 도서 충돌 막으려고 index 합성키 사용.
       const key = identity ?? `${book.title}-${idx}`;
+      // 영속 truth 우선 (myShelves) + 낙관 보조 (옵티미스틱 직후).
+      const isAdded =
+        identity !== null &&
+        (shelvedKeys.has(identity) ||
+          (book.isbn && shelvedKeys.has(book.isbn)) ||
+          (book.id && shelvedKeys.has(book.id)) ||
+          optimisticKeys.has(identity));
       return (
         <li key={key}>
           <SearchResultCard
             book={book}
             onAdd={onAdd}
             isPending={identity !== null && pendingKey === identity}
-            isAdded={identity !== null && addedKeys.has(identity)}
+            isAdded={Boolean(isAdded)}
           />
         </li>
       );

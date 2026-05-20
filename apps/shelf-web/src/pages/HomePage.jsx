@@ -1,10 +1,18 @@
+import { SHELF_SORT_DEFAULT, ShelfSortKey } from '@getit/schemas/shelf';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { BookCard } from '../components/BookCard.jsx';
 import { EditShelfModal } from '../components/EditShelfModal.jsx';
 import { EmptyShelf } from '../components/EmptyShelf.jsx';
 import { FilterTabs } from '../components/FilterTabs.jsx';
+import { SortControl } from '../components/SortControl.jsx';
 import { useMyShelves, useRemoveShelf, useUpdateShelf } from '../hooks/useShelves.js';
+
+/** @typedef {import('@getit/schemas/shelf').ShelfSortKeyT} SortKey */
+
+/** @type {SortKey[]} */
+const SORT_KEYS = ShelfSortKey.options;
 
 /** @typedef {import('../components/BookCard.jsx').Shelf} Shelf */
 /** @typedef {'ALL' | 'WANT' | 'READING' | 'READ'} FilterKey */
@@ -20,12 +28,26 @@ import { useMyShelves, useRemoveShelf, useUpdateShelf } from '../hooks/useShelve
  *  5) 책 클릭 → EditShelfModal (PATCH / DELETE)
  */
 export const HomePage = () => {
-  const { data, isLoading, isError, error } = useMyShelves();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sortParam = searchParams.get('sort');
+  const sort = /** @type {SortKey} */ (
+    SORT_KEYS.includes(/** @type {SortKey} */ (sortParam)) ? sortParam : SHELF_SORT_DEFAULT
+  );
+
+  const { data, isLoading, isError, error } = useMyShelves({ sort });
   const update = useUpdateShelf();
   const remove = useRemoveShelf();
 
   const [filter, setFilter] = useState(/** @type {FilterKey} */ ('ALL'));
   const [editing, setEditing] = useState(/** @type {Shelf | null} */ (null));
+
+  /** @param {SortKey} next */
+  const handleSortChange = (next) => {
+    const params = new URLSearchParams(searchParams);
+    if (next === SHELF_SORT_DEFAULT) params.delete('sort');
+    else params.set('sort', next);
+    setSearchParams(params, { replace: true });
+  };
 
   const shelves = useMemo(() => data?.shelves ?? [], [data]);
 
@@ -109,7 +131,10 @@ export const HomePage = () => {
               서가의 기록<span className="text-wine">.</span>
             </h2>
           </div>
-          <FilterTabs active={filter} onChange={setFilter} counts={counts} />
+          <div className="flex flex-wrap items-end gap-5">
+            <FilterTabs active={filter} onChange={setFilter} counts={counts} />
+            <SortControl value={sort} onChange={handleSortChange} />
+          </div>
         </div>
 
         {pageError ? (

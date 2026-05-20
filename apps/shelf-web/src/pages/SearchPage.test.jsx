@@ -1,13 +1,10 @@
-import { ThemeProvider } from '@getit/theme';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
-import { SearchPage } from './SearchPage.jsx';
+import { renderSearch } from './SearchPage.testkit.jsx';
 
 /**
  * SearchPage TDD 가드 (Issue #43).
@@ -16,27 +13,18 @@ import { SearchPage } from './SearchPage.jsx';
  *  - debounce 300ms (입력 → 300ms 후 검색)
  *  - 추가 후 토스트 + 캐시 invalidate
  *  - 빈 결과 placeholder
+ *
+ * #217 / #236 시나리오는 별도 spec 파일 (`SearchPage.cross-reference.test.jsx`).
  */
-
-const renderSearch = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  const view = render(
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <MemoryRouter initialEntries={['/search']}>
-          <SearchPage />
-        </MemoryRouter>
-      </ThemeProvider>
-    </QueryClientProvider>,
-  );
-  return { ...view, queryClient };
-};
 
 describe('SearchPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // SearchPage 는 #217 cross-reference 위해 useMyShelves 도 호출 — 테스트별로 따로 mock 하지 않으면
+    // jsdom 이 실제 네트워크 시도 → noise. 기본은 빈 서가.
+    vi.spyOn(api, 'listMyShelves').mockResolvedValue({
+      data: { shelves: [], pagination: { page: 1, pageSize: 100, total: 0 } },
+    });
   });
   afterEach(() => {
     vi.restoreAllMocks();

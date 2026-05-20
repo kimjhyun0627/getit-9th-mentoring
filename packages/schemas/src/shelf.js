@@ -67,6 +67,27 @@ export const ShelfUpdateInput = z
   });
 
 /**
+ * 서재 목록 정렬 옵션 — GET /shelves/me?sort=<key>.
+ *
+ * - addedAt-desc: 최근 추가 순 (기본값)
+ * - addedAt-asc: 오래된 추가 순
+ * - completedAt-desc: 최근 완독 순 (READ 상태만 의미 있음, null 은 뒤로)
+ * - rating-desc: 별점 높은 순 (null/0 은 뒤로)
+ * - title-asc: 제목 가나다 (book.title 기준)
+ */
+export const ShelfSortKey = z.enum([
+  'addedAt-desc',
+  'addedAt-asc',
+  'completedAt-desc',
+  'rating-desc',
+  'title-asc',
+]);
+
+/** ShelfSortKey 의 기본값 — 라우터/FE 양쪽에서 공유. */
+export const SHELF_SORT_DEFAULT = 'addedAt-desc';
+
+/**
  * @typedef {z.infer<typeof ShelfAddInput>} ShelfAddInputT
  * @typedef {z.infer<typeof ShelfUpdateInput>} ShelfUpdateInputT
+ * @typedef {z.infer<typeof ShelfSortKey>} ShelfSortKeyT
  */
