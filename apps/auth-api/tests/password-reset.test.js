@@ -24,11 +24,12 @@ import { memDb } from './setup.js';
 
 const VALID_SIGNUP = {
   email: 'reset@get-it.cloud',
-  password: 'oldpassword123',
-  passwordConfirm: 'oldpassword123',
+  password: 'Oldpass123',
+  passwordConfirm: 'Oldpass123',
   name: 'Reset User',
+  acceptTerms: true,
+  acceptPrivacy: true,
 };
-
 const sha256 = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 
 describe('password-reset', () => {
@@ -99,8 +100,8 @@ describe('password-reset', () => {
       const token = await issueToken();
       const res = await request(app).post('/api/password/reset').send({
         token,
-        password: 'newpassword456',
-        passwordConfirm: 'newpassword456',
+        password: 'Newpass456',
+        passwordConfirm: 'Newpass456',
       });
       expect(res.status).toBe(200);
       // 토큰 used 마킹 확인
@@ -112,12 +113,12 @@ describe('password-reset', () => {
       const token = await issueToken();
       await request(app).post('/api/password/reset').send({
         token,
-        password: 'newpassword456',
-        passwordConfirm: 'newpassword456',
+        password: 'Newpass456',
+        passwordConfirm: 'Newpass456',
       });
       const res = await request(app)
         .post('/api/login')
-        .send({ email: VALID_SIGNUP.email, password: 'newpassword456' });
+        .send({ email: VALID_SIGNUP.email, password: 'Newpass456' });
       expect(res.status).toBe(200);
     });
 
@@ -136,8 +137,8 @@ describe('password-reset', () => {
       const token = await issueToken();
       await request(app).post('/api/password/reset').send({
         token,
-        password: 'newpassword456',
-        passwordConfirm: 'newpassword456',
+        password: 'Newpass456',
+        passwordConfirm: 'Newpass456',
       });
 
       // 기존 refresh 토큰으로 회전 시도 → 401
@@ -150,8 +151,8 @@ describe('password-reset', () => {
         .post('/api/password/reset')
         .send({
           token: 'a'.repeat(64),
-          password: 'newpassword456',
-          passwordConfirm: 'newpassword456',
+          password: 'Newpass456',
+          passwordConfirm: 'Newpass456',
         });
       expect(res.status).toBe(400);
     });
@@ -160,13 +161,13 @@ describe('password-reset', () => {
       const token = await issueToken();
       await request(app).post('/api/password/reset').send({
         token,
-        password: 'newpassword456',
-        passwordConfirm: 'newpassword456',
+        password: 'Newpass456',
+        passwordConfirm: 'Newpass456',
       });
       const res = await request(app).post('/api/password/reset').send({
         token,
-        password: 'thirdpassword789',
-        passwordConfirm: 'thirdpassword789',
+        password: 'Thirdpw789',
+        passwordConfirm: 'Thirdpw789',
       });
       expect(res.status).toBe(400);
     });
@@ -182,8 +183,8 @@ describe('password-reset', () => {
       }
       const res = await request(app).post('/api/password/reset').send({
         token,
-        password: 'newpassword456',
-        passwordConfirm: 'newpassword456',
+        password: 'Newpass456',
+        passwordConfirm: 'Newpass456',
       });
       expect(res.status).toBe(400);
     });
@@ -202,8 +203,8 @@ describe('password-reset', () => {
       const token = await issueToken();
       const res = await request(app).post('/api/password/reset').send({
         token,
-        password: 'newpassword456',
-        passwordConfirm: 'otherpassword',
+        password: 'Newpass456',
+        passwordConfirm: 'Otherpass1',
       });
       expect(res.status).toBe(400);
     });

@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { FormField } from '../components/FormField.jsx';
+import { PasswordField } from '../components/PasswordField.jsx';
+import { PasswordStrength } from '../components/PasswordStrength.jsx';
 import { SubmitButton } from '../components/SubmitButton.jsx';
 import { api } from '../lib/api.js';
 
@@ -30,12 +31,14 @@ export const ResetPasswordPage = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(ResetPasswordInput),
     mode: 'onSubmit',
     defaultValues: { token: tokenFromUrl, password: '', passwordConfirm: '' },
   });
+  const passwordValue = watch('password');
 
   /** @param {ResetPasswordInputT} values */
   const onSubmit = async (values) => {
@@ -90,17 +93,16 @@ export const ResetPasswordPage = () => {
       >
         {/* token 은 hidden — 사용자 입력 X. URL ?token= 으로만 채워짐. */}
         <input type="hidden" {...register('token')} />
-        <FormField
+        <PasswordField
           label="새 비밀번호"
-          type="password"
           autoComplete="new-password"
           placeholder="••••••••"
           error={errors.password?.message}
           {...register('password')}
         />
-        <FormField
+        <PasswordStrength value={passwordValue} />
+        <PasswordField
           label="비밀번호 확인"
-          type="password"
           autoComplete="new-password"
           placeholder="••••••••"
           error={errors.passwordConfirm?.message}

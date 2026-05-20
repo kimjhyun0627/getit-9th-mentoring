@@ -18,9 +18,13 @@ import { memDb } from './setup.js';
 
 const VALID_SIGNUP = {
   email: 'alice@get-it.cloud',
-  password: 'password1234',
-  passwordConfirm: 'password1234',
+  // #265 강한 정책 — 영문 + 숫자 2종 포함.
+  password: 'Pass1234',
+  passwordConfirm: 'Pass1234',
   name: 'Alice',
+  // #237 약관 동의.
+  acceptTerms: true,
+  acceptPrivacy: true,
 };
 
 /**

@@ -19,11 +19,19 @@ process.env.COOKIE_SECURE = 'false';
 process.env.CORS_ORIGINS = 'http://localhost:5173';
 process.env.PORT = '0';
 
-/** @type {{ users: Map<string, any>, refreshTokens: Map<string, any>, passwordResetTokens: Map<string, any> }} */
+/**
+ * @type {{
+ *   users: Map<string, any>,
+ *   refreshTokens: Map<string, any>,
+ *   passwordResetTokens: Map<string, any>,
+ *   emailVerifyTokens: Map<string, any>,
+ * }}
+ */
 export const memDb = {
   users: new Map(),
   refreshTokens: new Map(),
   passwordResetTokens: new Map(),
+  emailVerifyTokens: new Map(),
 };
 
 let idCounter = 0;
@@ -34,6 +42,7 @@ export const resetDb = () => {
   memDb.users.clear();
   memDb.refreshTokens.clear();
   memDb.passwordResetTokens.clear();
+  memDb.emailVerifyTokens.clear();
   idCounter = 0;
 };
 
@@ -80,19 +89,57 @@ class FakePrismaClient {
         }
         const id = nextId('u');
         const now = new Date();
-        const row = { id, ...data, createdAt: now, updatedAt: now };
+        const row = {
+          id,
+          emailVerifiedAt: null,
+          deletedAt: null,
+          ...data,
+          createdAt: now,
+          updatedAt: now,
+        };
         memDb.users.set(id, row);
         return { ...row };
       },
       update: async ({ where, data }) => {
         for (const [id, u] of memDb.users) {
           if (matchWhere(u, where)) {
+            // unique constraint 검사 (email 변경 시).
+            if (data.email && data.email !== u.email) {
+              for (const other of memDb.users.values()) {
+                if (other.id !== u.id && other.email === data.email) {
+                  throw new PrismaUniqueViolation(['email']);
+                }
+              }
+            }
             const updated = { ...u, ...data, updatedAt: new Date() };
             memDb.users.set(id, updated);
             return { ...updated };
           }
         }
         throw new Error('User not found');
+      },
+    };
+
+    this.emailVerifyToken = {
+      create: async ({ data }) => {
+        const id = nextId('evt');
+        const row = { id, usedAt: null, createdAt: new Date(), ...data };
+        memDb.emailVerifyTokens.set(id, row);
+        return { ...row };
+      },
+      findUnique: async ({ where }) => {
+        for (const t of memDb.emailVerifyTokens.values()) if (matchWhere(t, where)) return { ...t };
+        return null;
+      },
+      updateMany: async ({ where, data }) => {
+        let count = 0;
+        for (const [id, t] of memDb.emailVerifyTokens) {
+          if (matchWhere(t, where)) {
+            memDb.emailVerifyTokens.set(id, { ...t, ...data });
+            count++;
+          }
+        }
+        return { count };
       },
     };
 
@@ -141,6 +188,13 @@ class FakePrismaClient {
         for (const t of memDb.refreshTokens.values()) if (matchWhere(t, where)) return { ...t };
         return null;
       },
+      findMany: async ({ where } = {}) => {
+        const out = [];
+        for (const t of memDb.refreshTokens.values()) {
+          if (matchWhere(t, where)) out.push({ ...t });
+        }
+        return out;
+      },
       update: async ({ where, data }) => {
         for (const [id, t] of memDb.refreshTokens) {
           if (matchWhere(t, where)) {
@@ -183,6 +237,28 @@ vi.mock('../src/lib/prisma.js', () => {
   return { prisma: new FakePrismaClient() };
 });
 
+/**
+ * Mailer mock — 테스트에선 실제 SMTP 호출 금지. sentMails 배열로 캡처.
+ * 테스트가 import 해서 발송 내역을 직접 검증 가능.
+ */
+export const sentMails = /** @type {Array<{ to: string, subject: string, text: string }>} */ ([]);
+
+vi.mock('../src/lib/mailer.js', () => {
+  return {
+    isMailerEnabled: () => false,
+    __resetMailerForTests: () => {
+      sentMails.length = 0;
+    },
+    sendPasswordResetEmail: async ({ to, resetUrl }) => {
+      sentMails.push({ to, subject: 'password-reset', text: resetUrl });
+    },
+    sendVerifyEmail: async ({ to, verifyUrl }) => {
+      sentMails.push({ to, subject: 'verify-email', text: verifyUrl });
+    },
+  };
+});
+
 beforeEach(() => {
   resetDb();
+  sentMails.length = 0;
 });

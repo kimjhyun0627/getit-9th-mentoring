@@ -1,21 +1,24 @@
 import { describe, it, expect } from 'vitest';
 
 import {
+  DeleteAccountInput,
   ForgotPasswordInput,
   JwtPayload,
   LoginInput,
   ResetPasswordInput,
   SignupInput,
+  UpdateProfileInput,
+  VerifyEmailInput,
 } from './auth.js';
 
 describe('LoginInput', () => {
-  it('정상 입력 통과', () => {
+  it('정상 입력 통과 (로그인은 강한 정책 미적용 — 기존 사용자 보호)', () => {
     const r = LoginInput.safeParse({ email: 'a@b.com', password: '12345678' });
     expect(r.success).toBe(true);
   });
 
   it('이메일 형식 검증', () => {
-    const r = LoginInput.safeParse({ email: 'invalid', password: '12345678' });
+    const r = LoginInput.safeParse({ email: 'invalid', password: 'Pass1234' });
     expect(r.success).toBe(false);
   });
 
@@ -25,12 +28,14 @@ describe('LoginInput', () => {
   });
 });
 
-describe('SignupInput', () => {
+describe('SignupInput (#265 강한 정책 + #237 약관 동의)', () => {
   const base = {
     email: 'a@b.com',
-    password: '12345678',
-    passwordConfirm: '12345678',
+    password: 'Pass1234',
+    passwordConfirm: 'Pass1234',
     name: '홍길동',
+    acceptTerms: true,
+    acceptPrivacy: true,
   };
 
   it('정상 입력 통과', () => {
@@ -38,13 +43,30 @@ describe('SignupInput', () => {
   });
 
   it('비밀번호 확인 불일치 거부', () => {
-    const r = SignupInput.safeParse({ ...base, passwordConfirm: 'different' });
+    const r = SignupInput.safeParse({ ...base, passwordConfirm: 'Different9' });
     expect(r.success).toBe(false);
   });
 
   it('이름 누락 거부', () => {
     const r = SignupInput.safeParse({ ...base, name: '' });
     expect(r.success).toBe(false);
+  });
+
+  it('약한 비밀번호(숫자만) 거부 — 영문/숫자/특수 중 2종 미만', () => {
+    const r = SignupInput.safeParse({
+      ...base,
+      password: '12345678',
+      passwordConfirm: '12345678',
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('이용약관 미동의 거부', () => {
+    expect(SignupInput.safeParse({ ...base, acceptTerms: false }).success).toBe(false);
+  });
+
+  it('개인정보 처리방침 미동의 거부', () => {
+    expect(SignupInput.safeParse({ ...base, acceptPrivacy: false }).success).toBe(false);
   });
 });
 
@@ -60,8 +82,8 @@ describe('ForgotPasswordInput', () => {
 describe('ResetPasswordInput', () => {
   const base = {
     token: 'a'.repeat(64),
-    password: '12345678',
-    passwordConfirm: '12345678',
+    password: 'Pass1234',
+    passwordConfirm: 'Pass1234',
   };
   it('정상 입력 통과', () => {
     expect(ResetPasswordInput.safeParse(base).success).toBe(true);
@@ -70,9 +92,67 @@ describe('ResetPasswordInput', () => {
     expect(ResetPasswordInput.safeParse({ ...base, token: 'short' }).success).toBe(false);
   });
   it('비밀번호 확인 불일치 거부', () => {
-    expect(ResetPasswordInput.safeParse({ ...base, passwordConfirm: 'differentpw' }).success).toBe(
+    expect(ResetPasswordInput.safeParse({ ...base, passwordConfirm: 'Different9' }).success).toBe(
       false,
     );
+  });
+  it('약한 비밀번호 거부', () => {
+    expect(
+      ResetPasswordInput.safeParse({
+        ...base,
+        password: '12345678',
+        passwordConfirm: '12345678',
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('UpdateProfileInput', () => {
+  const base = {
+    name: '홍길동',
+    email: 'a@b.com',
+    currentPassword: 'Curr1234',
+  };
+  it('비밀번호 변경 없이 프로필만 수정 통과', () => {
+    expect(UpdateProfileInput.safeParse(base).success).toBe(true);
+  });
+  it('새 비밀번호 + 확인 일치 통과', () => {
+    const r = UpdateProfileInput.safeParse({
+      ...base,
+      newPassword: 'Pass1234',
+      newPasswordConfirm: 'Pass1234',
+    });
+    expect(r.success).toBe(true);
+  });
+  it('새 비밀번호 확인 불일치 거부', () => {
+    const r = UpdateProfileInput.safeParse({
+      ...base,
+      newPassword: 'Pass1234',
+      newPasswordConfirm: 'Other9999',
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe('DeleteAccountInput', () => {
+  it('정상 입력 통과', () => {
+    expect(
+      DeleteAccountInput.safeParse({ currentPassword: 'Pass1234', confirm: '탈퇴' }).success,
+    ).toBe(true);
+  });
+  it('confirm 문구 불일치 거부', () => {
+    expect(
+      DeleteAccountInput.safeParse({ currentPassword: 'Pass1234', confirm: '아니오' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('VerifyEmailInput', () => {
+  it('정상 토큰 통과', () => {
+    expect(VerifyEmailInput.safeParse({ token: 'a'.repeat(64) }).success).toBe(true);
+  });
+  it('짧은 토큰 거부', () => {
+    expect(VerifyEmailInput.safeParse({ token: 'short' }).success).toBe(false);
   });
 });
 

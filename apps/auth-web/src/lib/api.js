@@ -4,6 +4,10 @@ import axios from 'axios';
  * auth-web 전용 axios 인스턴스.
  * - baseURL: VITE_API_URL 우선, 없으면 '/api' (prod 동일 origin 가정)
  * - withCredentials: true — JWT는 HttpOnly 쿠키. .get-it.cloud 도메인 공유.
+ *
+ * Phase 6c (#312):
+ *  - CSRF double-submit. 클라이언트는 mount 시 /api/csrf 한 번 호출 → 쿠키 + 토큰 캐싱.
+ *  - 상태변경 요청 시 X-CSRF-Token 헤더 자동 첨부.
  */
 const baseURL = import.meta.env?.VITE_API_URL ?? '/api';
 
@@ -13,18 +17,40 @@ export const client = axios.create({
   timeout: 10000,
 });
 
-/**
- * 401 시 상위 콜백 실행 (옵션). 폼 페이지에선 보통 사용 안 함.
- *
- * @type {{ onUnauthorized: (() => void) | null }}
- */
-const handlers = { onUnauthorized: null };
+/** @type {string | null} */
+let csrfToken = null;
 
 /**
- * 401 콜백 등록.
+ * /api/csrf 호출해서 토큰 캐시. mount 시 1회.
+ * 실패해도 swallow — 다음 요청에서 자동 재시도.
  *
- * @param {() => void} fn
+ * @returns {Promise<string | null>}
  */
+export const ensureCsrfToken = async () => {
+  if (csrfToken) return csrfToken;
+  try {
+    const { data } = await client.get('/csrf');
+    csrfToken = data?.token ?? null;
+    return csrfToken;
+  } catch {
+    return null;
+  }
+};
+
+client.interceptors.request.use(async (config) => {
+  const method = (config.method ?? 'get').toUpperCase();
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const t = await ensureCsrfToken();
+    if (t) {
+      config.headers = config.headers ?? {};
+      config.headers['X-CSRF-Token'] = t;
+    }
+  }
+  return config;
+});
+
+const handlers = { onUnauthorized: null };
+
 export const setUnauthorizedHandler = (fn) => {
   handlers.onUnauthorized = fn;
 };
@@ -32,38 +58,27 @@ export const setUnauthorizedHandler = (fn) => {
 client.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err?.response?.status === 401 && handlers.onUnauthorized) {
-      handlers.onUnauthorized();
+    const status = err?.response?.status;
+    if (status === 401 && handlers.onUnauthorized) handlers.onUnauthorized();
+    // CSRF mismatch (서버 재시작 등) → 토큰 캐시 비우고 다음 요청에서 재발급.
+    if (status === 403 && err?.response?.data?.error?.startsWith?.('Csrf')) {
+      csrfToken = null;
     }
     return Promise.reject(err);
   },
 );
 
-/**
- * 명시적 헬퍼 — 페이지에서 직접 axios 노출하지 않고 이 객체만 import 하도록.
- */
 export const api = {
-  /**
-   * @param {{ email: string; password: string }} body
-   */
   login: (body) => client.post('/login', body),
-  /**
-   * @param {{ name: string; email: string; password: string; passwordConfirm: string }} body
-   */
   signup: (body) => client.post('/signup', body),
   me: () => client.get('/me'),
   logout: () => client.post('/logout'),
-  /**
-   * 비밀번호 재설정 토큰 발급 요청 (Issue #221).
-   * BE 는 enumeration 차단을 위해 항상 200 응답.
-   *
-   * @param {{ email: string }} body
-   */
   forgotPassword: (body) => client.post('/password/forgot', body),
-  /**
-   * 비밀번호 재설정 확정 (Issue #221).
-   *
-   * @param {{ token: string; password: string; passwordConfirm: string }} body
-   */
   resetPassword: (body) => client.post('/password/reset', body),
+  verifyEmail: (body) => client.post('/verify-email', body),
+  resendVerifyEmail: () => client.post('/verify-email/resend'),
+  updateProfile: (body) => client.patch('/me/profile', body),
+  deleteAccount: (body) => client.post('/me/delete', body),
+  sessions: () => client.get('/me/sessions'),
+  revokeOtherSessions: () => client.post('/me/sessions/revoke-others'),
 };

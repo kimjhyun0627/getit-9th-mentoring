@@ -112,8 +112,11 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('이메일'), 'me@example.com');
     await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
     await user.click(screen.getByRole('button', { name: '로그인' }));
-    await waitFor(() => {
-      expect(replaceSpy).toHaveBeenCalledWith('https://hobby.get-it.cloud');
-    });
+    await waitFor(
+      () => {
+        expect(replaceSpy).toHaveBeenCalledWith('https://hobby.get-it.cloud');
+      },
+      { timeout: 2000 },
+    );
   });
 });

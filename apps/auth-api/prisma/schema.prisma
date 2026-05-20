@@ -16,15 +16,21 @@ datasource db {
 /// - email: 로그인 식별자, unique
 /// - passwordHash: bcrypt cost 12 해시 (raw password 절대 저장 X)
 /// - name: 표시 이름 (40자 이내, @getit/schemas/auth SignupInput 과 일치)
+/// - emailVerifiedAt: 이메일 인증 완료 시각 (null = 미인증). Phase 6c (#226).
+/// - deletedAt: 회원 탈퇴(soft-delete) 시각. null = 활성. 탈퇴 시 email 은
+///   `deleted+<id>@deleted.local` 로 치환해 unique 충돌 회피 (#231).
 model User {
   id                  String               @id @default(cuid())
   email               String               @unique
   passwordHash        String
   name                String
+  emailVerifiedAt     DateTime?
+  deletedAt           DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
+  emailVerifyTokens   EmailVerifyToken[]
 }
 
 /// Refresh token 회전용 저장소.
@@ -50,6 +56,22 @@ model RefreshToken {
 /// - usedAt: 사용된 시점 (null이면 미사용). 사용 후엔 재사용 불가.
 /// - 보안: 토큰 발급/사용 모두 enumeration 방어를 위해 응답은 항상 200.
 model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// 이메일 인증 1회용 토큰 (Issue #226).
+/// - signup 직후 발급, 24h TTL.
+/// - 사용 시 User.emailVerifiedAt 채워주고 토큰은 usedAt 마킹.
+/// - 평문은 절대 저장 X — SHA-256 해시만.
+model EmailVerifyToken {
   id        String    @id @default(cuid())
   userId    String
   tokenHash String    @unique
