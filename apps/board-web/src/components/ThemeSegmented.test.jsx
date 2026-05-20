@@ -55,26 +55,62 @@ describe('ThemeSegmented', () => {
     expect(screen.getByRole('radio', { name: 'Auto' })).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('ArrowRight 키로 다음 옵션에 focus 가 이동한다', async () => {
+  it('ArrowRight 키로 다음 옵션에 focus + 자동 선택 (WAI-ARIA APG)', async () => {
     const user = userEvent.setup();
     render(<ThemeSegmented />);
     const auto = screen.getByRole('radio', { name: 'Auto' });
     auto.focus();
     expect(auto).toHaveFocus();
     await user.keyboard('{ArrowRight}');
-    expect(screen.getByRole('radio', { name: 'Dark' })).toHaveFocus();
+    const dark = screen.getByRole('radio', { name: 'Dark' });
+    expect(dark).toHaveFocus();
+    // 자동 활성화 — store.preference 와 aria-checked 도 같이 변해야 함.
+    expect(dark).toHaveAttribute('aria-checked', 'true');
+    expect(useTheme.getState().preference).toBe('dark');
+    // wrap-around (Dark → Light)
     await user.keyboard('{ArrowRight}');
-    // wrap-around
-    expect(screen.getByRole('radio', { name: 'Light' })).toHaveFocus();
+    const light = screen.getByRole('radio', { name: 'Light' });
+    expect(light).toHaveFocus();
+    expect(light).toHaveAttribute('aria-checked', 'true');
+    expect(useTheme.getState().preference).toBe('light');
   });
 
-  it('ArrowLeft 키로 이전 옵션에 focus 가 이동한다', async () => {
+  it('ArrowLeft 키로 이전 옵션에 focus + 자동 선택', async () => {
     const user = userEvent.setup();
     render(<ThemeSegmented />);
     const auto = screen.getByRole('radio', { name: 'Auto' });
     auto.focus();
     await user.keyboard('{ArrowLeft}');
-    expect(screen.getByRole('radio', { name: 'Light' })).toHaveFocus();
+    const light = screen.getByRole('radio', { name: 'Light' });
+    expect(light).toHaveFocus();
+    expect(light).toHaveAttribute('aria-checked', 'true');
+    expect(useTheme.getState().preference).toBe('light');
+  });
+
+  it('Home 키로 첫 옵션 (Light) 으로 점프 + 자동 선택', async () => {
+    const user = userEvent.setup();
+    useTheme.setState({ preference: 'dark', resolved: 'dark' });
+    render(<ThemeSegmented />);
+    const dark = screen.getByRole('radio', { name: 'Dark' });
+    dark.focus();
+    await user.keyboard('{Home}');
+    const light = screen.getByRole('radio', { name: 'Light' });
+    expect(light).toHaveFocus();
+    expect(light).toHaveAttribute('aria-checked', 'true');
+    expect(useTheme.getState().preference).toBe('light');
+  });
+
+  it('End 키로 마지막 옵션 (Dark) 으로 점프 + 자동 선택', async () => {
+    const user = userEvent.setup();
+    useTheme.setState({ preference: 'light', resolved: 'light' });
+    render(<ThemeSegmented />);
+    const light = screen.getByRole('radio', { name: 'Light' });
+    light.focus();
+    await user.keyboard('{End}');
+    const dark = screen.getByRole('radio', { name: 'Dark' });
+    expect(dark).toHaveFocus();
+    expect(dark).toHaveAttribute('aria-checked', 'true');
+    expect(useTheme.getState().preference).toBe('dark');
   });
 
   it('선택되지 않은 옵션은 tabIndex=-1, 선택된 옵션은 tabIndex=0 (roving)', () => {

@@ -4,6 +4,23 @@ import { useCallback, useId, useRef } from 'react';
 import { cn } from '../lib/cn.js';
 
 /**
+ * @typedef {'light' | 'auto' | 'dark'} ThemeMode
+ * @typedef {'light' | 'system' | 'dark'} ThemeStoreValue
+ * @typedef {{ value: ThemeMode, label: string, storeValue: ThemeStoreValue }} ThemeOption
+ */
+
+/**
+ * 컴포넌트 외부 상수 — props/state 와 무관하므로 매 렌더링마다 재생성될 필요 X.
+ *
+ * @type {ThemeOption[]}
+ */
+const OPTIONS = [
+  { value: 'light', label: 'Light', storeValue: 'light' },
+  { value: 'auto', label: 'Auto', storeValue: 'system' },
+  { value: 'dark', label: 'Dark', storeValue: 'dark' },
+];
+
+/**
  * Light / Auto / Dark 3-state 세그먼티드 토글.
  * 시안: `docs/design/board/toggle.html` B안. Minimalist 페르소나 — 1px 보더, 8px grid,
  * 200ms cubic-bezier transition, 아이콘 없이 텍스트.
@@ -11,10 +28,11 @@ import { cn } from '../lib/cn.js';
  * 공용 store의 preference 값은 `'light' | 'dark' | 'system'` 이지만 UX 라벨은 "Auto" 로 표기.
  * 본 컴포넌트는 store 의 `'system'` 을 UI 의 `'auto'` 로 매핑.
  *
- * a11y:
+ * a11y (WAI-ARIA Radio Group APG):
  * - `role="radiogroup"` + `aria-label`
  * - 각 옵션 `role="radio"` + `aria-checked`
- * - 키보드 ←/→/Home/End 로 옵션 이동, Tab 으로 그룹 진입 (roving tabindex)
+ * - Roving tabindex: 선택된 옵션만 `tabIndex=0`, 나머지 `-1`
+ * - 키보드 ←/→/↑/↓/Home/End — **focus 이동 + 자동 선택** (APG automatic activation)
  * - `prefers-reduced-motion: reduce` 일 때 transition 제거 (motion-reduce:transition-none)
  *
  * @param {{ className?: string }} props
@@ -26,24 +44,25 @@ export const ThemeSegmented = ({ className }) => {
   // store ⇄ UI 매핑. store: 'system' / UI: 'auto'.
   const mode = preference === 'system' ? 'auto' : preference;
 
-  /** @type {{ value: 'light' | 'auto' | 'dark', label: string, storeValue: 'light' | 'system' | 'dark' }[]} */
-  const options = [
-    { value: 'light', label: 'Light', storeValue: 'light' },
-    { value: 'auto', label: 'Auto', storeValue: 'system' },
-    { value: 'dark', label: 'Dark', storeValue: 'dark' },
-  ];
-
   const groupId = useId();
   /** @type {import('react').MutableRefObject<(HTMLButtonElement | null)[]>} */
   const buttonsRef = useRef([]);
 
-  const focusIndex = useCallback(
+  /**
+   * focus + 선택을 같이 적용 (WAI-ARIA Radio Group 자동 활성화 패턴).
+   *
+   * @param {number} i 대상 인덱스 (wrap-around)
+   */
+  const selectAndFocus = useCallback(
     (i) => {
-      const next = (i + options.length) % options.length;
+      const next = (i + OPTIONS.length) % OPTIONS.length;
+      const opt = OPTIONS[next];
+      setPreference(opt.storeValue);
+      // setPreference 후 렌더링이 끝나기 전이라도 ref는 안정.
       const el = buttonsRef.current[next];
       if (el) el.focus();
     },
-    [options.length],
+    [setPreference],
   );
 
   const onKeyDown = useCallback(
@@ -52,26 +71,26 @@ export const ThemeSegmented = ({ className }) => {
         case 'ArrowRight':
         case 'ArrowDown':
           e.preventDefault();
-          focusIndex(idx + 1);
+          selectAndFocus(idx + 1);
           break;
         case 'ArrowLeft':
         case 'ArrowUp':
           e.preventDefault();
-          focusIndex(idx - 1);
+          selectAndFocus(idx - 1);
           break;
         case 'Home':
           e.preventDefault();
-          focusIndex(0);
+          selectAndFocus(0);
           break;
         case 'End':
           e.preventDefault();
-          focusIndex(options.length - 1);
+          selectAndFocus(OPTIONS.length - 1);
           break;
         default:
           break;
       }
     },
-    [focusIndex, options.length],
+    [selectAndFocus],
   );
 
   return (
@@ -81,8 +100,9 @@ export const ThemeSegmented = ({ className }) => {
       id={groupId}
       data-mode={mode}
       className={cn(
-        // 컨테이너: 1px hairline, 작은 라운드, light/dark 배경 분기.
-        'relative inline-flex items-center rounded-md border border-hairline p-0.5',
+        // 컨테이너: inline-grid 3-col → 각 셀이 정확히 1/3 너비.
+        // indicator(w-1/3) 위치와 어긋나지 않음.
+        'relative inline-grid grid-cols-3 items-center rounded-md border border-hairline p-0.5',
         'bg-zinc-50 dark:bg-zinc-900',
         'text-xs font-medium',
         className,
@@ -104,7 +124,7 @@ export const ThemeSegmented = ({ className }) => {
           mode === 'dark' && 'translate-x-[200%]',
         )}
       />
-      {options.map((opt, idx) => {
+      {OPTIONS.map((opt, idx) => {
         const checked = mode === opt.value;
         return (
           <button
@@ -121,7 +141,7 @@ export const ThemeSegmented = ({ className }) => {
             onKeyDown={(e) => onKeyDown(e, idx)}
             className={cn(
               // segmented item: 평면. 아이콘 없이 라벨만.
-              'relative z-[1] min-w-[3.5rem] cursor-pointer rounded-[4px] px-4 py-1.5',
+              'relative z-[1] cursor-pointer rounded-[4px] px-4 py-1.5',
               'transition-colors duration-150',
               'motion-reduce:transition-none',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
