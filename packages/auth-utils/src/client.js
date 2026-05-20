@@ -101,8 +101,15 @@ export const installSilentRefresh = (axiosInstance, opts) => {
       const original = err?.config;
       const url = typeof original?.url === 'string' ? original.url : '';
       // refresh path 자체 호출은 retry 대상 X (무한 루프 방지).
-      // 부분 문자열 match (`includes`) 대신 정확 매치 — 다른 path 와 우연 일치를 막는다.
-      const isRefreshCall = url === refreshUrl || url === refreshPath || url.endsWith(refreshPath);
+      // pathname 파싱 후 정확 매치 — `endsWith` 가 `/foo/api/refresh` 같은 경로도
+      // 잡는 부분 매치 문제를 피한다 (CodeRabbit Low-value nitpick).
+      let pathname = url;
+      try {
+        pathname = new URL(url, 'http://x').pathname;
+      } catch {
+        // url 이 비정상이면 그대로 비교 — 어차피 isRefreshCall 만 영향.
+      }
+      const isRefreshCall = url === refreshUrl || pathname === refreshPath;
       if (status !== 401 || !original || original._retry || isRefreshCall) {
         return Promise.reject(err);
       }
