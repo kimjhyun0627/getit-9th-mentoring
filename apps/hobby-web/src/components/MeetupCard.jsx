@@ -69,9 +69,7 @@ export const MeetupCard = ({ post }) => {
             palette.pill,
           )}
         >
-          {post.status === 'FULL' || post.status === 'CLOSED'
-            ? `${post.currentCapacity}/${post.capacity} · 마감`
-            : `${post.currentCapacity}/${post.capacity}`}
+          {`${post.currentCapacity}/${post.capacity}`}
         </span>
       </div>
 
@@ -128,7 +126,7 @@ export const MeetupCard = ({ post }) => {
               palette.pill,
             )}
           >
-            정원 마감
+            {post.status === 'FULL' ? '정원 마감' : '모집 종료'}
           </span>
         ) : (
           <Link

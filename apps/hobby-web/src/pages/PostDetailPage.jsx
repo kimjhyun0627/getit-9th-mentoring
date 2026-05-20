@@ -104,7 +104,7 @@ export const PostDetailPage = () => {
           role="status"
           className="mt-20 text-center text-slate-500 dark:text-slate-400 font-round"
         >
-          모임을 불러오는 중...
+          모임을 가져오는 중…
         </p>
       </PageShell>
     );
@@ -129,6 +129,7 @@ export const PostDetailPage = () => {
   const isFull = post.status === 'FULL' || post.status === 'CLOSED';
   const isApplied = Boolean(myApplicationId);
   const palette = paletteFor(post);
+  const ownerNick = post.owner?.nickname ?? '익명';
   const errAlert =
     applyErrorMessage(applyMutation.error) ?? cancelErrorMessage(cancelMutation.error);
 
@@ -204,9 +205,9 @@ export const PostDetailPage = () => {
               aria-hidden="true"
               className="inline-flex h-9 w-9 rounded-full bg-amber-200 text-amber-900 font-display font-extrabold items-center justify-center text-sm"
             >
-              {initialOf(post.ownerId)}
+              {initialOf(ownerNick)}
             </span>
-            <span className="text-sm font-round font-bold opacity-90">방장 {post.ownerId}</span>
+            <span className="text-sm font-round font-bold opacity-90">방장 {ownerNick}</span>
           </div>
 
           {post.openChatUrl ? (
@@ -228,7 +229,7 @@ export const PostDetailPage = () => {
         <section className="mt-8" aria-label="신청">
           {isOwner ? (
             <p className="rounded-2xl bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 p-5 font-round text-slate-700 dark:text-slate-200">
-              방장은 이 모임을 만든 사람이야. 정원이 차면 자동으로 카카오 오픈채팅이 공개돼.
+              이 모임의 방장이야. 정원 차면 카카오 오픈채팅이 신청자에게 자동 공개돼.
             </p>
           ) : !meQuery.data ? (
             <a
@@ -253,7 +254,7 @@ export const PostDetailPage = () => {
               disabled={applyMutation.isPending || isFull}
               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-500 text-white px-7 py-3 font-display font-extrabold text-base shadow-lg shadow-rose-400/40 disabled:opacity-50 hover:scale-[1.03] hover:-rotate-1 transition"
             >
-              {applyMutation.isPending ? '신청 중…' : isFull ? '정원 마감' : '신청'}
+              {applyMutation.isPending ? '신청 중…' : isFull ? '정원 마감' : '신청하기'}
               {!applyMutation.isPending && !isFull ? <span aria-hidden="true">→</span> : null}
             </button>
           )}

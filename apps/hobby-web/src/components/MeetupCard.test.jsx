@@ -47,12 +47,22 @@ describe('MeetupCard', () => {
     expect(link).toHaveAttribute('href', '/posts/p-mara');
   });
 
-  it('FULL 상태면 정원 마감 표시 + 신청 링크 숨김 + aria-disabled', () => {
+  it('FULL 상태면 정원 마감 배지 + 숫자 pill (마감 카피 X) + 신청 링크 숨김 + aria-disabled', () => {
     renderCard({ ...POST, status: 'FULL', currentCapacity: 4 });
-    expect(screen.getByText('4/4 · 마감')).toBeInTheDocument();
+    // pill 은 숫자만 (#148 — "· 마감" 제거, redundant)
+    expect(screen.getByText('4/4')).toBeInTheDocument();
+    expect(screen.queryByText('4/4 · 마감')).not.toBeInTheDocument();
+    // 하단 배지가 상태 카피를 담당
     expect(screen.getByText('정원 마감')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /신청/ })).not.toBeInTheDocument();
     expect(screen.getByTestId('meetup-card-p-mara')).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('CLOSED 상태면 하단 배지가 "모집 종료" 로 차별화된다 (#148)', () => {
+    renderCard({ ...POST, status: 'CLOSED', currentCapacity: 3 });
+    expect(screen.getByText('모집 종료')).toBeInTheDocument();
+    expect(screen.queryByText('정원 마감')).not.toBeInTheDocument();
+    expect(screen.getByText('3/4')).toBeInTheDocument();
   });
 
   it('노쇼 카운트가 있으면 경고 배지를 표시한다', () => {

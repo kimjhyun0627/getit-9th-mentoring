@@ -191,14 +191,14 @@ export const HomePage = () => {
 
           {isLoading ? (
             <p role="status" className="text-slate-500 dark:text-slate-400 font-round">
-              모집을 불러오는 중...
+              모임 모아오는 중…
             </p>
           ) : !isError ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
               {posts.map((post) => (
                 <MeetupCard key={post.id} post={post} />
               ))}
-              <EmptyCard />
+              <EmptyCard mode={posts.length === 0 ? 'empty' : 'cta'} />
             </div>
           ) : null}
 
@@ -210,7 +210,7 @@ export const HomePage = () => {
                 disabled={query.isFetchingNextPage}
                 className="chip-pop inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 text-slate-700 dark:text-slate-200 px-5 py-2.5 text-sm font-display font-bold shadow-sm disabled:opacity-50"
               >
-                {query.isFetchingNextPage ? '불러오는 중…' : '더 둘러보기'}{' '}
+                {query.isFetchingNextPage ? '또 모아오는 중…' : '더 둘러보기'}{' '}
                 <span aria-hidden="true">↓</span>
               </button>
             </div>
@@ -234,7 +234,7 @@ export const HomePage = () => {
               🔐 통합 SSO
             </span>
             <span className="rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3 py-1.5 text-slate-700 dark:text-slate-200">
-              🚫 노쇼 패널티
+              ✅ 노쇼 방지
             </span>
           </div>
         </footer>

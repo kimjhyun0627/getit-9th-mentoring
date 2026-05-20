@@ -11,7 +11,9 @@ const axiosErr = (status, code) => ({ response: { status, data: code ? { error: 
 describe('PostDetailPage.errors', () => {
   describe('fetchErrorMessage', () => {
     it('404 → 모임 없음 안내', () => {
-      expect(fetchErrorMessage(axiosErr(404))).toMatch(/모임을 찾을 수 없/);
+      const msg = fetchErrorMessage(axiosErr(404));
+      expect(msg).toMatch(/모임을 찾을 수 없/);
+      expect(msg).toMatch(/사라졌나봐/);
     });
     it('401 → 로그인 필요', () => {
       expect(fetchErrorMessage(axiosErr(401))).toMatch(/로그인/);

@@ -25,7 +25,7 @@ const extract = (err) => {
  */
 export const fetchErrorMessage = (err) => {
   const { status } = extract(err);
-  if (status === 404) return '모임을 찾을 수 없어. 이미 삭제됐을 수 있어.';
+  if (status === 404) return '모임을 찾을 수 없어. 사라졌나봐.';
   if (status === 401) return '로그인이 필요해.';
   return '잠시 후 다시 시도해줘.';
 };

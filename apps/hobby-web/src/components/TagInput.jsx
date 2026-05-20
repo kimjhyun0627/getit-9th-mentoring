@@ -25,7 +25,7 @@ export const TagInput = ({
   value,
   onChange,
   label = '태그',
-  hint = `Enter 로 추가 · 최대 ${MAX_TAGS}개 · 글자/숫자/-_만`,
+  hint = `Enter 로 추가 · 최대 ${MAX_TAGS}개 · 문자·숫자·하이픈(-)·언더스코어(_)`,
   error,
   placeholder = '예: 마라탕, 북문, 스터디',
 }) => {

@@ -98,9 +98,9 @@ describe('CreatePostPage', () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByRole('button', { name: /모임 만들기/ }));
-    expect(await screen.findByText(/제목은 2자 이상/)).toBeInTheDocument();
-    expect(await screen.findByText(/본문을 입력하세요/)).toBeInTheDocument();
-    expect(await screen.findByText(/장소를 입력하세요/)).toBeInTheDocument();
+    expect(await screen.findByText(/제목 2자 이상으로 적어줘/)).toBeInTheDocument();
+    expect(await screen.findByText(/본문을 적어줘/)).toBeInTheDocument();
+    expect(await screen.findByText(/어디서 만날지 적어줘/)).toBeInTheDocument();
   });
 
   it('카카오 오픈채팅이 아닌 URL이면 에러를 보여준다', async () => {
@@ -108,7 +108,7 @@ describe('CreatePostPage', () => {
     renderPage();
     await user.type(screen.getByLabelText(/오픈채팅/), 'https://example.com/abc');
     await user.click(screen.getByRole('button', { name: /모임 만들기/ }));
-    expect(await screen.findByText(/카카오 오픈채팅 URL.*만 허용/)).toBeInTheDocument();
+    expect(await screen.findByText(/카카오 오픈채팅 링크만 돼/)).toBeInTheDocument();
   });
 
   it('과거 시각이면 에러를 보여준다', async () => {
@@ -119,7 +119,7 @@ describe('CreatePostPage', () => {
     const localPast = `${past.getFullYear()}-${pad(past.getMonth() + 1)}-${pad(past.getDate())}T${pad(past.getHours())}:${pad(past.getMinutes())}`;
     await user.type(screen.getByLabelText('모임 일시'), localPast);
     await user.click(screen.getByRole('button', { name: /모임 만들기/ }));
-    expect(await screen.findByText(/과거 시각은 입력할 수 없습니다/)).toBeInTheDocument();
+    expect(await screen.findByText(/과거 시각은 안 돼/)).toBeInTheDocument();
   });
 
   it('정상 입력 시 api.createPost 를 ISO 시각 + 정수 capacity 로 호출한다', async () => {
