@@ -29,7 +29,7 @@ const messageFor = (filter) => {
   if (filter === 'READ') {
     return {
       headline: '아직 읽은 책이 없습니다.',
-      body: '첫 한 권을 끝낼 때마다, 작게 어른이 되어가는 기분이 있죠.',
+      body: '첫 한 권을 끝낼 때마다, 작게 어른이 되어가는 기분이 듭니다.',
     };
   }
   if (filter === 'READING') {
