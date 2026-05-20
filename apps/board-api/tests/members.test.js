@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 
 import { createApp } from '../src/app.js';
 
-import { authHeader, createProject } from './helpers.js';
+import { authHeader, createProject, inviteMember } from './helpers.js';
 
 describe('board-api members', () => {
   /** @type {import('express').Express} */
@@ -32,10 +32,7 @@ describe('board-api members', () => {
 
     it('OWNER 아닌 멤버가 초대 시도 → 403', async () => {
       const id = await createProject(request, app, 'alice');
-      await request(app)
-        .post(`/api/projects/${id}/members`)
-        .set(authHeader('alice'))
-        .send({ userId: 'bob' });
+      await inviteMember(request, app, id, 'alice', 'bob');
       const res = await request(app)
         .post(`/api/projects/${id}/members`)
         .set(authHeader('bob'))
@@ -54,10 +51,7 @@ describe('board-api members', () => {
 
     it('이미 멤버인 사용자 다시 초대 → 409', async () => {
       const id = await createProject(request, app, 'alice');
-      await request(app)
-        .post(`/api/projects/${id}/members`)
-        .set(authHeader('alice'))
-        .send({ userId: 'bob' });
+      await inviteMember(request, app, id, 'alice', 'bob');
       const res = await request(app)
         .post(`/api/projects/${id}/members`)
         .set(authHeader('alice'))
@@ -78,10 +72,7 @@ describe('board-api members', () => {
   describe('DELETE /api/projects/:id/members/:userId', () => {
     it('본인 탈퇴 OK (MEMBER)', async () => {
       const id = await createProject(request, app, 'alice');
-      await request(app)
-        .post(`/api/projects/${id}/members`)
-        .set(authHeader('alice'))
-        .send({ userId: 'bob' });
+      await inviteMember(request, app, id, 'alice', 'bob');
 
       const res = await request(app)
         .delete(`/api/projects/${id}/members/bob`)
@@ -99,10 +90,7 @@ describe('board-api members', () => {
 
     it('OWNER가 다른 멤버 추방 OK', async () => {
       const id = await createProject(request, app, 'alice');
-      await request(app)
-        .post(`/api/projects/${id}/members`)
-        .set(authHeader('alice'))
-        .send({ userId: 'bob' });
+      await inviteMember(request, app, id, 'alice', 'bob');
 
       const res = await request(app)
         .delete(`/api/projects/${id}/members/bob`)
@@ -112,14 +100,8 @@ describe('board-api members', () => {
 
     it('MEMBER가 다른 사람 추방 시도 → 403', async () => {
       const id = await createProject(request, app, 'alice');
-      await request(app)
-        .post(`/api/projects/${id}/members`)
-        .set(authHeader('alice'))
-        .send({ userId: 'bob' });
-      await request(app)
-        .post(`/api/projects/${id}/members`)
-        .set(authHeader('alice'))
-        .send({ userId: 'carol' });
+      await inviteMember(request, app, id, 'alice', 'bob');
+      await inviteMember(request, app, id, 'alice', 'carol');
 
       const res = await request(app)
         .delete(`/api/projects/${id}/members/carol`)

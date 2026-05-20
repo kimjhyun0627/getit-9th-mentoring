@@ -16,7 +16,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 
 import { createApp } from '../src/app.js';
 
-import { authHeader } from './helpers.js';
+import { authHeader, inviteMember } from './helpers.js';
 import { memDb } from './setup.js';
 
 describe('board-api projects', () => {
@@ -161,12 +161,10 @@ describe('board-api projects', () => {
         .post('/api/projects')
         .set(authHeader('alice'))
         .send({ name: 'A1' });
+      expect(p.status).toBe(201);
       const id = p.body.project.id;
 
-      await request(app)
-        .post(`/api/projects/${id}/members`)
-        .set(authHeader('alice'))
-        .send({ userId: 'bob' });
+      await inviteMember(request, app, id, 'alice', 'bob');
 
       const bobRes = await request(app).delete(`/api/projects/${id}`).set(authHeader('bob'));
       expect(bobRes.status).toBe(403);

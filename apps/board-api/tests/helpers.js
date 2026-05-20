@@ -27,6 +27,7 @@ export const authHeader = (sub) => ({ Cookie: `getit_jwt=${signFor(sub)}` });
 
 /**
  * 프로젝트를 즉시 생성해 id를 돌려준다 — 멤버 테스트 케이스마다 반복 setup 줄임.
+ * setup 단계 실패가 본 검증을 오염시키지 않도록 201 + project.id 를 먼저 확인한다.
  *
  * @param {import('supertest').SuperTest<import('supertest').Test>} request
  * @param {import('express').Express} app
@@ -39,5 +40,32 @@ export const createProject = async (request, app, ownerSub, body = {}) => {
     .post('/api/projects')
     .set(authHeader(ownerSub))
     .send({ name: body.name ?? 'TestProject' });
+  if (res.status !== 201 || !res.body?.project?.id) {
+    throw new Error(
+      `createProject setup failed: status=${res.status} body=${JSON.stringify(res.body)}`,
+    );
+  }
   return res.body.project.id;
+};
+
+/**
+ * 멤버 초대 setup 헬퍼. 201 응답을 보장해 setup 누락을 즉시 노출.
+ *
+ * @param {import('supertest').SuperTest<import('supertest').Test>} request
+ * @param {import('express').Express} app
+ * @param {string} projectId
+ * @param {string} ownerSub OWNER 의 sub (alice 등)
+ * @param {string} inviteeSub
+ * @returns {Promise<void>}
+ */
+export const inviteMember = async (request, app, projectId, ownerSub, inviteeSub) => {
+  const res = await request(app)
+    .post(`/api/projects/${projectId}/members`)
+    .set(authHeader(ownerSub))
+    .send({ userId: inviteeSub });
+  if (res.status !== 201) {
+    throw new Error(
+      `inviteMember setup failed: status=${res.status} body=${JSON.stringify(res.body)}`,
+    );
+  }
 };

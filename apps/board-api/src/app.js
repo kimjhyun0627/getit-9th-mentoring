@@ -85,13 +85,14 @@ export const createApp = (opts = {}) => {
   }
   const auth = requireAuth({ secret: jwtSecret });
 
-  // GET은 limiter 없이, 쓰기엔 limiter — 별도로 마운트.
-  app.use('/api/projects', auth);
+  // GET은 limiter 없이, 쓰기엔 limiter — auth 실패도 limiter 에 잡히도록 limiter 가 먼저 와야 한다.
+  // (auth 가 먼저면 401 응답으로 빠지면서 잘못된 토큰 폭주가 사실상 무제한이 됨.)
   app.use((req, res, next) => {
     if (req.method === 'GET' || req.method === 'HEAD') return next();
     if (req.path.startsWith('/api/projects')) return writeLimiter(req, res, next);
     return next();
   });
+  app.use('/api/projects', auth);
 
   app.use('/api/projects', createProjectsRouter());
   app.use('/api/projects/:id/members', requireProjectMember(), createMembersRouter());
