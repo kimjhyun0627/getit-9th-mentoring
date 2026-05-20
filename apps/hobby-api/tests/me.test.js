@@ -15,8 +15,13 @@ import request from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app.js';
+import { meetAtRangeFor } from '../src/routes/posts.js';
+
 import './setup.js';
 import { memDb } from './fake-prisma.js';
+
+/** 테스트에서 "오늘 안쪽" 시각을 안정적으로 얻기 위한 헬퍼. */
+const meetAtRangeForToday = (now) => meetAtRangeFor('today', now);
 
 const SECRET = process.env.JWT_SECRET;
 const tokenFor = (sub, name = sub) => signJwt({ sub, email: `${sub}@x.com`, name }, SECRET);
@@ -175,9 +180,13 @@ describe('hobby-api P1 새 동작', () => {
     });
 
     it('timeWindow=today — 오늘 모임만', async () => {
+      // 시간대 안정성: now+1h 는 23시대에 다음날 롤오버되어 flaky.
+      // meetAtRangeFor() 가 보는 "오늘"은 KST 자정 boundary 라서
+      // 아무 보장된 미래 시각을 KST 자정 보다 안쪽에 두는 게 까다롭다.
+      // → 가장 단순한 방법: meetAtRangeFor 를 직접 호출해 그 구간 중간값으로 박는다.
       const now = new Date();
-      const todayLater = new Date(now);
-      todayLater.setHours(now.getHours() + 1);
+      const range = meetAtRangeForToday(now);
+      const todayLater = new Date((range.gte.getTime() + range.lt.getTime()) / 2);
       const nextWeek = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
 
       memDb.posts.set('t1', {

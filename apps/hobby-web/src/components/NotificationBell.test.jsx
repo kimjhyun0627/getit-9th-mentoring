@@ -18,13 +18,13 @@ import { api } from '../lib/api.js';
 
 import { NotificationBell } from './NotificationBell.jsx';
 
-const renderBell = (enabled = true) => {
+const renderBell = (enabled = true, userId = 'alice') => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <ThemeProvider>
         <MemoryRouter>
-          <NotificationBell enabled={enabled} />
+          <NotificationBell enabled={enabled} userId={userId} />
         </MemoryRouter>
       </ThemeProvider>
     </QueryClientProvider>,
@@ -33,7 +33,12 @@ const renderBell = (enabled = true) => {
 
 describe('NotificationBell', () => {
   it('enabled=false → 아무 것도 렌더 안 함', () => {
-    renderBell(false);
+    renderBell(false, null);
+    expect(screen.queryByLabelText(/알림/)).not.toBeInTheDocument();
+  });
+
+  it('userId 가 없으면 렌더 안 함 (로그아웃 직후)', () => {
+    renderBell(true, null);
     expect(screen.queryByLabelText(/알림/)).not.toBeInTheDocument();
   });
 

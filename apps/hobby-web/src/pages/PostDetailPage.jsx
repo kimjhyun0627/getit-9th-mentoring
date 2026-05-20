@@ -50,7 +50,11 @@ export const PostDetailPage = () => {
 
   // #212: 신청 여부 식별은 서버 응답 myApplication 으로. reload 후에도 유지됨.
   // optimistic 업데이트는 query cache 의 myApplication 을 함께 set/clear.
+  // 낙관 마커 `__pending__` 는 진짜 application id 가 도착하기 전 임시 표식 —
+  // 그 상태에선 취소 버튼을 활성화해도 호출은 막아야 함 (CR review #340).
+  const PENDING_APPLICATION_ID = '__pending__';
   const myApplication = postQuery.data?.post?.myApplication ?? null;
+  const isPendingApplication = myApplication?.id === PENDING_APPLICATION_ID;
 
   const applyMutation = useMutation({
     mutationFn: () => api.applyPost(id),
@@ -63,7 +67,10 @@ export const PostDetailPage = () => {
               post: {
                 ...old.post,
                 currentCapacity: old.post.currentCapacity + 1,
-                myApplication: old.post.myApplication ?? { id: '__pending__', createdAt: '' },
+                myApplication: old.post.myApplication ?? {
+                  id: PENDING_APPLICATION_ID,
+                  createdAt: '',
+                },
               },
             }
           : old,
@@ -90,7 +97,9 @@ export const PostDetailPage = () => {
 
   const cancelMutation = useMutation({
     mutationFn: () => {
-      if (!myApplication?.id) throw new Error('no application to cancel');
+      if (!myApplication?.id || myApplication.id === PENDING_APPLICATION_ID) {
+        throw new Error('no application to cancel');
+      }
       return api.cancelApplication(myApplication.id);
     },
     onMutate: async () => {
@@ -144,7 +153,9 @@ export const PostDetailPage = () => {
   const me = meQuery.data ?? null;
   const isOwner = Boolean(me && me.id === post.ownerId);
   const isFull = post.status === 'FULL' || post.status === 'CLOSED';
+  // 진짜 application id 가 도착해야만 "취소" 버튼 활성. pending 상태에선 비활성 + 라벨 분기.
   const isApplied = Boolean(myApplication?.id);
+  const cancelDisabled = isPendingApplication || cancelMutation.isPending;
   const palette = paletteFor(post);
   const ownerNick = post.owner?.nickname ?? '익명';
   const errAlert =
@@ -259,10 +270,14 @@ export const PostDetailPage = () => {
             <button
               type="button"
               onClick={() => cancelMutation.mutate()}
-              disabled={cancelMutation.isPending}
+              disabled={cancelDisabled}
               className="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/10 dark:ring-white/15 text-slate-700 dark:text-slate-200 px-6 py-3 font-display font-extrabold text-base shadow-sm disabled:opacity-50 hover:scale-[1.02] transition"
             >
-              {cancelMutation.isPending ? '취소 중…' : '신청 취소'}
+              {cancelMutation.isPending
+                ? '취소 중…'
+                : isPendingApplication
+                  ? '신청 처리 중…'
+                  : '신청 취소'}
             </button>
           ) : (
             <button

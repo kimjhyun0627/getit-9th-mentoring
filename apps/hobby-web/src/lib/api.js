@@ -318,16 +318,18 @@ export const api = {
    * auth-api 응답은 `{ user: { sub, email, name } }`. FE 는 `id` 키로 다루는 게
    * 자연스러우니 여기서 한 번에 정규화 (`{ id, email, name }`).
    *
+   * id 가 비어있으면 throw — 호출자가 "로그인됨" 으로 오인하지 않도록 strict.
+   *
    * @returns {Promise<MeResponse>}
    */
   getMe: async () => {
     const res = await authClient.get('/me');
     const user = res.data?.user ?? res.data ?? null;
-    if (!user) throw new Error('invalid /me response');
-    return {
-      id: user.id ?? user.sub,
-      email: user.email,
-      name: user.name,
-    };
+    if (!user || typeof user !== 'object') throw new Error('invalid /me response');
+    const rawId = user.id ?? user.sub;
+    if (typeof rawId !== 'string' || rawId.length === 0) {
+      throw new Error('invalid /me response: missing id');
+    }
+    return { id: rawId, email: user.email, name: user.name };
   },
 };

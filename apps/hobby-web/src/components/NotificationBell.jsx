@@ -8,37 +8,41 @@ import { cn } from '../lib/cn.js';
 /**
  * 헤더의 알림 벨 + 드롭다운 (#229).
  *
- * 비로그인 (`/me` 401) 이면 아예 렌더 안 함 (props.hidden 으로 제어해도 됨).
+ * 비로그인 (`/me` 401) 이면 아예 렌더 안 함 (props.userId 미정의).
  *
  * 데이터 흐름:
  *  - useQuery: GET /api/notifications (60s polling for unread badge)
  *  - PATCH /:id/read: 클릭 시 readAt 채움 + cache invalidate
  *  - 클릭 → /posts/:postId 로 이동 (postId 있을 때만)
  *
+ * queryKey 는 `['notifications', userId]` — 사용자 변경 시 캐시 자동 분리.
+ * 로그인 ↔ 로그아웃 ↔ 다른 계정 로그인 시 이전 캐시가 새 사용자에게 노출되지 않음.
+ *
  * 외부 클릭 닫힘 처리는 document mousedown 리스너.
  *
- * @param {{ enabled: boolean }} props — 로그인 여부.
+ * @param {{ enabled: boolean; userId?: string | null }} props
  */
-export const NotificationBell = ({ enabled }) => {
+export const NotificationBell = ({ enabled, userId = null }) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const queryClient = useQueryClient();
 
+  const queryKey = ['notifications', userId ?? 'anon'];
   const notifQuery = useQuery({
-    queryKey: ['notifications'],
+    queryKey,
     queryFn: () => api.listNotifications({ limit: 20 }),
-    enabled,
+    enabled: Boolean(enabled && userId),
     refetchInterval: 60_000,
     staleTime: 30_000,
   });
 
   const markRead = useMutation({
     mutationFn: (id) => api.markNotificationRead(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
   const markAll = useMutation({
     mutationFn: () => api.markAllNotificationsRead(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
   // 외부 클릭 시 닫기.
@@ -53,7 +57,7 @@ export const NotificationBell = ({ enabled }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  if (!enabled) return null;
+  if (!enabled || !userId) return null;
 
   const items = notifQuery.data?.items ?? [];
   const unread = notifQuery.data?.unreadCount ?? 0;

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { MeetupCard } from '../components/MeetupCard.jsx';
 import { api } from '../lib/api.js';
@@ -10,22 +11,47 @@ import { MePageEmpty, MyApplicationCard, MyPageShell, TabButton } from './MePage
 /**
  * 마이페이지 — `/me` (#228).
  *
- * 탭:
- *  - 내가 만든 모임 (`GET /api/me/posts`, CLOSED 포함)
- *  - 내가 신청한 모임 (`GET /api/me/applications`, 카드 + 취소 버튼)
+ * 탭 (URL 동기화):
+ *  - `/me?tab=created` (기본) — 내가 만든 모임 (`GET /api/me/posts`, CLOSED 포함)
+ *  - `/me?tab=applied`        — 내가 신청한 모임 (`GET /api/me/applications`)
  *
- * 비로그인이면 auth.get-it.cloud 로 즉시 redirect.
+ * URL 동기화: 브라우저 뒤로/공유 URL 로 탭이 유지됨 (Gemini review #340).
+ *
+ * 비로그인이면 auth.get-it.cloud 로 redirect. side-effect 는 useEffect 안에서만
+ * 수행 — 렌더 본문에서 `window.location.href = ...` 를 직접 건드리면 렌더 사이클이 깨짐.
  *
  * 컴포넌트 분리: MePage.parts.jsx 에 카드/탭/empty/shell 위치 (300줄 cap).
  */
 export const MePage = () => {
-  const [tab, setTab] = useState(/** @type {'created'|'applied'} */ ('created'));
+  const [params, setParams] = useSearchParams();
+  const tabRaw = params.get('tab');
+  const tab = /** @type {'created'|'applied'} */ (tabRaw === 'applied' ? 'applied' : 'created');
+  const setTab = (next) => {
+    const updated = new URLSearchParams(params);
+    if (next === 'created') updated.delete('tab');
+    else updated.set('tab', next);
+    setParams(updated, { replace: true });
+  };
+
   const meQuery = useQuery({
     queryKey: ['me'],
     queryFn: api.getMe,
     retry: false,
     staleTime: 60_000,
   });
+
+  // 401(인증 실패) 일 때만 SSO redirect. network/5xx 은 재시도 UX 로 분리 — 사용자가
+  // 의도치 않게 로그인 화면으로 튀지 않도록 (CR review #340).
+  const meStatus = meQuery.error?.response?.status;
+  const is401 = meStatus === 401;
+  useEffect(() => {
+    if (meQuery.isLoading) return;
+    if (meQuery.data) return;
+    if (!is401) return;
+    if (typeof window === 'undefined') return;
+    const here = encodeURIComponent(`${window.location.origin}/me`);
+    window.location.href = `https://auth.get-it.cloud/login?redirect=${here}`;
+  }, [meQuery.isLoading, meQuery.data, is401]);
 
   if (meQuery.isLoading) {
     return (
@@ -40,20 +66,34 @@ export const MePage = () => {
     );
   }
 
-  if (meQuery.isError || !meQuery.data) {
-    // 비로그인 → SSO 로 보냄.
-    if (typeof window !== 'undefined') {
-      const here = encodeURIComponent(`${window.location.origin}/me`);
-      window.location.href = `https://auth.get-it.cloud/login?redirect=${here}`;
+  if (!meQuery.data) {
+    if (is401) {
+      return (
+        <MyPageShell>
+          <p
+            role="status"
+            className="mt-20 text-center text-slate-500 dark:text-slate-400 font-round"
+          >
+            로그인 페이지로 이동 중…
+          </p>
+        </MyPageShell>
+      );
     }
+    // 401 이 아닌 에러 (5xx/네트워크) — 재시도 UX.
     return (
       <MyPageShell>
-        <p
-          role="status"
-          className="mt-20 text-center text-slate-500 dark:text-slate-400 font-round"
-        >
-          로그인 페이지로 이동 중…
-        </p>
+        <div className="mt-20 text-center font-round">
+          <p role="alert" className="text-rose-600 dark:text-rose-300 font-bold">
+            마이페이지를 불러오지 못했어
+          </p>
+          <button
+            type="button"
+            onClick={() => meQuery.refetch()}
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-rose-500 hover:bg-rose-600 text-white px-5 py-2.5 text-sm font-display font-bold shadow-sm"
+          >
+            다시 시도
+          </button>
+        </div>
       </MyPageShell>
     );
   }
@@ -172,6 +212,8 @@ const MyAppliedTab = () => {
       />
     );
   }
+  // 한 item 의 취소 진행 상태가 모든 카드에 전파되지 않도록 variables 로 분리.
+  const pendingId = cancel.isPending ? cancel.variables : null;
   return (
     <ul aria-label="내가 신청한 모임" className={cn('grid grid-cols-1 md:grid-cols-2 gap-5')}>
       {items.map((item) => (
@@ -179,7 +221,7 @@ const MyAppliedTab = () => {
           key={item.id}
           item={item}
           onCancel={() => cancel.mutate(item.id)}
-          isPending={cancel.isPending}
+          isPending={pendingId === item.id}
         />
       ))}
     </ul>

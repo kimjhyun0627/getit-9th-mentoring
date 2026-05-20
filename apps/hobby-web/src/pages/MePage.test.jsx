@@ -49,12 +49,16 @@ describe('MePage', () => {
     vi.restoreAllMocks();
   });
 
-  it('비로그인이면 로그인 페이지로 이동 안내', async () => {
+  it('비로그인이면 로그인 페이지로 이동 안내 + useEffect 안에서만 redirect', async () => {
     vi.spyOn(api, 'getMe').mockRejectedValue({ response: { status: 401 } });
-    // window.location.href 세팅 가로채기.
+    // window.location.href setter 호출만 검증 (실 이동은 jsdom 에서 막힘).
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { ...window.location, href: 'about:blank', origin: 'https://hobby.get-it.cloud' },
+      value: {
+        ...window.location,
+        href: 'about:blank',
+        origin: 'https://hobby.get-it.cloud',
+      },
     });
     renderPage();
     expect(await screen.findByText(/로그인 페이지로 이동 중/)).toBeInTheDocument();

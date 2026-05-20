@@ -24,6 +24,7 @@ export const Header = ({ search, onSearchChange }) => {
     staleTime: 60_000,
   });
   const isLoggedIn = Boolean(meQuery.data);
+  const userId = meQuery.data?.id ?? null;
 
   return (
     <header className="relative z-10 max-w-[1280px] mx-auto px-5 lg:px-10 pt-6 flex items-center gap-3 sm:gap-5">
@@ -63,7 +64,7 @@ export const Header = ({ search, onSearchChange }) => {
 
       <div className="ml-auto flex items-center gap-2.5">
         <PlayfulThemeToggle />
-        <NotificationBell enabled={isLoggedIn} />
+        <NotificationBell enabled={isLoggedIn} userId={userId} />
         {isLoggedIn ? (
           <Link
             to="/me"
