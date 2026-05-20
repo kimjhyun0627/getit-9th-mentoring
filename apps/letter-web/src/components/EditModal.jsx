@@ -1,11 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
+import { CONTENT_MAX, counterColorClass, retryAfterSec } from '../lib/modalHelpers.js';
+import { useDialogFocus } from '../lib/useDialogFocus.js';
 
 import { ColorPicker, STICKY_COLORS } from './ColorPicker.jsx';
 
@@ -24,11 +26,12 @@ import { ColorPicker, STICKY_COLORS } from './ColorPicker.jsx';
 const COLOR_VALUES = STICKY_COLORS.map((c) => c.value);
 
 const EditFormSchema = z.object({
+  // #323 — BE 와 동일 trim. 공백만 입력 시 FE 단에서 잡힘.
   content: z
     .string({ required_error: '한 줄 적어주세요' })
     .trim()
     .min(1, '한 줄 적어주세요')
-    .max(500, '500자까지 적을 수 있어요'),
+    .max(CONTENT_MAX, '500자까지 적을 수 있어요'),
   color: z
     .union([z.string(), z.undefined(), z.null()])
     .refine((v) => typeof v === 'string' && COLOR_VALUES.includes(v), {
@@ -46,7 +49,11 @@ const toFriendlyError = (err) => {
   if (status === 403) return '본인 쪽지만 수정할 수 있어요';
   if (status === 404) return '이미 떼어진 쪽지에요';
   if (status === 400 || status === 422) return '입력 내용을 다시 확인해주세요';
-  if (status === 429) return '잠시만요, 너무 빨리 보냈어요. 조금 있다 다시 시도해주세요';
+  if (status === 429) {
+    const sec = retryAfterSec(err);
+    if (sec != null && sec > 0) return `잠시만요, ${sec}초 후 다시 시도해주세요`;
+    return '잠시만요, 너무 빨리 보냈어요. 조금 있다 다시 시도해주세요';
+  }
   if (typeof status === 'number' && status >= 500)
     return '서버가 잠깐 쉬는 중이에요. 잠시 후 다시 시도해주세요';
   return '쪽지를 수정하지 못했어요. 잠시 후 다시 시도해주세요';
@@ -89,6 +96,11 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
     defaultValues: { content: '', color: undefined },
   });
 
+  // #281 — 글자수 카운터.
+  const contentValue = useWatch({ control, name: 'content' }) ?? '';
+  const contentLen = contentValue.length;
+  const counterColor = counterColorClass(contentLen);
+
   // open / message 바뀔 때마다 초기값 채움. 닫혀있을 땐 reset 안 함 (마운트 X).
   useEffect(() => {
     if (open && message) {
@@ -120,14 +132,8 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  // 모달 열릴 때 초기 포커스 → textarea
-  useEffect(() => {
-    if (!open) return;
-    const ta = /** @type {HTMLElement | null} */ (
-      dialogRef.current?.querySelector('#edit-content')
-    );
-    ta?.focus();
-  }, [open]);
+  // 포커스 관리 — useDialogFocus 가 초기 포커스(textarea) + Tab 트랩 + 복원.
+  useDialogFocus({ open, ref: dialogRef, initialSelector: '#edit-content' });
 
   if (!open || !message) return null;
 
@@ -159,6 +165,8 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
         aria-labelledby={headingId}
         className={cn(
           'relative w-full max-w-md rounded-3xl bg-cream p-6 shadow-2xl ring-1 ring-ink/10',
+          // #280 — 모바일에서 viewport 넘침 가드.
+          'max-h-[calc(100vh-3rem)] overflow-y-auto',
           'sm:p-8 dark:bg-mocha2 dark:ring-beige/10',
         )}
       >
@@ -202,13 +210,25 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
           />
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="edit-content" className="font-hand text-base text-ink dark:text-beige">
-              내용
-            </label>
+            <div className="flex items-baseline justify-between gap-2">
+              <label
+                htmlFor="edit-content"
+                className="font-hand text-base text-ink dark:text-beige"
+              >
+                내용
+              </label>
+              <span
+                aria-live="polite"
+                className={cn('font-hand text-xs tabular-nums transition-colors', counterColor)}
+              >
+                <span className="sr-only">현재 글자수 </span>
+                {contentLen} / {CONTENT_MAX}
+              </span>
+            </div>
             <textarea
               id="edit-content"
               rows={5}
-              maxLength={500}
+              maxLength={CONTENT_MAX}
               aria-invalid={Boolean(errors.content?.message) || undefined}
               aria-describedby={errors.content?.message ? contentErrId : undefined}
               className={cn(

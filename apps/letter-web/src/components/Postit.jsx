@@ -103,7 +103,8 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
       <p className="text-[15px] leading-relaxed [word-break:keep-all]">{message.content}</p>
 
       <div className="mt-3 flex items-end justify-between gap-2">
-        <span className="font-hand text-sm opacity-70">
+        {/* #327 — opacity-70 → 85. 파스텔 배경(LEMON/PINK) 에서 WCAG AA 4.5:1 보장. */}
+        <span className="font-hand text-sm opacity-85">
           {formatRelative(message.createdAt, now)}
         </span>
         {message.is_mine ? (

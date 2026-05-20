@@ -1,11 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
+import { CONTENT_MAX, counterColorClass, retryAfterSec } from '../lib/modalHelpers.js';
+import { useDialogFocus } from '../lib/useDialogFocus.js';
 
 import { ColorPicker, STICKY_COLORS } from './ColorPicker.jsx';
 
@@ -21,11 +23,12 @@ const COLOR_VALUES = STICKY_COLORS.map((c) => c.value);
  * 사용자 친화 메시지를 강제.
  */
 const ComposeFormSchema = z.object({
+  // #323 — BE 도 trim 후 min(1) 검증. FE 에서 미리 잡아 친절한 메시지.
   content: z
     .string({ required_error: '한 줄 적어주세요' })
     .trim()
     .min(1, '한 줄 적어주세요')
-    .max(500, '500자까지 적을 수 있어요'),
+    .max(CONTENT_MAX, '500자까지 적을 수 있어요'),
   color: z
     .union([z.string(), z.undefined(), z.null()])
     .refine((v) => typeof v === 'string' && COLOR_VALUES.includes(v), {
@@ -43,7 +46,12 @@ const toFriendlyError = (err) => {
   const status = /** @type {{response?: {status?: number}}} */ (err)?.response?.status;
   if (status === 401) return '로그인이 만료됐어요. 다시 로그인한 뒤 붙여주세요';
   if (status === 400 || status === 422) return '입력 내용을 다시 확인해주세요';
-  if (status === 429) return '잠시만요, 너무 빨리 보냈어요. 조금 있다 다시 시도해주세요';
+  if (status === 429) {
+    // #326 — Retry-After 가 있으면 카운트다운 카피로 강화.
+    const sec = retryAfterSec(err);
+    if (sec != null && sec > 0) return `잠시만요, ${sec}초 후 다시 시도해주세요`;
+    return '잠시만요, 너무 빨리 보냈어요. 조금 있다 다시 시도해주세요';
+  }
   if (typeof status === 'number' && status >= 500)
     return '서버가 잠깐 쉬는 중이에요. 잠시 후 다시 붙여주세요';
   return '쪽지를 붙이지 못했어요. 잠시 후 다시 시도해주세요';
@@ -88,6 +96,11 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
     defaultValues: { content: '', color: undefined },
   });
 
+  // #281 — 글자수 카운터 (480 초과 시 peachDk → red 강조).
+  const contentValue = useWatch({ control, name: 'content' }) ?? '';
+  const contentLen = contentValue.length;
+  const counterColor = counterColorClass(contentLen);
+
   const mutation = useMutation({
     mutationFn: (body) => api.createMessage(body),
     onSuccess: (res) => {
@@ -112,62 +125,8 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  // 포커스 관리 — 모달 열릴 때 첫 입력 요소로 포커스 이동, Tab 트랩,
-  // 닫을 때 이전 포커스 복원. (a11y: WAI-ARIA dialog 패턴)
-  useEffect(() => {
-    if (!open) return undefined;
-
-    const previouslyFocused = /** @type {HTMLElement | null} */ (document.activeElement);
-
-    /**
-     * 모달 내 tab 가능한 요소 (포커스 트랩 + 초기 포커스용).
-     *
-     * @returns {HTMLElement[]}
-     */
-    const getFocusable = () => {
-      if (!dialogRef.current) return [];
-      const selectors =
-        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-      return Array.from(dialogRef.current.querySelectorAll(selectors));
-    };
-
-    // 초기 포커스 — 모달 본문 내 textarea (compose-content) 가 있으면 그쪽으로,
-    // 없으면 첫 focusable 로.
-    const initial =
-      /** @type {HTMLElement | null} */ (dialogRef.current?.querySelector('#compose-content')) ??
-      getFocusable()[0];
-    initial?.focus();
-
-    const onKeyDown = (e) => {
-      if (e.key !== 'Tab') return;
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        e.preventDefault();
-        return;
-      }
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-      if (e.shiftKey) {
-        if (active === first || !dialogRef.current?.contains(/** @type {Node} */ (active))) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else if (active === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      // unmount/close 시 이전 포커스 복원 (요소가 여전히 DOM 에 있을 때만).
-      if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
-        previouslyFocused.focus();
-      }
-    };
-  }, [open]);
+  // 포커스 관리 — useDialogFocus hook 이 초기 포커스 + Tab 트랩 + 복원 담당.
+  useDialogFocus({ open, ref: dialogRef, initialSelector: '#compose-content' });
 
   // 모달 열릴 때마다 state 리셋 (이전 에러 / 입력 흔적 제거).
   useEffect(() => {
@@ -203,6 +162,8 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
         aria-labelledby={headingId}
         className={cn(
           'relative w-full max-w-md rounded-3xl bg-cream p-6 shadow-2xl ring-1 ring-ink/10',
+          // #280 — 모바일에서 모달이 viewport 넘치면 내부 스크롤. iOS 키보드 올라와도 actions 가려지지 않게.
+          'max-h-[calc(100vh-3rem)] overflow-y-auto',
           'sm:p-8 dark:bg-mocha2 dark:ring-beige/10',
         )}
       >
@@ -226,8 +187,9 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
           <p className="font-hand text-sm text-ink2 dark:text-beige2">
             익명으로 부원실 벽에 살며시 붙여둘게요.
           </p>
+          {/* #325 — 익명성 약속을 더 명확히. 다른 부원에게는 표시되지 않음 (DB 저장 사실과 정합). */}
           <p className="font-hand text-xs text-sageDk dark:text-sageW">
-            작성자 이름은 표시되지 않아요.
+            이름은 다른 부원에게 표시되지 않아요.
           </p>
         </header>
 
@@ -251,16 +213,26 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
           />
 
           <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="compose-content"
-              className="font-hand text-base text-ink dark:text-beige"
-            >
-              내용
-            </label>
+            <div className="flex items-baseline justify-between gap-2">
+              <label
+                htmlFor="compose-content"
+                className="font-hand text-base text-ink dark:text-beige"
+              >
+                내용
+              </label>
+              {/* #281 — 글자수 카운터. aria-live=polite 로 SR 에도 알림 (단, 매 키입력마다는 시끄러우니 fluid 변화는 시각만). */}
+              <span
+                aria-live="polite"
+                className={cn('font-hand text-xs tabular-nums transition-colors', counterColor)}
+              >
+                <span className="sr-only">현재 글자수 </span>
+                {contentLen} / {CONTENT_MAX}
+              </span>
+            </div>
             <textarea
               id="compose-content"
               rows={5}
-              maxLength={500}
+              maxLength={CONTENT_MAX}
               placeholder="고마운 마음, 응원, 추억 — 한 줄이면 충분해요"
               aria-invalid={Boolean(errors.content?.message) || undefined}
               aria-describedby={errors.content?.message ? contentErrId : undefined}

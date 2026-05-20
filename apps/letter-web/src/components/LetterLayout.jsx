@@ -35,7 +35,7 @@ export const LetterLayout = ({ children }) => {
       <footer className="relative z-10 mx-auto max-w-6xl px-5 pb-10 sm:px-8">
         <div className="flex flex-col items-start justify-between gap-2 text-xs text-ink2 sm:flex-row sm:items-center dark:text-beige2">
           <p>© 2026 GETIT 9기 · letter.get-it.cloud</p>
-          <p className="font-hand">익명 보장 · 본인 메시지만 편집/삭제 가능</p>
+          <p className="font-hand">이름은 다른 부원에게 표시되지 않아요 · 본인만 편집/삭제 가능</p>
         </div>
       </footer>
     </div>

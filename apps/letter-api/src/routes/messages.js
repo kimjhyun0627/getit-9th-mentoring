@@ -83,12 +83,18 @@ const serializeMessage = (row, viewerSub) => {
 /**
  * 메시지 라우터 생성.
  *
- * @param {{ jwtSecret: string, mutationLimiter: import('express').RequestHandler }} opts
+ * @param {{
+ *   jwtSecret: string,
+ *   mutationLimiter: import('express').RequestHandler,
+ *   readLimiter?: import('express').RequestHandler,
+ * }} opts
  * @returns {import('express').Router}
  */
-export const createMessagesRouter = ({ jwtSecret, mutationLimiter }) => {
+export const createMessagesRouter = ({ jwtSecret, mutationLimiter, readLimiter }) => {
   const router = Router();
   const auth = requireAuth({ secret: jwtSecret });
+  // readLimiter 미제공 시 no-op (테스트/하위호환). 운영은 항상 주입됨.
+  const readGuard = readLimiter ?? ((_req, _res, next) => next());
 
   // POST /api/messages — 작성
   router.post('/messages', auth, mutationLimiter, async (req, res, next) => {
@@ -110,8 +116,8 @@ export const createMessagesRouter = ({ jwtSecret, mutationLimiter }) => {
     }
   });
 
-  // GET /api/messages — 목록 (is_mine 판단 필요해 JWT 필수)
-  router.get('/messages', auth, async (req, res, next) => {
+  // GET /api/messages — 목록 (is_mine 판단 필요해 JWT 필수, #252 polling oracle 차단)
+  router.get('/messages', auth, readGuard, async (req, res, next) => {
     try {
       const rows = await prisma.message.findMany({
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
