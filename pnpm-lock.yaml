@@ -243,6 +243,28 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@25.9.1)(jsdom@25.0.1)
 
+  apps/shelf-api:
+    dependencies:
+      '@prisma/client':
+        specifier: ^6.2.1
+        version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+    devDependencies:
+      '@getit/config-eslint':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      eslint:
+        specifier: ^9.18.0
+        version: 9.39.4(jiti@2.7.0)
+      prisma:
+        specifier: ^6.2.1
+        version: 6.19.3(typescript@6.0.3)
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@25.9.1)(jsdom@25.0.1)
+
   packages/auth-utils:
     dependencies:
       '@getit/schemas':
