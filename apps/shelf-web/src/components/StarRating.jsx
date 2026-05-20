@@ -41,12 +41,13 @@ export const StarRating = ({ value, onChange, readonly = false, className, ariaL
       {Array.from({ length: MAX }).map((_, i) => {
         const score = i + 1;
         const filled = score <= safe;
+        const selected = score === safe;
         return (
           <button
             key={score}
             type="button"
             role="radio"
-            aria-checked={filled}
+            aria-checked={selected}
             aria-label={`별점 ${score}점`}
             onClick={() => onChange?.(score)}
             className={cn(

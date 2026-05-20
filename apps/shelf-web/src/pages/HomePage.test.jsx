@@ -109,7 +109,7 @@ describe('HomePage', () => {
     });
     renderHome();
     await screen.findByRole('heading', { name: '읽기의 계절' });
-    await user.click(screen.getByRole('tab', { name: /^Reading/ }));
+    await user.click(screen.getByRole('button', { name: /^Reading/ }));
     expect(screen.getByRole('heading', { name: '여름의 문장' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '읽기의 계절' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '빛이 머무는 방' })).not.toBeInTheDocument();

@@ -25,7 +25,7 @@ export const FilterTabs = ({ active, onChange, counts, className }) => {
   return (
     <div
       className={cn('flex items-center gap-5 text-[12px]', className)}
-      role="tablist"
+      role="group"
       aria-label="서재 필터"
     >
       {tabs.map(({ key, label }) => {
@@ -35,8 +35,7 @@ export const FilterTabs = ({ active, onChange, counts, className }) => {
           <button
             key={key}
             type="button"
-            role="tab"
-            aria-selected={isActive}
+            aria-pressed={isActive}
             className={cn('filter-btn smallcaps', isActive && 'is-active')}
             onClick={() => onChange(key)}
           >

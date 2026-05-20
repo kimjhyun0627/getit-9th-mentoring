@@ -37,7 +37,11 @@ export const HomePage = () => {
 
   const pageError = isError ? toFriendlyError(error) : null;
 
-  const closeModal = () => setEditing(null);
+  const closeModal = () => {
+    setEditing(null);
+    update.reset();
+    remove.reset();
+  };
 
   return (
     <article aria-busy={isLoading}>
@@ -116,7 +120,7 @@ export const HomePage = () => {
 
         {isLoading ? (
           <p className="text-meta essay-kr text-[14px]">서가를 펼치는 중…</p>
-        ) : visible.length === 0 ? (
+        ) : pageError ? null : visible.length === 0 ? (
           <EmptyShelf filter={filter} />
         ) : (
           <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 md:gap-x-10 md:gap-y-14 lg:grid-cols-4">
