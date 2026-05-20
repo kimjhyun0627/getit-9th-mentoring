@@ -1,9 +1,20 @@
 import { ThemeProvider } from '@getit/theme';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App.jsx';
 import { PROJECTS } from './data/projects.js';
+
+// #233 — git log 5건은 빌드/런타임 환경에 따라 변할 수 있으므로 테스트는 결정론적 모킹.
+vi.mock('./data/git-log.js', () => ({
+  getGitLog: () => [
+    { sha: 'a1b2c3d', message: 'feat: test fixture 1' },
+    { sha: 'b2c3d4e', message: 'feat: test fixture 2' },
+    { sha: 'c3d4e5f', message: 'feat: test fixture 3' },
+    { sha: 'd4e5f6a', message: 'feat: test fixture 4' },
+    { sha: 'e5f6a1b', message: 'feat: test fixture 5' },
+  ],
+}));
 
 /**
  * Tech-Dark 시안 구현 가드 테스트 (Issue #24).
@@ -300,6 +311,9 @@ describe('Team / Timeline 섹션 (#222)', () => {
     const team = screen.getByTestId('team-section');
     const heading = within(team).getByRole('heading', { level: 2 });
     expect(heading).toBeInTheDocument();
+    expect(heading.textContent).toMatch(/멘토/);
+    expect(heading.textContent).toMatch(/멘티/);
+    expect(heading.textContent).toMatch(/일정/);
   });
 });
 

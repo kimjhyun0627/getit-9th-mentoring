@@ -1,3 +1,5 @@
+import { ExternalLinkIcon } from './ExternalLinkIcon.jsx';
+
 /**
  * Team / Timeline 섹션 (#222) — 9기 허브 정체성 강화.
  *
@@ -19,17 +21,15 @@
  *
  * @param {{ label: string; value: string; tone?: 'default' | 'cyan' | 'magenta' | 'lime' | 'amber' }} props
  */
+const TONE_CLASSES = {
+  cyan: 'text-cyan-700 dark:text-cyan-neon',
+  magenta: 'text-fuchsia-700 dark:text-magenta-neon',
+  lime: 'text-lime-700 dark:text-lime-neon',
+  amber: 'text-amber-700 dark:text-amber-neon',
+};
+
 const StatCell = ({ label, value, tone = 'default' }) => {
-  const valueClass =
-    tone === 'cyan'
-      ? 'text-cyan-700 dark:text-cyan-neon'
-      : tone === 'magenta'
-        ? 'text-fuchsia-700 dark:text-magenta-neon'
-        : tone === 'lime'
-          ? 'text-lime-700 dark:text-lime-neon'
-          : tone === 'amber'
-            ? 'text-amber-700 dark:text-amber-neon'
-            : 'text-ink-950 dark:text-white';
+  const valueClass = TONE_CLASSES[tone] || 'text-ink-950 dark:text-white';
   return (
     <div data-testid="team-stat">
       <dt className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
@@ -122,12 +122,12 @@ export const Team = () => {
             href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-cyan-700 underline-offset-4 hover:underline dark:text-cyan-neon"
+            className="inline-flex items-center gap-1 font-mono text-cyan-700 underline-offset-4 hover:underline dark:text-cyan-neon"
           >
             노션 본부
             <span className="sr-only"> — 새 탭에서 열림</span>
-            <span aria-hidden="true"> ↗</span>
-          </a>{' '}
+            <ExternalLinkIcon />
+          </a>
           에서 볼 수 있어요.
         </p>
       </div>
