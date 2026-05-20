@@ -1,9 +1,20 @@
 import { ThemeProvider } from '@getit/theme';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App.jsx';
 import { PROJECTS } from './data/projects.js';
+
+// #233 — git log 5건은 빌드/런타임 환경에 따라 변할 수 있으므로 테스트는 결정론적 모킹.
+vi.mock('./data/git-log.js', () => ({
+  getGitLog: () => [
+    { sha: 'a1b2c3d', message: 'feat: test fixture 1' },
+    { sha: 'b2c3d4e', message: 'feat: test fixture 2' },
+    { sha: 'c3d4e5f', message: 'feat: test fixture 3' },
+    { sha: 'd4e5f6a', message: 'feat: test fixture 4' },
+    { sha: 'e5f6a1b', message: 'feat: test fixture 5' },
+  ],
+}));
 
 /**
  * Tech-Dark 시안 구현 가드 테스트 (Issue #24).
@@ -37,7 +48,7 @@ describe('App (landing · Tech-Dark)', () => {
     expect(within(banner).getByText('GETIT')).toBeInTheDocument();
   });
 
-  it('4개 프로젝트 카드를 모두 렌더한다 (h3 + sr-only "새 탭에서 열림")', () => {
+  it('4개 프로젝트 카드를 모두 렌더한다 (h3) — #225 이후 같은 탭이므로 sr-only "새 탭" 제거', () => {
     renderApp();
     const titles = ['취미메이트', '스마트 서재', '팀 칸반', '익명 롤링페이퍼'];
     for (const title of titles) {
@@ -45,7 +56,6 @@ describe('App (landing · Tech-Dark)', () => {
       expect(heading).toBeInTheDocument();
       const link = heading.closest('a');
       expect(link).not.toBeNull();
-      expect(within(link).getByText(/새 탭에서 열림/)).toBeInTheDocument();
     }
   });
 
@@ -60,16 +70,16 @@ describe('App (landing · Tech-Dark)', () => {
     expect(screen.getByRole('list', { name: '프로젝트 목록' })).toBeInTheDocument();
   });
 
-  it('각 카드 링크가 올바른 href + target=_blank + rel=noopener noreferrer 를 갖는다', () => {
+  it('각 카드 링크가 올바른 href + 동일 탭(target 비설정 또는 _self)을 갖는다 (#225)', () => {
     renderApp();
     for (const project of PROJECTS) {
       const heading = screen.getByRole('heading', { name: new RegExp(project.title) });
       const link = heading.closest('a');
       expect(link).not.toBeNull();
       expect(link).toHaveAttribute('href', project.href);
-      expect(link).toHaveAttribute('target', '_blank');
-      expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
-      expect(link).toHaveAttribute('rel', expect.stringContaining('noreferrer'));
+      const target = link.getAttribute('target');
+      // 같은 SSO 패밀리 — _blank 강제 금지
+      expect(target === null || target === '_self').toBe(true);
     }
   });
 
@@ -87,13 +97,12 @@ describe('App (landing · Tech-Dark)', () => {
     expect(screen.getByTestId('eyebrow-dot')).toBeInTheDocument();
   });
 
-  it('Footer에 © GETIT 9기 카피라이트 + github/notion/mail 링크가 노출된다', () => {
+  it('Footer에 © GETIT 9기 카피라이트 + github/notion 링크가 노출된다 (#296 mail 제거)', () => {
     renderApp();
     const footer = screen.getByRole('contentinfo');
     expect(within(footer).getByText(/© GETIT 9기 멘토링/)).toBeInTheDocument();
     expect(within(footer).getByRole('link', { name: /github/i })).toBeInTheDocument();
     expect(within(footer).getByRole('link', { name: /notion/i })).toBeInTheDocument();
-    expect(within(footer).getByRole('link', { name: /mail/i })).toBeInTheDocument();
   });
 
   it('PROJECTS 데이터 4개와 카드 그리드 항목 수가 일치한다', () => {
@@ -207,13 +216,104 @@ describe('CardGrid 앵커 + 2×2 (#24)', () => {
   });
 });
 
-describe('Footer git log (#24)', () => {
-  it('Footer에 git log 시그니처가 노출된다 (mock data)', () => {
+describe('Footer git log (#233)', () => {
+  it('Footer에 git log 시그니처가 노출되고 5건 라인을 렌더한다', () => {
     renderApp();
     const log = screen.getByTestId('footer-git-log');
     expect(log).toBeInTheDocument();
-    expect(log.textContent).toMatch(/3f9c1a2/);
-    expect(log.textContent).toMatch(/e0c2210/);
+    const lines = within(log).getAllByTestId('footer-git-log-line');
+    expect(lines).toHaveLength(5);
+  });
+
+  it('각 라인이 7자 sha + 메시지 패턴을 따른다 (빌드타임 주입 형식)', () => {
+    renderApp();
+    const log = screen.getByTestId('footer-git-log');
+    const lines = within(log).getAllByTestId('footer-git-log-line');
+    for (const line of lines) {
+      expect(line.textContent).toMatch(/^[0-9a-f]{7}\s+\S/);
+    }
+  });
+});
+
+describe('Header status + a11y (#261)', () => {
+  it('Header "all systems / nominal"에 role="status" + aria-label이 붙는다', () => {
+    renderApp();
+    const status = screen.getByRole('status', { name: /모든 시스템 정상|all systems/i });
+    expect(status).toBeInTheDocument();
+  });
+});
+
+describe('Hero CTA 모바일 stack (#256)', () => {
+  it('Hero CTA 컨테이너가 모바일에서 column stack, sm+ 에서 row 로 전환된다', () => {
+    renderApp();
+    const explore = screen.getByRole('link', { name: /전체 프로젝트 보기/ });
+    const container = explore.parentElement;
+    expect(container.className).toMatch(/flex-col/);
+    expect(container.className).toMatch(/sm:flex-row/);
+  });
+
+  it('Hero primary CTA가 모바일에서 w-full, sm+ 에서 w-auto 너비를 갖는다', () => {
+    renderApp();
+    const explore = screen.getByRole('link', { name: /전체 프로젝트 보기/ });
+    expect(explore.className).toMatch(/w-full/);
+    expect(explore.className).toMatch(/sm:w-auto/);
+  });
+});
+
+describe('CardGrid 2x2 반응형 (#240)', () => {
+  it('카드 그리드는 sm+ 부터 2 col 이상이다 (모바일 1x4 톤 붕괴 방지)', () => {
+    renderApp();
+    const list = screen.getByRole('list', { name: '프로젝트 목록' });
+    expect(list.className).toMatch(/sm:grid-cols-2/);
+  });
+});
+
+describe('외부 링크 시각 표시 (#284)', () => {
+  it('Hero git remote 링크에 외부 링크 인디케이터가 노출된다', () => {
+    renderApp();
+    const remote = screen.getByRole('link', { name: /GitHub 저장소/ });
+    expect(within(remote).getByTestId('external-link-indicator')).toBeInTheDocument();
+  });
+
+  it('Footer github / notion 링크에 외부 링크 인디케이터가 노출된다', () => {
+    renderApp();
+    const footer = screen.getByRole('contentinfo');
+    const github = within(footer).getByRole('link', { name: /github/i });
+    const notion = within(footer).getByRole('link', { name: /notion/i });
+    expect(within(github).getByTestId('external-link-indicator')).toBeInTheDocument();
+    expect(within(notion).getByTestId('external-link-indicator')).toBeInTheDocument();
+  });
+});
+
+describe('Footer 운영 채널 (#296)', () => {
+  it('Footer는 미운영 mailto 대신 notion(또는 contact) 외부 채널만 노출한다', () => {
+    renderApp();
+    const footer = screen.getByRole('contentinfo');
+    const mailLink = within(footer).queryByRole('link', { name: /^mail$/i });
+    expect(mailLink).toBeNull();
+    // notion 링크는 contact 채널로 유지
+    expect(within(footer).getByRole('link', { name: /notion/i })).toBeInTheDocument();
+  });
+});
+
+describe('Team / Timeline 섹션 (#222)', () => {
+  it('새 [02] team 섹션이 stat strip을 노출한다', () => {
+    renderApp();
+    const team = screen.getByTestId('team-section');
+    expect(team).toBeInTheDocument();
+    expect(team).toHaveAttribute('id', 'team');
+    const stats = within(team).getAllByTestId('team-stat');
+    expect(stats.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('team 섹션 헤더가 멘토/멘티/일정 키워드를 명시한다', () => {
+    renderApp();
+    const team = screen.getByTestId('team-section');
+    const heading = within(team).getByRole('heading', { level: 2 });
+    expect(heading).toBeInTheDocument();
+    expect(heading.textContent).toMatch(/멘토/);
+    expect(heading.textContent).toMatch(/멘티/);
+    expect(heading.textContent).toMatch(/일정/);
   });
 });
 

@@ -36,10 +36,8 @@ export const ProjectCard = ({
     <li>
       <a
         href={href}
-        target="_blank"
-        rel="noopener noreferrer"
         data-accent={safeAccent}
-        className="card-tech group relative flex flex-col rounded-xl border border-hairline bg-white/70 p-7 backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-ink-900/60"
+        className="card-tech group relative flex flex-col rounded-xl border border-hairline bg-white/70 p-7 backdrop-blur focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700 dark:bg-ink-900/60 dark:focus-visible:outline-cyan-neon"
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]">
@@ -59,7 +57,6 @@ export const ProjectCard = ({
           <div>
             <h3 className="text-xl font-semibold tracking-tight text-ink-950 dark:text-white">
               {title}
-              <span className="sr-only"> — 새 탭에서 열림</span>
             </h3>
             <p className="font-mono text-[11px] text-zinc-500 dark:text-zinc-500">{subtitle}</p>
           </div>

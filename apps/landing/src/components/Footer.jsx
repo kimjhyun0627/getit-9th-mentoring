@@ -1,24 +1,19 @@
-/**
- * Terminal-styled `git log --oneline -n 5` 시그니처 라인.
- * 시안 데이터를 그대로 보존 (실제 git 로그가 아니라 디자인 메타).
- *
- * @type {{ sha: string; message: string }[]}
- */
-const GIT_LOG = [
-  { sha: '3f9c1a2', message: 'feat(landing): wire SSO across 4 services' },
-  { sha: '1ad77be', message: 'chore(infra): traefik + docker compose baseline' },
-  { sha: 'a02e418', message: 'feat(auth): unified login + dark mode toggle' },
-  { sha: '66b9d03', message: 'docs: project specs for hobby/shelf/board/letter' },
-  { sha: 'e0c2210', message: 'init: monorepo (pnpm) — getit-9th-mentoring' },
-];
+import { getGitLog } from '../data/git-log.js';
+
+import { ExternalLinkIcon } from './ExternalLinkIcon.jsx';
 
 /**
  * Footer 푸터 (Tech-Dark).
  * - 1px hairline 상단 보더
- * - 박스: `[03] git log --oneline -n 5  main ↑` 헤더 + 5줄 git log + 메타 라인
- * - 메타 라인: copyright + github/notion/mail 링크
+ * - 박스: `[03] git log --oneline -n 5  main ↑` 헤더 + 빌드타임 주입 git log 5줄 + 메타 라인
+ * - 메타 라인: copyright + github/notion 외부 링크 (mailto 제거, #296)
+ *
+ * #233: git log는 vite define으로 빌드타임에 주입된 실제 commit. dev fallback 분리.
+ * #284: 외부 링크에 `↗` 시각 인디케이터.
+ * #296: 메일박스 미운영 → mailto 제거, notion이 contact 채널 역할.
  */
 export const Footer = () => {
+  const gitLog = getGitLog();
   return (
     <footer className="border-t border-hairline bg-white dark:bg-ink-950">
       <div className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">
@@ -30,10 +25,10 @@ export const Footer = () => {
           </div>
 
           <pre data-testid="footer-git-log" className="m-0 mt-3 overflow-x-auto whitespace-pre">
-            {GIT_LOG.map(({ sha, message }, idx) => (
-              <span key={sha}>
+            {gitLog.map(({ sha, message }, idx) => (
+              <span key={`${sha}-${idx}`} data-testid="footer-git-log-line">
                 <span className="text-amber-700 dark:text-amber-neon">{sha}</span> {message}
-                {idx < GIT_LOG.length - 1 ? '\n' : ''}
+                {idx < gitLog.length - 1 ? '\n' : ''}
               </span>
             ))}
           </pre>
@@ -52,10 +47,11 @@ export const Footer = () => {
                 href="https://github.com/kimjhyun0627/getit-9th-mentoring"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-zinc-900 dark:hover:text-zinc-200"
+                className="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-200"
               >
                 github
                 <span className="sr-only"> — 새 탭에서 열림</span>
+                <ExternalLinkIcon />
               </a>
               <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
                 ·
@@ -64,19 +60,11 @@ export const Footer = () => {
                 href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-zinc-900 dark:hover:text-zinc-200"
+                className="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-200"
               >
                 notion
                 <span className="sr-only"> — 새 탭에서 열림</span>
-              </a>
-              <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
-                ·
-              </span>
-              <a
-                href="mailto:hello@get-it.cloud"
-                className="hover:text-zinc-900 dark:hover:text-zinc-200"
-              >
-                mail
+                <ExternalLinkIcon />
               </a>
             </span>
           </div>
