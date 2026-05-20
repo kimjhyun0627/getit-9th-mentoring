@@ -1,6 +1,7 @@
 import { ACCENT_CLASSES } from '../data/accents.js';
 
 import { ArrowIcon } from './ArrowIcon.jsx';
+import { ExternalLinkIcon } from './ExternalLinkIcon.jsx';
 
 /**
  * @typedef {import('../data/projects.js').Project} Project
@@ -12,9 +13,13 @@ import { ArrowIcon } from './ArrowIcon.jsx';
  * - 우상단: `ID: XXX-NN` trace 라벨 (mono, 작게)
  * - 메인: 이모지 아이콘 + 한국어 title + 영문 subtitle (mono)
  * - 본문: 한 줄 설명 (zinc-600/400)
- * - 푸터: host (액센트 색) + `open →` 화살표 (group-hover 시 액센트)
+ * - 푸터: host (액센트 색) + `open ↗` 외부 링크 인디케이터 (group-hover 시 액센트)
  *
  * CSS의 `.card-tech[data-accent='...']:hover` 가 1px 네온 outline + glow를 그림.
+ *
+ * #360 — 클라이언트 요청으로 새 탭 오픈 복원 (PR #344 #225 same-tab → new-tab).
+ *   - target="_blank" + rel="noopener noreferrer"
+ *   - sr-only "새 탭에서 열림" + ExternalLinkIcon 시각 표시
  *
  * @param {Project} props
  */
@@ -36,7 +41,10 @@ export const ProjectCard = ({
     <li>
       <a
         href={href}
+        target="_blank"
+        rel="noopener noreferrer"
         data-accent={safeAccent}
+        aria-label={`${title} — 새 탭에서 열림`}
         className="card-tech group relative flex flex-col rounded-xl border border-hairline bg-white/70 p-7 backdrop-blur focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-700 dark:bg-ink-900/60 dark:focus-visible:outline-cyan-neon"
       >
         <div className="flex items-start justify-between">
@@ -73,6 +81,7 @@ export const ProjectCard = ({
           >
             open
             <ArrowIcon className="arrow-x" size={14} />
+            <ExternalLinkIcon />
           </span>
         </div>
       </a>

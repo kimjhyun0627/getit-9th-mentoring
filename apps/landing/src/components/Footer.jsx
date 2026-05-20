@@ -1,19 +1,39 @@
+import { useEffect, useState } from 'react';
+
 import { getGitLog } from '../data/git-log.js';
+import { fetchGitLog } from '../lib/git-log.js';
 
 import { ExternalLinkIcon } from './ExternalLinkIcon.jsx';
 
 /**
  * Footer 푸터 (Tech-Dark).
  * - 1px hairline 상단 보더
- * - 박스: `[03] git log --oneline -n 5  main ↑` 헤더 + 빌드타임 주입 git log 5줄 + 메타 라인
+ * - 박스: `[03] git log --oneline -n 5  main ↑` 헤더 + git log 5줄 + 메타 라인
  * - 메타 라인: copyright + github/notion 외부 링크 (mailto 제거, #296)
  *
- * #233: git log는 vite define으로 빌드타임에 주입된 실제 commit. dev fallback 분리.
+ * #233: 초기 렌더는 빌드타임 주입된 git log 5건 (즉시 노출, CLS 없음).
+ * #362: mount 후 GitHub Commits API 동적 fetch + sessionStorage 1h 캐시 → 최신 commit 반영.
+ *       API fail 시 빌드타임 fallback 유지.
  * #284: 외부 링크에 `↗` 시각 인디케이터.
  * #296: 메일박스 미운영 → mailto 제거, notion이 contact 채널 역할.
  */
 export const Footer = () => {
-  const gitLog = getGitLog();
+  const [gitLog, setGitLog] = useState(() => getGitLog());
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchGitLog()
+      .then((items) => {
+        if (cancelled) return;
+        if (Array.isArray(items) && items.length > 0) setGitLog(items);
+      })
+      .catch(() => {
+        // fetchGitLog 는 내부적으로 catch → fallback 반환. 안전망.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   return (
     <footer className="border-t border-hairline bg-white dark:bg-ink-950">
       <div className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">

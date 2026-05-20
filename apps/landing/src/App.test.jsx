@@ -19,6 +19,10 @@ beforeEach(() => {
     status: 401,
     json: async () => ({ error: 'Unauthorized' }),
   });
+  // #361 — 온보딩 챗봇이 항상 첫 방문 상태로 시작하지 않도록 clear.
+  //   describe 들이 dialog/role 충돌을 일으키지 않게 글로벌 clear.
+  window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 afterEach(() => {
@@ -69,7 +73,7 @@ describe('App (landing · Tech-Dark)', () => {
     expect(within(banner).getByText('GETIT')).toBeInTheDocument();
   });
 
-  it('4개 프로젝트 카드를 모두 렌더한다 (h3) — #225 이후 같은 탭이므로 sr-only "새 탭" 제거', () => {
+  it('4개 프로젝트 카드를 모두 렌더한다 (h3)', () => {
     renderApp();
     const titles = ['취미메이트', '스마트 서재', '팀 칸반', '익명 롤링페이퍼'];
     for (const title of titles) {
@@ -91,16 +95,26 @@ describe('App (landing · Tech-Dark)', () => {
     expect(screen.getByRole('list', { name: '프로젝트 목록' })).toBeInTheDocument();
   });
 
-  it('각 카드 링크가 올바른 href + 동일 탭(target 비설정 또는 _self)을 갖는다 (#225)', () => {
+  it('각 카드 링크가 올바른 href + 새 탭(_blank) + rel noopener 를 갖는다 (#360)', () => {
     renderApp();
     for (const project of PROJECTS) {
       const heading = screen.getByRole('heading', { name: new RegExp(project.title) });
       const link = heading.closest('a');
       expect(link).not.toBeNull();
       expect(link).toHaveAttribute('href', project.href);
-      const target = link.getAttribute('target');
-      // 같은 SSO 패밀리 — _blank 강제 금지
-      expect(target === null || target === '_self').toBe(true);
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link.getAttribute('rel')).toMatch(/noopener/);
+      expect(link.getAttribute('rel')).toMatch(/noreferrer/);
+      expect(link).toHaveAccessibleName(new RegExp(`${project.title}.*새 탭에서 열림`));
+    }
+  });
+
+  it('각 카드 링크가 외부 링크 시각 인디케이터를 노출한다 (#360 + #284)', () => {
+    renderApp();
+    for (const project of PROJECTS) {
+      const heading = screen.getByRole('heading', { name: new RegExp(project.title) });
+      const link = heading.closest('a');
+      expect(within(link).getByTestId('external-link-indicator')).toBeInTheDocument();
     }
   });
 

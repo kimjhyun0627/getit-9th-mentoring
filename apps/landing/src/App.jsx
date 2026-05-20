@@ -3,6 +3,7 @@ import { CardGrid } from './components/CardGrid.jsx';
 import { Footer } from './components/Footer.jsx';
 import { Header } from './components/Header.jsx';
 import { Hero } from './components/Hero.jsx';
+import { OnboardingBubble } from './components/OnboardingBubble.jsx';
 import { Team } from './components/Team.jsx';
 
 /**
@@ -11,6 +12,7 @@ import { Team } from './components/Team.jsx';
  * 다크 모드 기본 + 라이트 토글 가능 (`packages/theme` 사용).
  *
  * 섹션 순서: Header → Hero → CardGrid(#projects) → Team(#team, #222) → About(#about) → Footer.
+ * 첫 방문자 (#361) → OnboardingBubble (다크/라이트 토글 위치 힌트).
  */
 export const App = () => {
   return (
@@ -23,6 +25,7 @@ export const App = () => {
         <About />
       </main>
       <Footer />
+      <OnboardingBubble />
     </div>
   );
 };
