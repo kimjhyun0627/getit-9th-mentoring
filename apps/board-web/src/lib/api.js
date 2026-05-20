@@ -42,7 +42,9 @@ client.interceptors.response.use(
 
 /**
  * board-api 호출 헬퍼.
- * 모든 엔드포인트는 `/projects` 하위. 인증은 HttpOnly 쿠키 (`withCredentials`).
+ * - 프로젝트/멤버/컬럼: `/projects/...` 하위
+ * - 카드: `/cards` 평탄 (board-api 라우팅 참조)
+ * 인증은 HttpOnly 쿠키 (`withCredentials`).
  */
 export const api = {
   /** 내가 멤버인 프로젝트 목록. */
@@ -53,4 +55,48 @@ export const api = {
    * @param {{ name: string; description?: string }} body
    */
   createProject: (body) => client.post('/projects', body),
+  /**
+   * 프로젝트 단건 조회.
+   *
+   * @param {string} projectId
+   */
+  getProject: (projectId) => client.get(`/projects/${projectId}`),
+  /**
+   * 프로젝트 컬럼 목록 (order asc).
+   *
+   * @param {string} projectId
+   */
+  listColumns: (projectId) => client.get(`/projects/${projectId}/columns`),
+  /**
+   * 컬럼별 카드 목록 (order asc).
+   *
+   * @param {string} columnId
+   */
+  listCards: (columnId) => client.get('/cards', { params: { columnId } }),
+  /**
+   * 카드 생성.
+   *
+   * @param {{ columnId: string; title: string; description?: string | null; assigneeId?: string | null }} body
+   */
+  createCard: (body) => client.post('/cards', body),
+  /**
+   * 카드 수정 (title / description / assigneeId 중 1+).
+   *
+   * @param {string} cardId
+   * @param {{ title?: string; description?: string | null; assigneeId?: string | null }} body
+   */
+  updateCard: (cardId, body) => client.patch(`/cards/${cardId}`, body),
+  /**
+   * 카드 삭제.
+   *
+   * @param {string} cardId
+   */
+  deleteCard: (cardId) => client.delete(`/cards/${cardId}`),
+  /**
+   * 카드 이동 (between-keys). order 미지정 시 대상 컬럼 끝으로.
+   *
+   * @param {string} cardId
+   * @param {{ columnId: string; order?: number }} body
+   */
+  moveCard: (cardId, body) => client.patch(`/cards/${cardId}/move`, body),
 };
