@@ -57,7 +57,7 @@ export const BoardColumn = ({
         <ul className="card-stack flex flex-col">
           {cards.length === 0 ? (
             <li className="px-5 py-6 text-center text-[11px] text-muted-foreground">
-              아직 카드 없음
+              카드 없음 — 아래에서 추가
             </li>
           ) : (
             cards.map((card) => (

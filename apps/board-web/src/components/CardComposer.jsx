@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { cn } from '../lib/cn.js';
 
 /**
- * 인라인 "+ Add card" 컴포저.
+ * 인라인 "+ 카드 추가" 컴포저.
  * - 기본: dashed border CTA 버튼 (시안의 `empty-add` 톤)
  * - 활성화: 텍스트 입력 + 추가/취소 버튼
  *
@@ -58,7 +58,7 @@ export const CardComposer = ({ onSubmit, submitting = false }) => {
           >
             <path d="M12 5v14M5 12h14" />
           </svg>
-          Add card
+          카드 추가
         </button>
       </div>
     );

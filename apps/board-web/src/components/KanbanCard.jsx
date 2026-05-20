@@ -173,7 +173,7 @@ const MoveMenu = ({ cardTitle, otherColumns, onMove }) => {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`${cardTitle} 이동`}
+        aria-label={`${cardTitle} 이동할 컬럼 선택`}
         onClick={() => setOpen((v) => !v)}
         onKeyDown={handleTriggerKeyDown}
         className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-hairline text-muted-foreground transition hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
@@ -206,6 +206,7 @@ const MoveMenu = ({ cardTitle, otherColumns, onMove }) => {
                 role="menuitem"
                 type="button"
                 tabIndex={activeIndex === idx ? 0 : -1}
+                aria-label={`${col.name}(으)로 이동`}
                 onClick={() => {
                   setOpen(false);
                   onMove(col.id);
