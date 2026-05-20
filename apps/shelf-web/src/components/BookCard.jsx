@@ -3,20 +3,16 @@ import { cn } from '../lib/cn.js';
 import { StarRating } from './StarRating.jsx';
 
 /**
- * BookCardSkeleton — 로딩 중 placeholder.
- * - role="status" + aria-busy="true" + aria-label="책 정보를 불러오는 중"
- *   → SR 가 "loading" 으로 announce.
- * - 다크/라이트 양쪽 paper-2 톤. shimmer 는 prefers-reduced-motion 시 정지 (CSS @media).
+ * BookCardSkeleton — 로딩 중 placeholder. 카드 1장은 presentational.
+ *
+ * SR announce 는 부모 컨테이너가 `role="status" aria-busy="true"` 로 한 번만 흘려야
+ * 깜빡임 없이 한 차례만 읽힌다. 따라서 카드 본체는 `aria-hidden="true"`.
+ * shimmer 는 prefers-reduced-motion 시 정지 (CSS @media).
  *
  * @param {{ className?: string }} props
  */
 export const BookCardSkeleton = ({ className }) => (
-  <div
-    role="status"
-    aria-busy="true"
-    aria-label="책 정보를 불러오는 중"
-    className={cn('book-card-skeleton block w-full', className)}
-  >
+  <div aria-hidden="true" className={cn('book-card-skeleton block w-full', className)}>
     <div className="cover relative w-full bg-paper-2 book-skeleton-shimmer" />
     <div className="mt-3 h-2 w-16 bg-paper-2 book-skeleton-shimmer" />
     <div className="mt-2 h-4 w-3/4 bg-paper-2 book-skeleton-shimmer" />

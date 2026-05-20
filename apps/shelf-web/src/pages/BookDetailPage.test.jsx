@@ -106,4 +106,64 @@ describe('BookDetailPage (/book/:isbn) — #201', () => {
     renderAt('/book/9788932917245');
     expect(await screen.findByText('책을 찾을 수 없어요.')).toBeInTheDocument();
   });
+
+  /**
+   * 공유 분기 회귀 가드 (CR #353):
+   *  - navigator.share 존재 → 호출 + 클립보드 미터치
+   *  - navigator.share 없음 → clipboard.writeText 호출
+   *  - share AbortError → 에러 토스트 노출 X
+   */
+  it('navigator.share 가 있으면 share 가 호출되고 클립보드 fallback 은 미사용', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    const shareSpy = vi.fn().mockResolvedValue(undefined);
+    const writeSpy = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', { value: shareSpy, configurable: true });
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeSpy },
+      configurable: true,
+    });
+    try {
+      renderAt('/book/9788932917245');
+      const btn = await screen.findByRole('button', { name: '이 책 공유' });
+      await user.click(btn);
+      expect(shareSpy).toHaveBeenCalled();
+      expect(writeSpy).not.toHaveBeenCalled();
+    } finally {
+      delete navigator.share;
+    }
+  });
+
+  it('navigator.share 가 없으면 clipboard.writeText 로 fallback', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    const writeSpy = vi.fn().mockResolvedValue(undefined);
+    delete navigator.share;
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: writeSpy },
+      configurable: true,
+    });
+    renderAt('/book/9788932917245');
+    const btn = await screen.findByRole('button', { name: '이 책 공유' });
+    await user.click(btn);
+    expect(writeSpy).toHaveBeenCalled();
+  });
+
+  it('share AbortError 면 에러 토스트 노출 X', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    const err = new Error('aborted');
+    err.name = 'AbortError';
+    const shareSpy = vi.fn().mockRejectedValue(err);
+    Object.defineProperty(navigator, 'share', { value: shareSpy, configurable: true });
+    try {
+      renderAt('/book/9788932917245');
+      const btn = await screen.findByRole('button', { name: '이 책 공유' });
+      await user.click(btn);
+      // 에러 토스트가 노출되지 않아야 함
+      expect(screen.queryByText(/공유가 막혔어요/)).not.toBeInTheDocument();
+    } finally {
+      delete navigator.share;
+    }
+  });
 });

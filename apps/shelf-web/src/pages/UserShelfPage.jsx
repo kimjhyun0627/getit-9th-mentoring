@@ -51,7 +51,12 @@ export const UserShelfPage = () => {
       </section>
 
       {shelvesQuery.isLoading ? (
-        <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 md:gap-x-10 md:gap-y-14 lg:grid-cols-4">
+        <div
+          role="status"
+          aria-busy="true"
+          aria-label="서가를 펼치는 중"
+          className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 md:gap-x-10 md:gap-y-14 lg:grid-cols-4"
+        >
           {Array.from({ length: 8 }).map((_, i) => (
             <BookCardSkeleton key={i} />
           ))}

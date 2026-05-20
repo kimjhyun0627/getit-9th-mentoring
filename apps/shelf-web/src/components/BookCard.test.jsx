@@ -65,11 +65,10 @@ describe('BookCard', () => {
 });
 
 describe('BookCardSkeleton (#301 로딩 스켈레톤)', () => {
-  it('aria-busy=true + role=status 로 SR announce', () => {
-    render(<BookCardSkeleton />);
-    const sk = screen.getByRole('status');
-    expect(sk).toHaveAttribute('aria-busy', 'true');
-    expect(sk).toHaveAttribute('aria-label', '책 정보를 불러오는 중');
+  it('aria-hidden=true — SR announce 는 부모 컨테이너가 담당 (CR #353)', () => {
+    const { container } = render(<BookCardSkeleton />);
+    const sk = container.firstChild;
+    expect(sk).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('shimmer 자식이 존재 (book-skeleton-shimmer 클래스)', () => {

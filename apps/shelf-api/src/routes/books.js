@@ -207,9 +207,10 @@ export const createBooksRouter = () => {
         take: 8,
       });
 
-      // 부족하면 외부 보강 (best-effort)
+      // 부족하면 외부 보강 (best-effort).
+      // CR #353: 4~7 권만 캐시되어 있을 때도 8 권 풀을 채우도록 < 8 로 (이전 < 4 는 underfill).
       const extras = [];
-      if (cachedSameAuthor.length < 4) {
+      if (cachedSameAuthor.length < 8) {
         const apiKey = process.env.KAKAO_BOOK_API_KEY ?? '';
         try {
           const docs = await searchKakaoBooks({
