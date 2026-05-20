@@ -50,7 +50,7 @@ describe('TagSuggestions', () => {
     }
   });
 
-  it('대소문자 무시하고 중복 판정한다', () => {
+  it('동일 태그가 value 에 있으면 해당 칩은 disabled 다', () => {
     // 추천 라벨은 한글이라 대소문자 영향은 없지만, 정규화 일관성 가드.
     render(<TagSuggestions value={['맛집']} onPick={vi.fn()} />);
     expect(screen.getByRole('button', { name: /맛집/ })).toBeDisabled();

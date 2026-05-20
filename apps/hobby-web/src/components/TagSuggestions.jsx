@@ -25,13 +25,15 @@ export const TagSuggestions = ({ value, onPick, disabled = false, labelledBy }) 
       className="flex flex-wrap items-center gap-1.5"
     >
       {SUGGESTED_TAGS.map((s) => {
-        const picked = selected.has(s.key.toLowerCase());
+        // CR #365 nit: prop 계약이 `onPick(label)` 이므로 selected/onClick 모두 label 로 통일.
+        // 현재 SUGGESTED_TAGS 는 key === label 이지만, 향후 분기되면 깨질 수 있어 미리 정렬.
+        const picked = selected.has(s.label.toLowerCase());
         const isDisabled = disabled || picked;
         return (
           <button
-            key={s.key}
+            key={s.label}
             type="button"
-            onClick={() => onPick(s.key)}
+            onClick={() => onPick(s.label)}
             disabled={isDisabled}
             aria-pressed={picked}
             className={cn(
