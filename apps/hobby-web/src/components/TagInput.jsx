@@ -53,7 +53,7 @@ export const TagInput = ({
 
   /** @param {import('react').KeyboardEvent<HTMLInputElement>} e */
   const onKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
+    if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
       e.preventDefault();
       commit();
     } else if (e.key === 'Backspace' && draft === '' && value.length > 0) {
@@ -87,7 +87,7 @@ export const TagInput = ({
       >
         {value.map((tag, idx) => (
           <span
-            key={`${tag}-${idx}`}
+            key={tag}
             className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 font-round text-[12px] font-bold text-rose-700 dark:bg-rose-500/20 dark:text-rose-200"
           >
             #{tag}
