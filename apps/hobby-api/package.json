@@ -1,0 +1,39 @@
+{
+  "name": "@getit/hobby-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "hobby.get-it.cloud/api - 취미메이트 BE (모집 게시글 + 매칭 + 알림)",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "build": "echo \"JS only, skip build\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint --no-error-on-unmatched-pattern src prisma",
+    "typecheck": "echo \"JS only, skip\"",
+    "clean": "rm -rf dist .turbo",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:seed": "node prisma/seed.cli.js",
+    "prisma:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.cli.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.2.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@getit/config-eslint": "workspace:*",
+    "eslint": "^9.18.0",
+    "prisma": "^6.2.1",
+    "supertest": "^7.0.0",
+    "vitest": "^2.1.8"
+  }
+}

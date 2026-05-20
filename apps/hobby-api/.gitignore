@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.turbo/
+
+# env
+.env
+.env.local
+.env.*
+.env.*.local
+!.env.example
+
+# prisma
+prisma/*.db
+prisma/*.db-journal
+
+# logs
+*.log
