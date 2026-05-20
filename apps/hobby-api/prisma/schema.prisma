@@ -1,0 +1,106 @@
+// hobby-api Prisma schema
+// 취미메이트 — 일회성 취미 모임 모집/매칭/알림.
+//
+// 통합 SSO: ownerId / userId 는 auth-api DB의 User.id (cuid 문자열) 를 가리킨다.
+// 다른 BE 앱과 DB 가 분리돼 있으므로 FK 를 걸지 않고 어플리케이션 레벨에서 검증.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// 모집 게시글.
+/// - ownerId: 방장 (auth-api User.id, FK 없이 cuid 문자열)
+/// - meetAt: 모임 일시 (UTC 저장, 클라이언트가 KST 표기)
+/// - capacity: 정원 (방장 포함 인원). currentCapacity 가 capacity 도달 시 FULL.
+/// - currentCapacity: 매칭 신청 수락된 현재 인원 (방장 신청 제외).
+///   Race condition 방지: 트랜잭션 + 비교 업데이트 (BE 책임).
+/// - openChatUrl: 카카오 오픈채팅 링크. 매칭 완료 전엔 API 응답에서 마스킹.
+/// - status: 라이프사이클 상태.
+model Post {
+  id              String         @id @default(cuid())
+  ownerId         String
+  title           String
+  body            String         @db.Text
+  meetAt          DateTime
+  capacity        Int
+  currentCapacity Int            @default(0)
+  openChatUrl     String
+  status          PostStatus     @default(RECRUITING)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  tags            PostTag[]
+  applications    Application[]
+  notifications   Notification[]
+
+  @@index([ownerId])
+  @@index([status, meetAt])
+}
+
+/// 모집 게시글 상태.
+/// - RECRUITING: 모집 중 (default).
+/// - FULL: 정원 마감 (오픈채팅 링크 공개).
+/// - CLOSED: 방장이 취소/종료 처리.
+enum PostStatus {
+  RECRUITING
+  FULL
+  CLOSED
+}
+
+/// 태그 마스터.
+/// - name: 사용자 노출 라벨. 대소문자 구분 없이 unique 처리는 BE 책임.
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique
+  posts PostTag[]
+}
+
+/// Post ↔ Tag 다대다 조인 테이블.
+/// - 복합 PK (postId, tagId) — 같은 게시글에 같은 태그 중복 부여 자동 방지.
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+/// 매칭 신청.
+/// - postId × userId 페어로 unique — 같은 유저가 한 게시글에 두 번 신청 불가.
+/// - 취소 시 DB 에선 hard delete (Notification 에 이력 보존).
+model Application {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+/// 알림.
+/// - userId: 수신자 (auth-api User.id).
+/// - postId: 관련 게시글 (nullable — 게시글 삭제 후에도 알림은 보존).
+/// - kind: 알림 종류 문자열 (MATCH_FULL / APPLICATION_CANCELED / NO_SHOW_REPORTED 등).
+///   enum 으로 강제하지 않음 — 향후 새 알림 종류 추가 시 마이그레이션 부담 회피.
+/// - readAt: 사용자가 읽은 시각. null 이면 unread.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  postId    String?
+  kind      String
+  message   String    @db.Text
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+  post      Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([userId, readAt])
+  @@index([postId])
+}
