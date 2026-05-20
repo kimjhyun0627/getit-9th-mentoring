@@ -34,26 +34,25 @@ const IsbnParam = z.string().regex(/^(?:\d{10}|\d{9}[Xx]|\d{13})$/, 'invalid isb
 const DEFAULT_TTL_HOURS = 24;
 
 /**
- * 환경변수 기반 캐시 TTL (시간) → ms 환산. 음수/NaN 은 기본값으로.
- *
- * @returns {number}
+ * 모듈 로드 시점에 한 번만 계산하는 캐시 TTL (ms).
+ * 환경변수 `BOOK_CACHE_TTL_HOURS` 기반, 음수/NaN 은 기본값으로.
  */
-const readTtlMs = () => {
+const BOOK_CACHE_TTL_MS = (() => {
   const raw = process.env.BOOK_CACHE_TTL_HOURS;
   const n = Number.parseInt(raw ?? '', 10);
   const hours = Number.isFinite(n) && n > 0 ? n : DEFAULT_TTL_HOURS;
   return hours * 60 * 60 * 1000;
-};
+})();
 
 /**
  * 캐시 row 가 신선한지 (cachedAt + TTL > now).
+ * Prisma 는 DateTime 을 Date 객체로 반환하므로 `getTime()` 만 호출.
  *
  * @param {{ cachedAt: Date }} row
  * @returns {boolean}
  */
 const isFresh = (row) => {
-  const ttlMs = readTtlMs();
-  return Date.now() - new Date(row.cachedAt).getTime() < ttlMs;
+  return Date.now() - row.cachedAt.getTime() < BOOK_CACHE_TTL_MS;
 };
 
 /**

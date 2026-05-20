@@ -33,11 +33,13 @@ const parseOrigins = (raw) =>
  * @returns {import('express').Express}
  */
 export const createApp = (opts = {}) => {
-  const { rateLimitMax = 30, rateLimitWindowMs = 60 * 1000, trustProxy = true } = opts;
+  const { rateLimitMax = 30, rateLimitWindowMs = 60 * 1000, trustProxy = false } = opts;
   const app = express();
 
   // 프록시 계층 수는 환경에 따라 다름(예: Cloudflare → LB → Traefik).
-  // 기본값 1(=Traefik 단일 계층), `TRUST_PROXY` 로 오버라이드 가능.
+  // 기본은 false(=프록시 신뢰 안 함) — 운영에선 createApp({trustProxy:true}) 또는
+  // `TRUST_PROXY` 환경변수로 명시 옵트인. 기본 신뢰 시 X-Forwarded-For 스푸핑으로
+  // rate-limit 우회 가능 → fail-closed.
   if (trustProxy) {
     const raw = process.env.TRUST_PROXY;
     const n = raw === undefined ? 1 : Number.parseInt(raw, 10);
@@ -77,10 +79,14 @@ export const createApp = (opts = {}) => {
 
   // 마지막 fallback 에러 핸들러 (4-인자 시그니처 유지).
   // 500 이상은 pino 로 스택 트레이스까지 로깅 → 운영 환경에서 신속히 트리아지.
+  // 이미 헤더 보낸 상태(스트리밍 중 등)에서 setHeader 충돌 방지.
   app.use((err, req, res, _next) => {
     const status = err.status ?? 500;
     if (status >= 500) {
       req.log?.error({ err }, 'unhandled error');
+    }
+    if (res.headersSent) {
+      return;
     }
     res.status(status).json({ error: err.code ?? 'InternalServerError' });
   });

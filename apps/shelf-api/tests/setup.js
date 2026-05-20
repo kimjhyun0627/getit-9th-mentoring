@@ -44,13 +44,16 @@ const matchWhere = (row, where) => {
   if (!where) return true;
   return Object.entries(where).every(([k, v]) => {
     if (v !== null && typeof v === 'object' && !(v instanceof Date)) {
-      if ('equals' in v) return row[k] === v.equals;
-      if ('gt' in v) return row[k] > v.gt;
-      if ('gte' in v) return row[k] >= v.gte;
-      if ('lt' in v) return row[k] < v.lt;
-      if ('lte' in v) return row[k] <= v.lte;
-      if ('in' in v) return v.in.includes(row[k]);
-      return false;
+      // 같은 필드에 여러 연산자가 있을 수 있음 (예: {age: {gte:18, lte:65}}).
+      // early return 대신 모든 연산자를 AND 로 결합해서 평가.
+      const checks = [];
+      if ('equals' in v) checks.push(row[k] === v.equals);
+      if ('gt' in v) checks.push(row[k] > v.gt);
+      if ('gte' in v) checks.push(row[k] >= v.gte);
+      if ('lt' in v) checks.push(row[k] < v.lt);
+      if ('lte' in v) checks.push(row[k] <= v.lte);
+      if ('in' in v) checks.push(v.in.includes(row[k]));
+      return checks.length > 0 ? checks.every((c) => c) : false;
     }
     return row[k] === v;
   });

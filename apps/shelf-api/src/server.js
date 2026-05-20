@@ -25,7 +25,9 @@ const initSentry = async () => {
 const main = async () => {
   await initSentry();
 
-  const app = createApp();
+  // 운영 환경에선 Traefik 프록시 뒤에 있으므로 trustProxy 명시 활성화.
+  // (createApp 기본값은 fail-closed 로 false.)
+  const app = createApp({ trustProxy: true });
   const port = Number.parseInt(process.env.PORT ?? '3003', 10);
   const server = app.listen(port, () => {
     log.info({ port }, `shelf-api listening on :${port}`);
@@ -36,19 +38,26 @@ const main = async () => {
     process.exitCode = 1;
   });
 
+  // shutdown 은 중복 호출 방지 + 정상 종료 시 force-close 타이머 해제.
+  // 안 그러면 5초 후 타이머가 exitCode 를 1 로 덮어써서 정상 종료도 실패로 찍힘.
+  let shuttingDown = false;
+  let forceCloseTimer;
   const shutdown = (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     log.info({ signal }, 'shutting down');
     server.close(() => {
+      if (forceCloseTimer) clearTimeout(forceCloseTimer);
       process.exitCode = 0;
     });
     // 5초 후 강제 종료 (graceful 한계)
-    setTimeout(() => {
+    forceCloseTimer = setTimeout(() => {
       process.exitCode = 1;
       server.closeAllConnections?.();
     }, 5000).unref();
   };
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  process.once('SIGINT', () => shutdown('SIGINT'));
 };
 
 main().catch((err) => {
