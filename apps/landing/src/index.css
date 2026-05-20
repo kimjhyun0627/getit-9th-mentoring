@@ -280,5 +280,15 @@
     .pulse-dot {
       animation: none;
     }
+
+    .card-tech,
+    .arrow-x {
+      transition: none;
+    }
+
+    .card-tech:hover,
+    .card-tech:hover .arrow-x {
+      transform: none;
+    }
   }
 }
