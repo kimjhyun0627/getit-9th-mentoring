@@ -114,9 +114,8 @@ export const BoardViewPage = () => {
     setPendingDelete({ cardId, columnId, title: card?.title ?? '' });
   };
   const handleConfirmDelete = () => {
-    if (!pendingDelete) return;
-    // 실패 시 사용자 맥락 유지를 위해 onSuccess 에서만 다이얼로그 닫음 — onError 면 다이얼로그
-    // 그대로 둬서 재시도 동선 살림.
+    // 연타 가드: 진행중이면 무시. 실패 시 사용자 맥락 유지를 위해 onSuccess 에서만 다이얼로그 닫음.
+    if (!pendingDelete || cardMut.remove.isPending) return;
     cardMut.remove.mutate(
       { cardId: pendingDelete.cardId, columnId: pendingDelete.columnId },
       { onSuccess: () => setPendingDelete(null) },
@@ -225,6 +224,7 @@ export const BoardViewPage = () => {
         }
         confirmLabel="삭제"
         destructive
+        busy={cardMut.remove.isPending}
         onConfirm={handleConfirmDelete}
         onClose={() => setPendingDelete(null)}
       />
