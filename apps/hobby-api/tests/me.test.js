@@ -225,6 +225,25 @@ describe('hobby-api P1 새 동작', () => {
     });
   });
 
+  describe('GET /api/me (현재 사용자)', () => {
+    it('비인증 → 401', async () => {
+      const res = await request(app).get('/api/me');
+      expect(res.status).toBe(401);
+    });
+
+    it('인증 → 200 + user 페이로드', async () => {
+      const res = await request(app)
+        .get('/api/me')
+        .set('Authorization', `Bearer ${tokenFor('alice-id', 'Alice K')}`);
+      expect(res.status).toBe(200);
+      expect(res.body.user).toMatchObject({
+        sub: 'alice-id',
+        email: 'alice-id@x.com',
+        name: 'Alice K',
+      });
+    });
+  });
+
   describe('GET /api/me/* (#228)', () => {
     it('비인증 → 401', async () => {
       const res = await request(app).get('/api/me/posts');
