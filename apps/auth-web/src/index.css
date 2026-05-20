@@ -52,9 +52,9 @@
     --popover: 240 10% 4%;
     --popover-foreground: 0 0% 98%;
 
-    /* CTA 인버스 — 흰 버튼 + 검은 글씨 */
-    --primary: 0 0% 100%;
-    --primary-foreground: 240 10% 4%;
+    /* CTA — indigo 액센트 유지 (Issue #91). 다크 zinc-950 위 흰 글씨와 ~5.9:1 (WCAG AA). */
+    --primary: 239 84% 58%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 240 6% 10%;
     --secondary-foreground: 0 0% 98%;
@@ -70,7 +70,7 @@
 
     --border: 240 4% 16%;
     --input: 240 4% 16%;
-    --ring: 0 0% 100%;
+    --ring: 239 84% 67%;
   }
 
   body {
