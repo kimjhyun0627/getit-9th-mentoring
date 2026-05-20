@@ -104,8 +104,8 @@ describe('PostDetailPage', () => {
     const link = await screen.findByTestId('open-chat-link');
     expect(link).toHaveAttribute('href', 'https://open.kakao.com/o/oOWN');
     // 방장에게는 "신청" 버튼이 아닌 "방장 안내" 가 노출.
-    expect(screen.queryByRole('button', { name: /^신청$/ })).not.toBeInTheDocument();
-    expect(screen.getByText(/이 모임을 만든 사람/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^신청하기$/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/이 모임의 방장이야/)).toBeInTheDocument();
   });
 
   it('신청 클릭 → applyPost 호출 + 카운트 optimistic 증가 + 버튼이 "취소" 로 토글', async () => {
@@ -125,7 +125,7 @@ describe('PostDetailPage', () => {
 
     renderAt();
 
-    const applyBtn = await screen.findByRole('button', { name: /^신청$/ });
+    const applyBtn = await screen.findByRole('button', { name: /^신청하기$/ });
     await user.click(applyBtn);
 
     await waitFor(() => expect(applySpy).toHaveBeenCalledWith('p1'));
@@ -151,7 +151,7 @@ describe('PostDetailPage', () => {
     });
 
     renderAt();
-    await user.click(await screen.findByRole('button', { name: /^신청$/ }));
+    await user.click(await screen.findByRole('button', { name: /^신청하기$/ }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/정원이 마감/);
     // 롤백된 카운트.
@@ -171,7 +171,7 @@ describe('PostDetailPage', () => {
     const cancelSpy = vi.spyOn(api, 'cancelApplication').mockResolvedValue();
 
     renderAt();
-    await user.click(await screen.findByRole('button', { name: /^신청$/ }));
+    await user.click(await screen.findByRole('button', { name: /^신청하기$/ }));
     await screen.findByRole('button', { name: /신청 취소/ });
     await user.click(screen.getByRole('button', { name: /신청 취소/ }));
 
@@ -182,7 +182,7 @@ describe('PostDetailPage', () => {
         expect.stringMatching(/2 ?\/ ?4/),
       );
     });
-    expect(await screen.findByRole('button', { name: /^신청$/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /^신청하기$/ })).toBeInTheDocument();
   });
 
   it('404 — 게시글이 없으면 안내 메시지', async () => {

@@ -42,7 +42,7 @@ export const Header = ({ search, onSearchChange }) => {
           type="text"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="태그/장소로 검색 · 예: 마라탕, 북문, 풋살"
+          placeholder="태그·장소 검색 (예: 북문 마라탕)"
           aria-label="태그 또는 장소로 검색"
           className="w-full rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 pl-11 pr-4 py-2.5 text-sm font-round text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-rose-400 outline-none transition"
         />

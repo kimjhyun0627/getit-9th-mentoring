@@ -20,28 +20,32 @@ import { cn } from '../lib/cn.js';
  * (서버에서 보면 그냥 본문 — 화면 라벨링은 FE 책임)
  */
 const CreatePostFormSchema = z.object({
-  title: z.string().trim().min(2, '제목은 2자 이상').max(80, '제목은 80자 이내'),
-  body: z.string().trim().min(1, '본문을 입력하세요').max(1800, '본문은 1800자 이내'),
+  title: z
+    .string()
+    .trim()
+    .min(2, '제목 2자 이상으로 적어줘')
+    .max(80, '제목이 너무 길어 (80자까지)'),
+  body: z.string().trim().min(1, '본문을 적어줘').max(1800, '본문이 너무 길어 (1800자까지)'),
   // datetime-local 은 `YYYY-MM-DDTHH:mm` (tz 없음). 그대로 받고 refine 으로 미래만 통과.
   meetAtLocal: z
     .string()
-    .min(1, '모임 일시를 선택하세요')
+    .min(1, '모임 일시를 골라줘')
     .refine((s) => !Number.isNaN(new Date(s).getTime()), {
-      message: '유효한 일시가 아닙니다',
+      message: '일시 형식이 맞지 않아',
     })
     .refine((s) => new Date(s).getTime() > Date.now(), {
-      message: '과거 시각은 입력할 수 없습니다',
+      message: '과거 시각은 안 돼',
     }),
-  location: z.string().trim().min(1, '장소를 입력하세요').max(60, '장소는 60자 이내'),
+  location: z.string().trim().min(1, '어디서 만날지 적어줘').max(60, '장소가 너무 길어 (60자까지)'),
   capacity: z.coerce
-    .number({ invalid_type_error: '정원은 숫자여야 합니다' })
-    .int('정원은 정수여야 합니다')
-    .min(2, '정원은 2명 이상')
-    .max(20, '정원은 20명 이하'),
+    .number({ invalid_type_error: '정원은 숫자로 적어줘' })
+    .int('정원은 정수만')
+    .min(2, '둘은 모여야지 (2명 이상)')
+    .max(20, '한 번에 너무 많아 (20명까지)'),
   openChatUrl: z
     .string()
-    .min(1, '오픈채팅 URL을 입력하세요')
-    .max(512, 'URL이 너무 깁니다')
+    .min(1, '카카오 오픈채팅 링크를 붙여줘')
+    .max(512, '링크가 너무 길어')
     .refine(
       (v) => {
         try {
@@ -55,9 +59,9 @@ const CreatePostFormSchema = z.object({
           return false;
         }
       },
-      { message: '카카오 오픈채팅 URL (https://open.kakao.com/o/...) 만 허용됩니다' },
+      { message: '카카오 오픈채팅 링크만 돼 (https://open.kakao.com/o/...)' },
     ),
-  tags: z.array(z.string()).max(5, '태그는 최대 5개').default([]),
+  tags: z.array(z.string()).max(5, '태그는 5개까지').default([]),
 });
 
 /** @typedef {z.infer<typeof CreatePostFormSchema>} CreatePostFormValues */
@@ -202,7 +206,7 @@ export const CreatePostPage = () => {
             label="오픈채팅 링크"
             type="url"
             placeholder="https://open.kakao.com/o/..."
-            hint="정원 마감 후에만 참여자에게 공개"
+            hint="정원 차면 신청자에게만 공개돼. 그 전엔 아무도 못 봐."
             error={errors.openChatUrl?.message}
             {...register('openChatUrl')}
           />
@@ -243,10 +247,10 @@ export const CreatePostPage = () => {
  */
 const toFriendlyError = (err) => {
   const status = /** @type {{response?: {status?: number}}} */ (err)?.response?.status;
-  if (status === 401) return '로그인이 만료됐어. 다시 로그인 후 시도해줘';
-  if (status === 400 || status === 422) return '입력값이 올바르지 않습니다. 다시 확인해주세요';
-  if (status === 429) return '요청이 많아. 잠시 후 다시 시도해줘';
+  if (status === 401) return '로그인이 만료됐어. 다시 로그인해줘.';
+  if (status === 400 || status === 422) return '입력값을 다시 확인해줘.';
+  if (status === 429) return '요청이 너무 많아. 잠시 후 다시 시도해줘.';
   if (typeof status === 'number' && status >= 500)
-    return '서버 오류가 발생했어. 잠시 후 다시 시도해줘';
-  return '모임 등록에 실패했습니다. 입력을 확인하고 다시 시도해주세요';
+    return '서버에 문제가 생겼나봐. 잠시 후 다시 시도해줘.';
+  return '모임을 못 올렸어. 입력을 확인하고 다시 시도해줘.';
 };
