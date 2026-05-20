@@ -99,7 +99,7 @@ export const Hero = () => {
           <span className="text-cyan-700 dark:text-cyan-neon">.deploy()</span>
           <span
             data-testid="hero-caret"
-            className="caret bg-cyan-700 text-cyan-700 dark:bg-cyan-neon dark:text-cyan-neon"
+            className="caret text-cyan-700 dark:text-cyan-neon"
             aria-hidden="true"
           />
         </h1>

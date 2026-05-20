@@ -30,9 +30,9 @@ export const ProjectCard = ({
   hostLabel,
   accent,
 }) => {
-  const tokens = ACCENT_CLASSES[accent];
+  const tokens = ACCENT_CLASSES[accent] ?? ACCENT_CLASSES.cyan;
   return (
-    <li className="contents">
+    <li>
       <a
         href={href}
         target="_blank"

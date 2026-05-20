@@ -102,7 +102,7 @@
    * 라이트: 채도 낮은 cyan/magenta + 검정 5% 그리드.
    */
   .scene-dark {
-    background-color: #08090b;
+    background-color: hsl(var(--background));
     background-image:
       radial-gradient(900px 500px at 85% -10%, rgba(34, 211, 238, 0.12), transparent 60%),
       radial-gradient(700px 400px at 5% 20%, rgba(232, 121, 249, 0.07), transparent 60%),
@@ -115,7 +115,7 @@
       48px 48px;
   }
   html:not(.dark) .scene-dark {
-    background-color: #fafaf9;
+    background-color: hsl(var(--background));
     background-image:
       radial-gradient(900px 500px at 85% -10%, rgba(8, 145, 178, 0.06), transparent 60%),
       radial-gradient(700px 400px at 5% 20%, rgba(192, 38, 211, 0.05), transparent 60%),
@@ -184,9 +184,9 @@
 
   /* "all systems / nominal" status pulse dot */
   .pulse-dot {
-    animation: pulseDot 1.8s ease-in-out infinite;
+    animation: pulse-dot 1.8s ease-in-out infinite;
   }
-  @keyframes pulseDot {
+  @keyframes pulse-dot {
     0%,
     100% {
       opacity: 1;
