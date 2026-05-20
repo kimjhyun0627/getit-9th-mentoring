@@ -83,11 +83,13 @@ const main = async () => {
   console.log(`done. seeded ${books.length} books + 1 shelf entry.`);
 };
 
-main()
-  .catch((err) => {
+(async () => {
+  try {
+    await main();
+  } catch (err) {
     console.error('seed failed:', err);
     process.exitCode = 1;
-  })
-  .finally(async () => {
+  } finally {
     await prisma.$disconnect();
-  });
+  }
+})();
