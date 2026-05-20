@@ -116,7 +116,11 @@ export const api = {
    * @param {string} projectId
    * @param {string} userId
    */
-  removeMember: (projectId, userId) => client.delete(`/projects/${projectId}/members/${userId}`),
+  // userId 에 예약문자가 들어와도 안전하도록 path 세그먼트 인코딩.
+  removeMember: (projectId, userId) =>
+    client.delete(
+      `/projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(userId)}`,
+    ),
   /**
    * 컬럼별 카드 목록 (order asc).
    *

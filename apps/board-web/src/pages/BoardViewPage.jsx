@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { BoardColumn } from '../components/BoardColumn.jsx';
@@ -85,6 +85,14 @@ export const BoardViewPage = () => {
     },
     enabled: membersOpen && Boolean(projectId),
   });
+
+  // membersQuery 실패 시 dialog 안에서 사용자 친화 카피로 안내 — 빈 목록으로 가리지 않음.
+  // (조회 성공 전엔 projectQuery.members 를 fallback 으로 사용해 "멤버 없음" 오해 방지.)
+  useEffect(() => {
+    if (membersOpen && membersQuery.isError && !membersError) {
+      setMembersError('멤버 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+    }
+  }, [membersOpen, membersQuery.isError, membersError]);
 
   const cardMut = useBoardCardMutations({
     onUpdateError: setEditServerError,
@@ -216,7 +224,16 @@ export const BoardViewPage = () => {
           setMembersError(null);
         }}
         role={projectQuery.data?.role ?? 'MEMBER'}
-        members={membersQuery.data ?? []}
+        // 멤버 detail (role 포함) 은 GET /members 응답 우선, 실패/대기 시 projectQuery 의 경량 멤버로 fallback.
+        members={
+          membersQuery.isSuccess
+            ? membersQuery.data
+            : projectMembers.map((m) => ({
+                userId: m.userId,
+                role: m.userId === projectQuery.data?.ownerId ? 'OWNER' : 'MEMBER',
+                name: m.name ?? null,
+              }))
+        }
         currentUserId={projectQuery.data?.currentUserId ?? null}
         onInvite={(userId) => memberMut.invite.mutateAsync({ userId }).catch(() => {})}
         onRemove={(userId) => memberMut.remove.mutateAsync({ userId }).catch(() => {})}

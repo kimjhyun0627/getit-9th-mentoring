@@ -34,8 +34,9 @@ export const toFriendlyMemberError = (err) => {
     ?.error;
   if (code === 'AlreadyMember' || status === 409) return '이미 멤버입니다.';
   if (code === 'OwnerOnly' || status === 403) return 'OWNER만 할 수 있는 동작입니다.';
-  if (code === 'OwnerCannotLeave' || status === 400)
-    return 'OWNER는 탈퇴할 수 없습니다 (소유권 이전 먼저).';
+  // OwnerCannotLeave 는 OWNER 본인 탈퇴 시도에만 해당. 그 외 400 (검증 오류 등) 은 일반 카피로.
+  if (code === 'OwnerCannotLeave') return 'OWNER는 탈퇴할 수 없습니다 (소유권 이전 먼저).';
+  if (status === 400) return '입력을 확인해 주세요.';
   if (status === 404) return '대상을 찾을 수 없습니다.';
   if (typeof status === 'number' && status >= 500)
     return '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';

@@ -143,7 +143,8 @@ export const MembersDialog = ({
             {members.map((m) => {
               const display = m.name ?? m.userId;
               const isSelf = currentUserId === m.userId;
-              const canRemoveOther = role === 'OWNER' && !isSelf;
+              // OWNER 가 다른 OWNER 를 추방하지 못하도록 — 소유권 이전 먼저.
+              const canRemoveOther = role === 'OWNER' && !isSelf && m.role !== 'OWNER';
               const canSelfLeave = isSelf && m.role !== 'OWNER';
               const showRemove = canRemoveOther || canSelfLeave;
               const removing = removingUserId === m.userId;

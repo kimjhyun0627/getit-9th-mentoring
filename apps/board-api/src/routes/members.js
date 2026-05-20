@@ -46,6 +46,7 @@ export const createMembersRouter = () => {
       const projectId = req.params.id;
       const rows = await prisma.projectMember.findMany({
         where: { projectId },
+        orderBy: { userId: 'asc' },
       });
       const members = rows.map((m) => ({
         userId: m.userId,

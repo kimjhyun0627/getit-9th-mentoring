@@ -74,6 +74,7 @@ const fetchRoleAndMembers = async (projects, userId) => {
   const ids = projects.map((p) => p.id);
   const memberships = await prisma.projectMember.findMany({
     where: { projectId: { in: ids } },
+    orderBy: { userId: 'asc' },
   });
   for (const id of ids) out.set(id, { role: null, members: [] });
   for (const m of memberships) {

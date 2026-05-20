@@ -56,9 +56,9 @@ export const betweenOrder = (prev, next) => {
 export const reorderWithin = (cards, cardId, direction) => {
   const card = cards.find((c) => c.id === cardId);
   if (!card) return null;
-  const sameColumn = cards
-    .filter((c) => c.columnId === card.columnId)
-    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+  // 호출부 (BoardViewPage) 가 항상 같은 컬럼 카드만 넘기지만, 방어적으로 sort 만 수행.
+  // 다른 컬럼이 섞여 들어와도 columnId 기준 분리는 외부 책임 — 여기선 안정 정렬에 집중.
+  const sameColumn = [...cards].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
   const idx = sameColumn.findIndex((c) => c.id === cardId);
   if (idx === -1) return null;
   if (direction === 'up') {
