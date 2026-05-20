@@ -56,7 +56,7 @@ describe('SignupPage', () => {
     const user = userEvent.setup();
     renderSignup();
     await user.click(screen.getByRole('button', { name: '회원가입' }));
-    expect(await screen.findByText('이름을 입력하세요')).toBeInTheDocument();
+    expect(await screen.findByText('이름을 입력해주세요')).toBeInTheDocument();
     expect(await screen.findByText(/올바른 이메일 형식이 아닙니다/)).toBeInTheDocument();
   });
 

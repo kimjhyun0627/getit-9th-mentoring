@@ -13,7 +13,7 @@ export const LoginInput = z.object({
  * 회원가입 입력 스키마.
  */
 export const SignupInput = LoginInput.extend({
-  name: z.string().min(1, '이름을 입력하세요').max(40, '이름은 40자 이내'),
+  name: z.string().min(1, '이름을 입력해주세요').max(40, '이름은 40자 이내로 입력해주세요'),
   passwordConfirm: z.string().min(8),
 }).refine((d) => d.password === d.passwordConfirm, {
   path: ['passwordConfirm'],

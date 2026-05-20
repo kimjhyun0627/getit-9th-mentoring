@@ -67,7 +67,7 @@ export const LoginPage = () => {
             [01]
           </span>
           <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-            LOGIN
+            SIGN IN
           </span>
         </div>
         <h1 className="font-mono text-3xl font-semibold tracking-tightest text-ink-950 dark:text-white">
@@ -78,7 +78,7 @@ export const LoginPage = () => {
           />
         </h1>
         <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-          한 번 로그인으로 네 개 프로젝트 모두 사용.
+          한 계정으로 네 개 프로젝트를 모두 이용하세요
         </p>
       </header>
 
@@ -86,7 +86,7 @@ export const LoginPage = () => {
         onSubmit={handleSubmit(onSubmit)}
         noValidate
         className="flex flex-col gap-4"
-        aria-label="로그인 폼"
+        aria-label="로그인 양식"
       >
         <FormField
           label="이메일"
@@ -115,13 +115,15 @@ export const LoginPage = () => {
           </p>
         ) : null}
 
-        <SubmitButton loading={isSubmitting}>로그인</SubmitButton>
+        <SubmitButton loading={isSubmitting} loadingText="로그인 중…">
+          로그인
+        </SubmitButton>
       </form>
 
       <div className="divider-mono text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
 
       <p className="text-center font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-        아직 계정이 없나요?{' '}
+        계정이 없으신가요?{' '}
         <Link
           to={`/signup${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
           className="font-semibold text-cyan-700 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none dark:text-cyan-neon"
@@ -144,6 +146,6 @@ const toFriendlyError = (err) => {
   if (status === 401) return '이메일 또는 비밀번호가 올바르지 않습니다';
   if (status === 429) return '잠시 후 다시 시도해주세요';
   if (typeof status === 'number' && status >= 500)
-    return '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요';
-  return '로그인에 실패했습니다. 입력을 확인하고 다시 시도해주세요';
+    return '서버 오류가 발생했습니다 · 잠시 후 다시 시도해주세요';
+  return '로그인에 실패했습니다 · 입력을 확인하고 다시 시도해주세요';
 };
