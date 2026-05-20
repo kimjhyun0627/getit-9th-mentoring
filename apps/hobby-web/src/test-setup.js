@@ -38,3 +38,21 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
   value: memoryStorage(),
 });
+
+// matchMedia stub — ThemeProvider 가 prefers-color-scheme 구독 시 호출.
+if (!window.matchMedia) {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+}
