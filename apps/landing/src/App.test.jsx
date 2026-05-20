@@ -6,9 +6,11 @@ import { App } from './App.jsx';
 import { PROJECTS } from './data/projects.js';
 
 /**
- * Minimalist 시안 1:1 구현 가드 테스트.
- * Issue #3 — TDD: Red → Green → Refactor.
- * Issue #6 + #8 — Hero polish + Header nav + About 섹션 + Sign in + ThemeToggle SVG.
+ * Tech-Dark 시안 구현 가드 테스트 (Issue #24).
+ * - 시멘틱: heading + listitem + banner
+ * - 카드 4개 + 색 분배 (cyan/magenta/lime/amber)
+ * - mono 헤드라인 + caret + 4-up metaline
+ * - 다크 토글 + Sign in 진입점
  */
 
 const renderApp = () =>
@@ -18,7 +20,7 @@ const renderApp = () =>
     </ThemeProvider>,
   );
 
-describe('App (landing · Minimalist 1:1)', () => {
+describe('App (landing · Tech-Dark)', () => {
   beforeEach(() => {
     document.documentElement.classList.remove('dark');
     window.localStorage.clear();
@@ -28,17 +30,22 @@ describe('App (landing · Minimalist 1:1)', () => {
     document.documentElement.classList.remove('dark');
   });
 
-  it('헤더에 "GETIT 9기" 텍스트를 렌더한다', () => {
+  it('헤더에 GETIT 9기 홈 링크와 mono 로고가 존재한다', () => {
     renderApp();
-    expect(screen.getByText('GETIT 9기')).toBeInTheDocument();
+    const banner = screen.getByRole('banner');
+    expect(within(banner).getByLabelText('GETIT 9기 홈')).toBeInTheDocument();
+    expect(within(banner).getByText('GETIT')).toBeInTheDocument();
   });
 
-  it('4개 프로젝트 카드를 모두 렌더한다', () => {
+  it('4개 프로젝트 카드를 모두 렌더한다 (h3 + sr-only "새 탭에서 열림")', () => {
     renderApp();
     const titles = ['취미메이트', '스마트 서재', '팀 칸반', '익명 롤링페이퍼'];
     for (const title of titles) {
-      // 카드 제목 h3은 "{title} — 새 탭에서 열림" (sr-only) accessible name. partial 매치.
-      expect(screen.getByRole('heading', { name: new RegExp(title) })).toBeInTheDocument();
+      const heading = screen.getByRole('heading', { level: 3, name: new RegExp(title) });
+      expect(heading).toBeInTheDocument();
+      const link = heading.closest('a');
+      expect(link).not.toBeNull();
+      expect(within(link).getByText(/새 탭에서 열림/)).toBeInTheDocument();
     }
   });
 
@@ -56,7 +63,6 @@ describe('App (landing · Minimalist 1:1)', () => {
   it('각 카드 링크가 올바른 href + target=_blank + rel=noopener noreferrer 를 갖는다', () => {
     renderApp();
     for (const project of PROJECTS) {
-      // 제목 + sr-only "새 탭에서 열림" 이 accessible name에 포함됨 (정규식 partial match).
       const heading = screen.getByRole('heading', { name: new RegExp(project.title) });
       const link = heading.closest('a');
       expect(link).not.toBeNull();
@@ -67,15 +73,26 @@ describe('App (landing · Minimalist 1:1)', () => {
     }
   });
 
-  it('Hero eyebrow 인디고 도트 노드가 존재한다 (data-testid="eyebrow-dot")', () => {
+  it('각 카드 링크가 자기 액센트(data-accent)를 갖는다 (cyan/magenta/lime/amber)', () => {
     renderApp();
-    const dot = screen.getByTestId('eyebrow-dot');
-    expect(dot).toBeInTheDocument();
+    for (const project of PROJECTS) {
+      const heading = screen.getByRole('heading', { name: new RegExp(project.title) });
+      const link = heading.closest('a');
+      expect(link).toHaveAttribute('data-accent', project.accent);
+    }
   });
 
-  it('Footer에 카피라이트가 노출된다', () => {
+  it('Hero eyebrow 도트 노드가 존재한다 (data-testid="eyebrow-dot")', () => {
+    renderApp();
+    expect(screen.getByTestId('eyebrow-dot')).toBeInTheDocument();
+  });
+
+  it('Footer에 © GETIT 9기 카피라이트 + github/notion/mail 링크가 노출된다', () => {
     renderApp();
     expect(screen.getByText(/© GETIT 9기 멘토링/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /github/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /notion/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /mail/i })).toBeInTheDocument();
   });
 
   it('PROJECTS 데이터 4개와 카드 그리드 항목 수가 일치한다', () => {
@@ -97,87 +114,90 @@ describe('App (landing · Minimalist 1:1)', () => {
   });
 });
 
-describe('Hero polish (#8)', () => {
+describe('Hero (#24)', () => {
   beforeEach(() => {
     document.documentElement.classList.remove('dark');
     window.localStorage.clear();
   });
 
-  it('Hero 메타라인 <dl>이 4개 항목 (Projects/Cohort/SSO/Domain) 을 모두 렌더한다', () => {
+  it('Hero 4-up metaline이 projects/subdomains/sso/source 4 항목을 모두 렌더한다', () => {
     renderApp();
     const dl = screen.getByTestId('hero-meta');
     expect(dl).toBeInTheDocument();
-    expect(within(dl).getByText('Projects')).toBeInTheDocument();
-    expect(within(dl).getByText('Cohort')).toBeInTheDocument();
-    expect(within(dl).getByText('SSO')).toBeInTheDocument();
-    expect(within(dl).getByText('Domain')).toBeInTheDocument();
+    for (const label of ['projects', 'subdomains', 'sso', 'source']) {
+      expect(within(dl).getByText(label)).toBeInTheDocument();
+    }
     expect(within(dl).getByText('04')).toBeInTheDocument();
-    expect(within(dl).getByText('9th')).toBeInTheDocument();
-    expect(within(dl).getByText('Unified')).toBeInTheDocument();
-    expect(within(dl).getByText('get-it.cloud')).toBeInTheDocument();
+    expect(within(dl).getByText('05')).toBeInTheDocument();
+    expect(within(dl).getByText('unified')).toBeInTheDocument();
+    expect(within(dl).getByText('100% open')).toBeInTheDocument();
   });
 
-  it('Hero CTA 두 개 (프로젝트 보기 → #projects, 9기 소개 → #about) 가 존재한다', () => {
+  it('Hero CTA 두 개 (./explore --all → #projects, git remote → GitHub)', () => {
     renderApp();
-    const primary = screen.getByRole('link', { name: /프로젝트 보기/ });
-    const secondary = screen.getByRole('link', { name: /9기 소개/ });
-    expect(primary).toHaveAttribute('href', '#projects');
-    expect(secondary).toHaveAttribute('href', '#about');
+    const explore = screen.getByRole('link', { name: /explore/i });
+    const remote = screen.getByRole('link', { name: /git remote/i });
+    expect(explore).toHaveAttribute('href', '#projects');
+    expect(remote).toHaveAttribute('href', expect.stringContaining('github.com'));
+    expect(remote).toHaveAttribute('target', '_blank');
   });
 
-  it('Hero에 dot-grid 배경 노드가 존재한다 (data-testid="hero-dot-grid")', () => {
+  it('Hero에 blink caret 노드가 존재한다 (data-testid="hero-caret")', () => {
     renderApp();
-    const grid = screen.getByTestId('hero-dot-grid');
-    expect(grid).toBeInTheDocument();
-    expect(grid.className).toMatch(/dot-grid/);
+    const caret = screen.getByTestId('hero-caret');
+    expect(caret).toBeInTheDocument();
+    expect(caret.className).toMatch(/caret/);
+  });
+
+  it('Hero meta strip이 region/build/stage 메타를 노출한다', () => {
+    renderApp();
+    const strip = screen.getByTestId('hero-meta-strip');
+    expect(within(strip).getByText('~/getit/9')).toBeInTheDocument();
+    expect(within(strip).getByText(/region: knu/i)).toBeInTheDocument();
+    expect(within(strip).getByText(/build: 2026.05/i)).toBeInTheDocument();
   });
 });
 
-describe('Header nav + Sign in (#6)', () => {
+describe('Header nav + Sign in (#24)', () => {
   beforeEach(() => {
     document.documentElement.classList.remove('dark');
     window.localStorage.clear();
   });
 
-  it('Header 좌측 nav (Projects, About) 링크가 앵커를 가진다', () => {
+  it('Header nav (services, about) 링크가 앵커를 가진다', () => {
     renderApp();
     const header = screen.getByRole('banner');
-    const projectsNav = within(header).getByRole('link', { name: /Projects/ });
-    const aboutNav = within(header).getByRole('link', { name: /About/ });
-    expect(projectsNav).toHaveAttribute('href', '#projects');
-    expect(aboutNav).toHaveAttribute('href', '#about');
+    const services = within(header).getByRole('link', { name: /services/i });
+    const about = within(header).getByRole('link', { name: /about/i });
+    expect(services).toHaveAttribute('href', '#projects');
+    expect(about).toHaveAttribute('href', '#about');
   });
 
-  it('Header 우측 Sign in 링크가 auth.get-it.cloud 로 향한다', () => {
+  it('Header Sign in 링크가 auth.get-it.cloud 로 향한다', () => {
     renderApp();
     const header = screen.getByRole('banner');
-    const signIn = within(header).getByRole('link', { name: /Sign in/i });
+    const signIn = within(header).getByRole('link', { name: /sign in/i });
     expect(signIn).toHaveAttribute('href', expect.stringContaining('auth.get-it.cloud'));
   });
 });
 
-describe('About 섹션 (#6)', () => {
+describe('About 섹션 (#24)', () => {
   beforeEach(() => {
     document.documentElement.classList.remove('dark');
     window.localStorage.clear();
   });
 
-  it('About 섹션 (data-testid="about-section") 이 렌더된다 + id="about" 앵커를 가진다', () => {
+  it('About 섹션이 id="about" + heading을 가진다', () => {
     renderApp();
     const about = screen.getByTestId('about-section');
     expect(about).toBeInTheDocument();
     expect(about).toHaveAttribute('id', 'about');
-  });
-
-  it('About 섹션이 H2 제목을 가진다', () => {
-    renderApp();
-    const about = screen.getByTestId('about-section');
     const heading = within(about).getByRole('heading', { level: 2 });
     expect(heading).toBeInTheDocument();
   });
 });
 
-describe('CardGrid 앵커', () => {
+describe('CardGrid 앵커 + 2×2 (#24)', () => {
   it('CardGrid 섹션이 id="projects" 앵커를 가진다', () => {
     renderApp();
     const section = document.querySelector('section#projects');
@@ -185,7 +205,17 @@ describe('CardGrid 앵커', () => {
   });
 });
 
-describe('ThemeToggle SVG (#8)', () => {
+describe('Footer git log (#24)', () => {
+  it('Footer에 git log 시그니처가 노출된다 (mock data)', () => {
+    renderApp();
+    const log = screen.getByTestId('footer-git-log');
+    expect(log).toBeInTheDocument();
+    expect(log.textContent).toMatch(/3f9c1a2/);
+    expect(log.textContent).toMatch(/e0c2210/);
+  });
+});
+
+describe('ThemeToggle SVG (#24)', () => {
   beforeEach(() => {
     document.documentElement.classList.remove('dark');
     window.localStorage.clear();

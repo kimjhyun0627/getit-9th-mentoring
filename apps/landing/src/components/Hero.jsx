@@ -1,94 +1,144 @@
-/**
- * Hero 섹션.
- * - Eyebrow: 인디고 도트 + "9th Cohort Mentoring · 경북대학교"
- * - H1: text-6xl ~ text-7xl, tracking tightest, leading-[0.95]
- * - 부연: 1-2 문장
- * - CTA 2개: Primary "프로젝트 보기" → #projects, Secondary "9기 소개" → #about
- * - 메타라인 <dl>: Projects 04 / Cohort 9th / SSO Unified / Domain get-it.cloud
- * - 배경: dot-grid (시안 minimalist.html:211)
- */
+import { ArrowIcon } from './ArrowIcon.jsx';
 
+/**
+ * 4-up metaline (시안 dl).
+ * mono · 우상단 `04 / 05 / unified / 100% open` 시그니처.
+ * cyan_neon (sso=unified), lime_neon (source=100% open) 부분 액센트.
+ *
+ * @type {{ label: string; value: string; tone?: 'default' | 'cyan' | 'lime' }[]}
+ */
 const META = [
-  { label: 'Projects', value: '04' },
-  { label: 'Cohort', value: '9th' },
-  { label: 'SSO', value: 'Unified' },
-  { label: 'Domain', value: 'get-it.cloud' },
+  { label: 'projects', value: '04' },
+  { label: 'subdomains', value: '05' },
+  { label: 'sso', value: 'unified', tone: 'cyan' },
+  { label: 'source', value: '100% open', tone: 'lime' },
 ];
 
+/**
+ * mono dl 한 셀 — tone에 따라 value 색만 다름.
+ *
+ * @param {{ label: string; value: string; tone?: 'default' | 'cyan' | 'lime' }} props
+ */
+const MetaCell = ({ label, value, tone = 'default' }) => {
+  const valueClass =
+    tone === 'cyan'
+      ? 'text-cyan-700 dark:text-cyan-neon'
+      : tone === 'lime'
+        ? 'text-lime-700 dark:text-lime-neon'
+        : 'text-ink-950 dark:text-white';
+  return (
+    <div>
+      <dt className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
+        {label}
+      </dt>
+      <dd className={`mt-1 text-2xl font-semibold tracking-tight ${valueClass}`}>{value}</dd>
+    </div>
+  );
+};
+
+/** Hero corner registration marks ('+') — engineer/print 액센트. */
+const CornerMarks = () => (
+  <>
+    {['left-4 top-4', 'right-4 top-4', 'bottom-4 left-4', 'bottom-4 right-4'].map((pos) => (
+      <div
+        key={pos}
+        aria-hidden="true"
+        className={`pointer-events-none absolute font-mono text-[10px] tracking-wider text-zinc-500 dark:text-zinc-600 ${pos}`}
+      >
+        +
+      </div>
+    ))}
+  </>
+);
+
+/**
+ * Hero 섹션 (Tech-Dark).
+ * - 배경: scene-dark (cyan/magenta 라디얼 + 48px 그리드) + scanlines + corner '+'
+ * - meta strip: `~/getit/9 · region: knu · build: 2026.05 · stage live`
+ * - eyebrow: cyan dot + "경북대학교 IT 학회 · 9th"
+ * - H1: mono + tracking-tightest, `프로젝트.deploy()` + cyan blink caret
+ * - CTA 2개: `./explore --all` (cyan 인버스 버튼) + `git remote` (외부 GitHub)
+ * - 4-up metaline: projects(04) / subdomains(05) / sso(unified, cyan) / source(100% open, lime)
+ */
 export const Hero = () => {
   return (
-    <section className="relative overflow-hidden">
-      <div
-        data-testid="hero-dot-grid"
-        aria-hidden="true"
-        className="dot-grid pointer-events-none absolute inset-0 opacity-70"
-      />
-      <div className="relative mx-auto max-w-7xl px-6 py-24 lg:px-10 md:py-32">
-        <div className="mb-8 flex items-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-hairline bg-background/60 px-2.5 py-1 text-[11px] font-medium tracking-wide text-muted-foreground backdrop-blur">
-            <span
-              data-testid="eyebrow-dot"
-              className="h-1.5 w-1.5 rounded-full bg-indigo-accent"
-              aria-hidden="true"
-            />
-            9th Cohort Mentoring · 경북대학교
+    <section className="scene-dark scanlines relative overflow-hidden">
+      <CornerMarks />
+
+      <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-20 md:pb-32 md:pt-28 lg:px-10">
+        <div
+          data-testid="hero-meta-strip"
+          className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500"
+        >
+          <span className="text-cyan-700 dark:text-cyan-neon">~/getit/9</span>
+          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <span>region: knu</span>
+          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <span>build: 2026.05</span>
+          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <span>
+            stage <span className="text-lime-700 dark:text-lime-neon">live</span>
           </span>
         </div>
 
-        <h1 className="max-w-4xl text-6xl font-semibold leading-[0.95] tracking-tightest text-foreground md:text-7xl">
+        <div className="mb-7 flex items-center gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-hairline bg-white/50 px-2.5 py-1 font-mono text-[11px] font-medium tracking-wide text-zinc-600 backdrop-blur dark:bg-ink-900/50 dark:text-zinc-300">
+            <span
+              data-testid="eyebrow-dot"
+              className="h-1.5 w-1.5 rounded-full bg-cyan-700 dark:bg-cyan-neon"
+              aria-hidden="true"
+            />
+            경북대학교 IT 학회 · 9th
+          </span>
+        </div>
+
+        <h1 className="max-w-5xl font-mono text-5xl font-semibold leading-[0.96] tracking-tightest text-ink-950 sm:text-6xl md:text-7xl dark:text-white">
           9기 멘토링
           <br />
-          <span className="text-muted-foreground">프로젝트.</span>
+          <span className="text-zinc-400 dark:text-zinc-500">프로젝트</span>
+          <span className="text-cyan-700 dark:text-cyan-neon">.deploy()</span>
+          <span
+            data-testid="hero-caret"
+            className="caret text-cyan-700 dark:text-cyan-neon"
+            aria-hidden="true"
+          />
         </h1>
 
-        <p className="mt-8 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
-          네 개의 풀스택 서비스를 한 허브에서. SSO·다크모드·반응형 완비.
+        <p className="mt-8 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg dark:text-zinc-300">
+          경북대 GETIT 9기가 만드는 네 개의 작은 제품. 하나의 SSO, 공통 다크모드, 모노레포로 묶인
+          풀스택 플레이그라운드.
         </p>
 
-        <div className="mt-12 flex flex-wrap items-center gap-3">
+        <div className="mt-10 flex flex-wrap items-center gap-3">
           <a
             href="#projects"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="group inline-flex items-center gap-2 rounded-md bg-ink-950 px-4 py-2.5 font-mono text-sm font-semibold text-cyan-neon transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-cyan-neon dark:text-ink-950 dark:shadow-[0_0_0_1px_rgba(34,211,238,0.4),0_0_28px_-4px_rgba(34,211,238,0.55)]"
           >
-            프로젝트 보기
-            <svg
-              className="h-3.5 w-3.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M5 12h14M13 5l7 7-7 7" />
-            </svg>
+            <span>./explore --all</span>
+            <ArrowIcon />
           </a>
+
           <a
-            href="#about"
-            className="inline-flex items-center gap-2 rounded-md border border-hairline px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-foreground/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            href="https://github.com/kimjhyun0627/getit-9th-mentoring"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-md border border-hairline bg-white/60 px-4 py-2.5 font-mono text-sm text-zinc-800 transition hover:border-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-ink-900/60 dark:text-zinc-200 dark:hover:border-zinc-400"
           >
-            9기 소개
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 .5A11.5 11.5 0 0 0 .5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.55v-1.92c-3.2.7-3.88-1.54-3.88-1.54-.52-1.32-1.28-1.67-1.28-1.67-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.66.79.55C20.21 21.39 23.5 17.08 23.5 12A11.5 11.5 0 0 0 12 .5Z" />
+            </svg>
+            <span>git remote</span>
           </a>
         </div>
 
         <dl
           data-testid="hero-meta"
-          className="mt-20 grid max-w-3xl grid-cols-2 gap-x-10 gap-y-6 border-t border-hairline pt-8 md:grid-cols-4"
+          className="mt-20 grid max-w-4xl grid-cols-2 gap-x-10 gap-y-6 border-t border-hairline pt-8 font-mono md:grid-cols-4"
         >
-          {META.map(({ label, value }) => (
-            <div key={label}>
-              <dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt>
-              <dd className="mt-1 font-mono text-base font-semibold tracking-tight text-foreground md:text-lg">
-                {value}
-              </dd>
-            </div>
+          {META.map(({ label, value, tone }) => (
+            <MetaCell key={label} label={label} value={value} tone={tone} />
           ))}
         </dl>
-
-        <p className="mt-10 font-mono text-xs tracking-wider text-muted-foreground">
-          EST. 2026 · GETIT/9
-        </p>
       </div>
     </section>
   );

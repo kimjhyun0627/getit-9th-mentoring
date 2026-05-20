@@ -7,8 +7,9 @@
       name="description"
       content="GETIT 9기 멘토링 프로젝트 4개를 한 허브에서. SSO·다크모드·반응형 완비."
     />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#08090b" />
+    <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)" />
 
     <!-- Open Graph -->
     <meta property="og:title" content="GETIT 9기 멘토링" />
@@ -19,7 +20,6 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://get-it.cloud" />
     <meta property="og:locale" content="ko_KR" />
-    <!-- OG: PNG 메인 (Facebook/LinkedIn 크롤러 호환), SVG는 og-image-svg로 보조 -->
     <meta property="og:image" content="https://get-it.cloud/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -29,7 +29,7 @@
       content="GETIT 9기 멘토링 프로젝트 — 4개의 풀스택 서비스를 한 허브에서"
     />
 
-    <!-- Twitter Card (PNG로 통일) -->
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="GETIT 9기 멘토링" />
     <meta
@@ -42,13 +42,40 @@
       content="GETIT 9기 멘토링 프로젝트 — 4개의 풀스택 서비스를 한 허브에서"
     />
 
-    <!-- Pretendard Variable (시안과 동일) -->
+    <!-- Pretendard Variable (KO body) -->
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
     />
+    <!-- Inter (LATIN body) + JetBrains Mono (heading/meta) — Tech-Dark 시안 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
     <title>GETIT 9기 멘토링</title>
+
+    <!--
+      No-flash 다크 부트스트랩.
+      Tech-Dark는 다크가 기본. localStorage 저장값이 'light'가 아니면 다크 클래스 미리 적용
+      → React/ThemeProvider hydration 전에 .dark가 박혀 색 깜빡임 없음.
+      packages/theme의 STORAGE_KEY('getit:theme')와 동일 키 사용.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = window.localStorage.getItem('getit:theme');
+          var isLight = saved === 'light';
+          if (!isLight) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (_) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
