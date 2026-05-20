@@ -8,7 +8,7 @@ import { ThemeToggle } from '@getit/theme';
  */
 export const ShelfLayout = ({ children }) => {
   return (
-    <div className="paper-grain flex min-h-screen flex-col">
+    <div className="paper-grain bg-paper-1 flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 pb-5 pt-7 md:px-10">
         <a href="/" className="flex shrink-0 items-baseline gap-2" aria-label="스마트 서재 홈">
           <span className="font-display text-xl font-black tracking-tightest text-ink-strong">

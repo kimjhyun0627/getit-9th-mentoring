@@ -123,7 +123,7 @@ export const SearchPage = () => {
   const pendingKey = addMutation.variables?.bookId ?? addMutation.variables?.isbn ?? null;
 
   return (
-    <section className="flex flex-col gap-10">
+    <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 pt-12 md:px-10 md:pb-20 md:pt-16">
       <Toast
         message={toast?.message ?? null}
         variant={toast?.variant ?? 'success'}
@@ -132,7 +132,7 @@ export const SearchPage = () => {
 
       <header className="flex flex-col gap-3">
         <p className="smallcaps text-xs">VOL. I · 서재 검색</p>
-        <h1 className="font-display text-4xl font-semibold tracking-hero text-ink sm:text-5xl">
+        <h1 className="font-display text-ink-strong text-4xl font-semibold tracking-hero sm:text-5xl">
           책을 찾아보세요
         </h1>
         <p className="font-serif text-base text-meta">
@@ -173,7 +173,7 @@ const SearchField = ({ value, onChange }) => {
       <label htmlFor="search" className="smallcaps text-[11px]">
         Search
       </label>
-      <div className="flex items-end gap-3 border-b border-foreground pb-2">
+      <div className="flex items-end gap-3 border-b pb-2" style={{ borderColor: 'var(--rule-2)' }}>
         <input
           id="search"
           type="search"
@@ -182,7 +182,7 @@ const SearchField = ({ value, onChange }) => {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="제목, 저자, ISBN…"
-          className="w-full bg-transparent font-serif text-xl text-ink placeholder:text-hint focus:outline-none"
+          className="text-body w-full bg-transparent font-serif text-xl placeholder:text-hint focus:outline-none"
         />
       </div>
       <p className="font-serif text-xs text-hint">두 글자 이상 입력하면 자동으로 검색돼요.</p>
@@ -191,8 +191,11 @@ const SearchField = ({ value, onChange }) => {
 };
 
 const PromptEmpty = () => (
-  <div className="rounded-sm border border-dashed border-border bg-band/40 px-6 py-10 text-center">
-    <p className="font-display text-lg text-ink">오늘은 어떤 책을 찾고 계세요?</p>
+  <div
+    className="bg-paper-2 rounded-sm border border-dashed px-6 py-10 text-center"
+    style={{ borderColor: 'var(--rule-1)' }}
+  >
+    <p className="font-display text-ink-strong text-lg">오늘은 어떤 책을 찾고 계세요?</p>
     <p className="mt-2 font-serif text-sm text-meta">
       좋아하는 작가 이름이나 책 제목을 살짝 흘려 적어 보세요.
     </p>
@@ -201,11 +204,14 @@ const PromptEmpty = () => (
 
 /** @param {{ query: string }} props */
 const EmptyResults = ({ query }) => (
-  <div className="rounded-sm border border-dashed border-border bg-band/40 px-6 py-10 text-center">
-    <p className="font-display text-lg text-ink">책장에 비춰진 책이 없네요</p>
+  <div
+    className="bg-paper-2 rounded-sm border border-dashed px-6 py-10 text-center"
+    style={{ borderColor: 'var(--rule-1)' }}
+  >
+    <p className="font-display text-ink-strong text-lg">책장에 비춰진 책이 없네요</p>
     <p className="mt-2 font-serif text-sm text-meta">
-      <span className="text-ink">&ldquo;{query}&rdquo;</span> 로는 결과가 비어 있어요. 다른 키워드도
-      시도해 보세요.
+      <span className="text-ink-strong">&ldquo;{query}&rdquo;</span> 로는 결과가 비어 있어요. 다른
+      키워드도 시도해 보세요.
     </p>
   </div>
 );

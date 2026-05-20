@@ -35,7 +35,7 @@ export const SearchResultCard = ({ book, onAdd, isPending = false, isAdded = fal
 
   return (
     <article className="group flex flex-col gap-3" data-testid="search-result-card">
-      <div className="relative aspect-[2/3] overflow-hidden rounded-sm bg-band ring-1 ring-border">
+      <div className="bg-paper-2 relative aspect-[2/3] overflow-hidden rounded-sm ring-1 ring-border">
         {book.coverUrl ? (
           <img
             src={book.coverUrl}

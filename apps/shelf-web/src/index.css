@@ -131,14 +131,28 @@
   .text-body {
     color: var(--ink-2);
   }
+  .text-ink {
+    color: var(--ink-2);
+  }
   .text-ink-strong {
     color: var(--ink-1);
   }
-  .text-wine {
+  .text-wine,
+  .text-accent-wine {
     color: var(--wine);
   }
-  .bg-paper-2 {
+  .text-paper-1 {
+    color: var(--paper-1);
+  }
+  .bg-paper-1 {
+    background-color: var(--paper-1);
+  }
+  .bg-paper-2,
+  .bg-band {
     background-color: var(--paper-2);
+  }
+  .bg-paper-3 {
+    background-color: var(--paper-3);
   }
 
   .num-display {
