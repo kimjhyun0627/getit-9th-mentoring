@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>스마트 서재 · 토글 시안 (Editorial)</title>
+    <style>
+      :root {
+        --paper: #f6f1e6;
+        --ink: #1c1917;
+        --wine: #7c2d12;
+        --gold: #b45309;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: 'Pretendard', 'Source Serif Pro', Georgia, serif;
+        background: var(--paper);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      .wrap { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+      .kicker { font-family: 'Pretendard', sans-serif; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--wine); font-weight: 700; }
+      h1 { font-family: 'Source Serif Pro', 'Pretendard Serif', Georgia, serif; font-size: 36px; font-weight: 600; margin: 6px 0 6px; letter-spacing: -0.01em; font-style: italic; }
+      h1 em { font-style: normal; color: var(--wine); }
+      p.lead { font-family: 'Pretendard', sans-serif; color: #57534e; margin: 0 0 28px; max-width: 60ch; line-height: 1.7; }
+      hr.div { border: 0; border-top: 1px solid #d6d3d1; margin: 24px 0; }
+      .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+      @media (max-width: 720px) { .stage { grid-template-columns: 1fr; } }
+      .card {
+        padding: 32px 28px 36px;
+        border: 1px solid #d6d3d1;
+        background: #fbf7ee;
+        position: relative;
+      }
+      .card.dark { background: #1c1917; color: #f5f5f4; border-color: #292524; }
+      .card h2 { font-family: 'Source Serif Pro', Georgia, serif; font-style: italic; font-size: 18px; font-weight: 500; margin: 0 0 20px; }
+      .card.dark h2 { color: #fafaf9; }
+      .pull { font-family: 'Source Serif Pro', Georgia, serif; font-size: 13px; color: #78716c; font-style: italic; margin-top: 18px; padding-left: 14px; border-left: 2px solid var(--wine); }
+      .card.dark .pull { color: #a8a29e; border-left-color: #fbbf24; }
+      /* === toggle A : 책 페이지 넘김 === */
+      .book {
+        --w: 120px; --h: 80px;
+        width: var(--w); height: var(--h);
+        position: relative; cursor: pointer; border: none; padding: 0;
+        background: transparent;
+        perspective: 800px;
+      }
+      .book .spine {
+        position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: #57534e; transform: translateX(-1px);
+        z-index: 3;
+      }
+      .book .page {
+        position: absolute; top: 0; height: 100%; width: 50%;
+        background: #fffbf2;
+        border: 1px solid #a8a29e;
+        transform-origin: right center;
+        transition: transform 0.7s cubic-bezier(0.7, 0, 0.3, 1);
+        font-family: Georgia, serif; font-size: 28px; color: #1c1917;
+        display: grid; place-items: center;
+        backface-visibility: hidden;
+      }
+      .book .page.left { left: 0; }
+      .book .page.right { right: 0; transform-origin: left center; background: #1c1917; color: #fbbf24; z-index: 1; transform: rotateY(170deg); }
+      .book[aria-pressed='true'] .page.left { transform: rotateY(-170deg); }
+      .book[aria-pressed='true'] .page.right { transform: rotateY(0); }
+      /* === toggle B : 잉크 스위치 (드롭캡 스타일) === */
+      .inktoggle {
+        --w: 110px; --h: 38px;
+        width: var(--w); height: var(--h);
+        border-radius: 0;
+        position: relative; cursor: pointer; border: 1px solid #1c1917;
+        background: #fbf7ee;
+        font-family: 'Source Serif Pro', Georgia, serif;
+        padding: 0;
+        transition: background 0.4s ease;
+        overflow: hidden;
+      }
+      .inktoggle .ink {
+        position: absolute; top: 1px; bottom: 1px; left: 1px; width: calc(50% - 1px);
+        background: #1c1917; color: #fbf7ee;
+        display: grid; place-items: center;
+        font-style: italic; font-size: 14px;
+        transition: transform 0.5s cubic-bezier(0.7, 0, 0.3, 1);
+        letter-spacing: 0.05em;
+      }
+      .inktoggle[aria-pressed='true'] .ink { transform: translateX(100%); background: #fbbf24; color: #1c1917; }
+      .inktoggle .labels {
+        position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr;
+        place-items: center; font-size: 13px; color: #57534e; font-style: italic;
+        pointer-events: none;
+      }
+      /* 활성 슬롯의 글자는 잉크와 겹쳐서 숨김(잉크에 같은 텍스트가 있음). */
+      .inktoggle[aria-pressed='false'] .labels .day { visibility: hidden; }
+      .inktoggle[aria-pressed='true'] .labels .night { visibility: hidden; }
+      .inktoggle[aria-pressed='true'] { background: #1c1917; color: #fafaf9; }
+      .inktoggle[aria-pressed='true'] .labels { color: #a8a29e; }
+      @media (prefers-reduced-motion: reduce) {
+        .book .page, .inktoggle .ink { transition-duration: 0.01ms !important; }
+      }
+      .row { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
+      .row .meta { font-family: 'Pretendard', sans-serif; font-size: 13px; color: #57534e; }
+      .card.dark .row .meta { color: #d6d3d1; }
+      .footnote { margin-top: 36px; font-size: 13px; line-height: 1.8; color: #57534e; font-family: 'Pretendard', sans-serif; max-width: 70ch; }
+      .footnote strong { color: var(--wine); font-style: italic; font-family: Georgia, serif; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="kicker">shelf · Editorial</span>
+      <h1>책장이 <em>한 페이지</em> 넘어가다</h1>
+      <p class="lead">서재의 토글은 단순한 스위치가 아니라 페이지를 한 장 넘기는 동작이어야 한다. 잉크가 종이에 스며들 듯, 모드 전환이 천천히 우아하게.</p>
+      <hr class="div" />
+      <div class="stage">
+        <div class="card">
+          <h2>A. 책 펼침 (light)</h2>
+          <div class="row">
+            <button class="book" aria-pressed="false" aria-label="다크모드로 전환" data-toggle="book">
+              <span class="page left">☀</span>
+              <span class="page right">☾</span>
+              <span class="spine"></span>
+            </button>
+            <div class="meta">왼쪽 페이지가 닫히며 잉크 페이지가 드러난다 (700ms ease).</div>
+          </div>
+          <hr class="div" />
+          <h2>B. 잉크 스위치 (light)</h2>
+          <div class="row">
+            <button class="inktoggle" aria-pressed="false" aria-label="다크모드로 전환" data-toggle="ink">
+              <span class="ink">Day</span>
+              <span class="labels"><span class="day">Day</span><span class="night">Night</span></span>
+            </button>
+            <div class="meta">잉크 블록이 미끄러지며 활자체 라벨이 바뀐다.</div>
+          </div>
+          <p class="pull">— 모든 책에는 낮과 밤이 한 권에 묶여 있다.</p>
+        </div>
+        <div class="card dark">
+          <h2>A. 책 펼침 (dark)</h2>
+          <div class="row">
+            <button class="book" aria-pressed="true" aria-label="라이트모드로 전환" data-toggle="book">
+              <span class="page left">☀</span>
+              <span class="page right">☾</span>
+              <span class="spine"></span>
+            </button>
+            <div class="meta">밤 페이지가 펼쳐진 상태. 다시 클릭하면 낮으로 돌아간다.</div>
+          </div>
+          <hr class="div" />
+          <h2>B. 잉크 스위치 (dark)</h2>
+          <div class="row">
+            <button class="inktoggle" aria-pressed="true" aria-label="라이트모드로 전환" data-toggle="ink">
+              <span class="ink">Night</span>
+              <span class="labels"><span class="day">Day</span><span class="night">Night</span></span>
+            </button>
+            <div class="meta">밤 모드일 땐 머스타드 옐로 액센트로 잉크 색이 변한다.</div>
+          </div>
+          <p class="pull">— 페이지 위에 켜둔 작은 등불 같은 토글.</p>
+        </div>
+      </div>
+      <p class="footnote">
+        <strong>컨셉.</strong> Editorial 페르소나의 핵심은 "읽는 즐거움". A안은 펼친 책에서 한 페이지를 넘기는 3D flip, B안은 잉크 블록이 활자 라벨 위로 미끄러지는 가로 스위치. 둘 다 세리프 활자 + 와인/머스타드 액센트. 헤더에는 B안(컴팩트), 설정 페이지엔 A안(시그니처)이 어울린다.
+      </p>
+    </div>
+    <script>
+      // 상태 토글 시 aria-label + ink 라벨 텍스트를 동기화.
+      document.querySelectorAll('button[data-toggle]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const next = btn.getAttribute('aria-pressed') !== 'true';
+          btn.setAttribute('aria-pressed', String(next));
+          btn.setAttribute('aria-label', next ? '라이트모드로 전환' : '다크모드로 전환');
+          if (btn.dataset.toggle === 'ink') {
+            const ink = btn.querySelector('.ink');
+            if (ink) ink.textContent = next ? 'Night' : 'Day';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
