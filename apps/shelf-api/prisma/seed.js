@@ -34,7 +34,7 @@ const SEED_BOOKS = [
     author: '헤르만 헤세',
     publisher: '민음사',
     publishedAt: new Date('2000-12-20'),
-    coverUrl: 'https://image.aladin.co.kr/product/82/68/cover500/8937462281_2.jpg',
+    coverUrl: 'https://image.aladin.co.kr/product/82/68/cover500/9788937473135_2.jpg',
     description: '자기 자신에게로 이르는 길에 대한 이야기.',
     source: 'manual',
   },

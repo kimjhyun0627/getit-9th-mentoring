@@ -9,7 +9,7 @@ CREATE TABLE `Book` (
     `coverUrl` VARCHAR(191) NOT NULL,
     `description` TEXT NULL,
     `source` VARCHAR(191) NOT NULL,
-    `cachedAt` DATETIME(3) NOT NULL,
+    `cachedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
 
     UNIQUE INDEX `Book_isbn_key`(`isbn`),
     INDEX `Book_cachedAt_idx`(`cachedAt`),
