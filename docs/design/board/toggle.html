@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>칸반 · 토글 시안 (Minimalist)</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --ink: #0f172a;
+        --line: #e2e8f0;
+        --muted: #64748b;
+        --accent: #4f46e5;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: 'Inter', 'Pretendard', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        min-height: 100vh;
+        font-feature-settings: 'ss01', 'cv01';
+      }
+      .wrap { max-width: 960px; margin: 0 auto; padding: 64px 32px 80px; }
+      .kicker { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+      h1 { font-size: 32px; font-weight: 600; margin: 8px 0 8px; letter-spacing: -0.02em; line-height: 1.2; }
+      p.lead { color: var(--muted); margin: 0 0 40px; max-width: 56ch; line-height: 1.6; font-size: 15px; }
+      .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      @media (max-width: 720px) { .stage { grid-template-columns: 1fr; } }
+      .card {
+        padding: 40px 32px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      .card.dark { background: #0f172a; color: #f8fafc; border-color: #1e293b; }
+      .card h2 { font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 24px; }
+      .card.dark h2 { color: #94a3b8; }
+      /* === toggle A : 깔끔 슬라이드 (정사각 puck, 8px grid) === */
+      .switch {
+        --w: 56px; --h: 28px;
+        width: var(--w); height: var(--h);
+        border-radius: 0;
+        position: relative; cursor: pointer; border: 1px solid #cbd5e1;
+        background: #f8fafc; padding: 0;
+        transition: background 0.2s ease, border-color 0.2s ease;
+      }
+      .switch[aria-pressed='true'] { background: #4f46e5; border-color: #4f46e5; }
+      .switch .puck {
+        position: absolute; top: 3px; left: 3px;
+        width: 20px; height: 20px;
+        background: #fff;
+        border-radius: 0;
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 2px rgba(15,23,42,0.08);
+      }
+      .switch[aria-pressed='true'] .puck { transform: translateX(28px); background: #fff; }
+      .card.dark .switch { background: #1e293b; border-color: #334155; }
+      .card.dark .switch[aria-pressed='true'] { background: #818cf8; border-color: #818cf8; }
+      /* === toggle B : 세그먼티드 컨트롤 (Light/Auto/Dark) === */
+      .segmented {
+        display: inline-flex; border: 1px solid var(--line); border-radius: 6px;
+        background: #f8fafc; padding: 2px;
+        position: relative; overflow: hidden;
+        font-size: 12px; font-weight: 500;
+      }
+      .card.dark .segmented { background: #1e293b; border-color: #334155; }
+      .segmented .indicator {
+        position: absolute; top: 2px; bottom: 2px; width: calc((100% - 4px) / 3);
+        background: #fff; border-radius: 4px;
+        box-shadow: 0 1px 2px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.04);
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 0;
+      }
+      .card.dark .segmented .indicator { background: #0f172a; box-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+      .segmented[data-mode='light'] .indicator { transform: translateX(0); }
+      .segmented[data-mode='auto'] .indicator { transform: translateX(100%); }
+      .segmented[data-mode='dark'] .indicator { transform: translateX(200%); }
+      .segmented button {
+        background: transparent; border: 0; padding: 6px 16px; cursor: pointer;
+        color: var(--muted); position: relative; z-index: 1;
+        font-family: inherit; font-size: 12px; font-weight: 500;
+        transition: color 0.15s;
+        min-width: 56px;
+      }
+      .card.dark .segmented button { color: #94a3b8; }
+      .segmented[data-mode='light'] button[data-val='light'],
+      .segmented[data-mode='auto'] button[data-val='auto'],
+      .segmented[data-mode='dark'] button[data-val='dark'] { color: var(--ink); font-weight: 600; }
+      .card.dark .segmented[data-mode='light'] button[data-val='light'],
+      .card.dark .segmented[data-mode='auto'] button[data-val='auto'],
+      .card.dark .segmented[data-mode='dark'] button[data-val='dark'] { color: #f8fafc; }
+      .row { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+      .row .meta { font-size: 13px; color: var(--muted); line-height: 1.5; }
+      .card.dark .row .meta { color: #94a3b8; }
+      .row .meta code { font-family: ui-monospace, 'JetBrains Mono', monospace; background: #f1f5f9; padding: 1px 6px; border-radius: 3px; font-size: 12px; color: var(--ink); }
+      .card.dark .row .meta code { background: #1e293b; color: #e2e8f0; }
+      .footnote { margin-top: 48px; font-size: 13px; line-height: 1.7; color: var(--muted); max-width: 64ch; }
+      .footnote strong { color: var(--ink); font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="kicker">board · Minimalist</span>
+      <h1>기능에만 집중한 토글.</h1>
+      <p class="lead">불필요한 장식 없음. 8px 그리드, 1px 보더, 200ms 안에 끝나는 transition. 칸반은 도구라서 토글도 도구처럼 보여야 한다.</p>
+      <div class="stage">
+        <div class="card">
+          <h2>A · binary switch (light)</h2>
+          <div class="row">
+            <button class="switch" aria-pressed="false" aria-label="다크모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')">
+              <span class="puck"></span>
+            </button>
+            <div class="meta">정사각 puck · <code>28×56</code> · 4px 슬라이드. 아이콘 없음.</div>
+          </div>
+          <h2>B · segmented control (light)</h2>
+          <div class="row">
+            <div class="segmented" data-mode="light">
+              <span class="indicator"></span>
+              <button data-val="light" onclick="this.parentElement.dataset.mode='light'">Light</button>
+              <button data-val="auto" onclick="this.parentElement.dataset.mode='auto'">Auto</button>
+              <button data-val="dark" onclick="this.parentElement.dataset.mode='dark'">Dark</button>
+            </div>
+            <div class="meta">시스템 모드 추적이 디폴트가 되는 3-state.</div>
+          </div>
+        </div>
+        <div class="card dark">
+          <h2>A · binary switch (dark)</h2>
+          <div class="row">
+            <button class="switch" aria-pressed="true" aria-label="라이트모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')">
+              <span class="puck"></span>
+            </button>
+            <div class="meta">accent 컬러 <code>indigo-400</code> · 1px 보더 유지.</div>
+          </div>
+          <h2>B · segmented control (dark)</h2>
+          <div class="row">
+            <div class="segmented" data-mode="dark">
+              <span class="indicator"></span>
+              <button data-val="light" onclick="this.parentElement.dataset.mode='light'">Light</button>
+              <button data-val="auto" onclick="this.parentElement.dataset.mode='auto'">Auto</button>
+              <button data-val="dark" onclick="this.parentElement.dataset.mode='dark'">Dark</button>
+            </div>
+            <div class="meta">indicator만 살짝 떠 있고 나머지는 평면.</div>
+          </div>
+        </div>
+      </div>
+      <p class="footnote">
+        <strong>컨셉.</strong> A안은 가장 작은 단위의 binary switch — 색·아이콘·라운드 다 제거. B안은 시스템 모드까지 지원하는 세그먼티드 컨트롤. 헤더엔 A, 설정 화면엔 B 추천. linear.app / vercel.com 톤. 8px grid 정확.
+      </p>
+    </div>
+  </body>
+</html>

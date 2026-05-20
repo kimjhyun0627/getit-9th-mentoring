@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>취미메이트 · 토글 시안 (Playful)</title>
+    <style>
+      :root {
+        --bg: #fff7ed;
+        --ink: #1f1235;
+        --rose: #f43f5e;
+        --fuchsia: #d946ef;
+        --violet: #8b5cf6;
+        --amber: #fbbf24;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: 'Pretendard', 'Hanken Grotesk', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        min-height: 100vh;
+      }
+      .wrap { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+      h1 { font-size: 28px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.02em; }
+      .tag { color: #7c3aed; font-weight: 700; }
+      p.lead { color: #4b3a6e; margin: 0 0 32px; }
+      .stage {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+        margin-top: 24px;
+      }
+      @media (max-width: 720px) { .stage { grid-template-columns: 1fr; } }
+      .card {
+        border-radius: 28px;
+        padding: 28px 24px 36px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(31,18,53,0.08);
+      }
+      .card.light {
+        background: radial-gradient(120% 80% at 20% 0%, #fde68a 0%, transparent 50%),
+                    radial-gradient(120% 80% at 100% 100%, #fbcfe8 0%, transparent 55%),
+                    #fff7ed;
+      }
+      .card.dark {
+        background: radial-gradient(120% 80% at 20% 0%, rgba(217,70,239,0.25) 0%, transparent 50%),
+                    radial-gradient(120% 80% at 100% 100%, rgba(139,92,246,0.35) 0%, transparent 55%),
+                    #1a0b2e;
+        color: #fef3c7;
+      }
+      .card h2 { font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; margin: 0 0 18px; }
+      /* === toggle A : 햇님↔달 회전 === */
+      .sunmoon {
+        --w: 96px; --h: 48px;
+        width: var(--w); height: var(--h);
+        border-radius: 999px;
+        position: relative;
+        cursor: pointer;
+        border: none;
+        padding: 0;
+        background: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%);
+        box-shadow: 0 8px 24px -8px rgba(245,158,11,0.6), inset 0 -3px 0 rgba(0,0,0,0.06);
+        transition: background 0.4s ease;
+      }
+      .sunmoon[aria-pressed='true'] {
+        background: linear-gradient(135deg, #312e81 0%, #6d28d9 100%);
+        box-shadow: 0 8px 24px -8px rgba(139,92,246,0.7), inset 0 -3px 0 rgba(0,0,0,0.2);
+      }
+      .sunmoon .puck {
+        position: absolute;
+        top: 4px; left: 4px;
+        width: 40px; height: 40px;
+        border-radius: 50%;
+        background: #fffbeb;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15), 0 0 0 4px rgba(255,255,255,0.4);
+        display: grid; place-items: center;
+        font-size: 22px;
+        transition: transform 0.45s cubic-bezier(0.68,-0.55,0.32,1.55), background 0.4s;
+      }
+      .sunmoon[aria-pressed='true'] .puck { transform: translateX(48px) rotate(360deg); background: #fef3c7; }
+      .sunmoon .ray {
+        position: absolute; inset: 0; pointer-events: none;
+        opacity: 1; transition: opacity 0.3s;
+      }
+      .sunmoon[aria-pressed='true'] .ray { opacity: 0; }
+      .sunmoon .ray::before, .sunmoon .ray::after {
+        content: '✦'; position: absolute; color: #fbbf24; font-size: 12px;
+      }
+      .sunmoon .ray::before { right: 18px; top: 8px; }
+      .sunmoon .ray::after { right: 30px; bottom: 8px; }
+      .sunmoon .stars { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.4s; color: #fef3c7; }
+      .sunmoon[aria-pressed='true'] .stars { opacity: 1; }
+      .sunmoon .stars::before, .sunmoon .stars::after {
+        content: '⋆'; position: absolute; font-size: 14px;
+      }
+      .sunmoon .stars::before { left: 14px; top: 8px; }
+      .sunmoon .stars::after { left: 26px; bottom: 8px; }
+      /* === toggle B : 해바라기 회전 === */
+      .sunflower {
+        width: 56px; height: 56px;
+        border-radius: 50%;
+        border: none; cursor: pointer; padding: 0;
+        background: radial-gradient(circle, #fde68a 0%, #fbbf24 60%, #f59e0b 100%);
+        position: relative;
+        box-shadow: 0 6px 18px -6px rgba(245,158,11,0.6);
+        transition: transform 0.5s cubic-bezier(0.68,-0.55,0.32,1.55), background 0.5s;
+      }
+      .sunflower[aria-pressed='true'] {
+        background: radial-gradient(circle, #ddd6fe 0%, #8b5cf6 60%, #4c1d95 100%);
+        box-shadow: 0 6px 18px -6px rgba(139,92,246,0.7);
+        transform: rotate(180deg);
+      }
+      .sunflower::before {
+        content: '🌻';
+        position: absolute; inset: 0; display: grid; place-items: center;
+        font-size: 28px;
+        transition: opacity 0.3s;
+      }
+      .sunflower[aria-pressed='true']::before { content: '🌙'; }
+      .sunflower:hover { transform: scale(1.1) rotate(15deg); }
+      .sunflower[aria-pressed='true']:hover { transform: scale(1.1) rotate(195deg); }
+      .row { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+      .row .label { font-weight: 700; font-size: 13px; }
+      .row .label small { display:block; font-weight:500; font-size:11px; opacity:0.6; margin-top:2px; }
+      .footnote { margin-top: 36px; font-size: 13px; line-height: 1.7; color: #4b3a6e; }
+      .pill {
+        display: inline-block; padding: 4px 10px; border-radius: 999px;
+        background: #fbcfe8; color: #831843; font-size: 11px; font-weight: 700;
+        letter-spacing: 0.05em; text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <span class="pill">hobby · Playful</span>
+      <h1 style="margin-top:12px;">취미메이트 토글 — <span class="tag">햇살이 통통 튀는</span></h1>
+      <p class="lead">해바라기와 달이 360° 회전하면서 모드를 바꾼다. 클릭하면 통통 튀는 bounce 모션 + 별빛 페이드인.</p>
+      <div class="stage">
+        <div class="card light">
+          <h2>A. 햇님↔달 슬라이드 (light)</h2>
+          <div class="row">
+            <button class="sunmoon" aria-pressed="false" aria-label="다크모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')">
+              <span class="ray"></span><span class="stars"></span>
+              <span class="puck">☀️</span>
+            </button>
+            <div class="label">햇살 모드 켜짐<small>클릭 → 달이 360° 회전하며 우측으로 슬라이드</small></div>
+          </div>
+          <h2 style="margin-top:24px;">B. 해바라기 회전 (light)</h2>
+          <div class="row">
+            <button class="sunflower" aria-pressed="false" aria-label="다크모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')"></button>
+            <div class="label">해바라기 모드<small>호버하면 살짝 회전, 클릭하면 180° 뒤집힘</small></div>
+          </div>
+        </div>
+        <div class="card dark">
+          <h2>A. 햇님↔달 슬라이드 (dark)</h2>
+          <div class="row">
+            <button class="sunmoon" aria-pressed="true" aria-label="라이트모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')">
+              <span class="ray"></span><span class="stars"></span>
+              <span class="puck">🌙</span>
+            </button>
+            <div class="label">달밤 모드 켜짐<small>다시 클릭 → 햇님이 통통 튀며 복귀</small></div>
+          </div>
+          <h2 style="margin-top:24px;">B. 해바라기 회전 (dark)</h2>
+          <div class="row">
+            <button class="sunflower" aria-pressed="true" aria-label="라이트모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')"></button>
+            <div class="label">달밤 모드<small>해바라기가 달로 변신 + 보랏빛 글로우</small></div>
+          </div>
+        </div>
+      </div>
+      <p class="footnote">
+        <strong>컨셉.</strong> 취미는 노는 거. 토글도 놀이여야 함. A안은 가로 슬라이드 + 별빛 페이드,
+        B안은 동그란 해바라기 자체가 달로 회전. 둘 다 spring easing (cubic-bezier(0.68,-0.55,0.32,1.55))로
+        통통 튀는 느낌. 헤더에서는 B안이 작아서 잘 어울리고, 설정 페이지에선 A안이 시각적 만족도 큼.
+      </p>
+    </div>
+  </body>
+</html>
