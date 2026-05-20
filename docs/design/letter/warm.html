@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GETIT 롤링페이퍼 · 따뜻한 한 줄</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"Pretendard Variable"','Pretendard','system-ui','sans-serif'],
+          hand: ['"Gaegu"','cursive'],
+          pen:  ['"Nanum Pen Script"','cursive'],
+        },
+        colors: {
+          cream:'#FAF6F0', cream2:'#F3ECE0',
+          peach:'#F4D7C8', peachDk:'#E8B89F',
+          sage:'#93A487',  sageDk:'#6F8366',
+          ink:'#3A2E27',   ink2:'#5A4A3F',
+          mocha:'#2C2420', mocha2:'#3A2F29', mocha3:'#4A3D34',
+          beige:'#E8D6C4', beige2:'#C9B49E', rose:'#D9A892', sageW:'#A8B89A',
+        },
+        borderRadius: { blob: '24px' }
+      }
+    }
+  }
+</script>
+
+<style>
+  /* ───────────────────────────────────────────────────────────
+     CORE DIFFERENTIATOR (Warm 페르소나):
+     "실제 부원실 벽에 붙은 진짜 롤링페이퍼" 느낌.
+     1) 파스텔 포스트잇 + 무작위 살짝 회전(-3°~+3°)
+     2) 종이 질감(노이즈) + 따뜻한 베이지 벽지 배경
+     3) 손글씨 액센트 (Gaegu / Nanum Pen Script)
+     4) 본인 메시지는 dashed 테두리 + "내 메시지" 워시테이프 라벨
+        + ✏편집 / 🗑삭제 버튼 항상 노출 → 식별 명확
+     5) 익명성 보장: 다른 사람 메시지엔 이름/이니셜 절대 없음
+     6) hover 시 회전 보정 + 살짝 떠오르는 종이 인터랙션
+     ─────────────────────────────────────────────────────────── */
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Pretendard Variable',Pretendard,system-ui,sans-serif;
+         -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+  /* Paper noise */
+  .paper { position:relative; isolation:isolate; }
+  .paper::before {
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:0; opacity:.55;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.23 0 0 0 0 0.18 0 0 0 0 0.15 0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+  }
+  .paper-dark::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.75 0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: screen; opacity:.5;
+  }
+  .paper > * { position:relative; z-index:1; }
+
+  /* Warm wall background */
+  .wall-bg {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(244,215,200,0.55), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(147,164,135,0.25), transparent 60%),
+      linear-gradient(180deg, #F4EADC 0%, #EFE2CC 100%);
+  }
+  .wall-bg-dark {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(217,168,146,0.18), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(168,184,154,0.14), transparent 60%),
+      linear-gradient(180deg, #2C2420 0%, #261E1A 100%);
+  }
+
+  /* Sticky note */
+  .note {
+    position:relative;
+    border-radius: 6px 18px 8px 14px;
+    padding: 22px 20px 18px;
+    box-shadow: 0 1px 0 rgba(58,46,39,0.05), 0 12px 18px -10px rgba(58,46,39,0.28);
+    transition: transform 380ms cubic-bezier(.2,.7,.2,1), box-shadow 380ms cubic-bezier(.2,.7,.2,1);
+    min-height: 168px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    transform: rotate(var(--rot, 0deg));
+    will-change: transform;
+  }
+  .dark-scope .note { box-shadow: 0 1px 0 rgba(0,0,0,0.25), 0 14px 22px -12px rgba(0,0,0,0.55); }
+  .note:hover, .note:focus-within {
+    transform: rotate(0deg) translateY(-6px) scale(1.02);
+    box-shadow: 0 2px 0 rgba(58,46,39,0.06), 0 24px 32px -14px rgba(58,46,39,0.35);
+    z-index: 5;
+  }
+  /* Folded top-right corner */
+  .note::after {
+    content:""; position:absolute; right:0; top:0; width:22px; height:22px;
+    background: linear-gradient(225deg, rgba(0,0,0,0.10) 50%, transparent 50%);
+    border-bottom-left-radius: 6px;
+  }
+  .note p.body { line-height:1.55; word-break: keep-all; color:#3A2E27; }
+  .note .foot { font-family:'Gaegu',cursive; font-size:14px; opacity:.7; margin-top:12px; color:#5A4A3F; }
+
+  /* MINE — 본인 메시지 강조 */
+  .note.mine { outline: 2px dashed rgba(232,184,159,0.95); outline-offset:-8px; }
+  .dark-scope .note.mine { outline-color: rgba(217,168,146,0.85); }
+
+  .mine-badge {
+    position:absolute; top:-14px; right:-10px; transform: rotate(8deg);
+    padding: 4px 10px; background:#E8B89F; color:#3A2E27;
+    font-family:'Gaegu',cursive; font-size:16px;
+    border-radius:4px; box-shadow: 0 2px 6px rgba(58,46,39,0.18);
+  }
+  .dark-scope .mine-badge { background:#D9A892; color:#2C2420; }
+
+  .mine-actions { display:flex; gap:6px; align-items:center; margin-top:10px; }
+  .mine-actions button {
+    font-size:12px; padding: 4px 10px; border-radius:999px;
+    background: rgba(255,255,255,0.6); border:1px solid rgba(58,46,39,0.15); color:#3A2E27;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .mine-actions button:hover { background:#fff; transform: translateY(-1px); }
+  .dark-scope .mine-actions button { background: rgba(74,61,52,0.65); border-color: rgba(232,214,196,0.25); color:#E8D6C4; }
+  .dark-scope .mine-actions button:hover { background:#4A3D34; }
+
+  /* Washi tape */
+  .washi {
+    position:absolute; top:-10px;
+    width:64px; height:18px; border-radius:2px;
+    box-shadow: 0 2px 6px rgba(58,46,39,0.12); opacity:.9;
+  }
+  .washi.left   { left:14px;  transform: rotate(-5deg); }
+  .washi.right  { right:14px; transform: rotate(4deg); }
+  .washi.center { left:50%;   transform: translateX(-50%) rotate(-2deg); }
+
+  /* Floating FAB */
+  .fab {
+    position:fixed; right:24px; bottom:24px;
+    padding: 14px 22px; border-radius:999px;
+    background:#3A2E27; color:#FAF6F0; font-weight:600;
+    box-shadow: 0 18px 32px -14px rgba(58,46,39,0.55);
+    display:inline-flex; align-items:center; gap:8px;
+    transition: transform .25s ease, box-shadow .25s ease;
+    z-index:30;
+  }
+  .fab:hover { transform: translateY(-2px); box-shadow: 0 22px 40px -16px rgba(58,46,39,0.6); }
+  .fab .plus { font-family:'Gaegu',cursive; font-size:22px; line-height:1; }
+  .dark-scope .fab, .dark .fab { background:#E8D6C4; color:#2C2420; box-shadow: 0 18px 32px -14px rgba(0,0,0,0.65); }
+
+  /* Theme toggle */
+  .toggle-track {
+    width:56px; height:30px; background:#F3ECE0; border-radius:999px;
+    border:1px solid rgba(58,46,39,0.12); position:relative; transition: background 250ms ease;
+  }
+  .toggle-thumb {
+    position:absolute; top:3px; left:3px; width:22px; height:22px; background:#fff;
+    border-radius:50%; box-shadow:0 2px 6px rgba(58,46,39,0.2);
+    transition: transform 280ms cubic-bezier(.4,0,.2,1), background 250ms ease;
+    display:grid; place-items:center; font-size:12px;
+  }
+  .dark .toggle-track { background:#4A3D34; border-color: rgba(232,214,196,0.15); }
+  .dark .toggle-thumb { transform: translateX(26px); background:#E8D6C4; }
+
+  /* Stitch divider */
+  .stitch {
+    background-image: linear-gradient(90deg, rgba(58,46,39,0.35) 50%, transparent 50%);
+    background-size: 12px 1px; background-repeat: repeat-x; background-position:center;
+    height:1px;
+  }
+  .dark .stitch, .dark-scope .stitch {
+    background-image: linear-gradient(90deg, rgba(232,214,196,0.35) 50%, transparent 50%);
+  }
+
+  /* Hand underline scribble */
+  .scribble {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'><path d='M2 7 Q 50 1, 100 6 T 198 5' stroke='%23E8B89F' stroke-width='5' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat; background-position: 0 88%; background-size: 100% 0.5em;
+  }
+  .dark .scribble, .dark-scope .scribble {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'><path d='M2 7 Q 50 1, 100 6 T 198 5' stroke='%23D9A892' stroke-width='5' fill='none' stroke-linecap='round'/></svg>");
+  }
+
+  /* Empty placeholder note */
+  .empty-note {
+    background: rgba(255,255,255,0.55);
+    border: 2px dashed rgba(58,46,39,0.25);
+    color: #5A4A3F;
+  }
+  .dark-scope .empty-note { background: rgba(74,61,52,0.35); border-color: rgba(232,214,196,0.3); color:#C9B49E; }
+
+  /* Focus ring */
+  a:focus-visible, button:focus-visible { outline: 2px solid #E8B89F; outline-offset:3px; border-radius:8px; }
+  .dark a:focus-visible, .dark button:focus-visible,
+  .dark-scope a:focus-visible, .dark-scope button:focus-visible { outline-color:#D9A892; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .note { transform: rotate(0deg) !important; }
+    .note:hover { transform: translateY(-3px) !important; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+
+<body class="bg-cream text-ink dark:bg-mocha dark:text-beige transition-colors duration-300">
+
+<!-- =========================================================
+     LIGHT SECTION — Rolling Paper Board (메인 화이트보드)
+     ========================================================= -->
+<section id="light-section" class="paper wall-bg relative overflow-hidden min-h-screen">
+
+  <header class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-7 pb-4 flex items-center justify-between">
+    <a href="#" class="flex items-baseline gap-1.5">
+      <span class="font-hand text-3xl sm:text-4xl text-peachDk leading-none">G</span>
+      <span class="text-lg sm:text-xl font-semibold tracking-tight">ETIT 롤링페이퍼</span>
+    </a>
+    <nav class="flex items-center gap-3 sm:gap-5">
+      <span class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 border border-peach/60 text-xs text-ink2">
+        <span class="w-1.5 h-1.5 rounded-full bg-sage"></span> 9기 부원실 벽
+      </span>
+      <span class="hidden sm:inline-flex items-center gap-2 text-sm text-ink2">
+        <span class="w-7 h-7 rounded-full bg-peach grid place-items-center font-hand text-ink">진</span> 진현
+      </span>
+      <button id="themeToggle" type="button" aria-label="다크 모드 전환" class="toggle-track">
+        <span class="toggle-thumb"><span>☀</span></span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Title strip -->
+  <div class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 mt-4 sm:mt-6">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+      <div>
+        <p class="font-pen text-2xl sm:text-3xl text-sageDk leading-none">우리들의 한 마디</p>
+        <h1 class="mt-2 text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
+          GETIT 9기 <span class="scribble">롤링페이퍼</span>
+        </h1>
+        <p class="mt-3 text-sm sm:text-base text-ink2 max-w-xl">
+          이름은 숨기고, 마음은 전하고. 부원실 벽에 살며시 붙여둔 한 줄이에요.
+        </p>
+      </div>
+      <div class="text-xs sm:text-sm text-ink2/80 font-hand">
+        총 <span class="text-ink font-bold">14</span>장의 쪽지가 붙어있어요
+      </div>
+    </div>
+    <div class="stitch mt-6 opacity-70"></div>
+  </div>
+
+  <!-- Board grid -->
+  <main class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-10 pb-32">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-7">
+
+      <article tabindex="0" aria-label="내 메시지" class="note mine" style="--rot:-2deg; background:#FBE9B7;">
+        <span class="washi left" style="background:rgba(232,184,159,0.85);"></span>
+        <span class="mine-badge">내 메시지</span>
+        <p class="body">9기 화이팅! 한 학기 동안 같이 잘해봐요. 우리 다 잘될 거예요 :)</p>
+        <div class="flex items-end justify-between">
+          <span class="foot">방금 전</span>
+          <div class="mine-actions">
+            <button type="button" aria-label="편집">✏ 편집</button>
+            <button type="button" aria-label="삭제">🗑</button>
+          </div>
+        </div>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:1.5deg; background:#FBD6DC;">
+        <span class="washi right" style="background:rgba(147,164,135,0.7);"></span>
+        <p class="body">멘토님 너무 친절하셔서 매주 OT 가는 게 기다려져요. 감사합니다!</p>
+        <span class="foot">2일 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:-2.5deg; background:#CFE5D3;">
+        <span class="washi center" style="background:rgba(232,184,159,0.85);"></span>
+        <p class="body">React 처음인데 멘토링 하면서 진짜 많이 늘었어요. 칸반 만들 때 신기했어요.</p>
+        <span class="foot">3일 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:2.5deg; background:#E0D2EE;">
+        <span class="washi left" style="background:rgba(168,184,154,0.7);"></span>
+        <p class="body">취미메이트에서 만난 분들이랑 진짜로 등산 갔다 왔어요. 우리 동아리 짱.</p>
+        <span class="foot">4일 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:-1deg; background:#FBD7BD;">
+        <span class="washi right" style="background:rgba(244,215,200,0.9);"></span>
+        <p class="body">새벽 4시까지 같이 디버깅 도와준 ㅇㅇ아 진짜 고마워. 너 없었으면 진작 포기.</p>
+        <span class="foot">5일 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:1deg; background:#D4E2F2;">
+        <span class="washi left" style="background:rgba(232,184,159,0.85);"></span>
+        <p class="body">스마트 서재 너무 잘 쓰고 있어요. 한 학기 책 30권 읽기 도전 중 ✨</p>
+        <span class="foot">5일 전</span>
+      </article>
+
+      <article tabindex="0" aria-label="내 메시지" class="note mine" style="--rot:-1.5deg; background:#FBD6DC;">
+        <span class="washi right" style="background:rgba(168,184,154,0.7);"></span>
+        <span class="mine-badge">내 메시지</span>
+        <p class="body">스터디 끝나고 같이 마시는 커피가 진짜 행복이에요. 다음엔 디저트 ㄱㄱ</p>
+        <div class="flex items-end justify-between">
+          <span class="foot">6일 전</span>
+          <div class="mine-actions">
+            <button type="button">✏ 편집</button>
+            <button type="button">🗑</button>
+          </div>
+        </div>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:2deg; background:#FBE9B7;">
+        <span class="washi center" style="background:rgba(147,164,135,0.7);"></span>
+        <p class="body">발표 때 손이 너무 떨려서 멘트 까먹었는데 다들 박수쳐줘서 울 뻔.</p>
+        <span class="foot">1주 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:-2deg; background:#CFE5D3;">
+        <span class="washi left" style="background:rgba(232,184,159,0.85);"></span>
+        <p class="body">처음 PR 머지됐을 때 진짜 짜릿했음. 그 순간 잊지 못할 듯.</p>
+        <span class="foot">1주 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:0.5deg; background:#FBD7BD;">
+        <span class="washi right" style="background:rgba(168,184,154,0.7);"></span>
+        <p class="body">우리 조 다 너무 좋은 사람들이라 매주 오는 게 안 힘들어요. 진심 ❤</p>
+        <span class="foot">1주 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:-1deg; background:#E0D2EE;">
+        <span class="washi left" style="background:rgba(244,215,200,0.9);"></span>
+        <p class="body">롤링페이퍼 만든 사람 천재. 너무 따뜻해 ㅠㅠ</p>
+        <span class="foot">1주 전</span>
+      </article>
+
+      <article tabindex="0" aria-label="내 메시지" class="note mine" style="--rot:2deg; background:#CFE5D3;">
+        <span class="washi center" style="background:rgba(232,184,159,0.85);"></span>
+        <span class="mine-badge">내 메시지</span>
+        <p class="body">9기 모두 학기 끝나고도 계속 친하게 지내요. 약속!</p>
+        <div class="flex items-end justify-between">
+          <span class="foot">2주 전</span>
+          <div class="mine-actions">
+            <button type="button">✏ 편집</button>
+            <button type="button">🗑</button>
+          </div>
+        </div>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:-2deg; background:#D4E2F2;">
+        <span class="washi right" style="background:rgba(168,184,154,0.7);"></span>
+        <p class="body">처음엔 낯가렸는데, 이제는 부원실 갈 때마다 집 가는 기분.</p>
+        <span class="foot">2주 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:1deg; background:#FBE9B7;">
+        <span class="washi left" style="background:rgba(232,184,159,0.85);"></span>
+        <p class="body">디자인 시안 다섯 개 다 너무 예뻐서 못 고르겠어요. 다 갖고 싶다…</p>
+        <span class="foot">2주 전</span>
+      </article>
+
+      <article aria-label="비어있는 자리" class="note empty-note flex items-center justify-center text-center" style="--rot:-1deg;">
+        <div class="space-y-2">
+          <div class="font-pen text-3xl text-peachDk">+</div>
+          <p class="font-hand text-base">여기에<br>당신의 한 줄을<br>살며시 붙여주세요</p>
+        </div>
+      </article>
+
+    </div>
+  </main>
+
+  <a href="#new" class="fab" aria-label="새 메시지 남기기">
+    <span class="plus">+</span><span>메시지 남기기</span>
+  </a>
+
+  <footer class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pb-10">
+    <div class="stitch mb-6"></div>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-ink2">
+      <div class="flex items-center gap-2">
+        <span class="font-hand text-xl text-peachDk">G</span>
+        <span>© 2026 GETIT 9기 · letter.get-it.cloud</span>
+      </div>
+      <span class="font-hand">익명 보장 · 본인 메시지만 편집/삭제 가능</span>
+    </div>
+  </footer>
+</section>
+
+
+<!-- ============== DIVIDER ============== -->
+<section class="bg-cream dark:bg-mocha py-10 sm:py-14">
+  <div class="max-w-3xl mx-auto px-5 text-center">
+    <div class="stitch mb-6 opacity-70"></div>
+    <p class="font-hand text-2xl sm:text-3xl text-ink2 dark:text-beige2">↓ 다크 모드 ↓</p>
+    <p class="mt-2 text-sm text-ink2/80 dark:text-beige2/80">밤에도 따뜻한 부원실 벽 — 짙은 브라운에 베이지 한 스푼.</p>
+    <div class="stitch mt-6 opacity-70"></div>
+  </div>
+</section>
+
+
+<!-- ============== DARK SECTION (강제 다크 스코프) ============== -->
+<section id="dark-section" class="dark-scope paper paper-dark wall-bg-dark relative overflow-hidden">
+
+  <header class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-7 pb-4 flex items-center justify-between">
+    <a href="#" class="flex items-baseline gap-1.5">
+      <span class="font-hand text-3xl sm:text-4xl leading-none" style="color:#D9A892;">G</span>
+      <span class="text-lg sm:text-xl font-semibold tracking-tight" style="color:#E8D6C4;">ETIT 롤링페이퍼</span>
+    </a>
+    <nav class="flex items-center gap-3 sm:gap-5">
+      <span class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
+            style="background:#3A2F29; color:#C9B49E; border:1px solid #4A3D34;">
+        <span class="w-1.5 h-1.5 rounded-full" style="background:#A8B89A;"></span> 9기 부원실 벽
+      </span>
+      <span class="hidden sm:inline-flex items-center gap-2 text-sm" style="color:#C9B49E;">
+        <span class="w-7 h-7 rounded-full grid place-items-center font-hand" style="background:#D9A892; color:#2C2420;">진</span> 진현
+      </span>
+      <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
+            style="background:#3A2F29; color:#C9B49E; border:1px solid #4A3D34;">🌙 다크 시안</span>
+    </nav>
+  </header>
+
+  <div class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 mt-4 sm:mt-6">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+      <div>
+        <p class="font-pen text-2xl sm:text-3xl leading-none" style="color:#A8B89A;">우리들의 한 마디</p>
+        <h1 class="mt-2 text-3xl sm:text-5xl font-bold tracking-tight leading-tight" style="color:#F4E8D9;">
+          GETIT 9기 <span class="scribble">롤링페이퍼</span>
+        </h1>
+        <p class="mt-3 text-sm sm:text-base max-w-xl" style="color:#C9B49E;">
+          이름은 숨기고, 마음은 전하고. 부원실 벽에 살며시 붙여둔 한 줄이에요.
+        </p>
+      </div>
+      <div class="text-xs sm:text-sm font-hand" style="color:#C9B49E;">
+        총 <span style="color:#E8D6C4; font-weight:700;">8</span>장의 쪽지
+      </div>
+    </div>
+    <div class="stitch mt-6 opacity-70"></div>
+  </div>
+
+  <main class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-10 pb-32">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-7">
+
+      <article tabindex="0" aria-label="내 메시지" class="note mine" style="--rot:-2deg; background:#E8D29A;">
+        <span class="washi left" style="background:rgba(217,168,146,0.85);"></span>
+        <span class="mine-badge">내 메시지</span>
+        <p class="body">9기 화이팅! 한 학기 동안 같이 잘해봐요. 우리 다 잘될 거예요 :)</p>
+        <div class="flex items-end justify-between">
+          <span class="foot">방금 전</span>
+          <div class="mine-actions">
+            <button type="button">✏ 편집</button>
+            <button type="button">🗑</button>
+          </div>
+        </div>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:1.5deg; background:#E8B7BF;">
+        <span class="washi right" style="background:rgba(168,184,154,0.75);"></span>
+        <p class="body">멘토님 너무 친절하셔서 매주 OT 가는 게 기다려져요. 감사합니다!</p>
+        <span class="foot">2일 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:-2.5deg; background:#B5D2BA;">
+        <span class="washi center" style="background:rgba(217,168,146,0.85);"></span>
+        <p class="body">React 처음인데 멘토링 하면서 진짜 많이 늘었어요.</p>
+        <span class="foot">3일 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:2.5deg; background:#C9B8DC;">
+        <span class="washi left" style="background:rgba(168,184,154,0.75);"></span>
+        <p class="body">취미메이트에서 만난 분들이랑 진짜로 등산 갔다 왔어요. 우리 동아리 짱.</p>
+        <span class="foot">4일 전</span>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:-1deg; background:#EAB99B;">
+        <span class="washi right" style="background:rgba(244,215,200,0.9);"></span>
+        <p class="body">새벽 4시까지 같이 디버깅 도와준 ㅇㅇ아 진짜 고마워.</p>
+        <span class="foot">5일 전</span>
+      </article>
+
+      <article tabindex="0" aria-label="내 메시지" class="note mine" style="--rot:-1.5deg; background:#E8B7BF;">
+        <span class="washi center" style="background:rgba(168,184,154,0.75);"></span>
+        <span class="mine-badge">내 메시지</span>
+        <p class="body">스터디 끝나고 같이 마시는 커피가 진짜 행복. 다음엔 디저트 ㄱㄱ</p>
+        <div class="flex items-end justify-between">
+          <span class="foot">6일 전</span>
+          <div class="mine-actions">
+            <button type="button">✏ 편집</button>
+            <button type="button">🗑</button>
+          </div>
+        </div>
+      </article>
+
+      <article tabindex="0" class="note" style="--rot:1deg; background:#BCCDE0;">
+        <span class="washi left" style="background:rgba(217,168,146,0.85);"></span>
+        <p class="body">처음 PR 머지됐을 때 진짜 짜릿했음. 그 순간 잊지 못할 듯.</p>
+        <span class="foot">1주 전</span>
+      </article>
+
+      <article aria-label="비어있는 자리" class="note empty-note flex items-center justify-center text-center" style="--rot:-1deg;">
+        <div class="space-y-2">
+          <div class="font-pen text-3xl" style="color:#D9A892;">+</div>
+          <p class="font-hand text-base">여기에<br>당신의 한 줄을<br>살며시 붙여주세요</p>
+        </div>
+      </article>
+
+    </div>
+  </main>
+
+  <footer class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pb-10">
+    <div class="stitch mb-6"></div>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm" style="color:#C9B49E;">
+      <div class="flex items-center gap-2">
+        <span class="font-hand text-xl" style="color:#D9A892;">G</span>
+        <span>© 2026 GETIT 9기 · letter.get-it.cloud</span>
+      </div>
+      <span class="font-hand">익명 보장 · 본인 메시지만 편집/삭제 가능</span>
+    </div>
+  </footer>
+</section>
+
+
+<script>
+  (function () {
+    const root = document.documentElement;
+    const btn  = document.getElementById('themeToggle');
+    const KEY  = 'getit-letter-warm-theme';
+    function apply(mode) { mode === 'dark' ? root.classList.add('dark') : root.classList.remove('dark'); }
+    apply(localStorage.getItem(KEY) === 'dark' ? 'dark' : 'light');
+    btn?.addEventListener('click', () => {
+      const next = root.classList.contains('dark') ? 'light' : 'dark';
+      apply(next); localStorage.setItem(KEY, next);
+    });
+  })();
+</script>
+
+</body>
+</html>

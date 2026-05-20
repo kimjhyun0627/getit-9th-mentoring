@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ko" class="">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GETIT 롤링페이퍼 · Glass</title>
+
+<!--
+  Persona: Glassmorphism (iOS 18 / visionOS)
+  차별 포인트: warm은 파스텔 워시테이프 종이 포스트잇, playful은 비비드 회전 포스트잇.
+  glass는 그 둘과 정반대 — 별빛 그라데이션 위에 떠 있는 반투명 frosted 카드.
+  "Vision Pro에서 부원실 보드를 보는" 미래지향 + 부드러운 감성. 정렬형 그리드로 정돈된 무드.
+  익명은 유지하되 본인 메시지는 외곽선/MY 뱃지/편집·삭제 글래스 버튼으로 명확히 분리.
+-->
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'Pretendard', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        },
+        boxShadow: {
+          glass: '0 8px 32px rgba(17, 12, 46, 0.18), inset 0 1px 0 rgba(255,255,255,0.4)',
+          glassDark: '0 12px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+          float: '0 20px 50px -10px rgba(76, 29, 149, 0.45)',
+        },
+        keyframes: {
+          floaty: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
+          shimmer: { '0%,100%': { opacity: '.55' }, '50%': { opacity: '1' } },
+          riseIn: { '0%': { opacity: '0', transform: 'translateY(12px) scale(.98)' }, '100%': { opacity: '1', transform: 'translateY(0) scale(1)' } },
+        },
+        animation: {
+          floaty: 'floaty 6s ease-in-out infinite',
+          shimmer: 'shimmer 4s ease-in-out infinite',
+          riseIn: 'riseIn .5s ease-out both',
+        },
+      },
+    },
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<style>
+  /* Light gradient: dawn coral → lavender → sky */
+  body.light-bg {
+    background:
+      radial-gradient(1200px 700px at 10% -10%, #ffd4c2 0%, transparent 60%),
+      radial-gradient(900px 600px at 95% 5%, #ffc6e3 0%, transparent 55%),
+      radial-gradient(1100px 700px at 50% 110%, #c9b8ff 0%, transparent 60%),
+      linear-gradient(180deg, #fff1ec 0%, #f5ecff 50%, #e8edff 100%);
+  }
+  /* Dark gradient: midnight violet → cosmic blue → deep purple */
+  body.dark-bg {
+    background:
+      radial-gradient(1100px 700px at 8% -5%, #3a1f7a 0%, transparent 55%),
+      radial-gradient(1000px 700px at 95% 10%, #1c3a8a 0%, transparent 55%),
+      radial-gradient(1200px 800px at 50% 115%, #5b21b6 0%, transparent 60%),
+      linear-gradient(180deg, #0a0820 0%, #100b2e 55%, #0b0a23 100%);
+  }
+  /* Subtle starfield for dark mode */
+  .stars::before, .stars::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(1px 1px at 12% 22%, rgba(255,255,255,.7), transparent 50%),
+      radial-gradient(1px 1px at 28% 70%, rgba(255,255,255,.5), transparent 50%),
+      radial-gradient(1.5px 1.5px at 55% 35%, rgba(255,255,255,.6), transparent 50%),
+      radial-gradient(1px 1px at 78% 60%, rgba(255,255,255,.55), transparent 50%),
+      radial-gradient(1px 1px at 85% 18%, rgba(255,255,255,.4), transparent 50%),
+      radial-gradient(1.5px 1.5px at 40% 85%, rgba(255,255,255,.5), transparent 50%);
+    opacity: 0; transition: opacity .6s ease;
+  }
+  html.dark .stars::before { opacity: .9; animation: shimmer 5s ease-in-out infinite; }
+  html.dark .stars::after  { opacity: .6; transform: translate(20px, 30px); animation: shimmer 7s ease-in-out infinite reverse; }
+
+  /* Glass card baseline */
+  .glass {
+    background: rgba(255,255,255,0.28);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.42);
+  }
+  html.dark .glass {
+    background: rgba(20, 16, 48, 0.42);
+    border: 1px solid rgba(255,255,255,0.14);
+  }
+  .glass-soft {
+    background: rgba(255,255,255,0.20);
+    backdrop-filter: blur(18px) saturate(135%);
+    -webkit-backdrop-filter: blur(18px) saturate(135%);
+    border: 1px solid rgba(255,255,255,0.32);
+  }
+  html.dark .glass-soft {
+    background: rgba(18, 14, 42, 0.38);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  .glass-strong {
+    background: rgba(255,255,255,0.45);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    border: 1px solid rgba(255,255,255,0.55);
+  }
+  html.dark .glass-strong {
+    background: rgba(28, 22, 60, 0.55);
+    border: 1px solid rgba(255,255,255,0.20);
+  }
+
+  /* Author (MY) card emphasis */
+  .glass-mine {
+    border: 1.5px solid rgba(255,255,255,0.75);
+    box-shadow: 0 0 0 1px rgba(167,139,250,0.45), 0 12px 40px rgba(124, 58, 237, 0.22), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  html.dark .glass-mine {
+    border: 1.5px solid rgba(196,181,253,0.7);
+    box-shadow: 0 0 0 1px rgba(167,139,250,0.55), 0 14px 44px rgba(124, 58, 237, 0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+
+  /* Smooth hover lift */
+  .card { transition: transform .28s ease-out, box-shadow .28s ease-out, border-color .28s ease-out; }
+  .card:hover { transform: translateY(-4px); }
+
+  /* Floating orbs (background mood) */
+  .orb { position: fixed; border-radius: 9999px; filter: blur(48px); opacity: .55; z-index: 0; pointer-events: none; }
+  html.dark .orb { opacity: .45; }
+
+  /* Force smooth color transitions when toggling theme */
+  body, .glass, .glass-soft, .glass-strong { transition: background-color .5s ease, border-color .5s ease; }
+
+  /* Scrollbar polish */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(120,120,160,.35); border-radius: 999px; }
+
+  /* Accessible focus ring on glass */
+  :focus-visible { outline: 2px solid rgba(139,92,246,.85); outline-offset: 2px; border-radius: 12px; }
+</style>
+</head>
+
+<body class="light-bg stars text-slate-900 dark:text-slate-100 font-sans min-h-screen antialiased">
+
+  <!-- Ambient orbs -->
+  <div class="orb" style="width:380px;height:380px; top:-80px; left:-80px; background:radial-gradient(circle, #ffb199 0%, transparent 70%);"></div>
+  <div class="orb" style="width:420px;height:420px; top:30%; right:-120px; background:radial-gradient(circle, #c4b5fd 0%, transparent 70%);"></div>
+  <div class="orb" style="width:340px;height:340px; bottom:-100px; left:30%; background:radial-gradient(circle, #93c5fd 0%, transparent 70%);"></div>
+
+  <!-- Sticky glass header -->
+  <header class="sticky top-3 z-30 mx-3 sm:mx-6 mt-3">
+    <div class="glass-strong shadow-glass dark:shadow-glassDark rounded-2xl px-4 sm:px-6 py-3 flex items-center gap-3">
+      <div class="flex items-center gap-2.5 flex-1 min-w-0">
+        <div class="w-9 h-9 rounded-xl glass flex items-center justify-center text-lg">💌</div>
+        <div class="min-w-0">
+          <h1 class="text-base sm:text-lg font-semibold tracking-tight truncate">GETIT 롤링페이퍼</h1>
+          <p class="text-[11px] sm:text-xs text-slate-700/80 dark:text-slate-300/80 truncate">익명으로 남기는 부원실의 한마디</p>
+        </div>
+      </div>
+
+      <div class="hidden sm:flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+        <span class="glass-soft rounded-full px-2.5 py-1">메시지 <b class="font-semibold">128</b></span>
+        <span class="glass-soft rounded-full px-2.5 py-1">오늘 <b class="font-semibold">12</b></span>
+      </div>
+
+      <button id="themeBtn" aria-label="테마 전환"
+        class="ml-1 w-10 h-10 rounded-xl glass hover:glass-strong active:scale-95 transition flex items-center justify-center text-lg">
+        <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀️</span>
+      </button>
+
+      <div class="ml-1 flex items-center gap-2">
+        <div class="hidden md:flex items-center gap-2 glass rounded-full pl-1 pr-3 py-1">
+          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-400 grid place-items-center text-white text-xs font-semibold">J</div>
+          <span class="text-xs font-medium">진현 · 9기</span>
+        </div>
+        <button class="md:hidden glass rounded-full px-3 py-1.5 text-xs font-medium">Sign in</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-32">
+
+    <!-- Hero -->
+    <section class="mt-2 mb-8 sm:mb-10">
+      <div class="glass-soft rounded-3xl p-6 sm:p-8 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.18em] text-violet-700/80 dark:text-violet-300/80 mb-2">Anonymous · Boards · 2026</p>
+            <h2 class="text-2xl sm:text-4xl font-semibold tracking-tight leading-tight">
+              부원실의 빛나는 한마디,<br class="hidden sm:block" />
+              조용히 떠 있게 두자.
+            </h2>
+            <p class="mt-3 text-sm sm:text-base text-slate-700/85 dark:text-slate-300/85 max-w-xl">
+              SSO로 본인 인증, 메시지는 익명. 내가 쓴 글만 식별·편집·삭제할 수 있어.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="glass rounded-full px-3 py-1.5 text-xs">전체</span>
+            <span class="glass-soft rounded-full px-3 py-1.5 text-xs opacity-80">내 메시지</span>
+            <span class="glass-soft rounded-full px-3 py-1.5 text-xs opacity-80">오늘</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grid: glass post-its (aligned grid for calmer mood) -->
+    <section aria-label="롤링페이퍼 보드"
+             class="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+
+      <!-- Card 1 (mine) -->
+      <article class="card glass glass-mine rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded-full glass-strong">MY</span>
+          <div class="flex items-center gap-1">
+            <button aria-label="편집" class="w-7 h-7 grid place-items-center rounded-lg glass hover:glass-strong transition">✏️</button>
+            <button aria-label="삭제" class="w-7 h-7 grid place-items-center rounded-lg glass hover:glass-strong transition">🗑️</button>
+          </div>
+        </div>
+        <p class="text-[15px] leading-relaxed">9기 다들 진짜 고생 많았다. 우리 부원실 진심으로 좋아하게 됐어.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.18</p>
+      </article>
+
+      <!-- Card 2 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">밤샘하면서 보드게임 한 거 평생 못 잊을 듯 🃏</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.18 · 02:14</p>
+      </article>
+
+      <!-- Card 3 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">선배들 진짜 다정해서, 처음 들어왔을 때 안 도망간 게 신기할 정도.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.17</p>
+      </article>
+
+      <!-- Card 4 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">엠티 가서 본 새벽 별 진짜 잊지 못해. 다음에 또 가자 ✨</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.17</p>
+      </article>
+
+      <!-- Card 5 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">발표 끝나고 다같이 박수쳐줘서 진짜 울 뻔. 너네 최고야.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.16</p>
+      </article>
+
+      <!-- Card 6 (mine) -->
+      <article class="card glass glass-mine rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded-full glass-strong">MY</span>
+          <div class="flex items-center gap-1">
+            <button aria-label="편집" class="w-7 h-7 grid place-items-center rounded-lg glass hover:glass-strong transition">✏️</button>
+            <button aria-label="삭제" class="w-7 h-7 grid place-items-center rounded-lg glass hover:glass-strong transition">🗑️</button>
+          </div>
+        </div>
+        <p class="text-[15px] leading-relaxed">멘토님들 덕분에 풀스택이 뭐 하는 건지 진짜 감 왔어. 감사합니다.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.16</p>
+      </article>
+
+      <!-- Card 7 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">디자인 쪽 친구들 손이 마법사 손인 듯. 너네 덕에 우리 프로젝트 빛났다.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.15</p>
+      </article>
+
+      <!-- Card 8 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">백엔드 데모 켜고 5분만에 다 같이 박수친 그 순간 ❤️</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.15</p>
+      </article>
+
+      <!-- Card 9 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">누가 첨에 익명이라서 무서웠다 했는데, 다 따뜻해서 안심됨.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.14</p>
+      </article>
+
+      <!-- Card 10 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">자정쯤 부원실 라이트 켜져 있으면 그게 그렇게 든든하더라.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.14</p>
+      </article>
+
+      <!-- Card 11 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">10기 들어오면 우리도 선배라니… 잘 해보자 우리.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.13</p>
+      </article>
+
+      <!-- Card 12 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">조용히 한 줄 — 다들 건강하자.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.13</p>
+      </article>
+
+      <!-- Card 13 (mine) -->
+      <article class="card glass glass-mine rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded-full glass-strong">MY</span>
+          <div class="flex items-center gap-1">
+            <button aria-label="편집" class="w-7 h-7 grid place-items-center rounded-lg glass hover:glass-strong transition">✏️</button>
+            <button aria-label="삭제" class="w-7 h-7 grid place-items-center rounded-lg glass hover:glass-strong transition">🗑️</button>
+          </div>
+        </div>
+        <p class="text-[15px] leading-relaxed">이 보드 다크모드 켜놓으면 진짜 별 보는 느낌. 누가 만든 거야 ㅋㅋ</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.12</p>
+      </article>
+
+      <!-- Card 14 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">기획 회의 길어졌을 때 누가 캔커피 사다 줬는데, 그거 너무 든든했음.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.12</p>
+      </article>
+
+      <!-- Card 15 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">"우리 잘하고 있다" 라고 누군가 말해줘서, 진짜 그날 살아남음.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.11</p>
+      </article>
+
+      <!-- Card 16 -->
+      <article class="card glass rounded-3xl p-5 shadow-glass dark:shadow-glassDark animate-riseIn">
+        <p class="text-[15px] leading-relaxed">우리 동기들 보면 시간 가는 거 진짜 아까워. 졸업 미루고 싶다.</p>
+        <p class="mt-4 text-[11px] text-slate-600/80 dark:text-slate-400/80">2026.05.11</p>
+      </article>
+
+      <!-- Empty state placeholder card (subtle) -->
+      <article class="card glass-soft rounded-3xl p-5 border-dashed shadow-glass dark:shadow-glassDark text-center grid place-content-center min-h-[140px]">
+        <p class="text-sm text-slate-700/80 dark:text-slate-300/80">아직 비어 있어.<br/>너의 한마디로 채워줘 ✨</p>
+      </article>
+    </section>
+
+    <!-- Footer note -->
+    <p class="mt-10 text-center text-xs text-slate-700/70 dark:text-slate-300/70">
+      메시지는 익명으로 표시돼. 본인 메시지만 식별·편집·삭제 가능.
+    </p>
+  </main>
+
+  <!-- Floating compose button -->
+  <button id="composeBtn"
+    class="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40 glass-strong shadow-float rounded-full px-5 py-3.5 sm:px-6 sm:py-4 flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition animate-floaty">
+    <span class="text-xl leading-none">＋</span>
+    <span class="text-sm sm:text-base font-semibold tracking-tight">메시지 남기기</span>
+  </button>
+
+  <!-- Compose modal -->
+  <div id="composeModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" data-close></div>
+    <div class="relative glass-strong rounded-3xl shadow-glass dark:shadow-glassDark w-full max-w-md p-6 animate-riseIn">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold tracking-tight">익명 메시지 남기기</h3>
+        <button data-close aria-label="닫기" class="w-9 h-9 rounded-xl glass hover:glass-strong transition">✕</button>
+      </div>
+      <p class="text-xs text-slate-700/85 dark:text-slate-300/85 mb-3">
+        SSO로 인증된 너의 메시지는 익명으로 표시돼. 너만 식별/편집/삭제할 수 있어.
+      </p>
+      <textarea rows="4" placeholder="부원실에 남기고 싶은 한마디…"
+        class="w-full glass rounded-2xl p-4 text-sm leading-relaxed bg-transparent placeholder:text-slate-500/70 dark:placeholder:text-slate-400/70 focus:outline-none"></textarea>
+      <div class="mt-4 flex items-center justify-between">
+        <span class="text-[11px] text-slate-600/80 dark:text-slate-400/80">최대 180자 권장</span>
+        <div class="flex items-center gap-2">
+          <button data-close class="glass rounded-full px-4 py-2 text-sm">취소</button>
+          <button class="rounded-full px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 transition">올리기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Theme toggle with localStorage + sync body gradient class
+  (function () {
+    const root = document.documentElement;
+    const body = document.body;
+    const KEY = 'getit-letter-glass-theme';
+    const apply = (mode) => {
+      if (mode === 'dark') {
+        root.classList.add('dark');
+        body.classList.remove('light-bg');
+        body.classList.add('dark-bg');
+      } else {
+        root.classList.remove('dark');
+        body.classList.remove('dark-bg');
+        body.classList.add('light-bg');
+      }
+    };
+    const saved = localStorage.getItem(KEY);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    apply(saved || (prefersDark ? 'dark' : 'light'));
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const next = root.classList.contains('dark') ? 'light' : 'dark';
+      localStorage.setItem(KEY, next);
+      apply(next);
+    });
+  })();
+
+  // Compose modal
+  (function () {
+    const modal = document.getElementById('composeModal');
+    const open = () => { modal.classList.remove('hidden'); modal.classList.add('flex'); };
+    const close = () => { modal.classList.add('hidden'); modal.classList.remove('flex'); };
+    document.getElementById('composeBtn').addEventListener('click', open);
+    modal.addEventListener('click', (e) => {
+      if (e.target.matches('[data-close]')) close();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  })();
+</script>
+</body>
+</html>

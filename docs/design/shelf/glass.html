@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="ko" class="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shelf · 공중에 떠 있는 미래의 도서관 (Glassmorphism)</title>
+
+  <!-- DIFFERENTIATOR ============================================================
+       이 시안 = "그라데이션 위에 떠 있는 반투명 글래스 책 카드".
+       warm/editorial이 '실체(나무, 종이)'에 기댄다면, glass는 '공기와 빛'에 기댄다.
+       backdrop-blur-xl + bg-white/40~60 + border-white/20 = visionOS / iOS 18 / macOS Big Sur 감성.
+       책 표지는 CSS multi-hue 그라데이션 placeholder — 그 자체가 작품처럼 보이도록.
+  ============================================================================ -->
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Pretendard', 'system-ui', 'sans-serif'],
+          },
+          borderRadius: {
+            '4xl': '2rem',
+          },
+          boxShadow: {
+            'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.18)',
+            'glass-lg': '0 20px 60px -10px rgba(76, 29, 149, 0.28)',
+            'glass-dark': '0 8px 32px 0 rgba(0, 0, 0, 0.45)',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%':      { transform: 'translateY(-6px)' },
+            },
+            blob: {
+              '0%, 100%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%':       { transform: 'translate(30px, -30px) scale(1.08)' },
+              '66%':       { transform: 'translate(-20px, 20px) scale(0.95)' },
+            },
+          },
+          animation: {
+            float: 'float 6s ease-in-out infinite',
+            blob:  'blob 14s ease-in-out infinite',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    html, body { font-family: 'Inter', 'Pretendard', system-ui, sans-serif; }
+    html { scroll-behavior: smooth; }
+    body { -webkit-font-smoothing: antialiased; }
+
+    /* ============ Multi-hue gradient stage (라이트: mint→sky→lavender) ============ */
+    .stage-light {
+      background:
+        radial-gradient(at 18% 12%, rgba(167, 243, 208, 0.85) 0px, transparent 55%),
+        radial-gradient(at 82% 18%, rgba(186, 230, 253, 0.85) 0px, transparent 55%),
+        radial-gradient(at 70% 78%, rgba(221, 214, 254, 0.85) 0px, transparent 55%),
+        radial-gradient(at 22% 88%, rgba(254, 215, 226, 0.75) 0px, transparent 55%),
+        linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    .dark .stage-dark {
+      background:
+        radial-gradient(at 18% 12%, rgba(124, 58, 237, 0.45) 0px, transparent 55%),
+        radial-gradient(at 82% 18%, rgba(56, 189, 248, 0.30) 0px, transparent 55%),
+        radial-gradient(at 70% 78%, rgba(244, 114, 182, 0.28) 0px, transparent 55%),
+        radial-gradient(at 22% 88%, rgba(99, 102, 241, 0.38) 0px, transparent 55%),
+        linear-gradient(180deg, #0b0716 0%, #050314 100%);
+    }
+
+    /* ============ Glass primitives ============ */
+    .glass {
+      background: rgba(255, 255, 255, 0.50);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+    }
+    .glass-soft {
+      background: rgba(255, 255, 255, 0.38);
+      backdrop-filter: blur(18px) saturate(150%);
+      -webkit-backdrop-filter: blur(18px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+    }
+    .dark .glass {
+      background: rgba(20, 14, 40, 0.45);
+      border-color: rgba(255, 255, 255, 0.10);
+    }
+    .dark .glass-soft {
+      background: rgba(20, 14, 40, 0.32);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    /* hover lift */
+    .lift { transition: transform 300ms cubic-bezier(.2,.8,.2,1), box-shadow 300ms ease, border-color 300ms ease; }
+    .lift:hover { transform: translateY(-3px); }
+
+    /* ============ Book cover gradients (CSS-only placeholders) ============ */
+    .cover { position: relative; overflow: hidden; }
+    .cover::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(160deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 45%);
+      pointer-events: none;
+    }
+    .cv-1  { background: linear-gradient(140deg, #fb7185 0%, #f59e0b 100%); }
+    .cv-2  { background: linear-gradient(140deg, #38bdf8 0%, #6366f1 100%); }
+    .cv-3  { background: linear-gradient(140deg, #34d399 0%, #0ea5e9 100%); }
+    .cv-4  { background: linear-gradient(140deg, #c084fc 0%, #ec4899 100%); }
+    .cv-5  { background: linear-gradient(140deg, #fde68a 0%, #fb923c 100%); }
+    .cv-6  { background: linear-gradient(140deg, #818cf8 0%, #06b6d4 100%); }
+    .cv-7  { background: linear-gradient(140deg, #f472b6 0%, #a855f7 100%); }
+    .cv-8  { background: linear-gradient(140deg, #4ade80 0%, #14b8a6 100%); }
+    .cv-9  { background: linear-gradient(140deg, #fca5a5 0%, #c084fc 100%); }
+    .cv-10 { background: linear-gradient(140deg, #67e8f9 0%, #a78bfa 100%); }
+
+    /* book cover spine accent */
+    .spine::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 8%;
+      background: linear-gradient(90deg, rgba(0,0,0,0.22), rgba(0,0,0,0));
+    }
+
+    /* horizontal scroll hide */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* focus visible */
+    :focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 12px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-float, .animate-blob { animation: none !important; }
+      .lift { transition: none; }
+    }
+  </style>
+</head>
+
+<body class="text-slate-900 dark:text-slate-100 stage-light dark:stage-dark min-h-screen relative overflow-x-hidden">
+
+  <!-- Ambient floating blobs (depth illusion behind glass) -->
+  <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+    <div class="absolute -top-24 -left-24 w-[520px] h-[520px] rounded-full bg-gradient-to-br from-emerald-200/60 to-sky-300/60 dark:from-violet-600/30 dark:to-indigo-500/20 blur-3xl animate-blob"></div>
+    <div class="absolute top-40 -right-32 w-[560px] h-[560px] rounded-full bg-gradient-to-br from-violet-200/60 to-pink-200/60 dark:from-fuchsia-600/25 dark:to-sky-500/20 blur-3xl animate-blob" style="animation-delay: -5s"></div>
+    <div class="absolute bottom-0 left-1/3 w-[480px] h-[480px] rounded-full bg-gradient-to-br from-amber-100/50 to-rose-200/60 dark:from-indigo-600/25 dark:to-purple-600/15 blur-3xl animate-blob" style="animation-delay: -9s"></div>
+  </div>
+
+  <!-- ====================== STICKY GLASS HEADER ====================== -->
+  <header class="sticky top-0 z-40">
+    <div class="px-4 sm:px-6 pt-4">
+      <div class="mx-auto max-w-7xl glass rounded-3xl shadow-glass flex items-center gap-3 sm:gap-4 px-3 sm:px-5 py-2.5">
+        <!-- Logo -->
+        <a href="#" class="flex items-center gap-2 shrink-0">
+          <span class="grid place-items-center w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white font-semibold shadow-glass">S</span>
+          <span class="font-semibold tracking-tight text-base sm:text-lg">shelf</span>
+        </a>
+
+        <!-- Search (glass within glass) -->
+        <label class="flex-1 min-w-0">
+          <span class="sr-only">책 검색</span>
+          <div class="glass-soft rounded-2xl flex items-center gap-2 px-3 py-2">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="w-4 h-4 text-slate-500 dark:text-slate-300 shrink-0">
+              <path fill="currentColor" d="M10 2a8 8 0 1 1-4.9 14.3l-4.4 4.4l-1.4-1.4l4.4-4.4A8 8 0 0 1 10 2m0 2a6 6 0 1 0 0 12A6 6 0 0 0 10 4"/>
+            </svg>
+            <input type="search" placeholder="제목, 저자, ISBN…"
+                   class="w-full bg-transparent outline-none text-sm placeholder:text-slate-500/80 dark:placeholder:text-slate-400" />
+            <kbd class="hidden sm:inline-flex text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-white/40 dark:bg-white/10 border border-white/40 dark:border-white/10 text-slate-600 dark:text-slate-300">⌘K</kbd>
+          </div>
+        </label>
+
+        <!-- Right cluster -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button id="themeToggle" aria-label="다크모드 토글"
+                  class="glass-soft lift w-10 h-10 rounded-2xl grid place-items-center text-base">
+            <span class="dark:hidden">☀️</span><span class="hidden dark:inline">🌙</span>
+          </button>
+          <a href="#" class="hidden sm:inline-flex lift items-center px-4 py-2 rounded-2xl text-sm font-medium text-white bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-glass hover:shadow-glass-lg">
+            Sign in
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 pb-24">
+
+    <!-- ====================== HERO + STATS ====================== -->
+    <section class="grid lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+      <!-- Hero copy -->
+      <div class="lg:col-span-7">
+        <p class="inline-flex items-center gap-2 glass-soft rounded-full px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> 공중에 떠 있는 도서관
+        </p>
+        <h1 class="mt-4 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.05]">
+          내 서재가 <br class="hidden sm:block"/>
+          <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-amber-400">빛처럼 펼쳐진다.</span>
+        </h1>
+        <p class="mt-5 max-w-xl text-slate-700 dark:text-slate-300 text-base sm:text-lg leading-relaxed">
+          shelf는 종이도 나무도 아닌, 빛과 공기 위에 책을 띄운다. 검색하고, 모으고,
+          오늘의 기분에 맞는 책을 부드럽게 골라봐.
+        </p>
+
+        <div class="mt-7 flex flex-wrap gap-3">
+          <a href="#bookshelf" class="lift inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-medium text-white bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-glass hover:shadow-glass-lg">
+            내 서재 열기
+            <svg viewBox="0 0 24 24" class="w-4 h-4"><path fill="currentColor" d="M13 5l7 7l-7 7l-1.4-1.4L16.2 13H4v-2h12.2L11.6 6.4z"/></svg>
+          </a>
+          <a href="#" class="lift inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-medium glass-soft">
+            책 검색 둘러보기
+          </a>
+        </div>
+      </div>
+
+      <!-- Stats (3 glass panels) -->
+      <div id="stats" class="lg:col-span-5 grid grid-cols-3 gap-3 sm:gap-4">
+        <div class="glass rounded-3xl p-4 sm:p-5 shadow-glass lift animate-float">
+          <div class="text-xs text-slate-600 dark:text-slate-300">읽은 책</div>
+          <div class="mt-1 text-3xl sm:text-4xl font-semibold tracking-tight">42</div>
+          <div class="mt-3 h-1.5 rounded-full bg-white/60 dark:bg-white/10 overflow-hidden">
+            <div class="h-full w-3/4 rounded-full bg-gradient-to-r from-emerald-400 to-sky-500"></div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-600 dark:text-slate-400">올해 +12권</div>
+        </div>
+        <div class="glass rounded-3xl p-4 sm:p-5 shadow-glass lift animate-float" style="animation-delay:-2s">
+          <div class="text-xs text-slate-600 dark:text-slate-300">읽고 싶은</div>
+          <div class="mt-1 text-3xl sm:text-4xl font-semibold tracking-tight">28</div>
+          <div class="mt-3 h-1.5 rounded-full bg-white/60 dark:bg-white/10 overflow-hidden">
+            <div class="h-full w-1/2 rounded-full bg-gradient-to-r from-fuchsia-400 to-violet-500"></div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-600 dark:text-slate-400">위시리스트</div>
+        </div>
+        <div class="glass rounded-3xl p-4 sm:p-5 shadow-glass lift animate-float" style="animation-delay:-4s">
+          <div class="text-xs text-slate-600 dark:text-slate-300">평균 평점</div>
+          <div class="mt-1 text-3xl sm:text-4xl font-semibold tracking-tight">4.3</div>
+          <div class="mt-3 flex items-center gap-0.5 text-amber-400 text-sm" aria-label="평균 4.3점">
+            <span>★</span><span>★</span><span>★</span><span>★</span><span class="text-slate-300 dark:text-slate-600">★</span>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-600 dark:text-slate-400">최근 30일</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== BOOKSHELF ====================== -->
+    <section id="bookshelf" class="mt-16 sm:mt-20">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight">내 서재</h2>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">8 ~ 12권의 책이 빛 위에 떠 있어.</p>
+        </div>
+
+        <!-- Filter pills (glass) -->
+        <div role="tablist" aria-label="서재 필터" class="glass-soft rounded-2xl p-1 flex items-center gap-1 text-sm">
+          <button role="tab" aria-selected="true"
+                  class="px-3.5 py-1.5 rounded-xl bg-white/70 dark:bg-white/15 shadow-sm font-medium">전체 <span class="opacity-60">10</span></button>
+          <button role="tab" aria-selected="false"
+                  class="px-3.5 py-1.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-white/40 dark:hover:bg-white/10">읽고 싶음</button>
+          <button role="tab" aria-selected="false"
+                  class="px-3.5 py-1.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-white/40 dark:hover:bg-white/10">읽는 중</button>
+          <button role="tab" aria-selected="false"
+                  class="px-3.5 py-1.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-white/40 dark:hover:bg-white/10">완독</button>
+        </div>
+      </div>
+
+      <!-- Book grid: 2 / 3 / 4 / 5 columns -->
+      <ul class="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+
+        <!-- BOOK 1 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-1 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">FICTION</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">파친코</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">이민진</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-200/50 dark:bg-emerald-400/15 rounded-full px-2 py-0.5">완독</span>
+              <span class="text-[11px] text-amber-500">★ 4.8</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- BOOK 2 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-2 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">SCI-FI</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">프로젝트 헤일메리</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">앤디 위어</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-sky-700 dark:text-sky-300 bg-sky-200/50 dark:bg-sky-400/15 rounded-full px-2 py-0.5">읽는 중</span>
+              <span class="text-[11px] text-amber-500">★ —</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- BOOK 3 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-3 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">ESSAY</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">나는 나로 살기로 했다</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">김수현</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-200/50 dark:bg-emerald-400/15 rounded-full px-2 py-0.5">완독</span>
+              <span class="text-[11px] text-amber-500">★ 4.2</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- BOOK 4 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-4 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">NOVEL</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">달러구트 꿈 백화점</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">이미예</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-fuchsia-700 dark:text-fuchsia-300 bg-fuchsia-200/50 dark:bg-fuchsia-400/15 rounded-full px-2 py-0.5">읽고 싶음</span>
+              <span class="text-[11px] text-amber-500">★ —</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- BOOK 5 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-5 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">DESIGN</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">디자이너의 일</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">박창선</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-200/50 dark:bg-emerald-400/15 rounded-full px-2 py-0.5">완독</span>
+              <span class="text-[11px] text-amber-500">★ 4.5</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- BOOK 6 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-6 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">TECH</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">클린 아키텍처</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">로버트 C. 마틴</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-sky-700 dark:text-sky-300 bg-sky-200/50 dark:bg-sky-400/15 rounded-full px-2 py-0.5">읽는 중</span>
+              <span class="text-[11px] text-amber-500">★ —</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- BOOK 7 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-7 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">POETRY</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">슬픔이 없는 십오 초</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">심보선</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-200/50 dark:bg-emerald-400/15 rounded-full px-2 py-0.5">완독</span>
+              <span class="text-[11px] text-amber-500">★ 4.6</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- BOOK 8 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-8 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">SCIENCE</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">코스모스</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">칼 세이건</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-fuchsia-700 dark:text-fuchsia-300 bg-fuchsia-200/50 dark:bg-fuchsia-400/15 rounded-full px-2 py-0.5">읽고 싶음</span>
+              <span class="text-[11px] text-amber-500">★ —</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- BOOK 9 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-9 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">FICTION</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">아몬드</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">손원평</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-200/50 dark:bg-emerald-400/15 rounded-full px-2 py-0.5">완독</span>
+              <span class="text-[11px] text-amber-500">★ 4.7</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- BOOK 10 -->
+        <li>
+          <article class="glass rounded-3xl p-3 shadow-glass lift hover:border-white/80 dark:hover:border-white/25 h-full flex flex-col">
+            <div class="cover spine cv-10 aspect-[2/3] rounded-2xl flex items-end p-3">
+              <span class="text-white/95 text-xs font-medium tracking-wide drop-shadow">BIZ</span>
+            </div>
+            <div class="mt-3 px-1 flex-1">
+              <h3 class="font-semibold text-sm leading-snug line-clamp-2">제로 투 원</h3>
+              <p class="mt-0.5 text-xs text-slate-600 dark:text-slate-300">피터 틸</p>
+            </div>
+            <div class="mt-2 px-1 flex items-center justify-between">
+              <span class="inline-flex items-center gap-1 text-[11px] text-sky-700 dark:text-sky-300 bg-sky-200/50 dark:bg-sky-400/15 rounded-full px-2 py-0.5">읽는 중</span>
+              <span class="text-[11px] text-amber-500">★ —</span>
+            </div>
+          </article>
+        </li>
+
+        <!-- EMPTY SLOT 1 (dashed translucent) -->
+        <li>
+          <button class="w-full h-full min-h-[260px] rounded-3xl border-2 border-dashed border-white/60 dark:border-white/20 bg-white/20 dark:bg-white/5 backdrop-blur-md text-slate-700 dark:text-slate-300 lift hover:bg-white/30 dark:hover:bg-white/10 flex flex-col items-center justify-center gap-2">
+            <span class="grid place-items-center w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 border border-white/60 dark:border-white/15 text-xl">+</span>
+            <span class="text-sm font-medium">책 추가</span>
+            <span class="text-[11px] opacity-70">검색해서 담아보기</span>
+          </button>
+        </li>
+
+        <!-- EMPTY SLOT 2 -->
+        <li class="hidden md:block">
+          <button class="w-full h-full min-h-[260px] rounded-3xl border-2 border-dashed border-white/60 dark:border-white/20 bg-white/20 dark:bg-white/5 backdrop-blur-md text-slate-700 dark:text-slate-300 lift hover:bg-white/30 dark:hover:bg-white/10 flex flex-col items-center justify-center gap-2">
+            <span class="grid place-items-center w-10 h-10 rounded-2xl bg-white/60 dark:bg-white/10 border border-white/60 dark:border-white/15 text-xl">+</span>
+            <span class="text-sm font-medium">책 추가</span>
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ====================== AUTHORS (horizontal glass chips) ====================== -->
+    <section class="mt-16 sm:mt-20">
+      <div class="flex items-end justify-between gap-4">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-semibold tracking-tight">자주 읽는 작가</h2>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">옆으로 밀어서 더 보기</p>
+        </div>
+        <div class="hidden sm:flex gap-2">
+          <button aria-label="이전" class="glass-soft lift w-10 h-10 rounded-2xl grid place-items-center">‹</button>
+          <button aria-label="다음" class="glass-soft lift w-10 h-10 rounded-2xl grid place-items-center">›</button>
+        </div>
+      </div>
+
+      <div class="mt-5 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 overflow-x-auto no-scrollbar">
+        <ul class="flex gap-3 sm:gap-4 min-w-max pr-4">
+          <!-- author chip template -->
+          <li>
+            <a href="#" class="glass rounded-2xl lift flex items-center gap-3 pl-2 pr-4 py-2 shadow-glass">
+              <span class="cover cv-2 w-10 h-10 rounded-xl"></span>
+              <span class="flex flex-col">
+                <span class="text-sm font-medium leading-tight">앤디 위어</span>
+                <span class="text-[11px] text-slate-600 dark:text-slate-300">3권</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="glass rounded-2xl lift flex items-center gap-3 pl-2 pr-4 py-2 shadow-glass">
+              <span class="cover cv-1 w-10 h-10 rounded-xl"></span>
+              <span class="flex flex-col">
+                <span class="text-sm font-medium leading-tight">이민진</span>
+                <span class="text-[11px] text-slate-600 dark:text-slate-300">2권</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="glass rounded-2xl lift flex items-center gap-3 pl-2 pr-4 py-2 shadow-glass">
+              <span class="cover cv-8 w-10 h-10 rounded-xl"></span>
+              <span class="flex flex-col">
+                <span class="text-sm font-medium leading-tight">칼 세이건</span>
+                <span class="text-[11px] text-slate-600 dark:text-slate-300">2권</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="glass rounded-2xl lift flex items-center gap-3 pl-2 pr-4 py-2 shadow-glass">
+              <span class="cover cv-4 w-10 h-10 rounded-xl"></span>
+              <span class="flex flex-col">
+                <span class="text-sm font-medium leading-tight">손원평</span>
+                <span class="text-[11px] text-slate-600 dark:text-slate-300">2권</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="glass rounded-2xl lift flex items-center gap-3 pl-2 pr-4 py-2 shadow-glass">
+              <span class="cover cv-7 w-10 h-10 rounded-xl"></span>
+              <span class="flex flex-col">
+                <span class="text-sm font-medium leading-tight">심보선</span>
+                <span class="text-[11px] text-slate-600 dark:text-slate-300">1권</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="glass rounded-2xl lift flex items-center gap-3 pl-2 pr-4 py-2 shadow-glass">
+              <span class="cover cv-10 w-10 h-10 rounded-xl"></span>
+              <span class="flex flex-col">
+                <span class="text-sm font-medium leading-tight">피터 틸</span>
+                <span class="text-[11px] text-slate-600 dark:text-slate-300">1권</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="glass rounded-2xl lift flex items-center gap-3 pl-2 pr-4 py-2 shadow-glass">
+              <span class="cover cv-5 w-10 h-10 rounded-xl"></span>
+              <span class="flex flex-col">
+                <span class="text-sm font-medium leading-tight">박창선</span>
+                <span class="text-[11px] text-slate-600 dark:text-slate-300">1권</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a href="#" class="glass rounded-2xl lift flex items-center gap-3 pl-2 pr-4 py-2 shadow-glass">
+              <span class="cover cv-6 w-10 h-10 rounded-xl"></span>
+              <span class="flex flex-col">
+                <span class="text-sm font-medium leading-tight">로버트 C. 마틴</span>
+                <span class="text-[11px] text-slate-600 dark:text-slate-300">1권</span>
+              </span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ====================== FOOTER ====================== -->
+    <footer class="mt-20 sm:mt-24">
+      <div class="glass rounded-3xl shadow-glass px-5 sm:px-7 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <span class="grid place-items-center w-7 h-7 rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white text-xs font-semibold">S</span>
+          <span class="text-sm text-slate-700 dark:text-slate-300">shelf · GETIT 9기 · shelf.get-it.cloud</span>
+        </div>
+        <div class="text-xs text-slate-600 dark:text-slate-400">© 2026 shelf. 빛 위의 책장.</div>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // ===== Dark mode toggle with localStorage =====
+    (function () {
+      const STORAGE_KEY = 'shelf-theme';
+      const root = document.documentElement;
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (stored === 'dark' || (!stored && prefersDark)) root.classList.add('dark');
+
+      const btn = document.getElementById('themeToggle');
+      btn && btn.addEventListener('click', () => {
+        root.classList.toggle('dark');
+        localStorage.setItem(STORAGE_KEY, root.classList.contains('dark') ? 'dark' : 'light');
+      });
+    })();
+  </script>
+</body>
+</html>

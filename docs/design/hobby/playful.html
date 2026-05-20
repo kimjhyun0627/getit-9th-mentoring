@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ko" class="">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>취미메이트 · Playful</title>
+
+    <!--
+      ==============================================================
+      Persona: PLAYFUL (hobby.get-it.cloud · Discover)
+      차별 포인트:
+        - 비비드 코랄/라임/라일락/옐로우 4색 그라데이션 카드
+        - 살짝 회전된 카드 (tilt-l/r) + 호버 시 바운스+정렬
+        - 이모지를 1급 시각 요소로 사용 (각 카드 6xl 이모지)
+        - 도트 + 스티커(체크/스파클) 패턴 배경
+        - 라운드 디스플레이 폰트 (Quicksand/Lexend)
+      Warm과 차별: Warm은 부드러운 파스텔 한국 감성. Playful은 더
+      비비드/장난스럽고 회전+이모지+컬러 그림자가 핵심.
+      ==============================================================
+    -->
+
+    <!-- Pretendard -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+    />
+    <!-- Display: Quicksand + Lexend -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Lexend:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Pretendard Variable", "Pretendard", "system-ui", "sans-serif"],
+              display: ["Lexend", "Quicksand", "Pretendard Variable", "sans-serif"],
+              round: ["Quicksand", "Lexend", "Pretendard Variable", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      :root { color-scheme: light; }
+      html.dark { color-scheme: dark; }
+
+      /* dotted backdrop */
+      .bg-dotted {
+        background-image: radial-gradient(rgba(15,23,42,0.08) 1.2px, transparent 1.2px);
+        background-size: 22px 22px;
+      }
+      .dark .bg-dotted {
+        background-image: radial-gradient(rgba(255,255,255,0.08) 1.2px, transparent 1.2px);
+      }
+
+      .blob {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(60px);
+        opacity: 0.55;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .dark .blob { opacity: 0.35; filter: blur(70px); }
+
+      /* card gradients per category */
+      .card-coral  { background-image: linear-gradient(135deg,#ffb199 0%,#ff6a88 55%,#ff3d7f 100%); }
+      .card-lime   { background-image: linear-gradient(135deg,#c8f284 0%,#6ee7b7 55%,#14b8a6 100%); }
+      .card-violet { background-image: linear-gradient(135deg,#c4b5fd 0%,#8b5cf6 55%,#6366f1 100%); }
+      .card-sun    { background-image: linear-gradient(135deg,#fde68a 0%,#fb923c 55%,#f43f5e 100%); }
+      .card-sky    { background-image: linear-gradient(135deg,#bae6fd 0%,#60a5fa 55%,#6366f1 100%); }
+      .card-mint   { background-image: linear-gradient(135deg,#d9f99d 0%,#34d399 55%,#0ea5e9 100%); }
+
+      /* dark — desaturate + glow */
+      .dark .card-coral  { background-image: linear-gradient(135deg,#b86b6b 0%,#c0466a 55%,#b03070 100%); box-shadow: 0 18px 50px -18px rgba(255,61,127,.45), inset 0 0 0 1px rgba(255,255,255,.06); }
+      .dark .card-lime   { background-image: linear-gradient(135deg,#7fae5a 0%,#4fa78b 55%,#0f7a72 100%); box-shadow: 0 18px 50px -18px rgba(110,231,183,.4), inset 0 0 0 1px rgba(255,255,255,.06); }
+      .dark .card-violet { background-image: linear-gradient(135deg,#8c79c4 0%,#6e44c8 55%,#4a4cc0 100%); box-shadow: 0 18px 50px -18px rgba(139,92,246,.5), inset 0 0 0 1px rgba(255,255,255,.06); }
+      .dark .card-sun    { background-image: linear-gradient(135deg,#c5a35e 0%,#c47238 55%,#b03350 100%); box-shadow: 0 18px 50px -18px rgba(251,146,60,.45), inset 0 0 0 1px rgba(255,255,255,.06); }
+      .dark .card-sky    { background-image: linear-gradient(135deg,#6e8fb8 0%,#4870b8 55%,#4a4cc0 100%); box-shadow: 0 18px 50px -18px rgba(96,165,250,.4), inset 0 0 0 1px rgba(255,255,255,.06); }
+      .dark .card-mint   { background-image: linear-gradient(135deg,#7fae4c 0%,#2a946d 55%,#0a6e9e 100%); box-shadow: 0 18px 50px -18px rgba(52,211,153,.4), inset 0 0 0 1px rgba(255,255,255,.06); }
+
+      /* rotation utility */
+      .tilt-l  { transform: rotate(-1.8deg); }
+      .tilt-r  { transform: rotate(1.6deg); }
+      .tilt-l2 { transform: rotate(-0.9deg); }
+      .tilt-r2 { transform: rotate(1.1deg); }
+
+      .card {
+        transition:
+          transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 280ms ease;
+        will-change: transform;
+      }
+      .card:hover:not(.is-closed) {
+        transform: rotate(0deg) translateY(-8px) scale(1.025);
+        box-shadow:
+          0 32px 60px -22px rgba(0,0,0,.28),
+          inset 0 0 0 1px rgba(255,255,255,.25);
+      }
+      .dark .card:hover:not(.is-closed) {
+        box-shadow:
+          0 32px 60px -22px rgba(0,0,0,.6),
+          inset 0 0 0 1px rgba(255,255,255,.08),
+          0 0 40px -10px rgba(255,255,255,.12);
+      }
+      .card.is-closed { filter: grayscale(.7) brightness(.95); opacity: .65; }
+      .dark .card.is-closed { filter: grayscale(.65) brightness(.7); opacity: .55; }
+
+      .emoji { display:inline-block; transition: transform 320ms cubic-bezier(.34,1.56,.64,1); }
+      .card:hover:not(.is-closed) .emoji { animation: bounce 700ms cubic-bezier(.34,1.56,.64,1) 1; }
+      @keyframes bounce {
+        0%   { transform: translateY(0) rotate(0); }
+        30%  { transform: translateY(-12px) rotate(-8deg); }
+        60%  { transform: translateY(2px) rotate(6deg); }
+        100% { transform: translateY(0) rotate(0); }
+      }
+
+      .arrow { transition: transform 240ms ease; }
+      .card:hover:not(.is-closed) .arrow { transform: translateX(6px) rotate(-12deg); }
+
+      .float-slow { animation: float 6s ease-in-out infinite; }
+      .float-mid  { animation: float 4.5s ease-in-out infinite; animation-delay: -1.2s; }
+      .float-fast { animation: float 3.5s ease-in-out infinite; animation-delay: -2.4s; }
+      @keyframes float {
+        0%,100% { transform: translateY(0) rotate(var(--r,0deg)); }
+        50%     { transform: translateY(-10px) rotate(calc(var(--r,0deg) + 4deg)); }
+      }
+
+      .chip-pop { transition: transform 200ms cubic-bezier(.34,1.56,.64,1); }
+      .chip-pop:hover, .chip-pop:focus-visible { transform: translateY(-2px) scale(1.06) rotate(-2deg); }
+
+      /* focus a11y */
+      a:focus-visible, button:focus-visible {
+        outline: 3px solid #6366f1;
+        outline-offset: 3px;
+        border-radius: 14px;
+      }
+      .dark a:focus-visible, .dark button:focus-visible { outline-color: #fde68a; }
+    </style>
+  </head>
+
+  <body class="font-sans antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+    <div class="relative overflow-hidden">
+      <!-- color blobs -->
+      <div class="blob" style="width:380px;height:380px;top:-80px;left:-60px;background:radial-gradient(circle,#ff8aae 0%,transparent 65%);"></div>
+      <div class="blob" style="width:320px;height:320px;top:60px;right:-40px;background:radial-gradient(circle,#a5b4fc 0%,transparent 65%);"></div>
+      <div class="blob" style="width:360px;height:360px;bottom:-80px;left:30%;background:radial-gradient(circle,#86efac 0%,transparent 65%);"></div>
+      <div class="blob" style="width:300px;height:300px;top:40%;right:10%;background:radial-gradient(circle,#fde68a 0%,transparent 65%);"></div>
+
+      <!-- dotted backdrop overlay -->
+      <div class="absolute inset-0 bg-dotted pointer-events-none"></div>
+
+      <!-- HEADER -->
+      <header class="relative z-10 max-w-[1280px] mx-auto px-5 lg:px-10 pt-6 flex items-center gap-3 sm:gap-5">
+        <a href="#" class="group inline-flex items-center gap-2.5 shrink-0">
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 via-fuchsia-500 to-violet-500 text-white text-xl font-display font-extrabold shadow-lg shadow-fuchsia-500/30 group-hover:rotate-6 group-hover:scale-105 transition">
+            🤲
+          </span>
+          <span class="font-display text-lg font-extrabold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
+            취미<span class="text-rose-500 dark:text-rose-300">메이트</span>
+          </span>
+        </a>
+
+        <!-- search -->
+        <label class="relative flex-1 max-w-xl hidden sm:block">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">🔎</span>
+          <input
+            type="text"
+            placeholder="태그/장소로 검색 · 예: 마라탕, 북문, 풋살"
+            class="w-full rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 pl-11 pr-4 py-2.5 text-sm font-round text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm focus:ring-2 focus:ring-rose-400 outline-none transition"
+          />
+        </label>
+
+        <div class="ml-auto flex items-center gap-2.5">
+          <button
+            id="theme-toggle"
+            class="inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 text-lg hover:rotate-12 hover:scale-110 transition shadow-sm"
+            aria-label="다크 모드 토글"
+          >
+            <span class="dark:hidden">🌙</span>
+            <span class="hidden dark:inline">☀️</span>
+          </button>
+          <a
+            href="#signin"
+            class="inline-flex items-center gap-1.5 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 sm:px-5 py-2.5 font-display font-bold text-sm shadow-md hover:scale-[1.04] hover:-rotate-1 transition"
+          >
+            Sign in <span>→</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- HERO + CTA -->
+      <main class="relative z-10 max-w-[1280px] mx-auto px-5 lg:px-10 pt-10 lg:pt-14 pb-14">
+        <div class="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8">
+          <div class="max-w-2xl">
+            <span class="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3.5 py-1.5 text-xs font-round font-bold text-rose-600 dark:text-rose-300 shadow-sm">
+              <span>🎉</span><span>KNU 학우 일회성 모임</span>
+            </span>
+            <h1 class="mt-5 font-display font-extrabold tracking-tight text-4xl sm:text-5xl lg:text-6xl leading-[1.05] text-slate-900 dark:text-white">
+              오늘 누구랑
+              <span class="block">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-600 dark:from-rose-300 dark:via-fuchsia-300 dark:to-violet-300">뭐 할까?</span>
+                <span class="inline-block float-fast" style="--r:-6deg">🥳</span>
+              </span>
+            </h1>
+            <p class="mt-5 max-w-xl text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-round">
+              공강·주말, 한 끼·한 게임. 경북대 학우끼리 가볍게 모이는
+              <span class="font-bold text-slate-900 dark:text-white">일회성 취미 모임</span> 매칭.
+            </p>
+          </div>
+
+          <!-- main CTA: 새 모임 만들기 -->
+          <a
+            href="#new"
+            class="group relative inline-flex items-center gap-3 rounded-full card-coral text-white px-7 py-4 font-display font-extrabold text-lg shadow-xl shadow-rose-400/40 hover:scale-[1.04] hover:-rotate-2 transition self-start"
+          >
+            <span class="text-2xl emoji">＋</span>
+            <span>새 모임 만들기</span>
+            <span class="arrow">→</span>
+            <span class="absolute -top-2 -right-2 text-2xl float-mid" style="--r:0deg">✨</span>
+          </a>
+        </div>
+
+        <!-- FILTER CHIPS -->
+        <div class="mt-9 flex flex-wrap items-center gap-2.5" role="tablist" aria-label="필터">
+          <button class="chip-pop inline-flex items-center gap-1.5 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 py-2 text-sm font-round font-bold shadow-md" aria-selected="true">
+            🔥 전체
+          </button>
+          <button class="chip-pop inline-flex items-center gap-1.5 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 text-slate-700 dark:text-slate-200 px-4 py-2 text-sm font-round font-bold shadow-sm">
+            🌞 오늘
+          </button>
+          <button class="chip-pop inline-flex items-center gap-1.5 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 text-slate-700 dark:text-slate-200 px-4 py-2 text-sm font-round font-bold shadow-sm">
+            🗓 이번주
+          </button>
+          <span class="mx-1 hidden sm:inline-block h-5 w-px bg-slate-300/70 dark:bg-white/10"></span>
+          <button class="chip-pop inline-flex items-center gap-1.5 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-200 px-4 py-2 text-sm font-round font-bold">#맛집</button>
+          <button class="chip-pop inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 px-4 py-2 text-sm font-round font-bold">#스포츠</button>
+          <button class="chip-pop inline-flex items-center gap-1.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-200 px-4 py-2 text-sm font-round font-bold">#스터디</button>
+          <button class="chip-pop inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200 px-4 py-2 text-sm font-round font-bold">#보드게임</button>
+          <button class="chip-pop inline-flex items-center gap-1.5 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-200 px-4 py-2 text-sm font-round font-bold">#카페</button>
+        </div>
+
+        <!-- MEETUP GRID -->
+        <section id="meetups" class="mt-10">
+          <div class="flex items-end justify-between flex-wrap gap-3 mb-6">
+            <h2 class="font-display font-extrabold text-2xl sm:text-3xl text-slate-900 dark:text-white">
+              지금 모집 중 <span class="inline-block float-mid" style="--r:0deg">🎯</span>
+            </h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-round">총 <b class="text-slate-800 dark:text-slate-100">7</b>개 · 정원 마감되면 자동 알림</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
+
+            <!-- Card 1: 마라탕 (coral) -->
+            <article class="card tilt-l rounded-[28px] card-coral text-white p-6 relative overflow-hidden shadow-xl shadow-rose-400/30">
+              <div class="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-white/15"></div>
+              <div class="absolute top-8 right-10 h-12 w-12 rounded-full bg-white/15"></div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/25 backdrop-blur px-3 py-1 text-[11px] font-round font-bold tracking-wider">🌶 오늘</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white/95 text-rose-600 px-2.5 py-1 text-[11px] font-display font-extrabold">2/4</span>
+              </div>
+              <div class="mt-5 flex items-start gap-3">
+                <span class="emoji text-5xl drop-shadow-md">🍜</span>
+                <div>
+                  <h3 class="font-display font-extrabold text-xl leading-tight">북문 마라탕 같이 갈 사람!</h3>
+                  <p class="mt-1 text-white/90 font-round text-sm">오늘 18:00 · 북문 라화방</p>
+                </div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-1.5">
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#마라탕</span>
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#북문</span>
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#맛집</span>
+              </div>
+              <div class="mt-5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-8 w-8 rounded-full bg-amber-200 text-amber-900 font-display font-extrabold items-center justify-center text-sm">진</span>
+                  <span class="text-sm font-round font-bold text-white/95">진현 · 멘토</span>
+                </div>
+                <button class="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-rose-600 px-4 py-2 font-display font-extrabold text-sm shadow">
+                  신청 <span class="arrow">→</span>
+                </button>
+              </div>
+            </article>
+
+            <!-- Card 2: 풋살 (lime) -->
+            <article class="card tilt-r rounded-[28px] card-lime text-emerald-950 p-6 relative overflow-hidden shadow-xl shadow-emerald-400/30">
+              <div class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/25"></div>
+              <div class="absolute top-6 right-6 h-10 w-10 rounded-2xl bg-white/40 rotate-12"></div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-900/15 px-3 py-1 text-[11px] font-round font-bold tracking-wider">⚽ 토요일</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-950 text-lime-200 px-2.5 py-1 text-[11px] font-display font-extrabold">7/10</span>
+              </div>
+              <div class="mt-5 flex items-start gap-3">
+                <span class="emoji text-5xl drop-shadow-md">⚽</span>
+                <div>
+                  <h3 class="font-display font-extrabold text-xl leading-tight">주말 풋살 한판 🔥</h3>
+                  <p class="mt-1 text-emerald-900/80 font-round text-sm">토 14:00 · 대운동장</p>
+                </div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-1.5">
+                <span class="rounded-full bg-emerald-900/15 px-2.5 py-1 text-[11px] font-round font-bold">#풋살</span>
+                <span class="rounded-full bg-emerald-900/15 px-2.5 py-1 text-[11px] font-round font-bold">#스포츠</span>
+                <span class="rounded-full bg-emerald-900/15 px-2.5 py-1 text-[11px] font-round font-bold">#초보환영</span>
+              </div>
+              <div class="mt-5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-8 w-8 rounded-full bg-orange-300 text-orange-900 font-display font-extrabold items-center justify-center text-sm">민</span>
+                  <span class="text-sm font-round font-bold text-emerald-950">민지 · 23학번</span>
+                </div>
+                <button class="inline-flex items-center gap-1.5 rounded-full bg-emerald-950 text-lime-200 px-4 py-2 font-display font-extrabold text-sm shadow">
+                  신청 <span class="arrow">→</span>
+                </button>
+              </div>
+            </article>
+
+            <!-- Card 3: 보드게임 (violet) -->
+            <article class="card tilt-l2 rounded-[28px] card-violet text-white p-6 relative overflow-hidden shadow-xl shadow-violet-500/30">
+              <div class="absolute top-0 right-0 h-full w-1/2 opacity-25" style="background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.5) 0 2px, transparent 2px 14px);"></div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/25 backdrop-blur px-3 py-1 text-[11px] font-round font-bold tracking-wider">🎲 금요일</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white/95 text-violet-700 px-2.5 py-1 text-[11px] font-display font-extrabold">3/5</span>
+              </div>
+              <div class="mt-5 flex items-start gap-3">
+                <span class="emoji text-5xl drop-shadow-md">🎲</span>
+                <div>
+                  <h3 class="font-display font-extrabold text-xl leading-tight">보드게임 카페 가실?</h3>
+                  <p class="mt-1 text-white/85 font-round text-sm">금 19:30 · 정문 BoardCafe</p>
+                </div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-1.5">
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#보드게임</span>
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#정문</span>
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#카탄</span>
+              </div>
+              <div class="mt-5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-8 w-8 rounded-full bg-pink-200 text-pink-900 font-display font-extrabold items-center justify-center text-sm">수</span>
+                  <span class="text-sm font-round font-bold text-white/95">수빈 · 22학번</span>
+                </div>
+                <button class="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-violet-700 px-4 py-2 font-display font-extrabold text-sm shadow">
+                  신청 <span class="arrow">→</span>
+                </button>
+              </div>
+            </article>
+
+            <!-- Card 4: 카페투어 (sun) -->
+            <article class="card tilt-r2 rounded-[28px] card-sun text-white p-6 relative overflow-hidden shadow-xl shadow-orange-400/30">
+              <span class="absolute top-6 right-10 h-3 w-3 rounded-full bg-white/80"></span>
+              <span class="absolute top-12 right-24 h-2 w-2 rounded-full bg-white/70"></span>
+              <span class="absolute top-20 right-8 h-2.5 w-2.5 rounded-full bg-white/75"></span>
+              <span class="absolute bottom-10 right-32 h-3 w-3 rounded-full bg-white/80"></span>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/25 backdrop-blur px-3 py-1 text-[11px] font-round font-bold tracking-wider">☕ 일요일</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white/95 text-orange-700 px-2.5 py-1 text-[11px] font-display font-extrabold">1/3</span>
+              </div>
+              <div class="mt-5 flex items-start gap-3">
+                <span class="emoji text-5xl drop-shadow-md">☕</span>
+                <div>
+                  <h3 class="font-display font-extrabold text-xl leading-tight">동성로 카페투어 🌿</h3>
+                  <p class="mt-1 text-white/90 font-round text-sm">일 13:00 · 동성로</p>
+                </div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-1.5">
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#카페</span>
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#동성로</span>
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#사진</span>
+              </div>
+              <div class="mt-5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-8 w-8 rounded-full bg-violet-200 text-violet-900 font-display font-extrabold items-center justify-center text-sm">하</span>
+                  <span class="text-sm font-round font-bold text-white/95">하늘 · 24학번</span>
+                </div>
+                <button class="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-orange-700 px-4 py-2 font-display font-extrabold text-sm shadow">
+                  신청 <span class="arrow">→</span>
+                </button>
+              </div>
+            </article>
+
+            <!-- Card 5: 알고리즘 스터디 (sky) -->
+            <article class="card tilt-l rounded-[28px] card-sky text-white p-6 relative overflow-hidden shadow-xl shadow-sky-400/30">
+              <div class="absolute -top-10 -right-6 h-28 w-28 rounded-full bg-white/15"></div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/25 backdrop-blur px-3 py-1 text-[11px] font-round font-bold tracking-wider">💻 수요일</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-white/95 text-sky-700 px-2.5 py-1 text-[11px] font-display font-extrabold">4/6</span>
+              </div>
+              <div class="mt-5 flex items-start gap-3">
+                <span class="emoji text-5xl drop-shadow-md">🧠</span>
+                <div>
+                  <h3 class="font-display font-extrabold text-xl leading-tight">알고리즘 1시간 스터디</h3>
+                  <p class="mt-1 text-white/85 font-round text-sm">수 20:00 · IT5호관 스터디룸</p>
+                </div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-1.5">
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#스터디</span>
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#알고리즘</span>
+                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-round font-bold">#코테</span>
+              </div>
+              <div class="mt-5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-8 w-8 rounded-full bg-lime-200 text-lime-900 font-display font-extrabold items-center justify-center text-sm">준</span>
+                  <span class="text-sm font-round font-bold text-white/95">준호 · 21학번</span>
+                </div>
+                <button class="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-sky-700 px-4 py-2 font-display font-extrabold text-sm shadow">
+                  신청 <span class="arrow">→</span>
+                </button>
+              </div>
+            </article>
+
+            <!-- Card 6: CLOSED — 야구 직관 (mint, 마감) -->
+            <article class="card is-closed tilt-r2 rounded-[28px] card-mint text-emerald-950 p-6 relative overflow-hidden shadow-xl shadow-emerald-400/20" aria-disabled="true">
+              <div class="absolute inset-0 bg-slate-900/10 pointer-events-none"></div>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-900/15 px-3 py-1 text-[11px] font-round font-bold tracking-wider">⚾ 토요일</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-950 text-emerald-100 px-2.5 py-1 text-[11px] font-display font-extrabold">5/5 · 마감</span>
+              </div>
+              <div class="mt-5 flex items-start gap-3">
+                <span class="emoji text-5xl drop-shadow-md">⚾</span>
+                <div>
+                  <h3 class="font-display font-extrabold text-xl leading-tight">삼성 라이온즈 직관!</h3>
+                  <p class="mt-1 text-emerald-900/80 font-round text-sm">토 17:00 · 라팍</p>
+                </div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-1.5">
+                <span class="rounded-full bg-emerald-900/15 px-2.5 py-1 text-[11px] font-round font-bold">#야구</span>
+                <span class="rounded-full bg-emerald-900/15 px-2.5 py-1 text-[11px] font-round font-bold">#직관</span>
+                <span class="rounded-full bg-emerald-900/15 px-2.5 py-1 text-[11px] font-round font-bold">#삼성</span>
+              </div>
+              <div class="mt-5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-8 w-8 rounded-full bg-rose-200 text-rose-900 font-display font-extrabold items-center justify-center text-sm">유</span>
+                  <span class="text-sm font-round font-bold text-emerald-950">유진 · 23학번 <span class="ml-1 text-[10px] rounded-full bg-amber-300 text-amber-900 px-1.5 py-0.5 align-middle">⚠ 노쇼 1회</span></span>
+                </div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-900/30 text-emerald-50 px-4 py-2 font-display font-extrabold text-sm">정원 마감</span>
+              </div>
+            </article>
+
+            <!-- Card 7: EMPTY placeholder (new 모집 만들기 prompt) -->
+            <a href="#new" class="group block rounded-[28px] p-6 relative overflow-hidden border-2 border-dashed border-slate-300 dark:border-white/15 bg-white/60 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 hover:-rotate-1 hover:scale-[1.02] transition shadow-sm">
+              <div class="h-full min-h-[260px] flex flex-col items-center justify-center text-center gap-3">
+                <span class="text-6xl float-mid" style="--r:-6deg">🪄</span>
+                <h3 class="font-display font-extrabold text-xl text-slate-800 dark:text-slate-100">여기 빈 자리!</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 font-round max-w-[220px]">
+                  찾는 모임이 없어? 직접 한 판 깔아보자.
+                </p>
+                <span class="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 py-2 font-display font-bold text-sm group-hover:scale-105 group-hover:rotate-1 transition">
+                  ＋ 새 모임 만들기
+                </span>
+              </div>
+            </a>
+
+          </div>
+
+          <!-- More / pagination hint -->
+          <div class="mt-10 flex items-center justify-center gap-3">
+            <button class="chip-pop inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 text-slate-700 dark:text-slate-200 px-5 py-2.5 text-sm font-display font-bold shadow-sm">
+              더 둘러보기 <span>↓</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="mt-16 pb-10 relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-400 via-fuchsia-500 to-violet-500 text-white text-lg font-display font-extrabold shadow">🤲</span>
+            <p class="text-sm text-slate-600 dark:text-slate-300 font-round">
+              © 취미메이트 · GETIT 9기 · hobby.get-it.cloud
+            </p>
+          </div>
+          <div class="flex items-center gap-2 text-xs font-round font-bold">
+            <span class="rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3 py-1.5 text-slate-700 dark:text-slate-200">🔐 통합 SSO</span>
+            <span class="rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3 py-1.5 text-slate-700 dark:text-slate-200">🚫 노쇼 패널티</span>
+          </div>
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      (function () {
+        const root = document.documentElement;
+        const toggle = document.getElementById("theme-toggle");
+        const apply = (mode) => {
+          if (mode === "dark") root.classList.add("dark");
+          else root.classList.remove("dark");
+        };
+        // initial: respect prefers-color-scheme
+        apply(
+          window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light"
+        );
+        toggle?.addEventListener("click", () => {
+          apply(root.classList.contains("dark") ? "light" : "dark");
+        });
+      })();
+    </script>
+  </body>
+</html>

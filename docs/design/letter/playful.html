@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="ko" class="">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GETIT 롤링페이퍼 · Playful</title>
+
+    <!--
+      ============================================================
+      차별 포인트 (Playful):
+      비비드 네온톤 포스트잇(hot pink/electric blue/lime/yellow/violet) +
+      -8°~+8° 큰 회전 + 손그림 폰트(Quicksand) + 컬러 그림자 +
+      스티커/이모지 도배 = "동아리 MT에서 한 명 한 명 붙인 메모판" 분위기.
+      Warm은 차분한 파스텔, Playful은 형광 채도로 절대 수렴 안 함.
+      본인 카드는 회전 0도 + 노란 dashed 테두리 + "내 카드" 뱃지로 한눈에.
+      ============================================================
+    -->
+
+    <!-- Pretendard -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+    />
+    <!-- Display: Quicksand + Lexend (rounded, friendly) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Lexend:wght@500;700;800&family=Caveat:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Pretendard Variable", "Pretendard", "system-ui", "sans-serif"],
+              display: ["Lexend", "Quicksand", "Pretendard Variable", "sans-serif"],
+              round: ["Quicksand", "Lexend", "Pretendard Variable", "sans-serif"],
+              hand: ["Caveat", "Quicksand", "Pretendard Variable", "cursive"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      :root { color-scheme: light; }
+      html.dark { color-scheme: dark; }
+
+      /* ----- background: dotted + soft blobs ----- */
+      .bg-dotted {
+        background-image: radial-gradient(rgba(15, 23, 42, 0.08) 1.2px, transparent 1.2px);
+        background-size: 22px 22px;
+      }
+      .dark .bg-dotted {
+        background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+      }
+      .blob {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(60px);
+        opacity: 0.55;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .dark .blob { opacity: 0.35; filter: blur(70px); }
+
+      /* ----- sticky notes: vivid neon palette ----- */
+      .sticky {
+        position: relative;
+        border-radius: 18px;
+        padding: 22px 20px 20px;
+        box-shadow:
+          0 14px 24px -10px rgba(0, 0, 0, 0.22),
+          0 2px 4px rgba(0, 0, 0, 0.08),
+          0 0 0 1px rgba(255, 255, 255, 0.35) inset;
+        transition:
+          transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 320ms ease;
+        will-change: transform;
+      }
+      .sticky::after {
+        /* tape strip on top */
+        content: "";
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%) rotate(-3deg);
+        width: 56px;
+        height: 18px;
+        background: rgba(255, 255, 255, 0.55);
+        border: 1px dashed rgba(0, 0, 0, 0.08);
+        border-radius: 4px;
+      }
+      .sticky:hover {
+        transform: rotate(0deg) translateY(-8px) scale(1.04) !important;
+        box-shadow:
+          0 26px 50px -16px rgba(0, 0, 0, 0.32),
+          0 0 0 2px rgba(255, 255, 255, 0.55) inset;
+        z-index: 5;
+      }
+      .dark .sticky {
+        box-shadow:
+          0 16px 30px -12px rgba(0, 0, 0, 0.6),
+          0 0 28px -8px var(--glow, rgba(255, 255, 255, 0.18)),
+          0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+      }
+      .dark .sticky::after {
+        background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.12);
+      }
+
+      /* color variants — neon vivid */
+      .sticky-pink   { background: #ff5fa8; color: #2a0419; --glow: rgba(255, 95, 168, 0.45); }
+      .sticky-blue   { background: #4ec9ff; color: #00253d; --glow: rgba(78, 201, 255, 0.45); }
+      .sticky-lime   { background: #c3ff4d; color: #1a2d00; --glow: rgba(195, 255, 77, 0.5); }
+      .sticky-yellow { background: #ffe14d; color: #3a2a00; --glow: rgba(255, 225, 77, 0.5); }
+      .sticky-violet { background: #b794ff; color: #1d0a45; --glow: rgba(183, 148, 255, 0.45); }
+      .sticky-orange { background: #ff9a4d; color: #3a1700; --glow: rgba(255, 154, 77, 0.45); }
+      .sticky-mint   { background: #5af0c2; color: #003a2a; --glow: rgba(90, 240, 194, 0.45); }
+      .sticky-peach  { background: #ffb3c1; color: #44102a; --glow: rgba(255, 179, 193, 0.4); }
+
+      /* dark: slightly desaturate + glow */
+      .dark .sticky-pink   { background: #c14a82; color: #ffe2ee; }
+      .dark .sticky-blue   { background: #2f9ac9; color: #e2f4ff; }
+      .dark .sticky-lime   { background: #8fc534; color: #1a2d00; }
+      .dark .sticky-yellow { background: #d3b733; color: #3a2a00; }
+      .dark .sticky-violet { background: #8a6dd0; color: #ece2ff; }
+      .dark .sticky-orange { background: #cc7434; color: #fff0e2; }
+      .dark .sticky-mint   { background: #46c89c; color: #003a2a; }
+      .dark .sticky-peach  { background: #c98ba0; color: #3a0d1f; }
+
+      /* tilts */
+      .tilt-1  { transform: rotate(-6deg); }
+      .tilt-2  { transform: rotate(4deg); }
+      .tilt-3  { transform: rotate(-3deg); }
+      .tilt-4  { transform: rotate(7deg); }
+      .tilt-5  { transform: rotate(-8deg); }
+      .tilt-6  { transform: rotate(2deg); }
+      .tilt-7  { transform: rotate(5deg); }
+      .tilt-8  { transform: rotate(-4deg); }
+      .tilt-9  { transform: rotate(6deg); }
+      .tilt-10 { transform: rotate(-2deg); }
+      .tilt-11 { transform: rotate(3deg); }
+      .tilt-12 { transform: rotate(-5deg); }
+
+      /* MINE — straight + dashed ring + glow */
+      .sticky-mine {
+        transform: rotate(0deg) scale(1.03);
+        outline: 3px dashed #facc15;
+        outline-offset: 4px;
+        z-index: 2;
+      }
+      .dark .sticky-mine { outline-color: #fde047; }
+
+      /* float anim for FAB / hero stickers */
+      @keyframes float {
+        0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+        50%      { transform: translateY(-8px) rotate(calc(var(--r, 0deg) + 4deg)); }
+      }
+      .float-slow { animation: float 6s ease-in-out infinite; }
+      .float-mid  { animation: float 4.5s ease-in-out infinite; animation-delay: -1.2s; }
+      .float-fast { animation: float 3.5s ease-in-out infinite; animation-delay: -2.4s; }
+
+      /* FAB bounce */
+      @keyframes bounce-in {
+        0%   { transform: translateY(0); }
+        30%  { transform: translateY(-6px) rotate(-4deg); }
+        60%  { transform: translateY(2px) rotate(3deg); }
+        100% { transform: translateY(0); }
+      }
+      .fab:hover { animation: bounce-in 700ms cubic-bezier(0.34, 1.56, 0.64, 1) 1; }
+
+      .divider-pill {
+        background-image: linear-gradient(135deg, #0f172a, #1e293b);
+      }
+
+      /* focus a11y */
+      a:focus-visible,
+      button:focus-visible {
+        outline: 3px solid #6366f1;
+        outline-offset: 3px;
+        border-radius: 14px;
+      }
+
+      /* handwritten signature on stickies */
+      .hand { font-family: "Caveat", cursive; }
+    </style>
+  </head>
+  <body class="font-sans antialiased bg-slate-50 text-slate-900">
+    <!-- =================== LIGHT PREVIEW =================== -->
+    <section id="light-preview" class="bg-gradient-to-b from-amber-50 via-rose-50 to-violet-50">
+      <div class="max-w-[1280px] mx-auto px-6 lg:px-10 pt-8 pb-6">
+        <p class="font-round font-bold text-xs tracking-[0.2em] text-slate-500 uppercase">
+          ☀️ Light Mode Preview
+        </p>
+      </div>
+      <div data-theme-scope="light"><div id="board-light"></div></div>
+    </section>
+
+    <!-- =================== DIVIDER =================== -->
+    <section class="bg-slate-100 py-10 relative overflow-hidden">
+      <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent"></div>
+      <div class="max-w-[1280px] mx-auto px-6 flex items-center justify-center">
+        <div class="divider-pill text-white px-7 py-3 rounded-full font-display font-bold tracking-wide shadow-lg shadow-slate-900/15 flex items-center gap-3">
+          <span class="text-amber-300">↓</span>
+          <span>다크 모드</span>
+          <span class="text-amber-300">↓</span>
+        </div>
+      </div>
+      <div class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent"></div>
+    </section>
+
+    <!-- =================== DARK PREVIEW =================== -->
+    <section id="dark-preview" class="bg-slate-950">
+      <div class="max-w-[1280px] mx-auto px-6 lg:px-10 pt-8 pb-6">
+        <p class="font-round font-bold text-xs tracking-[0.2em] text-slate-400 uppercase">
+          🌙 Dark Mode Preview
+        </p>
+      </div>
+      <div class="dark">
+        <div class="bg-slate-950 text-slate-100"><div id="board-dark"></div></div>
+      </div>
+    </section>
+
+    <!-- =================== LIVE TOGGLE =================== -->
+    <section id="live-toggle-section" class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+      <div class="max-w-[1280px] mx-auto px-6 lg:px-10 pt-10 pb-6 flex items-center justify-between">
+        <p class="font-round font-bold text-xs tracking-[0.2em] text-slate-500 dark:text-slate-400 uppercase">
+          🪄 Live Toggle — 실제 토글로 켜보기
+        </p>
+        <button
+          id="theme-toggle"
+          class="group inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-5 py-2.5 font-display font-bold text-sm shadow-md hover:scale-[1.04] transition"
+          aria-label="다크 모드 토글"
+        >
+          <span class="dark:hidden">🌙 다크로</span>
+          <span class="hidden dark:inline">☀️ 라이트로</span>
+        </button>
+      </div>
+      <div id="board-live" class="pb-16"></div>
+    </section>
+
+    <!-- =================== TEMPLATE =================== -->
+    <template id="board-template">
+      <div class="relative overflow-hidden">
+        <!-- color blobs -->
+        <div class="blob" style="width:380px;height:380px;top:-80px;left:-60px;background:radial-gradient(circle,#ff8aae 0%,transparent 65%);"></div>
+        <div class="blob" style="width:320px;height:320px;top:40px;right:-40px;background:radial-gradient(circle,#a5b4fc 0%,transparent 65%);"></div>
+        <div class="blob" style="width:360px;height:360px;bottom:40px;left:35%;background:radial-gradient(circle,#86efac 0%,transparent 65%);"></div>
+        <div class="absolute inset-0 bg-dotted pointer-events-none"></div>
+
+        <!-- HEADER -->
+        <header class="relative z-10 max-w-[1280px] mx-auto px-6 lg:px-10 pt-7 flex items-center justify-between">
+          <a href="#" class="group inline-flex items-center gap-2.5">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 via-fuchsia-500 to-violet-500 text-white text-lg font-display font-extrabold shadow-lg shadow-fuchsia-500/30 group-hover:rotate-6 group-hover:scale-105 transition">G</span>
+            <div>
+              <p class="font-display text-lg font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">GETIT 롤링페이퍼</p>
+              <p class="font-round text-[11px] text-slate-500 dark:text-slate-400 leading-tight">letter.get-it.cloud</p>
+            </div>
+          </a>
+
+          <div class="flex items-center gap-3">
+            <span class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-white/5 backdrop-blur px-3 py-1.5 text-xs font-round font-bold text-slate-700 dark:text-slate-200 ring-1 ring-slate-900/5 dark:ring-white/10">
+              <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>닉네임 <span class="text-rose-500 dark:text-rose-300">햄찌</span></span>
+            </span>
+            <button class="inline-flex items-center gap-1.5 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3.5 py-1.5 text-xs font-round font-bold text-slate-700 dark:text-slate-200 hover:scale-105 transition shadow-sm">
+              <span>👋</span> Sign out
+            </button>
+            <button data-local-toggle class="inline-flex items-center justify-center h-10 w-10 rounded-2xl bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 text-lg hover:rotate-12 hover:scale-110 transition shadow-sm" aria-label="다크 모드 토글">
+              <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀️</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- TITLE BAR -->
+        <main class="relative z-10 max-w-[1280px] mx-auto px-6 lg:px-10 pt-10 pb-24">
+          <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-5">
+            <div>
+              <span class="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3.5 py-1.5 text-xs font-round font-bold text-fuchsia-600 dark:text-fuchsia-300 shadow-sm">
+                <span>💌</span><span>2026 · 9기 종강 롤링페이퍼</span>
+              </span>
+              <h1 class="mt-4 font-display font-extrabold tracking-tight text-4xl sm:text-5xl text-slate-900 dark:text-white">
+                다 같이 한 줄씩
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-600 dark:from-rose-300 dark:via-fuchsia-300 dark:to-violet-300">붙여보자</span>
+                <span class="inline-block float-fast" style="--r:-6deg">🎉</span>
+              </h1>
+              <p class="mt-3 max-w-xl text-slate-600 dark:text-slate-300 font-round leading-relaxed">
+                익명으로 한 마디. 멘토에게 못 했던 말, 동기에게 띄우는 짧은 응원.
+                <span class="font-bold text-slate-900 dark:text-white">내 메시지만</span> 노란 점선으로 표시돼.
+              </p>
+            </div>
+
+            <!-- counters -->
+            <div class="flex items-center gap-3">
+              <div class="rounded-2xl bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-4 py-3 text-center shadow-sm">
+                <p class="font-display font-extrabold text-2xl text-slate-900 dark:text-white leading-none">142</p>
+                <p class="mt-1 text-[11px] font-round font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">전체 메시지</p>
+              </div>
+              <div class="rounded-2xl bg-yellow-300 dark:bg-yellow-400/90 ring-1 ring-yellow-900/10 px-4 py-3 text-center shadow-sm">
+                <p class="font-display font-extrabold text-2xl text-yellow-900 leading-none">3</p>
+                <p class="mt-1 text-[11px] font-round font-bold tracking-wider text-yellow-900/80 uppercase">내 카드</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- BOARD GRID — masonry-ish with rotations -->
+          <section class="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
+            <!-- 1 -->
+            <article class="sticky sticky-pink tilt-1">
+              <span class="absolute -top-3 -left-2 text-2xl">⭐</span>
+              <p class="font-round font-bold text-[15px] leading-snug">
+                멘토님 진짜 최고였어요!! 다음 학기에도 또 뵙고 싶다 🥹
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/12</span>
+              </div>
+            </article>
+
+            <!-- 2 -->
+            <article class="sticky sticky-blue tilt-2">
+              <p class="font-round font-bold text-[15px] leading-snug">
+                새벽까지 같이 디버깅한 거 평생 못 잊을 듯 ㅋㅋㅋ
+                다들 고생 많았다 🍻
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/13</span>
+              </div>
+            </article>
+
+            <!-- 3 — MINE -->
+            <article class="sticky sticky-lime sticky-mine">
+              <span class="absolute -top-4 -right-3 inline-flex items-center gap-1 rounded-full bg-yellow-300 text-yellow-900 px-2.5 py-1 text-[10px] font-display font-extrabold shadow ring-1 ring-yellow-900/20">
+                <span>📍</span> 내 카드
+              </span>
+              <p class="font-round font-bold text-[15px] leading-snug">
+                다들 진짜 고마웠어 진심으로!! 졸업 전에 한 번 더 뭉치자 🤝
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 햄찌 (나)</span>
+                <div class="flex items-center gap-1.5">
+                  <button class="rounded-full bg-emerald-900/10 hover:bg-emerald-900/20 px-2 py-1 text-[11px] font-round font-bold transition">✏️</button>
+                  <button class="rounded-full bg-emerald-900/10 hover:bg-rose-900/20 px-2 py-1 text-[11px] font-round font-bold transition">🗑️</button>
+                </div>
+              </div>
+            </article>
+
+            <!-- 4 -->
+            <article class="sticky sticky-yellow tilt-4">
+              <span class="absolute -top-3 right-4 text-2xl">✨</span>
+              <p class="font-round font-bold text-[15px] leading-snug">
+                나만의 작은 칸반보드, 진짜 직접 만들 수 있을 줄 몰랐다.
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/14</span>
+              </div>
+            </article>
+
+            <!-- 5 -->
+            <article class="sticky sticky-violet tilt-5">
+              <p class="font-round font-bold text-[15px] leading-snug">
+                롤링페이퍼 만든 사람 천재인 듯 ㅠㅠ 너무 좋아 💜
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/15</span>
+              </div>
+            </article>
+
+            <!-- 6 -->
+            <article class="sticky sticky-orange tilt-6">
+              <p class="font-round font-bold text-[15px] leading-snug">
+                코드 리뷰 받으면서 진짜 많이 배웠어요. 감사합니다 🙏
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/15</span>
+              </div>
+            </article>
+
+            <!-- 7 -->
+            <article class="sticky sticky-mint tilt-7">
+              <span class="absolute -bottom-2 -left-2 text-2xl">🌱</span>
+              <p class="font-round font-bold text-[15px] leading-snug">
+                같이 한 학기 버텨준 거 자체가 대단 💪 우리 진짜 자랑스러워.
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/16</span>
+              </div>
+            </article>
+
+            <!-- 8 — MINE -->
+            <article class="sticky sticky-pink sticky-mine">
+              <span class="absolute -top-4 -right-3 inline-flex items-center gap-1 rounded-full bg-yellow-300 text-yellow-900 px-2.5 py-1 text-[10px] font-display font-extrabold shadow ring-1 ring-yellow-900/20">
+                <span>📍</span> 내 카드
+              </span>
+              <p class="font-round font-bold text-[15px] leading-snug">
+                멘토님 매번 새벽까지 답변해주셔서 진짜 죄송하고 감사합니다 🥲
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 햄찌 (나)</span>
+                <div class="flex items-center gap-1.5">
+                  <button class="rounded-full bg-black/10 hover:bg-black/20 px-2 py-1 text-[11px] font-round font-bold transition">✏️</button>
+                  <button class="rounded-full bg-black/10 hover:bg-rose-900/30 px-2 py-1 text-[11px] font-round font-bold transition">🗑️</button>
+                </div>
+              </div>
+            </article>
+
+            <!-- 9 -->
+            <article class="sticky sticky-blue tilt-9">
+              <p class="font-round font-bold text-[15px] leading-snug">다음 기수도 이렇게 신나면 좋겠다 🎈</p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/16</span>
+              </div>
+            </article>
+            <!-- 10 -->
+            <article class="sticky sticky-peach tilt-10">
+              <span class="absolute -top-2 -right-2 text-2xl">💖</span>
+              <p class="font-round font-bold text-[15px] leading-snug">팀플하면서 진짜 친해진 듯 ㅎㅎ 종강하고도 보자 우리!</p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/17</span>
+              </div>
+            </article>
+            <!-- 11 -->
+            <article class="sticky sticky-lime tilt-11">
+              <p class="font-round font-bold text-[15px] leading-snug">서버 한 번 터지고 다시 살아난 그날의 환호 못 잊는다 🔥</p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/17</span>
+              </div>
+            </article>
+            <!-- 12 -->
+            <article class="sticky sticky-violet tilt-12">
+              <p class="font-round font-bold text-[15px] leading-snug">다들 졸업 후에도 잘 살자. 가끔 디스코드는 켜놓고 살게 🥹</p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/18</span>
+              </div>
+            </article>
+            <!-- 13 -->
+            <article class="sticky sticky-yellow tilt-1">
+              <p class="font-round font-bold text-[15px] leading-snug">칸반 카드에 적힌 'DONE' 옮길 때마다 도파민 폭발 ✅</p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/18</span>
+              </div>
+            </article>
+            <!-- 14 -->
+            <article class="sticky sticky-mint tilt-3">
+              <span class="absolute -top-3 right-3 text-2xl">🌟</span>
+              <p class="font-round font-bold text-[15px] leading-snug">내가 만든 게 진짜 도메인 달고 돌아가는 거 신기해.</p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/18</span>
+              </div>
+            </article>
+
+            <!-- 15 — MINE -->
+            <article class="sticky sticky-orange sticky-mine">
+              <span class="absolute -top-4 -right-3 inline-flex items-center gap-1 rounded-full bg-yellow-300 text-yellow-900 px-2.5 py-1 text-[10px] font-display font-extrabold shadow ring-1 ring-yellow-900/20">
+                <span>📍</span> 내 카드
+              </span>
+              <p class="font-round font-bold text-[15px] leading-snug">
+                ㅋㅋㅋㅋ 다들 멘토링 끝났다고 도망가지 마라 우리 술 약속 살아있다 🍺
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 햄찌 (나)</span>
+                <div class="flex items-center gap-1.5">
+                  <button class="rounded-full bg-black/10 hover:bg-black/20 px-2 py-1 text-[11px] font-round font-bold transition">✏️</button>
+                  <button class="rounded-full bg-black/10 hover:bg-rose-900/30 px-2 py-1 text-[11px] font-round font-bold transition">🗑️</button>
+                </div>
+              </div>
+            </article>
+
+            <!-- 16 -->
+            <article class="sticky sticky-pink tilt-6">
+              <p class="font-round font-bold text-[15px] leading-snug">
+                같이 발표 준비하다가 새벽 4시에 라면 끓여 먹은 거 못 잊음 🍜
+              </p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/18</span>
+              </div>
+            </article>
+
+            <!-- 17 — "+" empty slot placeholder (drives the eye to FAB) -->
+            <article class="rounded-[18px] border-2 border-dashed border-slate-300 dark:border-slate-700 grid place-items-center p-8 text-center bg-white/40 dark:bg-white/5 tilt-2">
+              <div>
+                <p class="text-3xl">➕</p>
+                <p class="mt-2 font-round font-bold text-slate-600 dark:text-slate-300 text-sm">
+                  여기에 네 한 줄을<br/>붙여줘
+                </p>
+              </div>
+            </article>
+
+            <!-- 18 -->
+            <article class="sticky sticky-violet tilt-4">
+              <span class="absolute -bottom-2 -right-2 text-2xl">💜</span>
+              <p class="font-round font-bold text-[15px] leading-snug">혼자였으면 절대 못 했을 거야. 같이 해줘서 고마워.</p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/19</span>
+              </div>
+            </article>
+            <!-- 19 -->
+            <article class="sticky sticky-blue tilt-8">
+              <p class="font-round font-bold text-[15px] leading-snug">다음 학기 학회장 화이팅 🫡 너무 잘하고 있어!!</p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/19</span>
+              </div>
+            </article>
+            <!-- 20 -->
+            <article class="sticky sticky-lime tilt-5">
+              <span class="absolute -top-3 -left-2 text-2xl">🍀</span>
+              <p class="font-round font-bold text-[15px] leading-snug">다들 인생 잘 풀려라!!!! 진심임 🙏✨</p>
+              <div class="mt-5 flex items-center justify-between">
+                <span class="hand text-lg opacity-80">from. 익명</span>
+                <span class="text-[11px] font-round font-bold opacity-70">5/19</span>
+              </div>
+            </article>
+          </section>
+
+          <!-- FOOTER -->
+          <footer class="mt-20 relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-400 via-fuchsia-500 to-violet-500 text-white font-display font-extrabold shadow">G</span>
+              <p class="text-sm text-slate-600 dark:text-slate-300 font-round">
+                © GETIT 9기 · 익명 롤링페이퍼는 부원에게만 공개돼요 🤫
+              </p>
+            </div>
+            <div class="flex items-center gap-3 text-xs font-round font-bold">
+              <span class="rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3 py-1.5 text-slate-700 dark:text-slate-200">🌐 letter.get-it.cloud</span>
+              <span class="rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 px-3 py-1.5 text-slate-700 dark:text-slate-200">🔐 통합 SSO</span>
+            </div>
+          </footer>
+        </main>
+
+        <!-- FAB -->
+        <button
+          class="fab fixed bottom-8 right-8 z-20 inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-rose-500 via-fuchsia-500 to-violet-600 text-white px-6 py-4 font-display font-extrabold text-base shadow-2xl shadow-fuchsia-500/40 ring-4 ring-white/60 dark:ring-white/10 hover:scale-105 transition"
+          aria-label="새 메시지 남기기"
+        >
+          <span class="text-xl">✏️</span>
+          <span>메시지 남기기</span>
+        </button>
+      </div>
+    </template>
+
+    <script>
+      (function () {
+        const tpl = document.getElementById("board-template");
+        ["board-light", "board-dark", "board-live"].forEach((id) => {
+          const slot = document.getElementById(id);
+          if (slot) slot.appendChild(tpl.content.cloneNode(true));
+        });
+        // dedupe fixed FABs: only the live section's FAB should be "fixed"
+        // (since multiple cloned templates would stack). Convert previews' FABs to absolute-positioned within their section.
+        document.querySelectorAll("#board-light .fab, #board-dark .fab").forEach((b) => {
+          b.classList.remove("fixed");
+          b.classList.add("absolute");
+        });
+
+        // live toggle
+        const root = document.documentElement;
+        const toggle = document.getElementById("theme-toggle");
+        const apply = (mode) => {
+          if (mode === "dark") root.classList.add("dark");
+          else root.classList.remove("dark");
+        };
+        apply(
+          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light"
+        );
+        toggle?.addEventListener("click", () => {
+          apply(root.classList.contains("dark") ? "light" : "dark");
+        });
+        document.querySelectorAll("[data-local-toggle]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            apply(root.classList.contains("dark") ? "light" : "dark");
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="ko" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>팀 칸반 · Minimalist 시안 (board.get-it.cloud)</title>
+
+    <!-- Pretendard -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+    />
+    <!-- Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CDN + config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Pretendard Variable", "Pretendard", "Inter", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+            },
+            colors: {
+              ink: {
+                50: "#fafafa", 100: "#f4f4f5", 200: "#e4e4e7", 300: "#d4d4d8",
+                400: "#a1a1aa", 500: "#71717a", 600: "#52525b", 700: "#3f3f46",
+                800: "#27272a", 900: "#18181b", 950: "#09090b",
+              },
+              accent: { DEFAULT: "#4f46e5", hover: "#4338ca", soft: "#eef2ff", softDark: "#1e1b4b" },
+            },
+            letterSpacing: { tightest: "-0.04em" },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      html { font-feature-settings: "ss01", "tnum"; }
+      body {
+        font-family: "Pretendard Variable", Pretendard, Inter, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+      .hairline { border-color: rgba(0, 0, 0, 0.08); }
+      .dark .hairline { border-color: rgba(255, 255, 255, 0.08); }
+
+      /* 차별 포인트: 카드 사이의 hairline divider — Linear 같은 절제된 리스트 느낌 */
+      .card-stack > * + * { margin-top: 0; }
+      .card-stack { display: flex; flex-direction: column; gap: 0; }
+      .card-stack > .kanban-card + .kanban-card { border-top: 1px solid rgba(0,0,0,0.06); }
+      .dark .card-stack > .kanban-card + .kanban-card { border-top-color: rgba(255,255,255,0.06); }
+
+      /* focus ring (WCAG AA) */
+      .kanban-card:focus-visible { outline: 2px solid #4f46e5; outline-offset: 2px; }
+
+      /* 빈 컬럼 점선 박스 */
+      .empty-add {
+        border: 1px dashed rgba(0,0,0,0.18);
+      }
+      .dark .empty-add { border-color: rgba(255,255,255,0.18); }
+    </style>
+  </head>
+
+  <body class="bg-white text-ink-900 dark:bg-ink-950 dark:text-ink-100 antialiased">
+    <!-- Sticky 토글 -->
+    <div class="fixed right-4 top-4 z-50 flex items-center gap-2 rounded-full border hairline bg-white/80 dark:bg-ink-900/80 backdrop-blur px-3 py-2 shadow-sm">
+      <span class="text-xs text-ink-500 dark:text-ink-400 pl-1">Theme</span>
+      <button id="themeToggle" type="button" aria-label="Toggle dark mode"
+        class="inline-flex h-8 w-8 items-center justify-center rounded-full border hairline text-ink-700 dark:text-ink-200 hover:bg-ink-50 dark:hover:bg-ink-800 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- Main 보드 뷰 (라이트 → 토글 가능) -->
+    <!-- 차별 포인트: 풍부한 화이트스페이스 + 카드 사이 1px hairline + 단일 인디고 액센트 -->
+    <!-- ====================================================== -->
+    <main>
+      <!-- App Header -->
+      <header class="sticky top-0 z-30 border-b hairline bg-white/85 dark:bg-ink-950/85 backdrop-blur">
+        <div class="mx-auto flex h-14 max-w-[1400px] items-center justify-between px-6 lg:px-10">
+          <div class="flex items-center gap-3">
+            <a href="#" class="flex items-center gap-2 group">
+              <span class="grid h-7 w-7 place-items-center rounded-md bg-ink-900 text-white dark:bg-white dark:text-ink-950 text-[11px] font-bold tracking-tight">B</span>
+              <span class="text-sm font-semibold tracking-tight">Board</span>
+            </a>
+            <span class="text-ink-300 dark:text-ink-700">/</span>
+            <a href="#" class="text-sm text-ink-500 dark:text-ink-400 hover:text-ink-900 dark:hover:text-white transition">GETIT 9기</a>
+            <span class="text-ink-300 dark:text-ink-700">/</span>
+            <span class="text-sm font-medium text-ink-900 dark:text-white">Phase 3 · 디자인</span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="hidden md:flex items-center gap-1 text-xs text-ink-500 dark:text-ink-400">
+              <kbd class="font-mono text-[10px] border hairline rounded px-1.5 py-0.5">⌘</kbd>
+              <kbd class="font-mono text-[10px] border hairline rounded px-1.5 py-0.5">K</kbd>
+            </div>
+            <a href="#" class="hidden sm:inline-flex items-center gap-1.5 rounded-md border hairline px-3 py-1.5 text-xs font-medium text-ink-700 dark:text-ink-200 hover:bg-ink-50 dark:hover:bg-ink-900 transition">
+              Settings
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <!-- Board Sub-header -->
+      <section class="border-b hairline">
+        <div class="mx-auto max-w-[1400px] px-6 lg:px-10 py-8">
+          <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div>
+              <p class="text-xs uppercase tracking-[0.18em] text-ink-500 dark:text-ink-400 mb-3">— Project</p>
+              <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-ink-950 dark:text-white">
+                9기 멘토링 · 통합 SSO
+              </h1>
+              <p class="mt-3 max-w-xl text-sm leading-relaxed text-ink-500 dark:text-ink-400">
+                네 개 프로덕트의 공통 인증 흐름과 디자인 시스템을 정리합니다.
+              </p>
+            </div>
+
+            <div class="flex items-center gap-4">
+              <!-- 멤버 아바타 그룹 -->
+              <div class="flex items-center -space-x-2">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white text-[11px] font-medium ring-2 ring-white dark:ring-ink-950" title="김진현">JH</span>
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-900 dark:bg-white text-white dark:text-ink-950 text-[11px] font-medium ring-2 ring-white dark:ring-ink-950" title="박서연">SY</span>
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-500 text-white text-[11px] font-medium ring-2 ring-white dark:ring-ink-950" title="이도윤">DY</span>
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-300 dark:bg-ink-700 text-ink-700 dark:text-ink-200 text-[11px] font-medium ring-2 ring-white dark:ring-ink-950" title="최민준">MJ</span>
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full border hairline bg-white dark:bg-ink-950 text-ink-500 dark:text-ink-400 text-[11px] font-medium ring-2 ring-white dark:ring-ink-950">+2</span>
+              </div>
+
+              <span class="hidden md:inline-block w-px h-6 bg-ink-200 dark:bg-ink-800"></span>
+
+              <!-- 보드 설정 -->
+              <button class="inline-flex items-center gap-1.5 rounded-md border hairline px-3 py-1.5 text-xs font-medium text-ink-700 dark:text-ink-200 hover:bg-ink-50 dark:hover:bg-ink-900 transition" aria-label="보드 설정">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              </button>
+
+              <!-- + Card CTA -->
+              <button class="inline-flex items-center gap-2 rounded-md bg-ink-950 dark:bg-white px-3.5 py-1.5 text-xs font-medium text-white dark:text-ink-950 hover:bg-ink-800 dark:hover:bg-ink-100 transition">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Card
+              </button>
+            </div>
+          </div>
+
+          <!-- 메타라인: 미니멀 시그니처 -->
+          <dl class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-10 border-t hairline pt-6 max-w-3xl">
+            <div>
+              <dt class="text-[11px] text-ink-500 dark:text-ink-400">Cards</dt>
+              <dd class="mt-1 text-xl font-semibold tracking-tight text-ink-950 dark:text-white">14</dd>
+            </div>
+            <div>
+              <dt class="text-[11px] text-ink-500 dark:text-ink-400">In Progress</dt>
+              <dd class="mt-1 text-xl font-semibold tracking-tight text-ink-950 dark:text-white">04</dd>
+            </div>
+            <div>
+              <dt class="text-[11px] text-ink-500 dark:text-ink-400">Done</dt>
+              <dd class="mt-1 text-xl font-semibold tracking-tight text-ink-950 dark:text-white">05</dd>
+            </div>
+            <div>
+              <dt class="text-[11px] text-ink-500 dark:text-ink-400">Due</dt>
+              <dd class="mt-1 text-xl font-semibold tracking-tight text-ink-950 dark:text-white">May 26</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- ====================================================== -->
+      <!-- Board Columns: Todo / Doing / Done -->
+      <!-- ====================================================== -->
+      <section class="border-b hairline">
+        <div class="mx-auto max-w-[1400px] px-6 lg:px-10 py-10">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-px bg-ink-200/70 dark:bg-ink-800/70 border hairline rounded-lg overflow-hidden">
+
+            <!-- ===== Column: Todo ===== -->
+            <div class="bg-white dark:bg-ink-950">
+              <!-- Column header -->
+              <div class="flex items-center justify-between px-5 py-4 border-b hairline">
+                <div class="flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-ink-400"></span>
+                  <h2 class="text-xs font-semibold tracking-[0.15em] uppercase text-ink-700 dark:text-ink-200">Todo</h2>
+                  <span class="font-mono text-[11px] text-ink-400 dark:text-ink-500">· 5</span>
+                </div>
+                <button class="text-ink-400 hover:text-ink-700 dark:hover:text-white transition" aria-label="Todo 컬럼 추가">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              </div>
+
+              <!-- 차별 포인트: 카드 stack은 일반 카드처럼 떠있지 않고, 1px hairline divider로만 구분 -->
+              <ul class="card-stack">
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-medium text-ink-950 dark:text-white truncate">SSO 토큰 만료 정책 정리</h3>
+                      <p class="mt-1 text-xs leading-relaxed text-ink-500 dark:text-ink-400 line-clamp-1">refresh / access 분리, slidng window 적용 검토</p>
+                    </div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-500 shrink-0">G-142</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">
+                        <span class="h-1 w-1 rounded-full bg-accent mr-1.5"></span>auth
+                      </span>
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">spec</span>
+                    </div>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white text-[10px] font-medium" title="김진현">JH</span>
+                  </div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-medium text-ink-950 dark:text-white truncate">다크모드 토큰 시스템 확정</h3>
+                      <p class="mt-1 text-xs leading-relaxed text-ink-500 dark:text-ink-400 line-clamp-1">tailwind dark:class 기반, semantic token 매핑</p>
+                    </div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-500 shrink-0">G-143</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">design</span>
+                    </div>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 dark:bg-white text-white dark:text-ink-950 text-[10px] font-medium" title="박서연">SY</span>
+                  </div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-medium text-ink-950 dark:text-white truncate">모노레포 turbo 캐시 설정</h3>
+                    </div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-500 shrink-0">G-144</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">infra</span>
+                    </div>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-500 text-white text-[10px] font-medium" title="이도윤">DY</span>
+                  </div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-medium text-ink-950 dark:text-white truncate">롤링페이퍼 신고 플로우 PRD</h3>
+                      <p class="mt-1 text-xs leading-relaxed text-ink-500 dark:text-ink-400 line-clamp-1">익명성 유지하면서 운영자 검수 흐름 정리</p>
+                    </div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-500 shrink-0">G-145</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">letter</span>
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">spec</span>
+                    </div>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-300 dark:bg-ink-700 text-ink-700 dark:text-ink-200 text-[10px] font-medium" title="최민준">MJ</span>
+                  </div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-medium text-ink-950 dark:text-white truncate">취미메이트 매칭 알고리즘 PoC</h3>
+                    </div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-500 shrink-0">G-146</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">hobby</span>
+                    </div>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white text-[10px] font-medium" title="김진현">JH</span>
+                  </div>
+                </li>
+              </ul>
+
+              <!-- + Add card -->
+              <div class="px-5 py-4">
+                <button class="empty-add w-full rounded-md px-3 py-3 text-xs text-ink-400 dark:text-ink-500 hover:text-ink-700 dark:hover:text-ink-200 hover:border-ink-400 dark:hover:border-ink-500 transition flex items-center justify-center gap-1.5">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Add card
+                </button>
+              </div>
+            </div>
+
+            <!-- ===== Column: Doing ===== -->
+            <div class="bg-white dark:bg-ink-950">
+              <div class="flex items-center justify-between px-5 py-4 border-b hairline">
+                <div class="flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+                  <h2 class="text-xs font-semibold tracking-[0.15em] uppercase text-ink-700 dark:text-ink-200">Doing</h2>
+                  <span class="font-mono text-[11px] text-ink-400 dark:text-ink-500">· 4</span>
+                </div>
+                <button class="text-ink-400 hover:text-ink-700 dark:hover:text-white transition" aria-label="Doing 컬럼 추가">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              </div>
+
+              <ul class="card-stack">
+                <!-- Doing 카드는 좌측에 가는 인디고 인디케이터로 차별화 -->
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer relative" tabindex="0">
+                  <span class="absolute left-0 top-4 bottom-4 w-px bg-accent"></span>
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-medium text-ink-950 dark:text-white truncate">랜딩 페이지 minimalist 시안</h3>
+                      <p class="mt-1 text-xs leading-relaxed text-ink-500 dark:text-ink-400 line-clamp-1">design-shotgun 5 페르소나 중 확정 페르소나 적용</p>
+                    </div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-500 shrink-0">G-130</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">
+                        <span class="h-1 w-1 rounded-full bg-accent mr-1.5"></span>design
+                      </span>
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">landing</span>
+                    </div>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 dark:bg-white text-white dark:text-ink-950 text-[10px] font-medium" title="박서연">SY</span>
+                  </div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer relative" tabindex="0">
+                  <span class="absolute left-0 top-4 bottom-4 w-px bg-accent"></span>
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-medium text-ink-950 dark:text-white truncate">Traefik 라우팅 룰 다듬기</h3>
+                    </div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-500 shrink-0">G-131</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">infra</span>
+                    </div>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-500 text-white text-[10px] font-medium" title="이도윤">DY</span>
+                  </div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer relative" tabindex="0">
+                  <span class="absolute left-0 top-4 bottom-4 w-px bg-accent"></span>
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-medium text-ink-950 dark:text-white truncate">스마트 서재 책 검색 API 연동</h3>
+                      <p class="mt-1 text-xs leading-relaxed text-ink-500 dark:text-ink-400 line-clamp-1">국립중앙도서관 OpenAPI vs 알라딘 비교</p>
+                    </div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-500 shrink-0">G-132</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">shelf</span>
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">api</span>
+                    </div>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-300 dark:bg-ink-700 text-ink-700 dark:text-ink-200 text-[10px] font-medium" title="최민준">MJ</span>
+                  </div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer relative" tabindex="0">
+                  <span class="absolute left-0 top-4 bottom-4 w-px bg-accent"></span>
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-medium text-ink-950 dark:text-white truncate">CodeRabbit + Gemini 룰 정리</h3>
+                    </div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-500 shrink-0">G-133</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-600 dark:text-ink-300">devops</span>
+                    </div>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white text-[10px] font-medium" title="김진현">JH</span>
+                  </div>
+                </li>
+              </ul>
+
+              <div class="px-5 py-4">
+                <button class="empty-add w-full rounded-md px-3 py-3 text-xs text-ink-400 dark:text-ink-500 hover:text-ink-700 dark:hover:text-ink-200 hover:border-ink-400 dark:hover:border-ink-500 transition flex items-center justify-center gap-1.5">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Add card
+                </button>
+              </div>
+            </div>
+
+            <!-- ===== Column: Done ===== -->
+            <div class="bg-white dark:bg-ink-950">
+              <div class="flex items-center justify-between px-5 py-4 border-b hairline">
+                <div class="flex items-center gap-2">
+                  <span class="h-1.5 w-1.5 rounded-full bg-ink-900 dark:bg-white"></span>
+                  <h2 class="text-xs font-semibold tracking-[0.15em] uppercase text-ink-700 dark:text-ink-200">Done</h2>
+                  <span class="font-mono text-[11px] text-ink-400 dark:text-ink-500">· 5</span>
+                </div>
+                <button class="text-ink-400 hover:text-ink-700 dark:hover:text-white transition" aria-label="Done 컬럼 추가">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+              </div>
+
+              <!-- Done 카드는 제목에 line-through 살짝 + 흐리게 -->
+              <ul class="card-stack">
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-ink-500 dark:text-ink-500 line-through decoration-ink-300 dark:decoration-ink-700 truncate">레포 모노레포 초기화</h3><span class="font-mono text-[10px] text-ink-400 dark:text-ink-600 shrink-0">G-101</span></div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-500 dark:text-ink-500">infra</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-500 text-white text-[10px] font-medium opacity-70" title="이도윤">DY</span></div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-ink-500 dark:text-ink-500 line-through decoration-ink-300 dark:decoration-ink-700 truncate">GitHub workflow + 브랜치 보호</h3><span class="font-mono text-[10px] text-ink-400 dark:text-ink-600 shrink-0">G-102</span></div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-500 dark:text-ink-500">devops</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white text-[10px] font-medium opacity-70" title="김진현">JH</span></div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0"><h3 class="text-sm font-medium text-ink-500 dark:text-ink-500 line-through decoration-ink-300 dark:decoration-ink-700 truncate">도메인 + DNS A 레코드 설정</h3><p class="mt-1 text-xs leading-relaxed text-ink-400 dark:text-ink-600 line-clamp-1">*.get-it.cloud 가비아 → GCP 정적 IP</p></div>
+                    <span class="font-mono text-[10px] text-ink-400 dark:text-ink-600 shrink-0">G-103</span>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-500 dark:text-ink-500">infra</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-500 text-white text-[10px] font-medium opacity-70" title="이도윤">DY</span></div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-ink-500 dark:text-ink-500 line-through decoration-ink-300 dark:decoration-ink-700 truncate">4 프로젝트 PRD v1 작성</h3><span class="font-mono text-[10px] text-ink-400 dark:text-ink-600 shrink-0">G-104</span></div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-500 dark:text-ink-500">spec</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-300 dark:bg-ink-700 text-ink-700 dark:text-ink-200 text-[10px] font-medium opacity-70" title="최민준">MJ</span></div>
+                </li>
+
+                <li class="kanban-card group block px-5 py-4 hover:bg-ink-50/70 dark:hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-ink-500 dark:text-ink-500 line-through decoration-ink-300 dark:decoration-ink-700 truncate">디자인 페르소나 5종 정의</h3><span class="font-mono text-[10px] text-ink-400 dark:text-ink-600 shrink-0">G-105</span></div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border hairline px-2 py-0.5 text-[10px] tracking-wide text-ink-500 dark:text-ink-500">design</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-900 dark:bg-white text-white dark:text-ink-950 text-[10px] font-medium opacity-70" title="박서연">SY</span></div>
+                </li>
+              </ul>
+
+              <div class="px-5 py-4">
+                <button class="empty-add w-full rounded-md px-3 py-3 text-xs text-ink-400 dark:text-ink-500 hover:text-ink-700 dark:hover:text-ink-200 hover:border-ink-400 dark:hover:border-ink-500 transition flex items-center justify-center gap-1.5">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Add card
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="border-t hairline">
+        <div class="mx-auto max-w-[1400px] px-6 lg:px-10 py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <p class="text-xs text-ink-500 dark:text-ink-400">© GETIT 9기 · Board</p>
+          <p class="text-[11px] font-mono tracking-wider text-ink-400 dark:text-ink-500">board.get-it.cloud</p>
+        </div>
+      </footer>
+    </main>
+
+    <!-- 다크 프리뷰 디바이더 -->
+    <div class="border-t border-b hairline bg-ink-50 dark:bg-ink-900">
+      <div class="mx-auto max-w-[1400px] px-6 lg:px-10 py-10 flex items-center justify-center text-ink-500 dark:text-ink-400">
+        <span class="text-xs tracking-[0.2em] uppercase">↓ 다크 모드 프리뷰 ↓</span>
+      </div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!-- 다크 모드 정적 프리뷰 (강제 .dark, 토글과 독립) -->
+    <!-- 간략 버전: 핵심 보드 뷰만 보여줘 비교 가능하게 -->
+    <!-- ====================================================== -->
+    <section class="dark bg-ink-950 text-ink-100">
+      <header class="border-b border-white/10 bg-ink-950/85 backdrop-blur">
+        <div class="mx-auto flex h-14 max-w-[1400px] items-center justify-between px-6 lg:px-10">
+          <div class="flex items-center gap-3">
+            <span class="grid h-7 w-7 place-items-center rounded-md bg-white text-ink-950 text-[11px] font-bold tracking-tight">B</span>
+            <span class="text-sm font-semibold tracking-tight text-white">Board</span>
+            <span class="text-ink-700">/</span>
+            <span class="text-sm text-ink-400">GETIT 9기</span>
+            <span class="text-ink-700">/</span>
+            <span class="text-sm font-medium text-white">Phase 3 · 디자인</span>
+          </div>
+          <button class="inline-flex items-center gap-2 rounded-md bg-white px-3.5 py-1.5 text-xs font-medium text-ink-950 hover:bg-ink-100 transition">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Card
+          </button>
+        </div>
+      </header>
+
+      <div class="border-b border-white/10">
+        <div class="mx-auto max-w-[1400px] px-6 lg:px-10 py-8">
+          <p class="text-xs uppercase tracking-[0.18em] text-ink-400 mb-3">— Project</p>
+          <h1 class="text-3xl md:text-4xl font-semibold tracking-tight text-white">9기 멘토링 · 통합 SSO</h1>
+          <p class="mt-3 max-w-xl text-sm leading-relaxed text-ink-400">네 개 프로덕트의 공통 인증 흐름과 디자인 시스템을 정리합니다.</p>
+        </div>
+      </div>
+
+      <div class="border-b border-white/10">
+        <div class="mx-auto max-w-[1400px] px-6 lg:px-10 py-10">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 border border-white/10 rounded-lg overflow-hidden">
+
+            <!-- Todo (dark) -->
+            <div class="bg-ink-950">
+              <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-ink-400"></span><h2 class="text-xs font-semibold tracking-[0.15em] uppercase text-ink-200">Todo</h2><span class="font-mono text-[11px] text-ink-500">· 5</span></div>
+              </div>
+              <ul class="card-stack">
+                <li class="kanban-card block px-5 py-4 hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-white truncate">SSO 토큰 만료 정책 정리</h3><span class="font-mono text-[10px] text-ink-500 shrink-0">G-142</span></div>
+                  <p class="mt-1 text-xs text-ink-400 line-clamp-1">refresh / access 분리, sliding window 검토</p>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-ink-300"><span class="h-1 w-1 rounded-full bg-accent mr-1.5"></span>auth</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white text-[10px] font-medium">JH</span></div>
+                </li>
+                <li class="kanban-card block px-5 py-4 hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-white truncate">다크모드 토큰 시스템 확정</h3><span class="font-mono text-[10px] text-ink-500 shrink-0">G-143</span></div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-ink-300">design</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-ink-950 text-[10px] font-medium">SY</span></div>
+                </li>
+                <li class="kanban-card block px-5 py-4 hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-white truncate">모노레포 turbo 캐시 설정</h3><span class="font-mono text-[10px] text-ink-500 shrink-0">G-144</span></div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-ink-300">infra</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-500 text-white text-[10px] font-medium">DY</span></div>
+                </li>
+              </ul>
+              <div class="px-5 py-4"><button class="empty-add w-full rounded-md px-3 py-3 text-xs text-ink-500 hover:text-ink-200 transition flex items-center justify-center gap-1.5"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add card</button></div>
+            </div>
+
+            <!-- Doing (dark) -->
+            <div class="bg-ink-950">
+              <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-accent"></span><h2 class="text-xs font-semibold tracking-[0.15em] uppercase text-ink-200">Doing</h2><span class="font-mono text-[11px] text-ink-500">· 4</span></div>
+              </div>
+              <ul class="card-stack">
+                <li class="kanban-card block px-5 py-4 hover:bg-ink-900/50 transition cursor-pointer relative" tabindex="0">
+                  <span class="absolute left-0 top-4 bottom-4 w-px bg-accent"></span>
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-white truncate">랜딩 페이지 minimalist 시안</h3><span class="font-mono text-[10px] text-ink-500 shrink-0">G-130</span></div>
+                  <p class="mt-1 text-xs text-ink-400 line-clamp-1">design-shotgun 5 페르소나 중 확정</p>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-ink-300"><span class="h-1 w-1 rounded-full bg-accent mr-1.5"></span>design</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-ink-950 text-[10px] font-medium">SY</span></div>
+                </li>
+                <li class="kanban-card block px-5 py-4 hover:bg-ink-900/50 transition cursor-pointer relative" tabindex="0">
+                  <span class="absolute left-0 top-4 bottom-4 w-px bg-accent"></span>
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-white truncate">스마트 서재 책 검색 API 연동</h3><span class="font-mono text-[10px] text-ink-500 shrink-0">G-132</span></div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-ink-300">shelf</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-700 text-ink-200 text-[10px] font-medium">MJ</span></div>
+                </li>
+              </ul>
+              <div class="px-5 py-4"><button class="empty-add w-full rounded-md px-3 py-3 text-xs text-ink-500 hover:text-ink-200 transition flex items-center justify-center gap-1.5"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add card</button></div>
+            </div>
+
+            <!-- Done (dark) -->
+            <div class="bg-ink-950">
+              <div class="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                <div class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-white"></span><h2 class="text-xs font-semibold tracking-[0.15em] uppercase text-ink-200">Done</h2><span class="font-mono text-[11px] text-ink-500">· 5</span></div>
+              </div>
+              <ul class="card-stack">
+                <li class="kanban-card block px-5 py-4 hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-ink-500 line-through decoration-ink-700 truncate">레포 모노레포 초기화</h3><span class="font-mono text-[10px] text-ink-600 shrink-0">G-101</span></div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-ink-500">infra</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-500 text-white text-[10px] font-medium opacity-70">DY</span></div>
+                </li>
+                <li class="kanban-card block px-5 py-4 hover:bg-ink-900/50 transition cursor-pointer" tabindex="0">
+                  <div class="flex items-start justify-between gap-3"><h3 class="text-sm font-medium text-ink-500 line-through decoration-ink-700 truncate">도메인 + DNS A 레코드 설정</h3><span class="font-mono text-[10px] text-ink-600 shrink-0">G-103</span></div>
+                  <div class="mt-3 flex items-center justify-between"><span class="inline-flex items-center rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-ink-500">infra</span><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink-500 text-white text-[10px] font-medium opacity-70">DY</span></div>
+                </li>
+              </ul>
+              <div class="px-5 py-4"><button class="empty-add w-full rounded-md px-3 py-3 text-xs text-ink-500 hover:text-ink-200 transition flex items-center justify-center gap-1.5"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add card</button></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <footer class="border-t border-white/10">
+        <div class="mx-auto max-w-[1400px] px-6 lg:px-10 py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <p class="text-xs text-ink-400">© GETIT 9기 · Board</p>
+          <p class="text-[11px] font-mono tracking-wider text-ink-500">board.get-it.cloud</p>
+        </div>
+      </footer>
+    </section>
+
+    <script>
+      (function () {
+        const root = document.documentElement;
+        const KEY = "getit-theme";
+        const stored = localStorage.getItem(KEY);
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const initial = stored || (prefersDark ? "dark" : "light");
+        if (initial === "dark") root.classList.add("dark");
+        else root.classList.remove("dark");
+        const btn = document.getElementById("themeToggle");
+        if (btn) {
+          btn.addEventListener("click", function () {
+            const isDark = root.classList.toggle("dark");
+            localStorage.setItem(KEY, isDark ? "dark" : "light");
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

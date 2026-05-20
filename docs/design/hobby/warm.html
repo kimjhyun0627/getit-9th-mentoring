@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>취미메이트 · 오늘의 모집글</title>
+
+<!--
+  ============================================================
+  PERSONA: Warm & Soft (hobby)
+  차별 포인트:
+   - 카페 노트북 위 메모지처럼 — 종이 질감(SVG noise) + 워시 테이프
+   - 파스텔 베이지/크림 + 둥근 blob(28px) 카드, 손글씨 액센트(Gaegu)
+   - "동네 친구와 카페 가는 느낌" — 호버 시 살짝 부풀고 살짝 기울기
+   - Playful은 비비드+회전 장난기, Warm은 차분/포근 — 수렴 금지
+  ============================================================
+-->
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Pretendard -->
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<!-- Gaegu (손글씨 액센트) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"Pretendard Variable"', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+          hand: ['"Gaegu"', 'cursive'],
+        },
+        colors: {
+          cream:   '#FAF6F0',
+          cream2:  '#F3ECE0',
+          peach:   '#F4D7C8',
+          peachDk: '#E8B89F',
+          sage:    '#93A487',
+          sageDk:  '#6F8366',
+          ink:     '#3A2E27',
+          ink2:    '#5A4A3F',
+          mocha:   '#2C2420',
+          mocha2:  '#3A2F29',
+          mocha3:  '#4A3D34',
+          beige:   '#E8D6C4',
+          beige2:  '#C9B49E',
+          rose:    '#D9A892',
+          sageW:   '#A8B89A',
+        },
+        boxShadow: {
+          paper:   '0 1px 0 rgba(58,46,39,0.06), 0 8px 24px -12px rgba(58,46,39,0.18)',
+          paperLg: '0 2px 0 rgba(58,46,39,0.05), 0 20px 40px -20px rgba(58,46,39,0.25)',
+          paperDk: '0 1px 0 rgba(0,0,0,0.25), 0 12px 28px -14px rgba(0,0,0,0.55)',
+        },
+        borderRadius: { 'blob': '28px' }
+      }
+    }
+  }
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Paper grain noise — 메모지 질감 */
+  .paper { position: relative; isolation: isolate; }
+  .paper::before {
+    content: ""; position: absolute; inset: 0;
+    pointer-events: none; z-index: 0; opacity: 0.55;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.23 0 0 0 0 0.18 0 0 0 0 0.15 0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+  }
+  .paper > * { position: relative; z-index: 1; }
+
+  /* Hover puff — 살짝 부풀고 살짝 기울임 */
+  .card {
+    transition: transform 350ms cubic-bezier(.4,.0,.2,1),
+                box-shadow 350ms cubic-bezier(.4,.0,.2,1);
+    will-change: transform;
+  }
+  .card:hover { transform: translateY(-5px) scale(1.012) rotate(-0.2deg); }
+  .card:hover .arrow { transform: translateX(3px); }
+  .arrow { transition: transform 300ms ease; }
+
+  /* Washi tape — 종이 위에 살짝 붙은 느낌 */
+  .tape {
+    position: absolute; top: -9px; left: 22px;
+    width: 52px; height: 16px;
+    background: rgba(244,215,200,0.85);
+    border-radius: 2px;
+    transform: rotate(-4deg);
+    box-shadow: 0 2px 6px rgba(58,46,39,0.12);
+  }
+  .tape.sage { background: rgba(147,164,135,0.75); transform: rotate(3deg); left:auto; right:24px; }
+  .tape.rose { background: rgba(232,184,159,0.85); transform: rotate(-2deg); }
+  .tape.dot::after {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.45) 1px, transparent 1px);
+    background-size: 6px 6px;
+  }
+
+  /* Hand-drawn underline scribble */
+  .scribble {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'><path d='M2 7 Q 50 1, 100 6 T 198 5' stroke='%23E8B89F' stroke-width='5' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    background-size: 100% 0.5em;
+  }
+
+  /* Soft blob bg */
+  .blob {
+    position: absolute; border-radius: 50%;
+    filter: blur(40px); opacity: 0.55; pointer-events: none;
+  }
+
+  /* Toggle */
+  .toggle-track {
+    width: 56px; height: 30px;
+    background: #F3ECE0;
+    border-radius: 999px;
+    border: 1px solid rgba(58,46,39,0.12);
+    position: relative;
+    transition: background 250ms ease;
+  }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 22px; height: 22px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(58,46,39,0.2);
+    transition: transform 280ms cubic-bezier(.4,.0,.2,1), background 250ms ease;
+    display: grid; place-items: center;
+    font-size: 12px;
+  }
+  .dark .toggle-track { background: #4A3D34; border-color: rgba(232,214,196,0.15); }
+  .dark .toggle-thumb { transform: translateX(26px); background: #E8D6C4; }
+
+  /* Filter chip — 라벨 스티커 느낌 */
+  .chip {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(58,46,39,0.12);
+    background: #fff;
+    font-size: 14px;
+    color: #5A4A3F;
+    transition: all 220ms ease;
+    white-space: nowrap;
+  }
+  .chip:hover { background: #FAF6F0; transform: translateY(-1px); }
+  .chip.active {
+    background: #3A2E27; color: #FAF6F0; border-color: #3A2E27;
+  }
+  .dark .chip { background: #3A2F29; color: #C9B49E; border-color: #4A3D34; }
+  .dark .chip:hover { background: #4A3D34; }
+  .dark .chip.active { background: #E8D6C4; color: #2C2420; border-color: #E8D6C4; }
+
+  /* Tag pill — 모집글 내부 작은 칩 */
+  .tag {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    font-size: 12px;
+    border-radius: 999px;
+    background: rgba(244,215,200,0.55);
+    color: #5A4A3F;
+  }
+  .tag.sage { background: rgba(147,164,135,0.28); color: #4F6248; }
+  .tag.rose { background: rgba(232,184,159,0.45); color: #7A4A3A; }
+  .dark .tag { background: rgba(217,168,146,0.18); color: #E8D6C4; }
+  .dark .tag.sage { background: rgba(168,184,154,0.2); color: #C9D3BC; }
+  .dark .tag.rose { background: rgba(217,168,146,0.22); color: #F0C9B5; }
+
+  /* Section stitches divider */
+  .stitch {
+    background-image: linear-gradient(90deg, rgba(58,46,39,0.35) 50%, transparent 50%);
+    background-size: 12px 1px;
+    background-repeat: repeat-x;
+    background-position: center;
+    height: 1px;
+  }
+  .dark .stitch { background-image: linear-gradient(90deg, rgba(232,214,196,0.35) 50%, transparent 50%); }
+
+  /* Progress dot row — "3명 모집 중 / 마감 임박" */
+  .seat { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  /* Focus ring */
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid #E8B89F;
+    outline-offset: 3px;
+    border-radius: 10px;
+  }
+  .dark a:focus-visible, .dark button:focus-visible, .dark input:focus-visible { outline-color: #D9A892; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card:hover { transform: none; } html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+
+<body class="bg-cream text-ink dark:bg-mocha dark:text-beige transition-colors duration-300">
+
+<section class="paper relative overflow-hidden min-h-screen">
+
+  <!-- Soft warm blobs -->
+  <div class="blob bg-peach" style="width:380px; height:380px; top:-120px; right:-80px;"></div>
+  <div class="blob bg-sage/40" style="width:300px; height:300px; bottom:-100px; left:-60px;"></div>
+
+  <!-- ========================= HEADER ========================= -->
+  <header class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-7 pb-4 flex items-center justify-between gap-4">
+    <a href="#" class="flex items-baseline gap-1.5 shrink-0">
+      <span class="font-hand text-3xl sm:text-4xl text-peachDk dark:text-rose leading-none">🤲</span>
+      <span class="text-lg sm:text-xl font-semibold tracking-tight">취미메이트</span>
+    </a>
+
+    <!-- Search bar — paper note 느낌 -->
+    <div class="hidden md:flex flex-1 max-w-md mx-4">
+      <label class="w-full relative">
+        <span class="sr-only">모임 검색</span>
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-ink2/60 dark:text-beige2/60">🔎</span>
+        <input type="search" placeholder="마라탕, 풋살, 카공... 뭐든 검색해봐요"
+               class="w-full pl-11 pr-4 py-2.5 rounded-full bg-white dark:bg-mocha2 border border-peach/60 dark:border-mocha3 text-sm placeholder:text-ink2/60 dark:placeholder:text-beige2/60 focus:outline-none focus:border-peachDk dark:focus:border-rose transition-colors" />
+      </label>
+    </div>
+
+    <nav class="flex items-center gap-2 sm:gap-3 shrink-0">
+      <button class="hidden sm:inline-flex text-sm text-ink2 dark:text-beige2 hover:text-ink dark:hover:text-beige px-3 py-2 rounded-full transition-colors">
+        Sign in
+      </button>
+      <button id="themeToggle" type="button" aria-label="다크 모드 전환" class="toggle-track">
+        <span class="toggle-thumb"><span class="sun text-amber-500">☀</span></span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Mobile search -->
+  <div class="md:hidden relative z-10 max-w-6xl mx-auto px-5 mb-2">
+    <label class="block relative">
+      <span class="sr-only">모임 검색</span>
+      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-ink2/60 dark:text-beige2/60">🔎</span>
+      <input type="search" placeholder="마라탕, 풋살, 카공..."
+             class="w-full pl-11 pr-4 py-2.5 rounded-full bg-white dark:bg-mocha2 border border-peach/60 dark:border-mocha3 text-sm placeholder:text-ink2/60 dark:placeholder:text-beige2/60 focus:outline-none focus:border-peachDk dark:focus:border-rose" />
+    </label>
+  </div>
+
+  <!-- ========================= HERO + CTA ========================= -->
+  <main class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pt-6 sm:pt-10 pb-20">
+
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+      <div>
+        <p class="font-hand text-xl sm:text-2xl text-sageDk dark:text-sageW">오늘은 누구랑 뭐 할까요?</p>
+        <h1 class="mt-1 text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
+          가볍게 모이는 <span class="scribble">한 시간</span>,<br class="sm:hidden" />
+          <span class="text-peachDk dark:text-rose">경북대 친구들</span>과.
+        </h1>
+        <p class="mt-4 text-sm sm:text-base text-ink2 dark:text-beige2 max-w-md leading-relaxed">
+          공강에 마라탕, 주말에 풋살. 일회성 모임을 만들고 신청해보세요.
+          정원이 차면 오픈채팅이 열려요.
+        </p>
+      </div>
+
+      <!-- Primary CTA — 두툼한 종이 카드 같은 버튼 -->
+      <a href="#new"
+         class="self-start sm:self-end inline-flex items-center gap-2 px-6 py-4 rounded-blob bg-ink text-cream font-semibold shadow-paper hover:shadow-paperLg hover:-translate-y-0.5 transition-all dark:bg-beige dark:text-mocha whitespace-nowrap">
+        <span class="text-xl">＋</span>
+        <span>새 모임 만들기</span>
+      </a>
+    </div>
+
+    <!-- ========================= FILTER CHIPS ========================= -->
+    <div class="mt-10 sm:mt-12">
+      <div class="flex items-center gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
+        <button class="chip active">오늘</button>
+        <button class="chip">이번 주</button>
+        <button class="chip">주말</button>
+        <span class="mx-2 h-5 w-px bg-ink2/20 dark:bg-beige2/20 shrink-0"></span>
+        <button class="chip">🍜 맛집</button>
+        <button class="chip">⚽ 스포츠</button>
+        <button class="chip">☕ 카페·카공</button>
+        <button class="chip">🎬 문화</button>
+        <button class="chip">🎮 게임</button>
+        <button class="chip">📚 스터디</button>
+      </div>
+    </div>
+
+    <!-- ========================= MEETUP GRID ========================= -->
+    <div class="mt-8 sm:mt-10">
+      <div class="flex items-end justify-between mb-5 sm:mb-7 px-1">
+        <div>
+          <p class="font-hand text-lg sm:text-xl text-sageDk dark:text-sageW">지금 모집 중</p>
+          <h2 class="text-xl sm:text-2xl font-bold tracking-tight mt-0.5">총 7개의 모임</h2>
+        </div>
+        <span class="hidden sm:block text-xs text-ink2/80 dark:text-beige2/80">마감 임박순 ↓</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+
+        <!-- Card 1 — 마라탕 (마감 임박) -->
+        <article class="card relative p-6 rounded-blob bg-white dark:bg-mocha2 border border-peach/70 dark:border-mocha3 shadow-paper hover:shadow-paperLg dark:shadow-paperDk">
+          <span class="tape"></span>
+          <div class="flex items-start justify-between">
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">오늘 · 마감임박</span>
+            <span class="font-hand text-lg text-peachDk dark:text-rose">D-0</span>
+          </div>
+          <h3 class="mt-3 text-lg sm:text-xl font-bold tracking-tight leading-snug">
+            북문 마라탕 같이 먹을 사람!
+          </h3>
+          <div class="mt-3 space-y-1.5 text-sm text-ink2 dark:text-beige2">
+            <p>🕕 <span class="font-medium text-ink dark:text-beige">오늘 18:00</span></p>
+            <p>📍 북문 후라이팬마라탕</p>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-1.5">
+            <span class="tag rose">🍜 맛집</span>
+            <span class="tag">매운맛 환영</span>
+          </div>
+
+          <!-- Seats -->
+          <div class="mt-5 flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="seat bg-peachDk"></span>
+              <span class="seat bg-peachDk"></span>
+              <span class="seat bg-peachDk/30"></span>
+              <span class="ml-1.5 text-xs text-ink2 dark:text-beige2">2 / 3명</span>
+            </div>
+            <span class="text-xs text-ink2/70 dark:text-beige2/70">방장 · 지현</span>
+          </div>
+
+          <button class="mt-5 w-full py-2.5 rounded-full bg-peach hover:bg-peachDk dark:bg-rose/30 dark:hover:bg-rose/50 text-ink dark:text-beige font-medium text-sm transition-colors">
+            신청하기 <span class="arrow inline-block">→</span>
+          </button>
+        </article>
+
+        <!-- Card 2 — 풋살 (사람 더 필요) -->
+        <article class="card relative p-6 rounded-blob bg-white dark:bg-mocha2 border border-sage/40 dark:border-mocha3 shadow-paper hover:shadow-paperLg dark:shadow-paperDk">
+          <span class="tape sage"></span>
+          <div class="flex items-start justify-between">
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">토 · 14:00</span>
+            <span class="font-hand text-lg text-sageDk dark:text-sageW">D-2</span>
+          </div>
+          <h3 class="mt-3 text-lg sm:text-xl font-bold tracking-tight leading-snug">
+            대운동장 풋살 한 판
+          </h3>
+          <div class="mt-3 space-y-1.5 text-sm text-ink2 dark:text-beige2">
+            <p>🕑 <span class="font-medium text-ink dark:text-beige">토요일 14:00</span></p>
+            <p>📍 대운동장 잔디구장</p>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-1.5">
+            <span class="tag sage">⚽ 스포츠</span>
+            <span class="tag">초보 환영</span>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk/30"></span>
+              <span class="seat bg-sageDk/30"></span>
+              <span class="ml-1.5 text-xs text-ink2 dark:text-beige2">4 / 10명</span>
+            </div>
+            <span class="text-xs text-ink2/70 dark:text-beige2/70">방장 · 민지</span>
+          </div>
+
+          <button class="mt-5 w-full py-2.5 rounded-full bg-sage/40 hover:bg-sage/70 dark:bg-sageW/20 dark:hover:bg-sageW/40 text-sageDk dark:text-sageW font-medium text-sm transition-colors">
+            신청하기 <span class="arrow inline-block">→</span>
+          </button>
+        </article>
+
+        <!-- Card 3 — 카공 -->
+        <article class="card relative p-6 rounded-blob bg-white dark:bg-mocha2 border border-peach/70 dark:border-mocha3 shadow-paper hover:shadow-paperLg dark:shadow-paperDk">
+          <span class="tape rose"></span>
+          <div class="flex items-start justify-between">
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">내일 · 10:00</span>
+            <span class="font-hand text-lg text-peachDk dark:text-rose">D-1</span>
+          </div>
+          <h3 class="mt-3 text-lg sm:text-xl font-bold tracking-tight leading-snug">
+            카공 메이트 구해요 (조용한 곳)
+          </h3>
+          <div class="mt-3 space-y-1.5 text-sm text-ink2 dark:text-beige2">
+            <p>🕙 <span class="font-medium text-ink dark:text-beige">내일 10:00 ~ 17:00</span></p>
+            <p>📍 정문 카페 폴인</p>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-1.5">
+            <span class="tag">☕ 카공</span>
+            <span class="tag sage">조용함</span>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="seat bg-peachDk"></span>
+              <span class="seat bg-peachDk/30"></span>
+              <span class="seat bg-peachDk/30"></span>
+              <span class="seat bg-peachDk/30"></span>
+              <span class="ml-1.5 text-xs text-ink2 dark:text-beige2">1 / 4명</span>
+            </div>
+            <span class="text-xs text-ink2/70 dark:text-beige2/70">방장 · 서연</span>
+          </div>
+
+          <button class="mt-5 w-full py-2.5 rounded-full bg-peach hover:bg-peachDk dark:bg-rose/30 dark:hover:bg-rose/50 text-ink dark:text-beige font-medium text-sm transition-colors">
+            신청하기 <span class="arrow inline-block">→</span>
+          </button>
+        </article>
+
+        <!-- Card 4 — 영화 -->
+        <article class="card relative p-6 rounded-blob bg-white dark:bg-mocha2 border border-sage/40 dark:border-mocha3 shadow-paper hover:shadow-paperLg dark:shadow-paperDk">
+          <span class="tape sage dot"></span>
+          <div class="flex items-start justify-between">
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">금 · 20:00</span>
+            <span class="font-hand text-lg text-sageDk dark:text-sageW">D-3</span>
+          </div>
+          <h3 class="mt-3 text-lg sm:text-xl font-bold tracking-tight leading-snug">
+            CGV 동성로 심야영화
+          </h3>
+          <div class="mt-3 space-y-1.5 text-sm text-ink2 dark:text-beige2">
+            <p>🕗 <span class="font-medium text-ink dark:text-beige">금요일 20:00</span></p>
+            <p>📍 CGV 대구한일</p>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-1.5">
+            <span class="tag sage">🎬 문화</span>
+            <span class="tag">영화 후 야식</span>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk/30"></span>
+              <span class="ml-1.5 text-xs text-ink2 dark:text-beige2">3 / 4명</span>
+            </div>
+            <span class="text-xs text-ink2/70 dark:text-beige2/70">방장 · 도현</span>
+          </div>
+
+          <button class="mt-5 w-full py-2.5 rounded-full bg-sage/40 hover:bg-sage/70 dark:bg-sageW/20 dark:hover:bg-sageW/40 text-sageDk dark:text-sageW font-medium text-sm transition-colors">
+            신청하기 <span class="arrow inline-block">→</span>
+          </button>
+        </article>
+
+        <!-- Card 5 — 등산 -->
+        <article class="card relative p-6 rounded-blob bg-white dark:bg-mocha2 border border-peach/70 dark:border-mocha3 shadow-paper hover:shadow-paperLg dark:shadow-paperDk">
+          <span class="tape"></span>
+          <div class="flex items-start justify-between">
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">일 · 07:00</span>
+            <span class="font-hand text-lg text-peachDk dark:text-rose">D-4</span>
+          </div>
+          <h3 class="mt-3 text-lg sm:text-xl font-bold tracking-tight leading-snug">
+            앞산 새벽 등산 + 해돋이 ☀️
+          </h3>
+          <div class="mt-3 space-y-1.5 text-sm text-ink2 dark:text-beige2">
+            <p>🕖 <span class="font-medium text-ink dark:text-beige">일요일 07:00</span></p>
+            <p>📍 앞산공원 케이블카 입구</p>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-1.5">
+            <span class="tag rose">🥾 야외</span>
+            <span class="tag sage">상쾌함</span>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="seat bg-peachDk"></span>
+              <span class="seat bg-peachDk"></span>
+              <span class="seat bg-peachDk/30"></span>
+              <span class="seat bg-peachDk/30"></span>
+              <span class="seat bg-peachDk/30"></span>
+              <span class="ml-1.5 text-xs text-ink2 dark:text-beige2">2 / 5명</span>
+            </div>
+            <span class="text-xs text-ink2/70 dark:text-beige2/70">방장 · 하늘</span>
+          </div>
+
+          <button class="mt-5 w-full py-2.5 rounded-full bg-peach hover:bg-peachDk dark:bg-rose/30 dark:hover:bg-rose/50 text-ink dark:text-beige font-medium text-sm transition-colors">
+            신청하기 <span class="arrow inline-block">→</span>
+          </button>
+        </article>
+
+        <!-- Card 6 — 보드게임 (마감) -->
+        <article class="card relative p-6 rounded-blob bg-cream2/70 dark:bg-mocha2/70 border border-ink2/15 dark:border-mocha3 shadow-paper dark:shadow-paperDk opacity-90">
+          <span class="tape sage"></span>
+          <div class="flex items-start justify-between">
+            <span class="text-[11px] tracking-wider uppercase text-ink2/70 dark:text-beige2/70">목 · 19:00 · 마감 ✓</span>
+            <span class="font-hand text-lg text-sageDk dark:text-sageW">정원</span>
+          </div>
+          <h3 class="mt-3 text-lg sm:text-xl font-bold tracking-tight leading-snug">
+            보드게임 카페 모이자
+          </h3>
+          <div class="mt-3 space-y-1.5 text-sm text-ink2 dark:text-beige2">
+            <p>🕖 <span class="font-medium text-ink dark:text-beige">목요일 19:00</span></p>
+            <p>📍 정문 보드게임카페 클로버</p>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-1.5">
+            <span class="tag">🎲 게임</span>
+            <span class="tag sage">오픈채팅 활성화됨</span>
+          </div>
+
+          <div class="mt-5 flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk"></span>
+              <span class="seat bg-sageDk"></span>
+              <span class="ml-1.5 text-xs text-ink2 dark:text-beige2">4 / 4명 ✨</span>
+            </div>
+            <span class="text-xs text-ink2/70 dark:text-beige2/70">방장 · 유진</span>
+          </div>
+
+          <button disabled class="mt-5 w-full py-2.5 rounded-full bg-ink2/10 dark:bg-beige2/10 text-ink2 dark:text-beige2 font-medium text-sm cursor-not-allowed">
+            정원 마감 · 오픈채팅 열림 💬
+          </button>
+        </article>
+
+      </div>
+
+      <!-- Load more / 빈 상태 — placeholder note -->
+      <div class="mt-10 flex flex-col items-center gap-3">
+        <button class="px-5 py-2.5 rounded-full bg-white dark:bg-mocha2 border border-peach/70 dark:border-mocha3 text-sm text-ink2 dark:text-beige2 hover:bg-cream2 dark:hover:bg-mocha3 transition-colors">
+          더 보기 ↓
+        </button>
+        <p class="font-hand text-base text-ink2/80 dark:text-beige2/70">— 원하는 모임이 없으면 직접 만들어요 —</p>
+      </div>
+    </div>
+
+    <!-- ========================= EMPTY STATE (참고용 미니) ========================= -->
+    <div class="mt-16 sm:mt-20">
+      <div class="stitch mb-8 opacity-70"></div>
+      <div class="mx-auto max-w-md text-center p-8 rounded-blob bg-cream2/60 dark:bg-mocha2/70 border border-dashed border-peach dark:border-mocha3">
+        <div class="text-4xl">🧺</div>
+        <p class="mt-3 font-hand text-xl text-peachDk dark:text-rose">필터에 모임이 없을 땐</p>
+        <p class="mt-1 text-sm text-ink2 dark:text-beige2 leading-relaxed">
+          "내가 만들면 되지" 의 마음으로 한 줄 적어보세요.<br/>
+          누군가의 오늘이 살짝 따뜻해질지도 몰라요.
+        </p>
+        <a href="#new" class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-ink dark:text-beige underline decoration-peachDk dark:decoration-rose decoration-2 underline-offset-4">
+          새 모임 만들기 →
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================= FOOTER ========================= -->
+  <footer class="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 pb-10">
+    <div class="stitch mb-6"></div>
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-ink2 dark:text-beige2">
+      <div class="flex items-center gap-2">
+        <span class="font-hand text-xl text-peachDk dark:text-rose">🤲</span>
+        <span>© 2026 취미메이트 · GETIT 9기 멘토링</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <a href="#" class="hover:text-ink dark:hover:text-beige">이용약관</a>
+        <a href="#" class="hover:text-ink dark:hover:text-beige">문의</a>
+      </div>
+    </div>
+  </footer>
+</section>
+
+<!-- Dark mode toggle -->
+<script>
+  (function () {
+    const root = document.documentElement;
+    const btn  = document.getElementById('themeToggle');
+    const KEY  = 'hobby-warm-theme';
+
+    function apply(mode) {
+      if (mode === 'dark') root.classList.add('dark');
+      else root.classList.remove('dark');
+    }
+    const saved = localStorage.getItem(KEY);
+    apply(saved === 'dark' ? 'dark' : 'light');
+
+    btn?.addEventListener('click', () => {
+      const next = root.classList.contains('dark') ? 'light' : 'dark';
+      apply(next);
+      localStorage.setItem(KEY, next);
+    });
+
+    // Filter chip toggle (visual only)
+    document.querySelectorAll('.chip').forEach(c => {
+      c.addEventListener('click', (e) => {
+        const isTimeChip = ['오늘','이번 주','주말'].includes(e.target.textContent.trim());
+        if (isTimeChip) {
+          document.querySelectorAll('.chip').forEach(x => {
+            if (['오늘','이번 주','주말'].includes(x.textContent.trim())) x.classList.remove('active');
+          });
+        }
+        e.target.classList.toggle('active');
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>

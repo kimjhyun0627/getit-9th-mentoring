@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="ko" class="">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>hobby · Glassmorphism — 오늘 뭐할까?</title>
+
+<!--
+  Persona: Glassmorphism (iOS 18 / macOS Sequoia / visionOS)
+  Project: hobby (취미메이트, hobby.get-it.cloud)
+  핵심 페이지: Discover (홈)
+
+  차별 포인트:
+    1) 멀티-hue 그라데이션 베이스(라이트: mint→sky→lavender / 다크: violet→midnight→deep purple)
+       위에 backdrop-blur-2xl 카드가 "떠 있는" 깊이감 Discover 피드
+    2) 헤더·검색바·필터칩·모집카드·CTA 전부 반투명 글래스 — Apple Vision Pro에서
+       "오늘 뭐할까" 둘러보는 무드. board(칸반) glass의 멀티컬럼과 달리 큰 그리드 카드 중심
+    3) 카드 hover시 translateY -3px + 외곽선 진해짐(부드러운 250ms) — playful의 비비드 회전,
+       tech-dark의 네온과 완전히 다른 미래지향·부드러움
+    4) 방장 아바타는 카드별 다른 hue 그라데이션 원, shadow도 카드별 다른 컬러 hue(상호 구분 + 무드 유지)
+-->
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'Pretendard', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        },
+        boxShadow: {
+          glass: '0 8px 32px 0 rgba(31,38,135,0.18)',
+          glassDark: '0 10px 40px 0 rgba(10,10,40,0.45)',
+          mint: '0 14px 40px -10px rgba(80, 200, 170, 0.45)',
+          sky: '0 14px 40px -10px rgba(100, 160, 240, 0.45)',
+          lav: '0 14px 40px -10px rgba(180, 150, 240, 0.45)',
+          peach: '0 14px 40px -10px rgba(255, 170, 180, 0.45)',
+        },
+      },
+    },
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+  rel="stylesheet"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css"
+/>
+
+<style>
+  html,
+  body {
+    font-family: 'Inter', 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── 라이트: mint → sky → lavender ───────────────────── */
+  body {
+    background:
+      radial-gradient(1000px 700px at 5% -10%, #c8f5e4 0%, transparent 60%),
+      radial-gradient(900px 700px at 100% 5%, #c8dcff 0%, transparent 60%),
+      radial-gradient(900px 700px at 50% 110%, #e3d4ff 0%, transparent 60%),
+      linear-gradient(135deg, #ecfff7 0%, #eef1ff 55%, #f6edff 100%);
+    min-height: 100vh;
+  }
+  /* ── 다크: violet → midnight → deep purple ───────────── */
+  html.dark body {
+    background:
+      radial-gradient(1100px 700px at 8% -10%, #3a1f6e 0%, transparent 60%),
+      radial-gradient(900px 700px at 100% 10%, #15205a 0%, transparent 55%),
+      radial-gradient(900px 700px at 50% 110%, #25155a 0%, transparent 55%),
+      linear-gradient(135deg, #140a2e 0%, #0c1238 55%, #1a0b3a 100%);
+  }
+
+  /* 글래스 베이스 */
+  .glass {
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+  }
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+  }
+  .glass-soft {
+    background: rgba(255, 255, 255, 0.4);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    backdrop-filter: blur(18px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+  }
+  html.dark .glass {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+  html.dark .glass-strong {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  html.dark .glass-soft {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* hover 떠오름 */
+  .lift {
+    transition:
+      transform 280ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 280ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      border-color 280ms ease-out;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.85);
+  }
+  html.dark .lift:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+
+  /* 카드 그라데이션 원 */
+  .ring-mint   { background: linear-gradient(135deg, #7be1c5, #65b8ff); }
+  .ring-sky    { background: linear-gradient(135deg, #8ec5ff, #b894ff); }
+  .ring-lav    { background: linear-gradient(135deg, #c4a4ff, #ff9fc4); }
+  .ring-peach  { background: linear-gradient(135deg, #ffb59c, #ffd28a); }
+  .ring-rose   { background: linear-gradient(135deg, #ff9eb8, #c89bff); }
+  .ring-cyan   { background: linear-gradient(135deg, #7fe6e6, #8ec5ff); }
+  .ring-violet { background: linear-gradient(135deg, #a48bff, #7c66ff); }
+  .ring-sun    { background: linear-gradient(135deg, #ffd66f, #ffaf6f); }
+
+  /* 텍스트 대비 (반투명 위) */
+  .ink-strong { color: #1a1530; }
+  .ink-soft   { color: #4a4665; }
+  html.dark .ink-strong { color: #f5f1ff; }
+  html.dark .ink-soft   { color: #c4bee0; }
+
+  /* 글래스 위 dashed */
+  .glass-dashed {
+    background: rgba(255, 255, 255, 0.3);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+    border: 1.5px dashed rgba(120, 100, 200, 0.4);
+  }
+  html.dark .glass-dashed {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1.5px dashed rgba(200, 180, 255, 0.3);
+  }
+
+  /* floating CTA pulse — 너무 튀지 않게 */
+  @keyframes haloPulse {
+    0%, 100% { box-shadow: 0 12px 38px -6px rgba(120, 110, 240, 0.55), 0 0 0 0 rgba(120,110,240,0.35); }
+    50%      { box-shadow: 0 18px 44px -6px rgba(120, 110, 240, 0.65), 0 0 0 14px rgba(120,110,240,0.0); }
+  }
+  .halo { animation: haloPulse 2.8s ease-in-out infinite; }
+
+  /* scrollbar 살짝 죽이기 */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(120, 110, 200, 0.25); border-radius: 999px; }
+  html.dark ::-webkit-scrollbar-thumb { background: rgba(200, 180, 255, 0.2); }
+</style>
+</head>
+
+<body class="ink-strong">
+<!-- ════════════════════ Sticky 글래스 헤더 ════════════════════ -->
+<header class="sticky top-0 z-40">
+  <div class="glass-strong shadow-glass dark:shadow-glassDark">
+    <div class="mx-auto max-w-6xl px-5 py-3 flex items-center gap-3">
+      <!-- 로고 -->
+      <a href="#" class="flex items-center gap-2 shrink-0">
+        <span class="w-8 h-8 rounded-2xl ring-sky shadow-sky inline-flex items-center justify-center text-white font-bold">h</span>
+        <span class="font-bold text-[15px] tracking-tight">hobby<span class="ink-soft font-medium">.get-it</span></span>
+      </a>
+
+      <!-- 검색바 (글래스 안의 글래스) -->
+      <label class="hidden md:flex flex-1 max-w-xl mx-auto items-center gap-2 px-4 py-2 rounded-2xl glass-soft lift">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ink-soft">
+          <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+        </svg>
+        <input type="text" placeholder="마라탕, 보드게임, 러닝 같이 할 사람…" class="bg-transparent outline-none flex-1 text-sm placeholder:ink-soft" />
+        <span class="text-[10px] ink-soft px-1.5 py-0.5 rounded-md border border-current/30">⌘K</span>
+      </label>
+
+      <div class="flex items-center gap-2 ml-auto">
+        <!-- 다크모드 토글 -->
+        <button id="themeToggle" aria-label="테마 전환" class="w-9 h-9 rounded-full glass-soft lift inline-flex items-center justify-center">
+          <span id="themeIcon">☀</span>
+        </button>
+        <!-- Sign in -->
+        <a href="#" class="px-4 py-2 rounded-2xl text-sm font-semibold glass lift shadow-glass dark:shadow-glassDark">Sign in</a>
+      </div>
+    </div>
+
+    <!-- 모바일 검색 -->
+    <div class="md:hidden mx-auto max-w-6xl px-5 pb-3">
+      <label class="flex items-center gap-2 px-4 py-2 rounded-2xl glass-soft">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="ink-soft">
+          <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+        </svg>
+        <input type="text" placeholder="오늘 뭐할까?" class="bg-transparent outline-none flex-1 text-sm" />
+      </label>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════ Hero ════════════════════ -->
+<section class="mx-auto max-w-6xl px-5 pt-10 md:pt-14 pb-6">
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div>
+      <p class="ink-soft text-sm font-medium tracking-wide">2026 · 5월 19일 화요일 · 경북대</p>
+      <h1 class="mt-2 text-3xl md:text-5xl font-bold tracking-tight leading-tight">
+        오늘, <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-sky-500 to-violet-500">같이 놀 사람</span><br/>
+        찾아볼까?
+      </h1>
+      <p class="mt-3 ink-soft text-base md:text-lg max-w-xl">
+        경북대 학우끼리 가볍게 모이는 일회성 취미 모임. 한 끼, 한 판, 한 바퀴.
+      </p>
+    </div>
+    <div class="flex items-center gap-2 ink-soft text-sm">
+      <span class="px-3 py-1.5 rounded-full glass-soft">지금 열린 모임 <strong class="ink-strong">28</strong></span>
+      <span class="px-3 py-1.5 rounded-full glass-soft">오늘 마감 <strong class="ink-strong">12</strong></span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════ 필터 칩 ════════════════════ -->
+<section class="mx-auto max-w-6xl px-5">
+  <div class="flex flex-wrap gap-2 py-2">
+    <button class="px-4 py-2 rounded-full text-sm font-semibold glass-strong lift shadow-glass dark:shadow-glassDark">전체</button>
+    <button class="px-4 py-2 rounded-full text-sm ink-soft glass-soft lift">🍜 한 끼</button>
+    <button class="px-4 py-2 rounded-full text-sm ink-soft glass-soft lift">🎲 보드게임</button>
+    <button class="px-4 py-2 rounded-full text-sm ink-soft glass-soft lift">🏃 러닝</button>
+    <button class="px-4 py-2 rounded-full text-sm ink-soft glass-soft lift">☕ 카페</button>
+    <button class="px-4 py-2 rounded-full text-sm ink-soft glass-soft lift">🎮 게임</button>
+    <button class="px-4 py-2 rounded-full text-sm ink-soft glass-soft lift">📷 사진</button>
+    <button class="px-4 py-2 rounded-full text-sm ink-soft glass-soft lift">🎤 노래방</button>
+    <button class="ml-auto px-4 py-2 rounded-full text-sm ink-soft glass-soft lift">정렬: 가까운 시간순 ▾</button>
+  </div>
+</section>
+
+<!-- ════════════════════ 모집 카드 그리드 ════════════════════ -->
+<main class="mx-auto max-w-6xl px-5 py-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+    <!-- 카드 1: 마라탕 -->
+    <article class="glass rounded-3xl p-5 lift shadow-mint">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full ring-peach text-white font-bold inline-flex items-center justify-center text-sm">민</div>
+          <div><p class="text-sm font-semibold">민지</p><p class="text-xs ink-soft">컴공 22 · 모임 14회</p></div>
+        </div>
+        <span class="text-[11px] font-semibold px-2 py-1 rounded-full glass-soft">⏰ 3시간 뒤</span>
+      </div>
+
+      <h3 class="mt-4 text-lg font-semibold leading-snug">북문 마라탕 같이 먹을 사람 🌶️🌶️</h3>
+      <p class="mt-1 text-sm ink-soft">"매운맛 동지 구해요. 혼자 가기 양 많아서요"</p>
+
+      <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+        <div class="glass-soft rounded-xl px-3 py-2">📅 오늘 18:00</div>
+        <div class="glass-soft rounded-xl px-3 py-2">📍 북문 라화방</div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#한끼</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#매운맛</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#1인1분식</span>
+      </div>
+
+      <div class="mt-5 flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <div class="flex -space-x-2">
+            <div class="w-6 h-6 rounded-full ring-mint border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-sky border-2 border-white/80 dark:border-white/20"></div>
+          </div>
+          <span class="text-xs ink-soft ml-1">2/3</span>
+        </div>
+        <button class="px-4 py-2 rounded-2xl text-sm font-semibold glass-strong lift shadow-glass dark:shadow-glassDark">신청</button>
+      </div>
+    </article>
+
+    <!-- 카드 2: 보드게임 -->
+    <article class="glass rounded-3xl p-5 lift shadow-sky">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full ring-violet text-white font-bold inline-flex items-center justify-center text-sm">준</div>
+          <div><p class="text-sm font-semibold">준호</p><p class="text-xs ink-soft">전자공 21 · 모임 8회</p></div>
+        </div>
+        <span class="text-[11px] font-semibold px-2 py-1 rounded-full glass-soft">🟢 모집중</span>
+      </div>
+
+      <h3 class="mt-4 text-lg font-semibold leading-snug">정문 카페에서 카탄 한 판 🎲</h3>
+      <p class="mt-1 text-sm ink-soft">"3-4인 카탄 입문자 환영, 룰북 가져갑니다"</p>
+
+      <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+        <div class="glass-soft rounded-xl px-3 py-2">📅 내일 14:00</div>
+        <div class="glass-soft rounded-xl px-3 py-2">📍 정문 디다트</div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#보드게임</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#카탄</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#입문환영</span>
+      </div>
+
+      <div class="mt-5 flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <div class="flex -space-x-2">
+            <div class="w-6 h-6 rounded-full ring-rose border-2 border-white/80 dark:border-white/20"></div>
+          </div>
+          <span class="text-xs ink-soft ml-1">1/4</span>
+        </div>
+        <button class="px-4 py-2 rounded-2xl text-sm font-semibold glass-strong lift shadow-glass dark:shadow-glassDark">신청</button>
+      </div>
+    </article>
+
+    <!-- 카드 3: 러닝 -->
+    <article class="glass rounded-3xl p-5 lift shadow-lav">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full ring-mint text-white font-bold inline-flex items-center justify-center text-sm">서</div>
+          <div><p class="text-sm font-semibold">서연</p><p class="text-xs ink-soft">체교 23 · 모임 22회</p></div>
+        </div>
+        <span class="text-[11px] font-semibold px-2 py-1 rounded-full glass-soft">⏰ 곧 마감</span>
+      </div>
+
+      <h3 class="mt-4 text-lg font-semibold leading-snug">새벽 캠퍼스 한 바퀴 🏃‍♀️</h3>
+      <p class="mt-1 text-sm ink-soft">"천천히 5km, 페이스 6'30 맞춰드려요"</p>
+
+      <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+        <div class="glass-soft rounded-xl px-3 py-2">📅 내일 06:30</div>
+        <div class="glass-soft rounded-xl px-3 py-2">📍 대운동장</div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#러닝</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#5km</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#가벼운페이스</span>
+      </div>
+
+      <div class="mt-5 flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <div class="flex -space-x-2">
+            <div class="w-6 h-6 rounded-full ring-sun border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-cyan border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-lav border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-peach border-2 border-white/80 dark:border-white/20"></div>
+          </div>
+          <span class="text-xs ink-soft ml-1">4/5</span>
+        </div>
+        <button class="px-4 py-2 rounded-2xl text-sm font-semibold glass-strong lift shadow-glass dark:shadow-glassDark">신청</button>
+      </div>
+    </article>
+
+    <!-- 카드 4: 카페 -->
+    <article class="glass rounded-3xl p-5 lift shadow-peach">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full ring-cyan text-white font-bold inline-flex items-center justify-center text-sm">하</div>
+          <div><p class="text-sm font-semibold">하늘</p><p class="text-xs ink-soft">디자인 22 · 모임 6회</p></div>
+        </div>
+        <span class="text-[11px] font-semibold px-2 py-1 rounded-full glass-soft">🟢 모집중</span>
+      </div>
+
+      <h3 class="mt-4 text-lg font-semibold leading-snug">신상 카페 투어 ☕</h3>
+      <p class="mt-1 text-sm ink-soft">"대명동 신상 두 군데 같이 가실 분"</p>
+
+      <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+        <div class="glass-soft rounded-xl px-3 py-2">📅 토 15:00</div>
+        <div class="glass-soft rounded-xl px-3 py-2">📍 대명동</div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#카페</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#신상</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#사진</span>
+      </div>
+
+      <div class="mt-5 flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <div class="flex -space-x-2">
+            <div class="w-6 h-6 rounded-full ring-violet border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-rose border-2 border-white/80 dark:border-white/20"></div>
+          </div>
+          <span class="text-xs ink-soft ml-1">2/4</span>
+        </div>
+        <button class="px-4 py-2 rounded-2xl text-sm font-semibold glass-strong lift shadow-glass dark:shadow-glassDark">신청</button>
+      </div>
+    </article>
+
+    <!-- 카드 5: 게임 (마감 임박) -->
+    <article class="glass rounded-3xl p-5 lift shadow-mint">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full ring-sky text-white font-bold inline-flex items-center justify-center text-sm">지</div>
+          <div><p class="text-sm font-semibold">지우</p><p class="text-xs ink-soft">컴공 24 · 모임 3회</p></div>
+        </div>
+        <span class="text-[11px] font-semibold px-2 py-1 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-200 border border-rose-300/30">⏰ 30분 뒤</span>
+      </div>
+      <h3 class="mt-4 text-lg font-semibold leading-snug">PC방 발로란트 5인큐 🎮</h3>
+      <p class="mt-1 text-sm ink-soft">"실버~플레 환영, 보이스 OK"</p>
+      <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+        <div class="glass-soft rounded-xl px-3 py-2">📅 오늘 20:00</div>
+        <div class="glass-soft rounded-xl px-3 py-2">📍 북문 룩스PC</div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#게임</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#발로란트</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#5인큐</span>
+      </div>
+      <div class="mt-5 flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <div class="flex -space-x-2">
+            <div class="w-6 h-6 rounded-full ring-violet border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-sun border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-cyan border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-lav border-2 border-white/80 dark:border-white/20"></div>
+          </div>
+          <span class="text-xs ink-soft ml-1">4/5</span>
+        </div>
+        <button class="px-4 py-2 rounded-2xl text-sm font-semibold glass-strong lift shadow-glass dark:shadow-glassDark">신청</button>
+      </div>
+    </article>
+
+    <!-- 카드 6: 사진 -->
+    <article class="glass rounded-3xl p-5 lift shadow-sky">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full ring-sun text-white font-bold inline-flex items-center justify-center text-sm">유</div>
+          <div><p class="text-sm font-semibold">유진</p><p class="text-xs ink-soft">미술 22 · 모임 11회</p></div>
+        </div>
+        <span class="text-[11px] font-semibold px-2 py-1 rounded-full glass-soft">🟢 모집중</span>
+      </div>
+      <h3 class="mt-4 text-lg font-semibold leading-snug">캠퍼스 봄꽃 출사 📷</h3>
+      <p class="mt-1 text-sm ink-soft">"필카 OK, 디카 OK, 폰도 OK"</p>
+      <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+        <div class="glass-soft rounded-xl px-3 py-2">📅 일 11:00</div>
+        <div class="glass-soft rounded-xl px-3 py-2">📍 글로벌프라자</div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#사진</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#출사</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#봄</span>
+      </div>
+      <div class="mt-5 flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <div class="flex -space-x-2">
+            <div class="w-6 h-6 rounded-full ring-mint border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-rose border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-peach border-2 border-white/80 dark:border-white/20"></div>
+          </div>
+          <span class="text-xs ink-soft ml-1">3/6</span>
+        </div>
+        <button class="px-4 py-2 rounded-2xl text-sm font-semibold glass-strong lift shadow-glass dark:shadow-glassDark">신청</button>
+      </div>
+    </article>
+
+    <!-- 카드 7: 노래방 -->
+    <article class="glass rounded-3xl p-5 lift shadow-lav">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full ring-rose text-white font-bold inline-flex items-center justify-center text-sm">태</div>
+          <div><p class="text-sm font-semibold">태민</p><p class="text-xs ink-soft">경영 23 · 모임 19회</p></div>
+        </div>
+        <span class="text-[11px] font-semibold px-2 py-1 rounded-full glass-soft">⏰ 5시간 뒤</span>
+      </div>
+      <h3 class="mt-4 text-lg font-semibold leading-snug">시험 끝 노래방 🎤</h3>
+      <p class="mt-1 text-sm ink-soft">"중간고사 끝 자축 떼창. 발라드/k-pop OK"</p>
+      <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+        <div class="glass-soft rounded-xl px-3 py-2">📅 오늘 22:00</div>
+        <div class="glass-soft rounded-xl px-3 py-2">📍 북문 수노래방</div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#노래방</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#떼창</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#시험끝</span>
+      </div>
+      <div class="mt-5 flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <div class="flex -space-x-2">
+            <div class="w-6 h-6 rounded-full ring-sky border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-violet border-2 border-white/80 dark:border-white/20"></div>
+            <div class="w-6 h-6 rounded-full ring-cyan border-2 border-white/80 dark:border-white/20"></div>
+          </div>
+          <span class="text-xs ink-soft ml-1">3/6</span>
+        </div>
+        <button class="px-4 py-2 rounded-2xl text-sm font-semibold glass-strong lift shadow-glass dark:shadow-glassDark">신청</button>
+      </div>
+    </article>
+
+    <!-- 카드 8: 스터디 -->
+    <article class="glass rounded-3xl p-5 lift shadow-peach">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full ring-lav text-white font-bold inline-flex items-center justify-center text-sm">예</div>
+          <div>
+            <p class="text-sm font-semibold">예린</p>
+            <p class="text-xs ink-soft">통계 22 · 모임 9회</p>
+          </div>
+        </div>
+        <span class="text-[11px] font-semibold px-2 py-1 rounded-full glass-soft">🟢 모집중</span>
+      </div>
+      <h3 class="mt-4 text-lg font-semibold leading-snug">중도 조용한 자율 스터디 📚</h3>
+      <p class="mt-1 text-sm ink-soft">"각자 공부 + 50/10 뽀모도로"</p>
+      <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+        <div class="glass-soft rounded-xl px-3 py-2">📅 목 09:00</div>
+        <div class="glass-soft rounded-xl px-3 py-2">📍 중도 4F</div>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#스터디</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#자율</span>
+        <span class="text-xs px-2.5 py-1 rounded-full glass-soft">#뽀모도로</span>
+      </div>
+      <div class="mt-5 flex items-center justify-between">
+        <div class="flex items-center gap-1">
+          <div class="flex -space-x-2">
+            <div class="w-6 h-6 rounded-full ring-sun border-2 border-white/80 dark:border-white/20"></div>
+          </div>
+          <span class="text-xs ink-soft ml-1">1/4</span>
+        </div>
+        <button class="px-4 py-2 rounded-2xl text-sm font-semibold glass-strong lift shadow-glass dark:shadow-glassDark">신청</button>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- 빈 상태 (말미에 살짝 — "더 보고 싶으면 만들어봐") -->
+  <div class="mt-8 glass-dashed rounded-3xl p-8 text-center">
+    <p class="text-sm ink-soft">찾는 모임이 없네? 새로 만들면 다른 학우들이 신청할 수 있어요</p>
+    <button class="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold glass lift">
+      <span>+</span><span>새 모임 만들기</span>
+    </button>
+  </div>
+</main>
+
+<!-- ════════════════════ Floating CTA ════════════════════ -->
+<button
+  aria-label="새 모임 만들기"
+  class="fixed bottom-6 right-6 z-50 group inline-flex items-center gap-2 pl-4 pr-5 py-3 rounded-2xl text-sm font-semibold text-white halo"
+  style="background: linear-gradient(135deg, #7c66ff 0%, #5a8dee 60%, #59d3b5 100%);"
+>
+  <span class="w-6 h-6 rounded-full bg-white/25 inline-flex items-center justify-center text-base">＋</span>
+  <span class="hidden sm:inline">새 모임 만들기</span>
+  <span class="sm:hidden">새 모임</span>
+</button>
+
+<!-- ════════════════════ Footer ════════════════════ -->
+<footer class="mx-auto max-w-6xl px-5 py-10">
+  <div class="glass-soft rounded-3xl px-5 py-4 flex flex-wrap items-center justify-between gap-3 text-xs ink-soft">
+    <span>© 2026 getit · hobby</span>
+    <span class="flex items-center gap-3">
+      <a href="#" class="hover:ink-strong transition">이용약관</a>
+      <a href="#" class="hover:ink-strong transition">개인정보</a>
+      <a href="#" class="hover:ink-strong transition">문의</a>
+    </span>
+  </div>
+</footer>
+
+<!-- ════════════════════ 다크모드 토글 ════════════════════ -->
+<script>
+  (function () {
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    const icon = document.getElementById('themeIcon');
+    const KEY = 'getit-theme';
+
+    function apply(theme) {
+      if (theme === 'dark') {
+        root.classList.add('dark');
+        icon.textContent = '🌙';
+      } else {
+        root.classList.remove('dark');
+        icon.textContent = '☀';
+      }
+    }
+
+    const saved = localStorage.getItem(KEY);
+    if (saved) {
+      apply(saved);
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      apply(prefersDark ? 'dark' : 'light');
+    }
+
+    btn.addEventListener('click', () => {
+      const next = root.classList.contains('dark') ? 'light' : 'dark';
+      localStorage.setItem(KEY, next);
+      apply(next);
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!doctype html>
+<!--
+  ============================================================
+  board / tech-dark
+  ============================================================
+  차별 포인트:
+    - "이건 IDE에 박힌 칸반이다." 다크 베이스(#08090b) + 8px grid 가시화 + scanline overlay.
+    - 액센트는 사이언(#22d3ee) 메인, 마젠타(#e879f9)/라임(#a3e635) 보조. 컬럼별 액센트가 다름:
+        Todo = magenta, Doing = cyan, Done = lime. 진척도가 색으로 읽힌다.
+    - 모든 카드 ID는 monospace `BRD-####` 형태로 노출. 카드는 코드 블록처럼 1px neon border + glow.
+    - 카드 라벨(`feat:` `bug:` `chore:`)은 컨벤셔널 커밋 prefix 패턴. 엔지니어가 1초만에 분류.
+    - 헤더에 깜빡이는 caret + "all branches / nominal" 상태바. 우측 상단 ☀/🌙 토글로 html.dark 스위치.
+    - 코너 등록 마크(+), 도트 디바이더, 키보드 단축키 힌트(`N`/`/`)까지 — terminal/IDE 메타포 일관.
+    - Minimalist는 절제된 흰바탕. 여긴 네온/터미널. 수렴 0.
+  ============================================================
+-->
+<html lang="ko" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>board — Tech/Dark / GETIT/9</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Pretendard Variable', 'Inter', 'ui-sans-serif', 'system-ui'],
+              mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+            },
+            colors: {
+              cyan: { neon: '#22d3ee' },
+              magenta: { neon: '#e879f9' },
+              lime: { neon: '#a3e635' },
+              ink: {
+                950: '#08090b',
+                900: '#0c0d10',
+                850: '#101114',
+                800: '#16181d',
+                700: '#1f2228',
+                600: '#2a2e36',
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      :root {
+        --grid-dark: rgba(255, 255, 255, 0.04);
+        --grid-light: rgba(15, 23, 42, 0.06);
+        --cyan: #22d3ee;
+        --magenta: #e879f9;
+        --lime: #a3e635;
+      }
+      html.dark body {
+        background-color: #08090b;
+        color: #e4e4e7;
+      }
+      html:not(.dark) body {
+        background-color: #f5f5f4;
+        color: #18181b;
+      }
+      body {
+        font-feature-settings: 'cv11', 'ss01', 'ss03';
+        -webkit-font-smoothing: antialiased;
+        background-image:
+          radial-gradient(900px 500px at 88% -8%, rgba(34, 211, 238, 0.10), transparent 60%),
+          radial-gradient(700px 400px at 6% 10%, rgba(232, 121, 249, 0.08), transparent 60%),
+          linear-gradient(var(--grid-dark) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid-dark) 1px, transparent 1px);
+        background-size: auto, auto, 48px 48px, 48px 48px;
+        min-height: 100vh;
+      }
+      html:not(.dark) body {
+        background-image:
+          radial-gradient(900px 500px at 88% -8%, rgba(8, 145, 178, 0.07), transparent 60%),
+          radial-gradient(700px 400px at 6% 10%, rgba(192, 38, 211, 0.05), transparent 60%),
+          linear-gradient(var(--grid-light) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid-light) 1px, transparent 1px);
+        background-size: auto, auto, 48px 48px, 48px 48px;
+      }
+      /* scanline overlay (dark only) */
+      .scanlines::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        background-image: repeating-linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.012) 0,
+          rgba(255, 255, 255, 0.012) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+        mix-blend-mode: overlay;
+      }
+      html:not(.dark) .scanlines::after { display: none; }
+      /* blinking caret */
+      @keyframes blink {
+        0%, 49% { opacity: 1; }
+        50%, 100% { opacity: 0; }
+      }
+      .caret {
+        display: inline-block;
+        width: 0.55ch;
+        height: 1em;
+        background: currentColor;
+        animation: blink 1.05s steps(1) infinite;
+        margin-left: 2px;
+        vertical-align: -2px;
+      }
+      /* status pulse dot */
+      @keyframes pulseDot {
+        0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+        50% { opacity: 0.55; box-shadow: 0 0 0 6px transparent; }
+      }
+      .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
+      /* card hover neon glow per accent */
+      .card-tech { position: relative; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+      .card-tech:hover { transform: translateY(-2px); }
+      .card-tech[data-accent='cyan']:hover    { border-color: rgba(34,211,238,0.55) !important; box-shadow: 0 0 0 1px rgba(34,211,238,0.32), 0 0 28px -8px rgba(34,211,238,0.45), 0 10px 32px -16px rgba(0,0,0,0.8); }
+      .card-tech[data-accent='magenta']:hover { border-color: rgba(232,121,249,0.55) !important; box-shadow: 0 0 0 1px rgba(232,121,249,0.32), 0 0 28px -8px rgba(232,121,249,0.45), 0 10px 32px -16px rgba(0,0,0,0.8); }
+      .card-tech[data-accent='lime']:hover    { border-color: rgba(163,230,53,0.5) !important; box-shadow: 0 0 0 1px rgba(163,230,53,0.3), 0 0 28px -8px rgba(163,230,53,0.4), 0 10px 32px -16px rgba(0,0,0,0.8); }
+      html:not(.dark) .card-tech[data-accent='cyan']:hover    { border-color: rgba(8,145,178,0.55) !important; box-shadow: 0 0 0 1px rgba(8,145,178,0.3), 0 14px 32px -18px rgba(8,145,178,0.45); }
+      html:not(.dark) .card-tech[data-accent='magenta']:hover { border-color: rgba(192,38,211,0.55) !important; box-shadow: 0 0 0 1px rgba(192,38,211,0.25), 0 14px 32px -18px rgba(192,38,211,0.45); }
+      html:not(.dark) .card-tech[data-accent='lime']:hover    { border-color: rgba(101,163,13,0.55) !important; box-shadow: 0 0 0 1px rgba(101,163,13,0.25), 0 14px 32px -18px rgba(101,163,13,0.45); }
+      /* column caption color per accent */
+      .col-cap[data-accent='magenta'] { color: var(--magenta); }
+      .col-cap[data-accent='cyan']    { color: var(--cyan); }
+      .col-cap[data-accent='lime']    { color: var(--lime); }
+      html:not(.dark) .col-cap[data-accent='cyan']    { color: #0e7490; }
+      html:not(.dark) .col-cap[data-accent='magenta'] { color: #a21caf; }
+      html:not(.dark) .col-cap[data-accent='lime']    { color: #4d7c0f; }
+      /* divider + focus + glass */
+      .divider-mono { background-image: repeating-linear-gradient(90deg, currentColor 0, currentColor 6px, transparent 6px, transparent 12px); height: 1px; }
+      a:focus-visible, button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+      html:not(.dark) a:focus-visible, html:not(.dark) button:focus-visible { outline-color: #0e7490; }
+      .glass { background: rgba(16,17,20,0.55); backdrop-filter: blur(8px); }
+      html:not(.dark) .glass { background: rgba(255,255,255,0.65); backdrop-filter: blur(8px); }
+      /* kbd chip + avatar ring + drag hint */
+      .kbd {
+        font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10px;
+        padding: 2px 6px; border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: #a1a1aa;
+      }
+      html:not(.dark) .kbd { border-color: rgba(15,23,42,0.18); background: rgba(15,23,42,0.04); color: #475569; }
+      .avatar-ring { box-shadow: 0 0 0 2px #08090b; }
+      html:not(.dark) .avatar-ring { box-shadow: 0 0 0 2px #f5f5f4; }
+      @media (prefers-reduced-motion: reduce) {
+        .caret, .pulse-dot { animation: none; }
+        * { transition-duration: 0.001ms !important; }
+      }
+    </style>
+  </head>
+
+  <body class="scanlines font-sans antialiased">
+    <!-- corner registration marks -->
+    <div class="pointer-events-none fixed left-3 top-3 z-20 font-mono text-[10px] tracking-wider text-zinc-600 dark:text-zinc-600">+</div>
+    <div class="pointer-events-none fixed right-3 top-3 z-20 font-mono text-[10px] tracking-wider text-zinc-600 dark:text-zinc-600">+</div>
+    <div class="pointer-events-none fixed bottom-3 left-3 z-20 font-mono text-[10px] tracking-wider text-zinc-600 dark:text-zinc-600">+</div>
+    <div class="pointer-events-none fixed bottom-3 right-3 z-20 font-mono text-[10px] tracking-wider text-zinc-600 dark:text-zinc-600">+</div>
+
+    <!-- ============================================================
+         HEADER
+         ============================================================ -->
+    <header class="relative z-10 border-b border-zinc-200/40 dark:border-ink-800/80">
+      <div class="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8">
+        <!-- left: brand + project crumb -->
+        <div class="flex items-center gap-3">
+          <a href="#" class="flex items-center gap-2 font-mono text-sm font-semibold">
+            <span class="text-cyan-600 dark:text-cyan-neon">GETIT</span>
+            <span class="text-zinc-400 dark:text-zinc-500">/</span>
+            <span class="text-zinc-900 dark:text-zinc-100">9</span>
+            <span class="text-zinc-400 dark:text-zinc-500">/</span>
+            <span class="text-zinc-900 dark:text-zinc-100">board</span>
+            <span class="caret bg-cyan-600 dark:bg-cyan-neon text-cyan-600 dark:text-cyan-neon" aria-hidden="true"></span>
+          </a>
+          <div class="hidden h-5 w-px bg-zinc-300 dark:bg-ink-700 sm:block"></div>
+          <div class="hidden items-center gap-2 font-mono text-[11px] text-zinc-500 dark:text-zinc-400 sm:flex">
+            <span class="inline-block size-1.5 rounded-full bg-lime-600 dark:bg-lime-neon pulse-dot text-lime-600 dark:text-lime-neon"></span>
+            <span>all branches / nominal</span>
+          </div>
+        </div>
+
+        <!-- center: project switcher -->
+        <div class="order-3 w-full sm:order-2 sm:w-auto">
+          <div class="glass flex items-center gap-2 rounded-md border border-zinc-300/60 px-3 py-1.5 font-mono text-xs text-zinc-700 dark:border-ink-700/80 dark:text-zinc-300">
+            <span class="text-zinc-400 dark:text-zinc-500">repo:</span>
+            <span class="text-zinc-900 dark:text-zinc-100">getit-9th/sprint-03</span>
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" class="text-zinc-400 dark:text-zinc-500" aria-hidden="true">
+              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- right: members + actions -->
+        <div class="order-2 flex items-center gap-2 sm:order-3">
+          <!-- avatar group -->
+          <div class="flex -space-x-1.5">
+            <span class="avatar-ring inline-flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-cyan-700 font-mono text-[10px] font-bold text-white" title="Jin Hyun">JH</span>
+            <span class="avatar-ring inline-flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-fuchsia-700 font-mono text-[10px] font-bold text-white" title="Soyeon Park">SP</span>
+            <span class="avatar-ring inline-flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-lime-500 to-lime-700 font-mono text-[10px] font-bold text-zinc-900" title="Minho Lee">ML</span>
+            <span class="avatar-ring inline-flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-700 font-mono text-[10px] font-bold text-zinc-900" title="Hyerin Kim">HK</span>
+            <span class="avatar-ring inline-flex size-7 items-center justify-center rounded-full border border-zinc-300/60 bg-zinc-100 font-mono text-[10px] font-medium text-zinc-700 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-300" title="+3 more">+3</span>
+          </div>
+          <!-- search hint -->
+          <button type="button" class="hidden items-center gap-2 rounded-md border border-zinc-300/60 bg-white/60 px-2.5 py-1.5 font-mono text-[11px] text-zinc-500 transition hover:border-cyan-600 hover:text-cyan-700 dark:border-ink-700 dark:bg-ink-900/60 dark:text-zinc-400 dark:hover:border-cyan-neon dark:hover:text-cyan-neon md:inline-flex">
+            <span>find</span>
+            <span class="kbd">/</span>
+          </button>
+          <!-- settings -->
+          <button type="button" aria-label="board settings" class="rounded-md border border-zinc-300/60 bg-white/60 p-1.5 text-zinc-600 transition hover:border-cyan-600 hover:text-cyan-700 dark:border-ink-700 dark:bg-ink-900/60 dark:text-zinc-400 dark:hover:border-cyan-neon dark:hover:text-cyan-neon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M8 1.5v1.8M8 12.7v1.8M14.5 8h-1.8M3.3 8H1.5M12.6 3.4l-1.3 1.3M4.7 11.3l-1.3 1.3M12.6 12.6l-1.3-1.3M4.7 4.7L3.4 3.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <!-- + Card CTA -->
+          <button type="button" class="inline-flex items-center gap-2 rounded-md border border-cyan-500/60 bg-cyan-500/10 px-3 py-1.5 font-mono text-xs font-medium text-cyan-700 transition hover:border-cyan-500 hover:bg-cyan-500/20 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.35),0_0_24px_-6px_rgba(34,211,238,0.5)] dark:border-cyan-neon/50 dark:text-cyan-neon">
+            <span class="text-base leading-none">+</span>
+            <span>new card</span>
+            <span class="kbd ml-1">N</span>
+          </button>
+          <!-- theme toggle -->
+          <button type="button" id="theme-toggle" aria-label="toggle theme" class="rounded-md border border-zinc-300/60 bg-white/60 p-1.5 text-zinc-600 transition hover:border-cyan-600 hover:text-cyan-700 dark:border-ink-700 dark:bg-ink-900/60 dark:text-zinc-400 dark:hover:border-cyan-neon dark:hover:text-cyan-neon">
+            <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- sub-bar: filter chips + counts -->
+      <div class="mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-3 px-5 pb-4 sm:px-8">
+        <div class="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+          <span class="text-zinc-400 dark:text-zinc-500">filter:</span>
+          <button class="rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 text-cyan-700 dark:border-cyan-neon/40 dark:text-cyan-neon">all</button>
+          <button class="rounded border border-zinc-300/60 bg-white/40 px-2 py-0.5 text-zinc-600 hover:border-zinc-400 dark:border-ink-700 dark:bg-ink-900/40 dark:text-zinc-400 dark:hover:border-ink-600">mine</button>
+          <button class="rounded border border-zinc-300/60 bg-white/40 px-2 py-0.5 text-zinc-600 hover:border-zinc-400 dark:border-ink-700 dark:bg-ink-900/40 dark:text-zinc-400 dark:hover:border-ink-600">label:feat</button>
+          <button class="rounded border border-zinc-300/60 bg-white/40 px-2 py-0.5 text-zinc-600 hover:border-zinc-400 dark:border-ink-700 dark:bg-ink-900/40 dark:text-zinc-400 dark:hover:border-ink-600">label:bug</button>
+          <button class="rounded border border-zinc-300/60 bg-white/40 px-2 py-0.5 text-zinc-600 hover:border-zinc-400 dark:border-ink-700 dark:bg-ink-900/40 dark:text-zinc-400 dark:hover:border-ink-600">priority:p0</button>
+        </div>
+        <div class="flex items-center gap-3 font-mono text-[11px] text-zinc-500 dark:text-zinc-500">
+          <span>sprint <span class="text-zinc-800 dark:text-zinc-200">03</span></span>
+          <span class="text-zinc-300 dark:text-ink-700">|</span>
+          <span>total <span class="text-zinc-800 dark:text-zinc-200">14</span></span>
+          <span class="text-zinc-300 dark:text-ink-700">|</span>
+          <span>updated <span class="text-zinc-800 dark:text-zinc-200">11:32:08</span></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============================================================
+         BOARD
+         ============================================================ -->
+    <main class="relative z-10 mx-auto max-w-[1400px] px-5 py-6 sm:px-8">
+      <div class="grid gap-5 lg:grid-cols-3">
+
+        <!-- ───────── COLUMN: TODO (magenta) ───────── -->
+        <section class="flex flex-col rounded-lg border border-zinc-200/60 bg-white/50 p-4 dark:border-ink-800 dark:bg-ink-900/40" aria-label="Todo column">
+          <header class="mb-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="col-cap font-mono text-[11px] tracking-wider" data-accent="magenta">// TODO</span>
+              <span class="rounded border border-fuchsia-500/30 bg-fuchsia-500/10 px-1.5 py-0.5 font-mono text-[10px] text-fuchsia-700 dark:border-magenta-neon/30 dark:text-magenta-neon">04</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-500">
+              <button aria-label="column menu" class="rounded p-1 hover:bg-zinc-100 dark:hover:bg-ink-800">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="space-y-2.5">
+            <!-- card -->
+            <article data-accent="magenta" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 dark:border-ink-700 dark:bg-ink-850/80">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span>BRD-0142</span>
+                <span class="rounded border border-rose-500/30 bg-rose-500/10 px-1 py-px text-rose-600 dark:text-rose-300">P0</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">SSO 토큰 만료 시 리다이렉트 처리</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">auth.get-it.cloud → 401 시 자동 재로그인.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 font-mono text-[10px] text-rose-700 dark:text-rose-300">bug:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">auth</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-cyan-700 font-mono text-[9px] font-bold text-white" title="Jin Hyun">JH</span>
+              </div>
+            </article>
+
+            <article data-accent="magenta" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 dark:border-ink-700 dark:bg-ink-850/80">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span>BRD-0143</span>
+                <span>P1</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">카드 드래그 충돌 시 lock</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">두 명이 동시에 옮기면 마지막만 적용.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[10px] text-cyan-700 dark:text-cyan-neon">feat:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">realtime</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-fuchsia-700 font-mono text-[9px] font-bold text-white" title="Soyeon Park">SP</span>
+              </div>
+            </article>
+
+            <article data-accent="magenta" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 dark:border-ink-700 dark:bg-ink-850/80">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span>BRD-0144</span>
+                <span>P2</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">컬럼 reorder API 설계</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">PATCH /columns/:id position.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-700 dark:text-amber-300">chore:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">api</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-lime-500 to-lime-700 font-mono text-[9px] font-bold text-zinc-900" title="Minho Lee">ML</span>
+              </div>
+            </article>
+
+            <article data-accent="magenta" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 dark:border-ink-700 dark:bg-ink-850/80">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span>BRD-0145</span>
+                <span>P2</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">라벨 색 팔레트 토큰화</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">tailwind preset에 design token 매핑.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-fuchsia-500/30 bg-fuchsia-500/10 px-1.5 py-0.5 font-mono text-[10px] text-fuchsia-700 dark:text-magenta-neon">refactor:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">ui</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-700 font-mono text-[9px] font-bold text-zinc-900" title="Hyerin Kim">HK</span>
+              </div>
+            </article>
+
+            <!-- add card -->
+            <button class="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300/70 bg-transparent px-3 py-2.5 font-mono text-[11px] text-zinc-500 transition hover:border-fuchsia-500/60 hover:text-fuchsia-700 dark:border-ink-700 dark:text-zinc-500 dark:hover:border-magenta-neon/60 dark:hover:text-magenta-neon">
+              <span>+ add card</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ───────── COLUMN: DOING (cyan) ───────── -->
+        <section class="flex flex-col rounded-lg border border-cyan-500/20 bg-white/50 p-4 dark:border-cyan-neon/15 dark:bg-ink-900/40" aria-label="Doing column">
+          <header class="mb-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="col-cap font-mono text-[11px] tracking-wider" data-accent="cyan">// DOING</span>
+              <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[10px] text-cyan-700 dark:border-cyan-neon/30 dark:text-cyan-neon">05</span>
+              <span class="inline-block size-1.5 rounded-full bg-cyan-600 dark:bg-cyan-neon pulse-dot text-cyan-600 dark:text-cyan-neon"></span>
+            </div>
+            <button aria-label="column menu" class="rounded p-1 text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-ink-800">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg>
+            </button>
+          </header>
+
+          <div class="space-y-2.5">
+            <article data-accent="cyan" class="card-tech rounded-md border border-cyan-500/30 bg-cyan-500/[0.04] p-3 dark:border-cyan-neon/30 dark:bg-cyan-neon/[0.04]">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span class="text-cyan-700 dark:text-cyan-neon">BRD-0138</span>
+                <span class="rounded border border-rose-500/30 bg-rose-500/10 px-1 py-px text-rose-600 dark:text-rose-300">P0</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">실시간 카드 동기화 (WebSocket)</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">socket.io room = board:&lt;id&gt;. 평균 RTT 80ms 목표.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[10px] text-cyan-700 dark:text-cyan-neon">feat:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">realtime</span>
+                </div>
+                <div class="flex -space-x-1">
+                  <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-cyan-700 font-mono text-[9px] font-bold text-white" title="Jin Hyun">JH</span>
+                  <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-fuchsia-700 font-mono text-[9px] font-bold text-white" title="Soyeon Park">SP</span>
+                </div>
+              </div>
+              <!-- progress bar -->
+              <div class="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-zinc-200/60 dark:bg-ink-800">
+                <div class="h-full w-[64%] bg-gradient-to-r from-cyan-500 to-cyan-400 dark:from-cyan-neon dark:to-cyan-300"></div>
+              </div>
+              <div class="mt-1 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span>checklist 7/11</span>
+                <span>due 05.21</span>
+              </div>
+            </article>
+
+            <article data-accent="cyan" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 dark:border-ink-700 dark:bg-ink-850/80">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span>BRD-0139</span>
+                <span>P1</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">키보드 단축키 (N / E / Esc)</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">신규/편집/취소 IDE 스타일.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[10px] text-cyan-700 dark:text-cyan-neon">feat:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">a11y</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-lime-500 to-lime-700 font-mono text-[9px] font-bold text-zinc-900" title="Minho Lee">ML</span>
+              </div>
+            </article>
+
+            <article data-accent="cyan" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 dark:border-ink-700 dark:bg-ink-850/80">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span>BRD-0140</span>
+                <span>P1</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">담당자 멘션 알림</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">@user 입력 시 toast + 이메일.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[10px] text-cyan-700 dark:text-cyan-neon">feat:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">notif</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-700 font-mono text-[9px] font-bold text-zinc-900" title="Hyerin Kim">HK</span>
+              </div>
+            </article>
+
+            <article data-accent="cyan" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 dark:border-ink-700 dark:bg-ink-850/80">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span>BRD-0141</span>
+                <span>P2</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Postgres 인덱스 튜닝</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">cards(board_id, position) BTREE 추가.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-fuchsia-500/30 bg-fuchsia-500/10 px-1.5 py-0.5 font-mono text-[10px] text-fuchsia-700 dark:text-magenta-neon">perf:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">db</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-fuchsia-700 font-mono text-[9px] font-bold text-white" title="Soyeon Park">SP</span>
+              </div>
+            </article>
+
+            <button class="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300/70 bg-transparent px-3 py-2.5 font-mono text-[11px] text-zinc-500 transition hover:border-cyan-500/60 hover:text-cyan-700 dark:border-ink-700 dark:text-zinc-500 dark:hover:border-cyan-neon/60 dark:hover:text-cyan-neon">
+              <span>+ add card</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- ───────── COLUMN: DONE (lime) ───────── -->
+        <section class="flex flex-col rounded-lg border border-zinc-200/60 bg-white/50 p-4 dark:border-ink-800 dark:bg-ink-900/40" aria-label="Done column">
+          <header class="mb-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="col-cap font-mono text-[11px] tracking-wider" data-accent="lime">// DONE</span>
+              <span class="rounded border border-lime-500/30 bg-lime-500/10 px-1.5 py-0.5 font-mono text-[10px] text-lime-700 dark:border-lime-neon/30 dark:text-lime-neon">05</span>
+            </div>
+            <button aria-label="column menu" class="rounded p-1 text-zinc-400 hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-ink-800">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg>
+            </button>
+          </header>
+
+          <div class="space-y-2.5">
+            <article data-accent="lime" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 opacity-90 dark:border-ink-700 dark:bg-ink-850/60">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span class="line-through decoration-1">BRD-0130</span>
+                <span class="text-lime-700 dark:text-lime-neon">✓ merged</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-700 line-through decoration-zinc-400/60 dark:text-zinc-400 dark:decoration-zinc-600">초기 보드 스키마 마이그레이션</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">prisma migrate v0.1 → v0.2.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-700 dark:text-amber-300">chore:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">db</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-lime-500 to-lime-700 font-mono text-[9px] font-bold text-zinc-900" title="Minho Lee">ML</span>
+              </div>
+            </article>
+
+            <article data-accent="lime" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 opacity-90 dark:border-ink-700 dark:bg-ink-850/60">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span class="line-through decoration-1">BRD-0131</span>
+                <span class="text-lime-700 dark:text-lime-neon">✓ merged</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-700 line-through decoration-zinc-400/60 dark:text-zinc-400 dark:decoration-zinc-600">컬럼 CRUD API</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">REST /api/columns CRUD.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[10px] text-cyan-700 dark:text-cyan-neon">feat:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">api</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-cyan-700 font-mono text-[9px] font-bold text-white" title="Jin Hyun">JH</span>
+              </div>
+            </article>
+
+            <article data-accent="lime" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 opacity-90 dark:border-ink-700 dark:bg-ink-850/60">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span class="line-through decoration-1">BRD-0132</span>
+                <span class="text-lime-700 dark:text-lime-neon">✓ merged</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-700 line-through decoration-zinc-400/60 dark:text-zinc-400 dark:decoration-zinc-600">다크모드 토큰 정의</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">ink-* / neon 팔레트 확정.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-fuchsia-500/30 bg-fuchsia-500/10 px-1.5 py-0.5 font-mono text-[10px] text-fuchsia-700 dark:text-magenta-neon">design:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">ui</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-700 font-mono text-[9px] font-bold text-zinc-900" title="Hyerin Kim">HK</span>
+              </div>
+            </article>
+
+            <article data-accent="lime" class="card-tech rounded-md border border-zinc-200/70 bg-white/70 p-3 opacity-90 dark:border-ink-700 dark:bg-ink-850/60">
+              <div class="mb-1.5 flex items-center justify-between font-mono text-[10px] text-zinc-500 dark:text-zinc-500">
+                <span class="line-through decoration-1">BRD-0133</span>
+                <span class="text-lime-700 dark:text-lime-neon">✓ merged</span>
+              </div>
+              <h3 class="text-sm font-semibold text-zinc-700 line-through decoration-zinc-400/60 dark:text-zinc-400 dark:decoration-zinc-600">SSO 로그인 플로우</h3>
+              <p class="mt-0.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">auth.get-it.cloud OIDC 연동.</p>
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="rounded border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 font-mono text-[10px] text-cyan-700 dark:text-cyan-neon">feat:</span>
+                  <span class="rounded border border-zinc-300/60 bg-zinc-50 px-1.5 py-0.5 font-mono text-[10px] text-zinc-600 dark:border-ink-700 dark:bg-ink-800 dark:text-zinc-400">auth</span>
+                </div>
+                <span class="avatar-ring inline-flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-fuchsia-700 font-mono text-[9px] font-bold text-white" title="Soyeon Park">SP</span>
+              </div>
+            </article>
+
+            <button class="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-zinc-300/70 bg-transparent px-3 py-2.5 font-mono text-[11px] text-zinc-500 transition hover:border-lime-500/60 hover:text-lime-700 dark:border-ink-700 dark:text-zinc-500 dark:hover:border-lime-neon/60 dark:hover:text-lime-neon">
+              <span>+ add card</span>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ============================================================
+           FOOTER: shell strip — IDE style status bar
+           ============================================================ -->
+      <footer class="mt-8">
+        <div class="divider-mono mb-4 text-zinc-300 dark:text-ink-700"></div>
+        <div class="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px] text-zinc-500 dark:text-zinc-500">
+          <div class="flex flex-wrap items-center gap-3">
+            <span><span class="text-zinc-400 dark:text-zinc-600">$</span> <span class="text-cyan-700 dark:text-cyan-neon">board</span> --sprint=03 --filter=all</span>
+            <span class="hidden sm:inline text-zinc-300 dark:text-ink-700">|</span>
+            <span class="hidden sm:inline">14 cards / 7 members / 3 columns</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="kbd">N</span><span>new</span>
+            <span class="kbd">E</span><span>edit</span>
+            <span class="kbd">/</span><span>find</span>
+            <span class="kbd">⌘K</span><span>cmd</span>
+          </div>
+        </div>
+      </footer>
+    </main>
+
+    <script>
+      // theme toggle — flips html.dark, swaps icon
+      (function () {
+        const root = document.documentElement;
+        const btn = document.getElementById('theme-toggle');
+        const icon = document.getElementById('theme-toggle-icon');
+        function sync() {
+          icon.textContent = root.classList.contains('dark') ? '🌙' : '☀️';
+          btn.setAttribute('aria-pressed', root.classList.contains('dark') ? 'true' : 'false');
+        }
+        btn?.addEventListener('click', () => {
+          root.classList.toggle('dark');
+          sync();
+        });
+        sync();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="ko" class="">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>서재 — Bauhaus</title>
+<!--
+  PERSONA: Bauhaus (shelf.get-it.cloud)
+  차별 포인트:
+   - 책 표지 placeholder가 "기하 추상 컴포지션" (원/삼각/사각, 3원색)
+   - 큰 컬러 블록 통계 + 두꺼운 외곽선(2-3px) + round 0
+   - 상태 칩 = 빨강/노랑/파랑 컬러 코드
+   - "도서관 카탈로그 카드를 1920년대 디자인으로"
+-->
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Manrope:wght@400;600;800&family=Space+Grotesk:wght@500;700&family=Pretendard:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          bh: {
+            red: '#D2232A',
+            blue: '#0050A0',
+            yellow: '#FFC700',
+            ink: '#111111',
+            paper: '#F5F1E8',
+            // dark variants (채도 살짝 down)
+            dRed: '#B81D24',
+            dBlue: '#1B6FB8',
+            dYellow: '#E0AE00'
+          }
+        },
+        fontFamily: {
+          display: ['Outfit', 'Manrope', 'Pretendard', 'system-ui', 'sans-serif'],
+          mono: ['Space Grotesk', 'ui-monospace', 'monospace'],
+          body: ['Pretendard', 'Manrope', 'system-ui', 'sans-serif']
+        },
+        borderWidth: { '3': '3px' }
+      }
+    }
+  };
+</script>
+<style>
+  html { font-family: 'Pretendard','Manrope',system-ui,sans-serif; }
+  body { font-feature-settings: 'ss01','cv11'; }
+  *:focus-visible {
+    outline: 3px solid #111;
+    outline-offset: 2px;
+  }
+  .dark *:focus-visible { outline-color: #F5F1E8; }
+
+  /* 8px grid emphasis */
+  .grid-8 { background-image:
+    linear-gradient(to right, rgba(17,17,17,.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(17,17,17,.04) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+  .dark .grid-8 { background-image:
+    linear-gradient(to right, rgba(245,241,232,.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(245,241,232,.04) 1px, transparent 1px);
+  }
+
+  /* Bauhaus 표지 = pure CSS 기하 컴포지션 — 각 책마다 다름 */
+  .cover { position: relative; aspect-ratio: 2/3; overflow: hidden; }
+  .cover > * { position: absolute; }
+
+  /* C1: 빨강 원 + 파랑 사각 (Kandinsky 톤) */
+  .c1 { background: #F5F1E8; }
+  .c1 .a { width: 70%; aspect-ratio:1; background:#D2232A; border-radius:9999px; top:8%; right:-15%; }
+  .c1 .b { width: 55%; height: 35%; background:#0050A0; left: 8%; bottom: 12%; }
+  .c1 .c { width: 0; height: 0; border-left: 28% solid transparent; border-right: 28% solid transparent; border-bottom: 32% solid #FFC700; left: 36%; top: 14%; }
+
+  /* C2: 노란 삼각 + 검은 막대 */
+  .c2 { background: #0050A0; }
+  .c2 .a { width:0; height:0; border-left:50% solid transparent; border-right:50% solid transparent; border-bottom:60% solid #FFC700; left:0; bottom:0; }
+  .c2 .b { width: 14%; height: 100%; background:#111; right: 14%; top: 0; }
+  .c2 .c { width: 28%; aspect-ratio:1; background:#D2232A; border-radius:9999px; top: 8%; left: 8%; }
+
+  /* C3: 빨강 사각 + 노랑 원 */
+  .c3 { background:#F5F1E8; }
+  .c3 .a { width:60%; height:55%; background:#D2232A; left:0; top:18%; }
+  .c3 .b { width:42%; aspect-ratio:1; background:#FFC700; border-radius:9999px; right:-8%; bottom:8%; }
+  .c3 .c { width: 8%; height: 100%; background:#111; left: 60%; top: 0; }
+
+  /* C4: 파랑 삼각 + 빨강 점 */
+  .c4 { background:#FFC700; }
+  .c4 .a { width:0; height:0; border-right:90% solid transparent; border-top:80% solid #0050A0; right:0; top:0; }
+  .c4 .b { width: 22%; aspect-ratio:1; background:#D2232A; border-radius:9999px; left:14%; bottom: 14%; }
+  .c4 .c { width: 50%; height: 6%; background:#111; left: 10%; top: 16%; }
+
+  /* C5: 흑백 그리드 + 노란 원 */
+  .c5 { background:#F5F1E8; }
+  .c5 .a { width: 100%; height: 18%; background:#111; top: 22%; }
+  .c5 .b { width: 18%; height: 100%; background:#111; left: 28%; top: 0; }
+  .c5 .c { width: 50%; aspect-ratio:1; background:#FFC700; border-radius:9999px; right:-10%; bottom:-10%; }
+
+  /* C6: 빨강 베이스 + 파랑 반원 */
+  .c6 { background:#D2232A; }
+  .c6 .a { width: 90%; aspect-ratio:1; background:#0050A0; border-radius:9999px; left:5%; top:38%; }
+  .c6 .b { width: 100%; height: 40%; background:#D2232A; left: 0; top: 60%; }
+  .c6 .c { width: 24%; aspect-ratio:1; background:#FFC700; border-radius:9999px; left: 12%; top: 10%; }
+
+  /* C7: 사각 합성 — 노/빨/파 3분할 */
+  .c7 { background:#F5F1E8; }
+  .c7 .a { width: 55%; height: 50%; background:#FFC700; left:0; top:0; }
+  .c7 .b { width: 45%; height: 50%; background:#D2232A; right:0; top:0; }
+  .c7 .c { width: 100%; height: 50%; background:#0050A0; left:0; bottom:0; }
+
+  /* C8: 큰 검은 원 + 작은 빨강/노랑 */
+  .c8 { background:#F5F1E8; }
+  .c8 .a { width: 80%; aspect-ratio:1; background:#111; border-radius:9999px; left:10%; top:18%; }
+  .c8 .b { width: 24%; aspect-ratio:1; background:#FFC700; border-radius:9999px; right: 16%; top: 22%; }
+  .c8 .c { width: 18%; aspect-ratio:1; background:#D2232A; border-radius:9999px; left: 22%; bottom: 18%; }
+
+  /* C9: 파랑 가로 분할 + 노란 막대 */
+  .c9 { background:#F5F1E8; }
+  .c9 .a { width: 100%; height: 40%; background:#0050A0; top: 30%; left: 0; }
+  .c9 .b { width: 12%; height: 100%; background:#FFC700; right: 18%; top: 0; }
+  .c9 .c { width: 30%; aspect-ratio:1; background:#D2232A; border-radius:9999px; left: 12%; top: 8%; }
+
+  /* C10: 삼각 콤보 */
+  .c10 { background:#111; }
+  .c10 .a { width:0; height:0; border-left:60% solid transparent; border-bottom:75% solid #D2232A; left:0; bottom:0; }
+  .c10 .b { width:0; height:0; border-right:50% solid transparent; border-top:55% solid #FFC700; right:0; top:0; }
+  .c10 .c { width: 26%; aspect-ratio:1; background:#0050A0; border-radius:9999px; right: 12%; bottom: 12%; }
+
+  /* C11: 빨강 막대 6개 */
+  .c11 { background:#F5F1E8; display:flex; gap:4%; padding:8%; }
+  .c11::before, .c11::after { content:''; }
+  .c11 .a { width: 12%; height: 100%; background:#D2232A; position:relative; left:auto; top:auto; }
+  .c11 .b { width: 12%; height: 70%; background:#0050A0; position:relative; left:auto; top:auto; align-self:flex-end; }
+  .c11 .c { width: 12%; height: 50%; background:#FFC700; position:relative; left:auto; top:auto; align-self:center; }
+  .c11 .d { width: 12%; height: 88%; background:#111; position:relative; left:auto; top:auto; }
+  .c11 .e { width: 12%; height: 30%; background:#D2232A; position:relative; left:auto; top:auto; }
+  .c11 .f { width: 12%; height: 60%; background:#0050A0; position:relative; left:auto; top:auto; align-self:flex-end; }
+
+  /* C12: 노랑 베이스 + 검정 그리드 */
+  .c12 { background:#FFC700; }
+  .c12 .a { width: 100%; height: 8%; background:#111; top: 20%; left: 0; }
+  .c12 .b { width: 8%; height: 100%; background:#111; left: 40%; top: 0; }
+  .c12 .c { width: 38%; aspect-ratio:1; background:#D2232A; right: 8%; bottom: 12%; }
+  .c12 .d { width: 22%; aspect-ratio:1; background:#0050A0; border-radius:9999px; left: 8%; bottom: 8%; }
+
+  /* dark mode overrides — paper text on ink */
+  .dark .cover.c1, .dark .cover.c3, .dark .cover.c5, .dark .cover.c7,
+  .dark .cover.c8, .dark .cover.c9, .dark .cover.c11 { background:#1a1a1a; }
+  .dark .cover.c12 { background:#E0AE00; }
+
+  /* Star (사각 점) */
+  .star { display:inline-block; width:10px; height:10px; background:#111; margin-right:2px; }
+  .dark .star { background:#F5F1E8; }
+  .star.dim { background:transparent; outline:2px solid #111; outline-offset:-2px; }
+  .dark .star.dim { outline-color:#F5F1E8; }
+
+  /* hover invert for buttons */
+  .btn-invert { transition: background-color 80ms, color 80ms; }
+  .btn-invert:hover { background:#111 !important; color:#F5F1E8 !important; }
+  .dark .btn-invert:hover { background:#F5F1E8 !important; color:#111 !important; }
+
+  /* book card hover */
+  .book:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #111; }
+  .dark .book:hover { box-shadow: 6px 6px 0 #F5F1E8; }
+  .book { transition: transform 120ms; }
+
+  /* tab active */
+  .tab-active { background:#111; color:#F5F1E8; }
+  .dark .tab-active { background:#F5F1E8; color:#111; }
+
+  /* marquee mono row */
+  .ticker { font-family:'Space Grotesk', monospace; letter-spacing:0.08em; }
+</style>
+</head>
+<body class="bg-bh-paper text-bh-ink dark:bg-bh-ink dark:text-bh-paper font-body antialiased">
+
+<!-- ============== TOP BAR (얇은 mono ticker) ============== -->
+<div class="border-b-3 border-bh-ink dark:border-bh-paper bg-bh-yellow dark:bg-bh-dYellow text-bh-ink">
+  <div class="max-w-[1280px] mx-auto px-4 py-2 ticker text-[11px] flex items-center justify-between">
+    <span>GET-IT / 9TH / SHELF · CAT. NO. 03</span>
+    <span class="hidden md:inline">FORM FOLLOWS FUNCTION — 1919</span>
+    <span>2026-05-19</span>
+  </div>
+</div>
+
+<!-- ============== HEADER ============== -->
+<header class="border-b-3 border-bh-ink dark:border-bh-paper">
+  <div class="max-w-[1280px] mx-auto px-4 py-6 grid grid-cols-12 gap-4 items-center">
+    <!-- Logo (큼지막) -->
+    <a href="#" class="col-span-6 md:col-span-3 flex items-center gap-3" aria-label="서재 홈">
+      <span class="inline-block w-10 h-10 bg-bh-red"></span>
+      <span class="inline-block w-10 h-10 bg-bh-blue rounded-full"></span>
+      <span class="font-display font-black text-3xl md:text-4xl tracking-tight">서재</span>
+    </a>
+
+    <!-- 검색바 (두꺼운 외곽선) -->
+    <form role="search" class="col-span-12 md:col-span-7 order-3 md:order-2">
+      <label class="sr-only" for="q">책 검색</label>
+      <div class="flex border-3 border-bh-ink dark:border-bh-paper">
+        <span class="px-4 py-3 border-r-3 border-bh-ink dark:border-bh-paper font-mono text-sm">FIND</span>
+        <input id="q" type="search" placeholder="제목 · 저자 · ISBN"
+               class="flex-1 px-4 py-3 bg-transparent outline-none font-body" />
+        <button type="submit" class="btn-invert px-5 font-display font-extrabold border-l-3 border-bh-ink dark:border-bh-paper bg-bh-yellow dark:bg-bh-dYellow text-bh-ink">검색</button>
+      </div>
+    </form>
+
+    <!-- Sign in + dark toggle -->
+    <div class="col-span-6 md:col-span-2 order-2 md:order-3 flex justify-end items-center gap-2">
+      <button id="themeToggle" aria-label="다크모드 토글"
+              class="btn-invert w-11 h-11 border-3 border-bh-ink dark:border-bh-paper font-display font-bold text-lg">
+        <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀</span>
+      </button>
+      <a href="#signin" class="btn-invert hidden md:inline-block px-4 py-3 border-3 border-bh-ink dark:border-bh-paper font-display font-extrabold">Sign in</a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-[1280px] mx-auto px-4">
+
+  <!-- ============== HERO / TITLE BLOCK ============== -->
+  <section class="grid grid-cols-12 gap-4 border-b-3 border-bh-ink dark:border-bh-paper py-8 md:py-12 grid-8">
+    <div class="col-span-12 md:col-span-7">
+      <p class="font-mono text-xs uppercase mb-3">My Bookshelf — A Catalogue</p>
+      <h1 class="font-display font-black text-5xl md:text-7xl leading-[0.95] tracking-tight">
+        형태는<br/>기능을<br/><span class="bg-bh-red text-bh-paper px-2">따른다</span>.
+      </h1>
+      <p class="mt-6 max-w-md text-base md:text-lg">
+        책 한 권은 정사각형이 아니지만, 책장에서는 모듈이 된다.
+        읽고 / 읽는 중 / 완독 — 정직한 grid로 정리한다.
+      </p>
+    </div>
+
+    <!-- Decorative composition -->
+    <div class="col-span-12 md:col-span-5 relative min-h-[220px] md:min-h-[300px]" aria-hidden="true">
+      <div class="absolute inset-0 border-3 border-bh-ink dark:border-bh-paper"></div>
+      <div class="absolute w-[55%] aspect-square bg-bh-blue top-[8%] left-[6%] rounded-full"></div>
+      <div class="absolute w-[40%] h-[60%] bg-bh-red right-0 bottom-0"></div>
+      <div class="absolute w-0 h-0" style="border-left:18% solid transparent;border-right:18% solid transparent;border-bottom:32% solid #FFC700;right:8%;top:6%;"></div>
+      <div class="absolute bottom-2 left-2 font-mono text-[10px]">FIG. 01 · KOMPOSITION</div>
+    </div>
+  </section>
+
+  <!-- ============== STATS — 큰 컬러 블록 3개 ============== -->
+  <section aria-labelledby="stats-h" class="py-8 md:py-12 border-b-3 border-bh-ink dark:border-bh-paper">
+    <h2 id="stats-h" class="font-mono text-xs uppercase mb-4">STATISTIK — 2026</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-0 border-3 border-bh-ink dark:border-bh-paper">
+      <!-- 읽은 책 -->
+      <div class="bg-bh-red text-bh-paper p-6 md:p-8 border-b-3 md:border-b-0 md:border-r-3 border-bh-ink dark:border-bh-paper">
+        <p class="font-mono text-xs uppercase opacity-90">읽은 책 · BÜCHER GELESEN</p>
+        <p class="font-display font-black text-7xl md:text-8xl leading-none mt-2">47</p>
+        <p class="mt-3 font-mono text-xs">YTD ↑ 12</p>
+      </div>
+      <!-- 읽고 싶은 -->
+      <div class="bg-bh-yellow text-bh-ink p-6 md:p-8 border-b-3 md:border-b-0 md:border-r-3 border-bh-ink dark:border-bh-paper">
+        <p class="font-mono text-xs uppercase">읽고 싶은 · WUNSCHLISTE</p>
+        <p class="font-display font-black text-7xl md:text-8xl leading-none mt-2">23</p>
+        <p class="mt-3 font-mono text-xs">UPDATED 05-18</p>
+      </div>
+      <!-- 평균 평점 -->
+      <div class="bg-bh-blue text-bh-paper p-6 md:p-8">
+        <p class="font-mono text-xs uppercase opacity-90">평균 평점 · ⌀ BEWERTUNG</p>
+        <p class="font-display font-black text-7xl md:text-8xl leading-none mt-2">4.2</p>
+        <p class="mt-3 font-mono text-xs">/ 5.0 · N=47</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== TABS / FILTERS ============== -->
+  <section aria-labelledby="filter-h" class="py-8">
+    <h2 id="filter-h" class="sr-only">상태 필터</h2>
+    <div role="tablist" class="flex flex-wrap gap-0 border-3 border-bh-ink dark:border-bh-paper w-fit">
+      <button role="tab" aria-selected="true" data-tab="all"
+              class="tab btn-invert tab-active px-5 py-3 font-display font-extrabold border-r-3 border-bh-ink dark:border-bh-paper">
+        전체 · 47
+      </button>
+      <button role="tab" aria-selected="false" data-tab="want"
+              class="tab btn-invert px-5 py-3 font-display font-extrabold border-r-3 border-bh-ink dark:border-bh-paper">
+        <span class="inline-block w-3 h-3 bg-bh-yellow mr-2 align-middle"></span>읽고 싶음
+      </button>
+      <button role="tab" aria-selected="false" data-tab="reading"
+              class="tab btn-invert px-5 py-3 font-display font-extrabold border-r-3 border-bh-ink dark:border-bh-paper">
+        <span class="inline-block w-3 h-3 bg-bh-red mr-2 align-middle"></span>읽는 중
+      </button>
+      <button role="tab" aria-selected="false" data-tab="done"
+              class="tab btn-invert px-5 py-3 font-display font-extrabold">
+        <span class="inline-block w-3 h-3 bg-bh-blue mr-2 align-middle"></span>완독
+      </button>
+    </div>
+  </section>
+
+  <!-- ============== BOOK GRID ============== -->
+  <!-- 차별 포인트: 표지 = pure CSS 기하 추상 컴포지션 (책마다 다른 조합) -->
+  <section aria-labelledby="grid-h" class="pb-12">
+    <h2 id="grid-h" class="sr-only">책 그리드</h2>
+
+    <ul class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+
+      <!-- 1. 완독 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="done">
+        <div class="cover c1" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-blue text-bh-paper px-2 py-0.5 font-mono text-[10px] uppercase">완독</span>
+            <span aria-label="평점 5점" class="leading-none">
+              <i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i>
+            </span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">디자인의 디자인</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">하라 켄야</p>
+        </div>
+      </li>
+
+      <!-- 2. 읽는 중 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="reading">
+        <div class="cover c2" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-red text-bh-paper px-2 py-0.5 font-mono text-[10px] uppercase">읽는 중</span>
+            <span aria-label="평점 4점" class="leading-none">
+              <i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i><i class="star dim"></i>
+            </span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">바우하우스</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">프랭크 휘트포드</p>
+        </div>
+      </li>
+
+      <!-- 3. 읽고 싶음 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="want">
+        <div class="cover c3" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-yellow text-bh-ink px-2 py-0.5 font-mono text-[10px] uppercase">읽고 싶음</span>
+            <span class="font-mono text-[10px] opacity-60">N/A</span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">신 타이포그래피</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">얀 치홀트</p>
+        </div>
+      </li>
+
+      <!-- 4. 완독 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="done">
+        <div class="cover c4" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-blue text-bh-paper px-2 py-0.5 font-mono text-[10px] uppercase">완독</span>
+            <span aria-label="평점 4점" class="leading-none">
+              <i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i><i class="star dim"></i>
+            </span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">점, 선, 면</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">바실리 칸딘스키</p>
+        </div>
+      </li>
+
+      <!-- 5. 읽는 중 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="reading">
+        <div class="cover c5" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-red text-bh-paper px-2 py-0.5 font-mono text-[10px] uppercase">읽는 중</span>
+            <span aria-label="평점 3점" class="leading-none">
+              <i class="star"></i><i class="star"></i><i class="star"></i><i class="star dim"></i><i class="star dim"></i>
+            </span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">그리드 시스템</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">요제프 뮐러-브로크만</p>
+        </div>
+      </li>
+
+      <!-- 6. 완독 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="done">
+        <div class="cover c6" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-blue text-bh-paper px-2 py-0.5 font-mono text-[10px] uppercase">완독</span>
+            <span aria-label="평점 5점" class="leading-none">
+              <i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i>
+            </span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">사물의 언어</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">데얀 수직</p>
+        </div>
+      </li>
+
+      <!-- 7. 읽고 싶음 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="want">
+        <div class="cover c7" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-yellow text-bh-ink px-2 py-0.5 font-mono text-[10px] uppercase">읽고 싶음</span>
+            <span class="font-mono text-[10px] opacity-60">N/A</span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">미스 반 데어 로에</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">프란츠 슐체</p>
+        </div>
+      </li>
+
+      <!-- 8. 완독 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="done">
+        <div class="cover c8" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-blue text-bh-paper px-2 py-0.5 font-mono text-[10px] uppercase">완독</span>
+            <span aria-label="평점 4점" class="leading-none">
+              <i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i><i class="star dim"></i>
+            </span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">디자인을 위한 디자인</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">존 헤스켓</p>
+        </div>
+      </li>
+
+      <!-- 9. 읽는 중 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="reading">
+        <div class="cover c9" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-red text-bh-paper px-2 py-0.5 font-mono text-[10px] uppercase">읽는 중</span>
+            <span aria-label="평점 4점" class="leading-none">
+              <i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i><i class="star dim"></i>
+            </span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">건축이란 무엇인가</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">파울 발레리</p>
+        </div>
+      </li>
+
+      <!-- 10. 완독 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="done">
+        <div class="cover c10" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-blue text-bh-paper px-2 py-0.5 font-mono text-[10px] uppercase">완독</span>
+            <span aria-label="평점 5점" class="leading-none">
+              <i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i><i class="star"></i>
+            </span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">제로 투 원</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">피터 틸</p>
+        </div>
+      </li>
+
+      <!-- 11. 읽고 싶음 -->
+      <li class="book border-3 border-bh-ink dark:border-bh-paper bg-bh-paper dark:bg-[#1a1a1a]" data-status="want">
+        <div class="cover c11 flex items-end" aria-label="기하 추상 표지">
+          <span class="a"></span><span class="b"></span><span class="c"></span><span class="d"></span><span class="e"></span><span class="f"></span>
+        </div>
+        <div class="p-3 border-t-3 border-bh-ink dark:border-bh-paper">
+          <div class="flex items-center justify-between">
+            <span class="bg-bh-yellow text-bh-ink px-2 py-0.5 font-mono text-[10px] uppercase">읽고 싶음</span>
+            <span class="font-mono text-[10px] opacity-60">N/A</span>
+          </div>
+          <h3 class="font-display font-extrabold text-lg leading-tight mt-2">색채론</h3>
+          <p class="font-mono text-xs mt-1 opacity-75">요하네스 이텐</p>
+        </div>
+      </li>
+
+      <!-- 12. 빈 칸 (+ 추가) -->
+      <li class="book border-3 border-dashed border-bh-ink dark:border-bh-paper flex">
+        <button class="btn-invert w-full aspect-[2/3] flex flex-col items-center justify-center gap-2 font-display font-extrabold text-bh-ink dark:text-bh-paper bg-transparent" aria-label="책 추가">
+          <span class="text-5xl leading-none">+</span>
+          <span class="font-mono text-xs uppercase tracking-widest">책 추가</span>
+        </button>
+      </li>
+
+    </ul>
+  </section>
+
+  <!-- ============== FOOTER / COLOPHON ============== -->
+  <footer class="border-t-3 border-bh-ink dark:border-bh-paper py-8 mt-4">
+    <div class="grid grid-cols-12 gap-4 items-end">
+      <div class="col-span-12 md:col-span-6">
+        <p class="font-mono text-xs uppercase mb-2">COLOPHON</p>
+        <p class="font-display font-black text-2xl md:text-3xl leading-tight">
+          서재 · SHELF<br/>
+          <span class="bg-bh-yellow text-bh-ink px-2">A library is a workshop.</span>
+        </p>
+      </div>
+      <div class="col-span-6 md:col-span-3 font-mono text-xs space-y-1">
+        <p>SET IN OUTFIT · MANROPE</p>
+        <p>GRID — 8PX MODULE</p>
+        <p>COLOURS — RGB(210,35,42) · RGB(0,80,160) · RGB(255,199,0)</p>
+      </div>
+      <div class="col-span-6 md:col-span-3 text-right">
+        <div class="inline-grid grid-cols-3 gap-1" aria-hidden="true">
+          <span class="w-6 h-6 bg-bh-red"></span>
+          <span class="w-6 h-6 bg-bh-blue rounded-full"></span>
+          <span class="w-6 h-6" style="background:transparent;border-bottom:24px solid #FFC700;border-left:12px solid transparent;border-right:12px solid transparent;width:0;height:0;"></span>
+        </div>
+        <p class="font-mono text-[10px] mt-2 opacity-75">© 2026 GET-IT 9TH</p>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+  // ===== Theme toggle (localStorage persisted) =====
+  (function () {
+    const root = document.documentElement;
+    const KEY = 'shelf-bauhaus-theme';
+    const saved = localStorage.getItem(KEY);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (saved === 'dark' || (!saved && prefersDark)) root.classList.add('dark');
+
+    const btn = document.getElementById('themeToggle');
+    btn?.addEventListener('click', () => {
+      root.classList.toggle('dark');
+      localStorage.setItem(KEY, root.classList.contains('dark') ? 'dark' : 'light');
+    });
+  })();
+
+  // ===== Tab filter =====
+  (function () {
+    const tabs = document.querySelectorAll('.tab');
+    const books = document.querySelectorAll('.book[data-status]');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => {
+          t.classList.remove('tab-active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        tab.classList.add('tab-active');
+        tab.setAttribute('aria-selected', 'true');
+
+        const filter = tab.dataset.tab;
+        books.forEach(b => {
+          const show = filter === 'all' || b.dataset.status === filter;
+          b.style.display = show ? '' : 'none';
+        });
+      });
+    });
+  })();
+</script>
+</body>
+</html>

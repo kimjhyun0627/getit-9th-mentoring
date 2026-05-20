@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="ko" class="">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>board · Glassmorphism — Sprint 04</title>
+
+<!--
+  Persona: Glassmorphism (visionOS / macOS Big Sur / iOS 18)
+  차별 포인트:
+    1) 큰 멀티-hue 그라데이션 배경(라이트: peach→lilac→sky, 다크: violet→midnight→indigo) 위에
+       backdrop-blur-2xl 글래스 패널/카드가 "떠 있는" 깊이감 레이아웃
+    2) 모든 컬럼·카드·헤더·아바타·칩이 반투명 + white/X border edge로
+       "Apple Vision Pro에서 쓰는 칸반" 무드
+    3) Tech-Dark의 네온/터미널과 완전히 다른 미래지향(밝고 부드러움),
+       Minimalist의 평면과 다르게 컬러 blur로 깊이감 확보
+-->
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'Pretendard', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        },
+        boxShadow: {
+          glass: '0 8px 32px 0 rgba(31,38,135,0.18)',
+          glassDark: '0 10px 40px 0 rgba(10,10,40,0.45)',
+        },
+      },
+    },
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css"
+/>
+
+<style>
+  html,
+  body {
+    font-family: 'Inter', 'Pretendard Variable', Pretendard, ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.005em;
+  }
+
+  /* ── 라이트 모드 그라데이션 베이스 ─────────────────────── */
+  body {
+    background:
+      radial-gradient(1100px 700px at 8% -10%, #ffd7e6 0%, transparent 60%),
+      radial-gradient(900px 700px at 100% 10%, #c8d8ff 0%, transparent 55%),
+      radial-gradient(900px 700px at 50% 110%, #c8f1e1 0%, transparent 55%),
+      linear-gradient(135deg, #fbeffa 0%, #e9ecff 50%, #e6f5ff 100%);
+    min-height: 100vh;
+  }
+  html.dark body {
+    background:
+      radial-gradient(1100px 700px at 8% -10%, #4a2576 0%, transparent 60%),
+      radial-gradient(900px 700px at 100% 10%, #1d2570 0%, transparent 55%),
+      radial-gradient(900px 700px at 50% 110%, #2a1d5a 0%, transparent 55%),
+      linear-gradient(135deg, #160d2e 0%, #0f1336 55%, #1a0f3a 100%);
+  }
+
+  /* 글래스 베이스 */
+  .glass {
+    background: rgba(255, 255, 255, 0.45);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+  }
+  html.dark .glass {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .glass-soft {
+    background: rgba(255, 255, 255, 0.32);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    backdrop-filter: blur(18px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+  html.dark .glass-soft {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    backdrop-filter: blur(20px) saturate(170%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    transition: transform 280ms ease-out, box-shadow 280ms ease-out,
+      border-color 280ms ease-out, background-color 280ms ease-out;
+  }
+  html.dark .glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+  .glass-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 14px 40px -8px rgba(120, 90, 200, 0.28);
+  }
+  html.dark .glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 16px 44px -8px rgba(120, 90, 220, 0.45);
+  }
+
+  /* 컬럼별 톤 — 위에 살짝 색이 비치게 */
+  .col-todo {
+    box-shadow: 0 18px 50px -18px rgba(255, 120, 170, 0.45);
+  }
+  .col-doing {
+    box-shadow: 0 18px 50px -18px rgba(120, 150, 255, 0.45);
+  }
+  .col-done {
+    box-shadow: 0 18px 50px -18px rgba(100, 220, 180, 0.45);
+  }
+  html.dark .col-todo {
+    box-shadow: 0 22px 60px -22px rgba(220, 110, 200, 0.45);
+  }
+  html.dark .col-doing {
+    box-shadow: 0 22px 60px -22px rgba(120, 150, 255, 0.45);
+  }
+  html.dark .col-done {
+    box-shadow: 0 22px 60px -22px rgba(110, 220, 200, 0.45);
+  }
+
+  .label-chip {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  html.dark .label-chip {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .avatar-ring {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+  }
+  html.dark .avatar-ring {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+  }
+
+  /* sticky 헤더 — 스크롤 위에 떠 있는 느낌 */
+  .sticky-header {
+    position: sticky;
+    top: 12px;
+    z-index: 40;
+  }
+
+  /* 텍스트 대비 — 반투명 위에서도 WCAG AA */
+  .ink-strong {
+    color: #1a1430;
+  }
+  html.dark .ink-strong {
+    color: #f4f1ff;
+  }
+  .ink {
+    color: #2e2750;
+  }
+  html.dark .ink {
+    color: #d8d3ee;
+  }
+  .ink-mute {
+    color: #50466e;
+  }
+  html.dark .ink-mute {
+    color: #a89fc4;
+  }
+
+  /* dashed add 카드 */
+  .dashed-glass {
+    border: 1.5px dashed rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.18);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    transition: background 220ms ease-out, border-color 220ms ease-out;
+  }
+  html.dark .dashed-glass {
+    border: 1.5px dashed rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .dashed-glass:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.95);
+  }
+  html.dark .dashed-glass:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* CTA 버튼 그라데이션 */
+  .cta {
+    background: linear-gradient(135deg, #ff7ab8 0%, #8a7bff 50%, #5fb8ff 100%);
+    color: white;
+    box-shadow: 0 8px 24px -8px rgba(138, 123, 255, 0.7);
+    transition: transform 240ms ease-out, box-shadow 240ms ease-out, filter 240ms ease-out;
+  }
+  .cta:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.06);
+    box-shadow: 0 14px 30px -8px rgba(138, 123, 255, 0.8);
+  }
+
+  /* 작은 floating glow orbs (배경 액센트) */
+  .orb {
+    position: fixed;
+    border-radius: 9999px;
+    filter: blur(70px);
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* 살짝 떠다니는 애니메이션 */
+  @keyframes floaty {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .floaty { animation: floaty 6s ease-in-out infinite; }
+
+  /* 카드 stack 살짝 겹침 효과 (선택 카드) */
+  .stacked::before {
+    content: '';
+    position: absolute;
+    inset: 6px -6px -6px 6px;
+    border-radius: inherit;
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    z-index: -1;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  html.dark .stacked::before {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* 스크롤바 — subtle glass */
+  ::-webkit-scrollbar { height: 10px; width: 10px; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.4);
+    border-radius: 999px;
+  }
+  html.dark ::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.12);
+  }
+</style>
+</head>
+
+<body class="ink min-h-screen overflow-x-hidden">
+
+  <!-- 배경 액센트 orbs (floating) -->
+  <div class="orb floaty" style="width:380px;height:380px;top:-80px;left:-60px;background:#ffb7d4;"></div>
+  <div class="orb floaty" style="width:420px;height:420px;top:30%;right:-100px;background:#b7c8ff;animation-delay:-2s;"></div>
+  <div class="orb floaty" style="width:340px;height:340px;bottom:-80px;left:30%;background:#b7f1d8;animation-delay:-4s;"></div>
+
+  <main class="relative z-10 mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10 py-6">
+
+    <!-- ─────────────────────────────────────────────────
+         Sticky Glass Header — "글래스 바 자체가 떠 있다"
+         ───────────────────────────────────────────────── -->
+    <header class="sticky-header glass rounded-2xl shadow-glass dark:shadow-glassDark px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-5 flex-wrap">
+
+      <div class="flex items-center gap-3 min-w-0">
+        <!-- 프로젝트 아이콘 (Apple-ish 그라데이션 사각형) -->
+        <div class="h-9 w-9 rounded-xl flex items-center justify-center text-white font-semibold shadow-md"
+             style="background: linear-gradient(135deg,#ff8ec4 0%,#9b85ff 60%,#5fb8ff 100%);">
+          B
+        </div>
+        <div class="min-w-0">
+          <div class="text-xs ink-mute font-medium">board.get-it.cloud</div>
+          <h1 class="text-lg sm:text-xl font-semibold ink-strong truncate">Sprint 04 · 9기 출시 준비</h1>
+        </div>
+      </div>
+
+      <!-- 가운데 검색 (glass pill) -->
+      <div class="hidden md:flex flex-1 max-w-md">
+        <div class="glass-soft w-full rounded-full px-4 py-2 flex items-center gap-2">
+          <svg class="w-4 h-4 ink-mute" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+          </svg>
+          <input class="bg-transparent outline-none text-sm w-full ink placeholder:ink-mute"
+                 placeholder="카드, 담당자, 라벨 검색…" />
+          <kbd class="text-[10px] ink-mute font-medium glass-soft rounded px-1.5 py-0.5">⌘K</kbd>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3 ml-auto">
+
+        <!-- 멤버 아바타 그룹 -->
+        <div class="flex -space-x-2 mr-1">
+          <div class="h-8 w-8 rounded-full avatar-ring flex items-center justify-center text-xs font-semibold text-white"
+               style="background:linear-gradient(135deg,#ff8ec4,#ff6f9a);">JH</div>
+          <div class="h-8 w-8 rounded-full avatar-ring flex items-center justify-center text-xs font-semibold text-white"
+               style="background:linear-gradient(135deg,#9b85ff,#6b54e0);">SM</div>
+          <div class="h-8 w-8 rounded-full avatar-ring flex items-center justify-center text-xs font-semibold text-white"
+               style="background:linear-gradient(135deg,#5fd4b8,#3aa088);">YK</div>
+          <div class="h-8 w-8 rounded-full avatar-ring flex items-center justify-center text-xs font-semibold text-white"
+               style="background:linear-gradient(135deg,#5fb8ff,#3a82e0);">DH</div>
+          <div class="h-8 w-8 rounded-full avatar-ring flex items-center justify-center text-xs font-semibold ink"
+               style="background:rgba(255,255,255,0.6);">+3</div>
+        </div>
+
+        <!-- + Card CTA -->
+        <button class="cta rounded-full px-4 py-2 text-sm font-semibold flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Card
+        </button>
+
+        <!-- 다크모드 토글 -->
+        <button id="themeToggle"
+                aria-label="테마 토글"
+                class="glass-soft h-9 w-9 rounded-full flex items-center justify-center text-base hover:scale-105 transition">
+          <span id="themeIcon">☀</span>
+        </button>
+
+        <!-- 메뉴 -->
+        <button class="glass-soft h-9 w-9 rounded-full flex items-center justify-center" aria-label="메뉴">
+          <svg class="w-4 h-4 ink" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+
+      </div>
+    </header>
+
+    <!-- 보드 메타 -->
+    <div class="mt-5 flex flex-wrap items-center gap-2 text-xs ink-mute">
+      <span class="glass-soft rounded-full px-3 py-1 font-medium ink">17 cards</span>
+      <span class="glass-soft rounded-full px-3 py-1 font-medium ink">5 멤버</span>
+      <span class="glass-soft rounded-full px-3 py-1 font-medium ink">마감 2026-05-26</span>
+      <span class="glass-soft rounded-full px-3 py-1 font-medium ink">필터 · 전체</span>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────
+         3 컬럼 보드
+         ───────────────────────────────────────────────── -->
+    <section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 pb-12">
+
+      <!-- ─────────── TODO ─────────── -->
+      <div class="glass col-todo rounded-3xl p-4 sm:p-5 flex flex-col gap-4">
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="h-2.5 w-2.5 rounded-full" style="background:#ff7ab8;box-shadow:0 0 12px #ff7ab8;"></span>
+            <h2 class="text-base font-semibold ink-strong tracking-tight">Todo</h2>
+            <span class="glass-soft text-xs ink font-medium rounded-full px-2 py-0.5">5</span>
+          </div>
+          <button class="ink-mute hover:ink transition" aria-label="컬럼 메뉴">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </button>
+        </div>
+
+        <!-- card 1 -->
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#design</span>
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full" style="color:#c44a8a;">High</span>
+          </div>
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">랜딩 히어로 카피 A/B 안 시안 확정</h3>
+          <p class="text-xs ink-mute mt-1.5 leading-relaxed">3안 중 최종 1안 + 후속 카피 톤 정렬. 디자인 컨피그 동기화.</p>
+          <div class="flex items-center justify-between mt-3.5">
+            <div class="flex items-center gap-2 text-[11px] ink-mute font-medium">
+              <span>05.21</span>
+              <span class="opacity-60">·</span>
+              <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>4</span>
+              <span class="flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>2</span>
+            </div>
+            <div class="flex -space-x-2">
+              <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#ff8ec4,#ff6f9a);">JH</div>
+              <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#9b85ff,#6b54e0);">SM</div>
+            </div>
+          </div>
+        </article>
+
+        <!-- card 2 (stacked - 부속 카드 살짝 보임) -->
+        <article class="glass-card rounded-2xl p-4 cursor-pointer relative stacked">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#fe</span>
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full" style="color:#5560c2;">Med</span>
+          </div>
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">SSO 토큰 갱신 흐름 시퀀스 다이어그램</h3>
+          <p class="text-xs ink-mute mt-1.5 leading-relaxed">access/refresh 만료 케이스 정리 + Auth 서버 동기화 포인트.</p>
+          <div class="flex items-center justify-between mt-3.5">
+            <div class="text-[11px] ink-mute font-medium">05.22 · 견적 8h</div>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#5fb8ff,#3a82e0);">DH</div>
+          </div>
+        </article>
+
+        <!-- card 3 -->
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">컬럼 드래그앤드롭 라이브러리 비교 (dnd-kit vs framer)</h3>
+          <p class="text-xs ink-mute mt-1.5 leading-relaxed">접근성 + 모바일 터치 + 번들 사이즈 기준 평가.</p>
+          <div class="flex items-center justify-between mt-3.5">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#research</span>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#5fd4b8,#3aa088);">YK</div>
+          </div>
+        </article>
+
+        <!-- card 4 -->
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#qa</span>
+          </div>
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">모바일 보드 가로 스와이프 시 컬럼 스냅 QA</h3>
+          <div class="flex items-center justify-between mt-3.5">
+            <div class="text-[11px] ink-mute font-medium">iOS Safari 우선</div>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#9b85ff,#6b54e0);">SM</div>
+          </div>
+        </article>
+
+        <!-- add -->
+        <button class="dashed-glass rounded-2xl p-4 text-sm font-medium ink flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Add card
+        </button>
+
+      </div>
+
+      <!-- ─────────── DOING ─────────── -->
+      <div class="glass col-doing rounded-3xl p-4 sm:p-5 flex flex-col gap-4">
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="h-2.5 w-2.5 rounded-full" style="background:#7b9bff;box-shadow:0 0 12px #7b9bff;"></span>
+            <h2 class="text-base font-semibold ink-strong tracking-tight">Doing</h2>
+            <span class="glass-soft text-xs ink font-medium rounded-full px-2 py-0.5">4</span>
+          </div>
+          <button class="ink-mute hover:ink transition" aria-label="컬럼 메뉴">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </button>
+        </div>
+
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#be</span>
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full" style="color:#c44a8a;">High</span>
+          </div>
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">board API · 카드 컬럼 이동 트랜잭션</h3>
+          <p class="text-xs ink-mute mt-1.5 leading-relaxed">순서 무결성 + 동시편집 충돌 회피. 낙관적 락 vs 순서값 재정렬.</p>
+          <div class="mt-3 h-1.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.35);">
+            <div class="h-full rounded-full" style="width:65%;background:linear-gradient(90deg,#7b9bff,#9b85ff);"></div>
+          </div>
+          <div class="flex items-center justify-between mt-3">
+            <div class="text-[11px] ink-mute font-medium">진행 65%</div>
+            <div class="flex -space-x-2">
+              <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#5fb8ff,#3a82e0);">DH</div>
+              <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#9b85ff,#6b54e0);">SM</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#fe</span>
+          </div>
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">Board View 글래스 카드 컴포넌트 구현</h3>
+          <p class="text-xs ink-mute mt-1.5 leading-relaxed">backdrop-blur 폴리필 케이스 + Safari fallback 시안 검증.</p>
+          <div class="flex items-center justify-between mt-3.5">
+            <span class="text-[11px] ink-mute font-medium">05.20 due · 작업중</span>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#ff8ec4,#ff6f9a);">JH</div>
+          </div>
+        </article>
+
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#devops</span>
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full" style="color:#5560c2;">Med</span>
+          </div>
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">Traefik labels — board.get-it.cloud 라우팅</h3>
+          <div class="flex items-center justify-between mt-3.5">
+            <span class="text-[11px] ink-mute font-medium">staging 검증 중</span>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#5fd4b8,#3aa088);">YK</div>
+          </div>
+        </article>
+
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">아바타 그룹 컴포넌트 — placeholder + 그라데이션</h3>
+          <p class="text-xs ink-mute mt-1.5 leading-relaxed">이미지 미설정 시 이니셜 + 컬러 hash. 5색 팔레트 확정.</p>
+          <div class="flex items-center justify-between mt-3.5">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#design-system</span>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#9b85ff,#6b54e0);">SM</div>
+          </div>
+        </article>
+
+        <button class="dashed-glass rounded-2xl p-4 text-sm font-medium ink flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Add card
+        </button>
+
+      </div>
+
+      <!-- ─────────── DONE ─────────── -->
+      <div class="glass col-done rounded-3xl p-4 sm:p-5 flex flex-col gap-4">
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <span class="h-2.5 w-2.5 rounded-full" style="background:#5fd4b8;box-shadow:0 0 12px #5fd4b8;"></span>
+            <h2 class="text-base font-semibold ink-strong tracking-tight">Done</h2>
+            <span class="glass-soft text-xs ink font-medium rounded-full px-2 py-0.5">8</span>
+          </div>
+          <button class="ink-mute hover:ink transition" aria-label="컬럼 메뉴">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+          </button>
+        </div>
+
+        <article class="glass-card rounded-2xl p-4 cursor-pointer opacity-95">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#fe</span>
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full" style="color:#2b8a6f;">Done</span>
+          </div>
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug line-through decoration-2 decoration-emerald-400/60">다크모드 토글 + localStorage 영속</h3>
+          <div class="flex items-center justify-between mt-3.5">
+            <span class="text-[11px] ink-mute font-medium">05.16 완료</span>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#ff8ec4,#ff6f9a);">JH</div>
+          </div>
+        </article>
+
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#be</span>
+          </div>
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">/api/cards CRUD + zod 스키마 정합</h3>
+          <p class="text-xs ink-mute mt-1.5 leading-relaxed">5 케이스 테스트 통과 · 커버리지 92%</p>
+          <div class="flex items-center justify-between mt-3.5">
+            <span class="text-[11px] ink-mute font-medium">05.15 머지</span>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#5fb8ff,#3a82e0);">DH</div>
+          </div>
+        </article>
+
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">SSO 콜백 — auth.get-it.cloud 연동 검증</h3>
+          <div class="flex items-center justify-between mt-3.5">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#auth</span>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#5fd4b8,#3aa088);">YK</div>
+          </div>
+        </article>
+
+        <article class="glass-card rounded-2xl p-4 cursor-pointer">
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span class="label-chip text-[10px] font-semibold ink px-2 py-0.5 rounded-full">#docs</span>
+          </div>
+          <h3 class="font-semibold ink-strong text-[15px] leading-snug">PRD v1.2 → Notion 동기화 + Slack 공지</h3>
+          <div class="flex items-center justify-between mt-3.5">
+            <span class="text-[11px] ink-mute font-medium">05.14</span>
+            <div class="h-6 w-6 rounded-full avatar-ring flex items-center justify-center text-[10px] font-semibold text-white" style="background:linear-gradient(135deg,#9b85ff,#6b54e0);">SM</div>
+          </div>
+        </article>
+
+        <button class="dashed-glass rounded-2xl p-4 text-sm font-medium ink flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          Add card
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- footer hint -->
+    <footer class="mt-2 mb-10 text-center text-[11px] ink-mute">
+      Persona · Glassmorphism — visionOS / macOS Big Sur 감성
+    </footer>
+
+  </main>
+
+  <script>
+    // ── 다크모드 토글 (localStorage 영속) ──────────────────
+    (function () {
+      const KEY = 'getit-theme';
+      const html = document.documentElement;
+      const btn = document.getElementById('themeToggle');
+      const icon = document.getElementById('themeIcon');
+
+      function apply(theme) {
+        if (theme === 'dark') {
+          html.classList.add('dark');
+          icon.textContent = '🌙';
+        } else {
+          html.classList.remove('dark');
+          icon.textContent = '☀';
+        }
+      }
+
+      const saved =
+        localStorage.getItem(KEY) ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      apply(saved);
+
+      btn.addEventListener('click', () => {
+        const next = html.classList.contains('dark') ? 'light' : 'dark';
+        localStorage.setItem(KEY, next);
+        apply(next);
+      });
+    })();
+  </script>
+</body>
+</html>

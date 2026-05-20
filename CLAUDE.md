@@ -39,7 +39,6 @@
 
 ### 하지 말 것
 
-- 학부생 수준 변명 금지 (AI 풀파워로)
 - 검증 안 된 라이브러리/패턴 도입 금지
 - 임의 main push, 임의 force push 금지
 - **봇 코멘트(Gemini/CodeRabbit) silent resolve 금지** — 적용/보류 모두 답글로 사유 박고 resolve. 상세: [`.claude/workflow.md`](.claude/workflow.md) "Thread resolve 규칙"

@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>스마트 서재 — 나의 도서관 · Editorial</title>
+
+<!-- Differentiator (Editorial × shelf):
+     "책 잡지에 실린 내 서재" — 세리프 큰 타이틀 + drop cap + pull-quote 감상평 +
+     매거진 컬럼 ('이번 달의 책' 큐레이션) + 자주 읽는 작가 섹션.
+     Polish v3:
+       - 전체 타이포 한 단계 down (히어로/섹션H2/책카드/본문/drop cap)
+       - 이탈릭은 pull-quote(인용)에만 한정. 헤딩·본문·메타·byline 전부 regular. -->
+
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Google Fonts: Playfair Display + Source Serif 4 + Noto Serif KR -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700;1,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Noto+Serif+KR:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+<!-- Pretendard (Korean body) -->
+<link
+  rel="stylesheet"
+  as="style"
+  crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+/>
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['"Playfair Display"', 'Georgia', 'serif'],
+          serif: ['"Source Serif 4"', '"Noto Serif KR"', 'Georgia', 'serif'],
+          serifkr: ['"Noto Serif KR"', '"Source Serif 4"', 'Georgia', 'serif'],
+          sans: [
+            'Pretendard Variable', 'Pretendard',
+            '-apple-system', 'BlinkMacSystemFont',
+            'system-ui', 'sans-serif',
+          ],
+        },
+        letterSpacing: {
+          tightest: '-0.045em',
+          hero: '-0.02em',
+        },
+      },
+    },
+  };
+</script>
+
+<style>
+  /* =========================================================
+     TOKENS — 페이퍼 잉크 (light)  /  미드나이트 차콜 (dark)
+     ========================================================= */
+  :root {
+    --bg-1: #fafafa;   /* page */
+    --bg-2: #f3f1ec;   /* subtle band, callout */
+    --bg-3: #ebe8e1;   /* deepest paper */
+    --text-1: #0a0a0a; /* heading ink */
+    --text-2: #1f1f1f; /* body charcoal */
+    --text-3: #525252; /* meta */
+    --text-hint: #a3a3a3;
+    --rule-1: #d4d0c7; /* hairline default */
+    --rule-2: #0a0a0a; /* hairline strong */
+    --accent: #7c1d1d;       /* wine — light edition */
+    --accent-soft: #a13a3a;
+    --accent-ink: #fefaf2;
+    --selection-bg: #7c1d1d;
+    --selection-fg: #fafafa;
+  }
+  .dark {
+    --bg-1: #141414;
+    --bg-2: #1c1c1c;
+    --bg-3: #242424;
+    --text-1: #f5f1e8;
+    --text-2: #ededed;
+    --text-3: #a3a3a3;
+    --text-hint: #6b6b6b;
+    --rule-1: #2a2a2a;
+    --rule-2: #3a3a3a;
+    --accent: #c79a48;       /* nude mustard — quiet at night */
+    --accent-soft: #d9b06f;
+    --accent-ink: #141414;
+    --selection-bg: #c79a48;
+    --selection-fg: #141414;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--bg-1);
+    color: var(--text-2);
+    font-feature-settings: 'kern', 'liga', 'onum';
+    transition: background-color 280ms ease, color 280ms ease;
+  }
+  ::selection { background: var(--selection-bg); color: var(--selection-fg); }
+
+  /* Heading ink defaults */
+  h1, h2, h3, h4 { color: var(--text-1); }
+  .text-meta { color: var(--text-3); }
+  .text-hint { color: var(--text-hint); }
+  .text-body { color: var(--text-2); }
+  .text-ink-strong { color: var(--text-1); }
+  .text-accent { color: var(--accent); }
+  .bg-band { background-color: var(--bg-2); }
+
+  .font-display { font-feature-settings: 'kern', 'liga', 'dlig', 'onum'; }
+  .num-display { font-feature-settings: 'lnum', 'tnum'; font-variant-numeric: lining-nums tabular-nums; }
+
+  /* Hero H1 polish */
+  .hero-h1 { letter-spacing: -0.02em; line-height: 1.02; }
+
+  /* Drop cap — magazine column opener (조금만 크게) */
+  .dropcap::first-letter {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 800;
+    float: left;
+    font-size: 3.6rem;
+    line-height: 0.86;
+    padding: 0.4rem 0.6rem 0 0;
+    color: var(--accent);
+  }
+
+  /* Hairlines (token-driven) */
+  .hairline { height: 1px; background-color: var(--rule-1); transition: background-color 280ms ease; }
+  .hairline-strong { height: 1px; background-color: var(--rule-2); transition: background-color 280ms ease; }
+
+  /* Subtle paper grain — under both modes */
+  .paper-grain {
+    background-image:
+      radial-gradient(rgba(10,10,10,0.022) 1px, transparent 1px),
+      radial-gradient(rgba(10,10,10,0.015) 1px, transparent 1px);
+    background-size: 22px 22px, 11px 11px;
+    background-position: 0 0, 11px 11px;
+  }
+  .dark .paper-grain {
+    background-image:
+      radial-gradient(rgba(255,255,255,0.020) 1px, transparent 1px),
+      radial-gradient(rgba(255,255,255,0.012) 1px, transparent 1px);
+  }
+
+  /* Reveal animation */
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity 700ms ease, transform 700ms ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+
+  /* Inline underline link (animated) */
+  .ink-link {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 100% 1px;
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    padding-bottom: 2px;
+    transition: background-size 250ms ease, color 250ms ease;
+  }
+  .ink-link:hover { background-size: 100% 2px; color: var(--accent); }
+
+  /* Small caps — accents */
+  .smallcaps { font-variant: small-caps; letter-spacing: 0.14em; text-transform: lowercase; color: var(--text-3); }
+
+  /* Pull-quote — 유일하게 이탈릭 허용되는 곳 */
+  .pullquote { font-style: italic; }
+  .pullquote::before {
+    content: '\201C';
+    font-family: 'Playfair Display', serif;
+    font-weight: 800;
+    font-style: italic;
+    font-size: 2.2rem;
+    line-height: 0;
+    vertical-align: -0.3em;
+    margin-right: 0.05em;
+    color: var(--accent);
+  }
+
+  /* Book card hover */
+  .book-card { transition: transform 350ms ease; }
+  .book-card:hover { transform: translateY(-3px); }
+  .book-card:hover .cover-inner { transform: scale(1.02); }
+  .book-card:hover .book-arrow { transform: translateX(4px); }
+  .book-arrow { transition: transform 350ms ease; }
+
+  /* Book cover */
+  .cover {
+    aspect-ratio: 2/3;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(0,0,0,0.06) inset,
+      -2px 0 0 rgba(0,0,0,0.04) inset,
+      0 16px 32px -20px rgba(0,0,0,0.42);
+    border-radius: 1px;
+  }
+  .dark .cover {
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.05) inset,
+      -2px 0 0 rgba(255,255,255,0.03) inset,
+      0 16px 36px -18px rgba(0,0,0,0.85);
+  }
+  .cover-inner { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 450ms ease; }
+  .cover::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, rgba(0,0,0,0.18) 0, rgba(0,0,0,0) 7%, rgba(0,0,0,0) 93%, rgba(0,0,0,0.08) 100%);
+  }
+  .dark .cover::after {
+    background: linear-gradient(90deg, rgba(0,0,0,0.32) 0, rgba(0,0,0,0) 8%, rgba(0,0,0,0) 92%, rgba(0,0,0,0.18) 100%);
+  }
+
+  /* Stars */
+  .stars { color: var(--accent); letter-spacing: 0.06em; }
+  .stars .dim { opacity: 0.25; }
+
+  /* Focus rings */
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 3px;
+  }
+
+  /* Search field — regular (italic 제거) */
+  .search-field {
+    border: 0;
+    border-bottom: 1px solid var(--rule-2);
+    background: transparent;
+    width: 100%;
+    padding: 6px 0;
+    font-family: 'Source Serif 4', 'Noto Serif KR', Georgia, serif;
+    font-size: 14px;
+    color: var(--text-2);
+    transition: border-color 240ms ease;
+  }
+  .dark .search-field { border-bottom-color: var(--rule-2); }
+  .search-field::placeholder { color: var(--text-3); opacity: 1; }
+  .search-field:focus { border-bottom-color: var(--accent); }
+
+  /* Themed border — uses tokens */
+  .themed-border { border-color: var(--rule-2); }
+  .themed-divide > * + * { border-top: 1px solid var(--rule-1); }
+
+  /* Filter button (active = accent underline) */
+  .filter-btn { color: var(--text-3); transition: color 240ms ease, border-color 240ms ease; padding-bottom: 2px; }
+  .filter-btn:hover { color: var(--text-1); }
+  .filter-btn.is-active { color: var(--text-1); border-bottom: 1px solid var(--accent); }
+
+  /* Toggle */
+  .toggle {
+    border: 1px solid var(--rule-2);
+    color: var(--text-1);
+    background: transparent;
+    transition: background-color 240ms ease, color 240ms ease, border-color 240ms ease;
+  }
+  .toggle:hover { background-color: var(--text-1); color: var(--bg-1); }
+
+  /* Korean body — Pretendard reads better than serif for hangul body text */
+  .body-kr { font-family: 'Pretendard Variable', Pretendard, 'Noto Serif KR', sans-serif; }
+  .essay-kr { font-family: 'Noto Serif KR', 'Source Serif 4', Georgia, serif; }
+
+  /* Author initial pill */
+  .author-pill {
+    width: 48px; height: 48px;
+    border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--bg-2);
+    color: var(--text-1);
+    border: 1px solid var(--rule-1);
+    font-family: 'Playfair Display', serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+  }
+</style>
+</head>
+
+<body class="font-sans antialiased">
+
+<section id="light" class="paper-grain">
+
+  <!-- HEADER -->
+  <header class="max-w-7xl mx-auto px-6 md:px-10 pt-7 pb-5 flex items-center justify-between gap-6">
+    <a href="#" class="flex items-baseline gap-2 shrink-0">
+      <span class="font-display font-black text-xl tracking-tightest text-ink-strong">Shelf</span>
+      <span class="font-serif text-sm text-meta">/</span>
+      <span class="smallcaps text-[11px] hidden sm:inline">a quiet library</span>
+    </a>
+    <div class="hidden md:flex flex-1 max-w-md items-center gap-3">
+      <span class="smallcaps text-[11px]">Search</span>
+      <input type="search" class="search-field" placeholder="제목, 저자, 또는 한 줄 감상…" aria-label="책 검색" />
+    </div>
+    <nav class="flex items-center gap-6 md:gap-8 text-[13px]">
+      <a href="#library" class="ink-link hidden sm:inline">Library</a>
+      <a href="#book-of-month" class="ink-link hidden sm:inline">This Month</a>
+      <a href="#authors" class="ink-link hidden sm:inline">Authors</a>
+      <button id="themeToggle" type="button" aria-label="Toggle dark mode"
+        class="toggle rounded-full px-3 py-1.5 text-[12px] smallcaps">
+        <span class="toggle-label">dark</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Issue bar -->
+  <div class="max-w-7xl mx-auto px-6 md:px-10">
+    <div class="hairline-strong"></div>
+    <div class="flex justify-between items-center py-2.5 text-[11px] smallcaps">
+      <span>Vol. IX · Spring Reading</span>
+      <span class="hidden md:inline">개인 도서관 · 큐레이션</span>
+      <span>읽은 책 <span class="num-display text-ink-strong">42</span> · 읽는 중 <span class="num-display text-ink-strong">3</span></span>
+    </div>
+    <div class="hairline-strong"></div>
+  </div>
+
+  <!-- HERO — "나의 도서관" -->
+  <div class="max-w-7xl mx-auto px-6 md:px-10 pt-12 md:pt-20 pb-10 md:pb-14">
+    <div class="grid grid-cols-12 gap-6 md:gap-10">
+      <div class="col-span-12 md:col-span-3 reveal">
+        <p class="smallcaps text-[12px] mb-3">The Library</p>
+        <p class="essay-kr text-[14px] leading-snug text-body max-w-[22ch]">
+          한 사람이 모은 책장은, 결국 그 사람의 가장 정직한 자서전이다.
+        </p>
+      </div>
+
+      <div class="col-span-12 md:col-span-9 reveal">
+        <h1 class="font-display font-black hero-h1 text-[11vw] md:text-[4.5rem] lg:text-[5.5rem]">
+          나의 도서관<span class="text-accent">.</span>
+        </h1>
+        <div class="mt-8 grid grid-cols-12 gap-6 md:gap-10">
+          <p class="col-span-12 md:col-span-7 essay-kr text-[15.5px] md:text-[16px] leading-[1.78] dropcap text-body">
+            이곳은 내가 읽은 책, 읽고 있는 책, 그리고 언젠가 읽을 책의 목록이다.
+            누군가에게는 한 권의 베스트셀러일 뿐이지만, 나에게는 그 책을 읽던 계절과 함께
+            놓이는 기억이 된다. 한 줄 감상은 종이 위의 밑줄과 같아서, 다시 펼치면 그 시간이 함께 일어선다.
+          </p>
+          <aside class="col-span-12 md:col-span-5">
+            <div class="hairline mb-4"></div>
+            <p class="smallcaps text-[11px] mb-3">This Season</p>
+            <ul class="font-serif text-[14px] space-y-2 text-body">
+              <li class="flex justify-between gap-4 items-baseline"><span>읽은 책</span><span class="text-meta num-display">42권</span></li>
+              <li class="flex justify-between gap-4 items-baseline"><span>읽는 중</span><span class="text-meta num-display">3권</span></li>
+              <li class="flex justify-between gap-4 items-baseline"><span>읽고 싶은</span><span class="text-meta num-display">17권</span></li>
+              <li class="flex justify-between gap-4 items-baseline"><span>이번 달 페이지</span><span class="text-meta num-display">1,284p</span></li>
+            </ul>
+            <div class="hairline mt-5"></div>
+            <p class="essay-kr text-[12.5px] text-meta mt-3 leading-relaxed">
+              가장 최근의 밑줄:
+              <span class="text-accent pullquote">우리는 시간을 잃었지만, 시간 또한 우리를 잃었다.</span>
+            </p>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOOK OF THE MONTH — magazine column feature -->
+  <div id="book-of-month" class="max-w-7xl mx-auto px-6 md:px-10 py-12 md:py-16">
+    <div class="hairline-strong mb-10 md:mb-14"></div>
+    <div class="grid grid-cols-12 gap-6 md:gap-12 items-start">
+
+      <!-- Cover column -->
+      <div class="col-span-12 md:col-span-5 reveal">
+        <p class="smallcaps text-[12px] mb-4">이번 달의 책 · Book of the Month</p>
+        <div class="cover w-full max-w-[300px] mx-auto md:mx-0" role="img" aria-label="이번 달의 책 표지: 시간의 풍경">
+          <div class="cover-inner" style="background-image: linear-gradient(160deg, #d9c7a2 0%, #b89968 55%, #7a5c2e 100%);"></div>
+          <div class="absolute inset-0 flex flex-col justify-between p-6 text-[#fefaf2] z-10">
+            <div>
+              <p class="smallcaps text-[10px] opacity-90" style="color:#fefaf2;">A novel</p>
+              <div class="h-px bg-[#fefaf2]/40 my-2 w-10"></div>
+            </div>
+            <div>
+              <p class="font-display font-black text-2xl md:text-3xl leading-[1.0] tracking-tightest">시간의 풍경</p>
+              <p class="font-serif text-[12px] mt-3 opacity-90">한정원 — 2024</p>
+            </div>
+          </div>
+        </div>
+        <p class="smallcaps text-[11px] mt-4 text-center md:text-left">종이책 · 312쪽 · 2024년 출간</p>
+      </div>
+
+      <!-- Column — magazine essay -->
+      <article class="col-span-12 md:col-span-7 reveal">
+        <p class="smallcaps text-[12px] mb-3">Curation · Editor's pick</p>
+        <h2 class="font-display font-black text-3xl md:text-5xl tracking-tightest leading-[1.02]">
+          시간을 접어두는 법에 관하여<span class="text-accent">.</span>
+        </h2>
+        <div class="mt-5 flex items-baseline gap-3 text-[12.5px] flex-wrap">
+          <span class="font-serif text-body">by 한정원</span>
+          <span class="text-hint">·</span>
+          <span class="smallcaps">읽은 날 · 2026.04.21</span>
+          <span class="text-hint">·</span>
+          <span class="stars" aria-label="별점 5점 만점에 5점">★★★★★</span>
+        </div>
+        <div class="hairline my-5 max-w-[8rem]"></div>
+        <p class="essay-kr text-[15.5px] md:text-[16px] leading-[1.78] dropcap text-body">
+          어떤 책은 줄거리보다 그 책을 읽던 오후의 햇빛으로 기억된다. 이 소설은 그런 책이다.
+          한정원은 시간을 다루지만, 시간 위에 누군가의 얼굴을 얹어 두는 일에 능숙하다.
+          마지막 장을 덮은 뒤에도, 종이 사이에서 누군가가 천천히 일어서는 것 같다.
+        </p>
+        <p class="essay-kr text-[14.5px] leading-[1.78] text-body mt-4 opacity-95">
+          서가의 어디쯤에 꽂아 둘지 한참 망설였다. 결국 가장 자주 손이 닿는 칸에 두었다.
+          이 책은 자주 다시 읽힐 것이다.
+        </p>
+        <!-- Pull quote — 이탈릭 허용 영역 -->
+        <div class="my-8 grid grid-cols-12 gap-4 items-start">
+          <div class="col-span-1"><div class="hairline-strong w-full mt-3"></div></div>
+          <blockquote class="col-span-11 pullquote font-display text-xl md:text-2xl leading-[1.3] tracking-hero text-ink-strong">
+            우리는 시간을 잃었지만, <span class="text-accent">시간 또한 우리를 잃었다.</span>
+          </blockquote>
+        </div>
+        <div class="flex items-center gap-6 text-[13px] flex-wrap text-body">
+          <a href="#" class="ink-link font-serif">전체 감상문 읽기</a>
+          <a href="#" class="ink-link font-serif">다시 읽고 싶은 페이지</a>
+          <a href="#" class="ink-link font-serif flex items-center gap-2">서가에 보관 <span class="book-arrow">→</span></a>
+        </div>
+      </article>
+    </div>
+    <div class="hairline-strong mt-12 md:mt-16"></div>
+  </div>
+
+  <!-- LIBRARY GRID — curated covers -->
+  <div id="library" class="max-w-7xl mx-auto px-6 md:px-10 pb-16">
+    <div class="flex items-end justify-between mb-8 md:mb-10 reveal flex-wrap gap-6">
+      <div>
+        <p class="smallcaps text-[12px] mb-2">The Collection</p>
+        <h2 class="font-display font-black text-3xl md:text-5xl tracking-tightest leading-[1.02]">
+          서가의 기록<span class="text-accent">.</span>
+        </h2>
+      </div>
+      <div class="flex items-center gap-5 text-[12px] smallcaps">
+        <button class="filter-btn is-active">All · 42</button>
+        <button class="filter-btn">Read</button>
+        <button class="filter-btn">Reading</button>
+        <button class="filter-btn">Wishlist</button>
+      </div>
+    </div>
+
+    <!-- Grid: 2 / 3 / 4 columns -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10 md:gap-x-10 md:gap-y-14">
+
+      <!-- Book 01 -->
+      <a href="#" class="book-card group block reveal">
+        <div class="cover w-full">
+          <div class="cover-inner" style="background-image: linear-gradient(160deg, #2a3a4a 0%, #1a2a3a 60%, #0e1820 100%);"></div>
+          <div class="absolute inset-0 flex flex-col justify-between p-4 z-10" style="color:#f5f1e8;">
+            <p class="smallcaps text-[9px] opacity-85" style="color:#f5f1e8;">essay</p>
+            <p class="font-display font-black text-base leading-[1.05] tracking-tightest">읽기의 계절</p>
+          </div>
+        </div>
+        <p class="smallcaps text-[10px] mt-3">읽은 책 · 2026.04</p>
+        <h3 class="font-display font-bold text-base md:text-lg tracking-hero mt-1 leading-tight">읽기의 계절</h3>
+        <p class="body-kr text-[12px] text-meta">김연수</p>
+        <p class="essay-kr text-[12.5px] mt-2 leading-snug pullquote text-body">한 권을 끝낼 때마다 작게 어른이 되어가는 기분.</p>
+        <p class="stars text-[12.5px] mt-2" aria-label="별점 5점">★★★★★</p>
+      </a>
+
+      <!-- Book 02 -->
+      <a href="#" class="book-card group block reveal">
+        <div class="cover w-full">
+          <div class="cover-inner" style="background-image: linear-gradient(160deg, #f5e6d3 0%, #e6c89a 60%, #b88959 100%);"></div>
+          <div class="absolute inset-0 flex flex-col justify-between p-4 z-10" style="color:#3a2510;">
+            <p class="smallcaps text-[9px] opacity-90" style="color:#3a2510;">novel</p>
+            <p class="font-display font-black text-base leading-[1.05] tracking-tightest">여름의 문장</p>
+          </div>
+        </div>
+        <p class="smallcaps text-[10px] mt-3">읽은 책 · 2026.03</p>
+        <h3 class="font-display font-bold text-base md:text-lg tracking-hero mt-1 leading-tight">여름의 문장</h3>
+        <p class="body-kr text-[12px] text-meta">박서영</p>
+        <p class="essay-kr text-[12.5px] mt-2 leading-snug pullquote text-body">짧지만, 오래 데우는 책.</p>
+        <p class="stars text-[12.5px] mt-2" aria-label="별점 4점">★★★★<span class="dim">★</span></p>
+      </a>
+
+      <!-- Book 03 -->
+      <a href="#" class="book-card group block reveal">
+        <div class="cover w-full">
+          <div class="cover-inner" style="background-image: linear-gradient(160deg, #7c1d1d 0%, #5a1414 60%, #2e0a0a 100%);"></div>
+          <div class="absolute inset-0 flex flex-col justify-between p-4 z-10" style="color:#f5f1e8;">
+            <p class="smallcaps text-[9px] opacity-85" style="color:#f5f1e8;">a memoir</p>
+            <p class="font-display font-black text-base leading-[1.05] tracking-tightest">빛이 머무는 방</p>
+          </div>
+        </div>
+        <p class="smallcaps text-[10px] mt-3">읽은 책 · 2026.03</p>
+        <h3 class="font-display font-bold text-base md:text-lg tracking-hero mt-1 leading-tight">빛이 머무는 방</h3>
+        <p class="body-kr text-[12px] text-meta">정세랑</p>
+        <p class="essay-kr text-[12.5px] mt-2 leading-snug pullquote text-body">누군가의 방을 천천히 둘러본 듯한 한 권.</p>
+        <p class="stars text-[12.5px] mt-2" aria-label="별점 5점">★★★★★</p>
+      </a>
+
+      <!-- Book 04 -->
+      <a href="#" class="book-card group block reveal">
+        <div class="cover w-full">
+          <div class="cover-inner" style="background-image: linear-gradient(160deg, #2e3a2a 0%, #455040 60%, #6a7560 100%);"></div>
+          <div class="absolute inset-0 flex flex-col justify-between p-4 z-10" style="color:#f5f1e8;">
+            <p class="smallcaps text-[9px] opacity-85" style="color:#f5f1e8;">poetry</p>
+            <p class="font-display font-black text-base leading-[1.05] tracking-tightest">느린 언어들</p>
+          </div>
+        </div>
+        <p class="smallcaps text-[10px] mt-3">읽은 책 · 2026.02</p>
+        <h3 class="font-display font-bold text-base md:text-lg tracking-hero mt-1 leading-tight">느린 언어들</h3>
+        <p class="body-kr text-[12px] text-meta">한정원</p>
+        <p class="essay-kr text-[12.5px] mt-2 leading-snug pullquote text-body">한 줄을 읽고, 한 줄만큼 멀리 걸었다.</p>
+        <p class="stars text-[12.5px] mt-2" aria-label="별점 4.5점">★★★★<span class="opacity-60">☆</span></p>
+      </a>
+
+      <!-- Book 05 -->
+      <a href="#" class="book-card group block reveal">
+        <div class="cover w-full">
+          <div class="cover-inner" style="background-image: linear-gradient(160deg, #fefaf2 0%, #ece2cc 60%, #b8a481 100%);"></div>
+          <div class="absolute inset-0 flex flex-col justify-between p-4 z-10" style="color:#3a2510;">
+            <p class="smallcaps text-[9px] opacity-90" style="color:#3a2510;">essays</p>
+            <p class="font-display font-black text-base leading-[1.05] tracking-tightest">걷는 사람</p>
+          </div>
+        </div>
+        <p class="smallcaps text-[10px] mt-3">읽는 중</p>
+        <h3 class="font-display font-bold text-base md:text-lg tracking-hero mt-1 leading-tight">걷는 사람, 하정우</h3>
+        <p class="body-kr text-[12px] text-meta">하정우</p>
+        <p class="essay-kr text-[12.5px] mt-2 leading-snug pullquote text-body">가벼운 발걸음과 깊은 한 줄.</p>
+        <p class="stars text-[12.5px] mt-2" aria-label="아직 평가 전">★★★<span class="dim">★★</span></p>
+      </a>
+
+      <!-- Book 06 -->
+      <a href="#" class="book-card group block reveal">
+        <div class="cover w-full">
+          <div class="cover-inner" style="background-image: linear-gradient(160deg, #c79a48 0%, #8a6300 60%, #4a3500 100%);"></div>
+          <div class="absolute inset-0 flex flex-col justify-between p-4 z-10" style="color:#1a1200;">
+            <p class="smallcaps text-[9px] opacity-90" style="color:#1a1200;">non-fiction</p>
+            <p class="font-display font-black text-base leading-[1.05] tracking-tightest">깊이의 단단함</p>
+          </div>
+        </div>
+        <p class="smallcaps text-[10px] mt-3">읽은 책 · 2026.02</p>
+        <h3 class="font-display font-bold text-base md:text-lg tracking-hero mt-1 leading-tight">깊이의 단단함</h3>
+        <p class="body-kr text-[12px] text-meta">유시민</p>
+        <p class="essay-kr text-[12.5px] mt-2 leading-snug pullquote text-body">단단한 문장은 결국 단단한 생각에서 온다.</p>
+        <p class="stars text-[12.5px] mt-2" aria-label="별점 4점">★★★★<span class="dim">★</span></p>
+      </a>
+
+      <!-- Book 07 -->
+      <a href="#" class="book-card group block reveal">
+        <div class="cover w-full">
+          <div class="cover-inner" style="background-image: linear-gradient(160deg, #2c2c2c 0%, #1a1a1a 60%, #0a0a0a 100%);"></div>
+          <div class="absolute inset-0 flex flex-col justify-between p-4 z-10" style="color:#f5f1e8;">
+            <p class="smallcaps text-[9px] opacity-85" style="color:#f5f1e8;">a novel</p>
+            <p class="font-display font-black text-base leading-[1.05] tracking-tightest">밤의 기차</p>
+          </div>
+        </div>
+        <p class="smallcaps text-[10px] mt-3">읽은 책 · 2026.01</p>
+        <h3 class="font-display font-bold text-base md:text-lg tracking-hero mt-1 leading-tight">밤의 기차</h3>
+        <p class="body-kr text-[12px] text-meta">파스칼 메르시어</p>
+        <p class="essay-kr text-[12.5px] mt-2 leading-snug pullquote text-body">한 사람의 한 줄이 다른 한 사람의 인생을 옮긴다.</p>
+        <p class="stars text-[12.5px] mt-2" aria-label="별점 5점">★★★★★</p>
+      </a>
+
+      <!-- Book 08 -->
+      <a href="#" class="book-card group block reveal">
+        <div class="cover w-full">
+          <div class="cover-inner" style="background-image: linear-gradient(160deg, #556b2f 0%, #3e4f22 60%, #1f2a10 100%);"></div>
+          <div class="absolute inset-0 flex flex-col justify-between p-4 z-10" style="color:#f5f1e8;">
+            <p class="smallcaps text-[9px] opacity-85" style="color:#f5f1e8;">essays</p>
+            <p class="font-display font-black text-base leading-[1.05] tracking-tightest">녹색의 시간</p>
+          </div>
+        </div>
+        <p class="smallcaps text-[10px] mt-3">읽은 책 · 2026.01</p>
+        <h3 class="font-display font-bold text-base md:text-lg tracking-hero mt-1 leading-tight">녹색의 시간</h3>
+        <p class="body-kr text-[12px] text-meta">이슬아</p>
+        <p class="essay-kr text-[12.5px] mt-2 leading-snug pullquote text-body">잎이 흔들리는 속도로 읽어야 한다.</p>
+        <p class="stars text-[12.5px] mt-2" aria-label="별점 4점">★★★★<span class="dim">★</span></p>
+      </a>
+
+    </div>
+
+    <div class="text-center mt-12 reveal">
+      <a href="#" class="font-serif text-[14px] ink-link">전체 서가 보기 — 42권의 기록 →</a>
+    </div>
+  </div>
+
+  <!-- AUTHORS — frequently read -->
+  <div id="authors" class="max-w-7xl mx-auto px-6 md:px-10 py-12 md:py-16">
+    <div class="hairline-strong mb-10 md:mb-14"></div>
+    <div class="grid grid-cols-12 gap-6 md:gap-10 items-end mb-10 md:mb-12 reveal">
+      <div class="col-span-12 md:col-span-8">
+        <p class="smallcaps text-[12px] mb-2">Frequently Read · 자주 읽는</p>
+        <h2 class="font-display font-black text-3xl md:text-5xl tracking-tightest leading-[1.02]">
+          내가 자주 돌아가는 작가들<span class="text-accent">.</span>
+        </h2>
+      </div>
+      <p class="col-span-12 md:col-span-4 essay-kr text-[14px] text-meta md:text-right leading-relaxed">
+        — 한 사람의 문장에 자주 머문다는 건,<br class="hidden md:inline"/> 그 사람의 호흡과 가까이 산다는 일.
+      </p>
+    </div>
+
+    <ul class="border-t border-b themed-border themed-divide">
+      <li class="grid grid-cols-12 gap-4 md:gap-6 items-center py-5 md:py-7 reveal">
+        <span class="col-span-1 num-display font-display text-xl md:text-3xl text-hint">01</span>
+        <span class="col-span-2 md:col-span-1"><span class="author-pill">한</span></span>
+        <span class="col-span-5 md:col-span-5 font-display font-black text-xl md:text-3xl tracking-hero leading-none text-ink-strong">한정원</span>
+        <span class="col-span-3 essay-kr text-[12.5px] md:text-[14px] text-body">7권 · 시간을 다루는 손</span>
+        <span class="col-span-1 md:col-span-2 text-right font-serif text-[12.5px]"><a href="#" class="ink-link">서가로 →</a></span>
+      </li>
+      <li class="grid grid-cols-12 gap-4 md:gap-6 items-center py-5 md:py-7 reveal">
+        <span class="col-span-1 num-display font-display text-xl md:text-3xl text-hint">02</span>
+        <span class="col-span-2 md:col-span-1"><span class="author-pill">김</span></span>
+        <span class="col-span-5 md:col-span-5 font-display font-black text-xl md:text-3xl tracking-hero leading-none text-ink-strong">김연수</span>
+        <span class="col-span-3 essay-kr text-[12.5px] md:text-[14px] text-body">5권 · 다정한 회상</span>
+        <span class="col-span-1 md:col-span-2 text-right font-serif text-[12.5px]"><a href="#" class="ink-link">서가로 →</a></span>
+      </li>
+      <li class="grid grid-cols-12 gap-4 md:gap-6 items-center py-5 md:py-7 reveal">
+        <span class="col-span-1 num-display font-display text-xl md:text-3xl text-hint">03</span>
+        <span class="col-span-2 md:col-span-1"><span class="author-pill">정</span></span>
+        <span class="col-span-5 md:col-span-5 font-display font-black text-xl md:text-3xl tracking-hero leading-none text-ink-strong">정세랑</span>
+        <span class="col-span-3 essay-kr text-[12.5px] md:text-[14px] text-body">4권 · 다정한 가능 세계</span>
+        <span class="col-span-1 md:col-span-2 text-right font-serif text-[12.5px]"><a href="#" class="ink-link">서가로 →</a></span>
+      </li>
+      <li class="grid grid-cols-12 gap-4 md:gap-6 items-center py-5 md:py-7 reveal">
+        <span class="col-span-1 num-display font-display text-xl md:text-3xl text-hint">04</span>
+        <span class="col-span-2 md:col-span-1"><span class="author-pill">애</span></span>
+        <span class="col-span-5 md:col-span-5 font-display font-black text-xl md:text-3xl tracking-hero leading-none text-ink-strong">김애란</span>
+        <span class="col-span-3 essay-kr text-[12.5px] md:text-[14px] text-body">3권 · 짧은 소설의 깊이</span>
+        <span class="col-span-1 md:col-span-2 text-right font-serif text-[12.5px]"><a href="#" class="ink-link">서가로 →</a></span>
+      </li>
+      <li class="grid grid-cols-12 gap-4 md:gap-6 items-center py-5 md:py-7 reveal">
+        <span class="col-span-1 num-display font-display text-xl md:text-3xl text-hint">05</span>
+        <span class="col-span-2 md:col-span-1"><span class="author-pill">박</span></span>
+        <span class="col-span-5 md:col-span-5 font-display font-black text-xl md:text-3xl tracking-hero leading-none text-ink-strong">박서영</span>
+        <span class="col-span-3 essay-kr text-[12.5px] md:text-[14px] text-body">3권 · 여름의 문장가</span>
+        <span class="col-span-1 md:col-span-2 text-right font-serif text-[12.5px]"><a href="#" class="ink-link">서가로 →</a></span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- COLOPHON / FOOTER -->
+  <footer class="max-w-7xl mx-auto px-6 md:px-10 pb-16">
+    <div class="hairline-strong mb-10"></div>
+    <div class="grid grid-cols-12 gap-6 md:gap-10">
+      <div class="col-span-12 md:col-span-5">
+        <p class="font-display font-black text-2xl md:text-3xl tracking-tightest leading-none text-ink-strong">
+          Colophon<span class="text-accent">.</span>
+        </p>
+        <p class="essay-kr text-[14px] mt-4 text-body max-w-[34ch] leading-relaxed">
+          이 도서관은 한 사람의 읽기와 한 사람의 손글씨로 쌓아 올려졌습니다.
+        </p>
+      </div>
+      <div class="col-span-12 md:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-6 text-[12.5px]">
+        <div>
+          <p class="smallcaps mb-2">Typography</p>
+          <p class="font-serif text-body">Playfair Display</p>
+          <p class="font-serif text-body">Source Serif 4</p>
+          <p class="font-serif text-body">Noto Serif KR</p>
+          <p class="body-kr text-body">Pretendard</p>
+        </div>
+        <div>
+          <p class="smallcaps mb-2">Palette</p>
+          <p class="text-body">Paper <span class="num-display text-meta">#fafafa</span></p>
+          <p class="text-body">Ink <span class="num-display text-meta">#0a0a0a</span></p>
+          <p class="text-body"><span class="inline-block w-2.5 h-2.5 align-middle mr-1.5" style="background:var(--accent);"></span>Accent <span class="num-display text-meta">var</span></p>
+        </div>
+        <div class="col-span-2 md:col-span-1">
+          <p class="smallcaps mb-2">Imprint</p>
+          <p class="text-body">경북대학교 GETIT</p>
+          <p class="text-body">shelf.get-it.cloud</p>
+          <p class="text-meta mt-1">9th Cohort · 2026</p>
+        </div>
+      </div>
+    </div>
+    <div class="hairline mt-10"></div>
+    <p class="essay-kr text-[12px] text-meta mt-4 text-center">
+      A library of one — curated, annotated, remembered.
+    </p>
+  </footer>
+
+</section>
+
+<script>
+  // ===== Dark mode toggle =====
+  (function () {
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    const label = btn.querySelector('.toggle-label');
+
+    function setMode(isDark) {
+      root.classList.toggle('dark', isDark);
+      if (label) label.textContent = isDark ? 'light' : 'dark';
+      btn.setAttribute('aria-pressed', String(isDark));
+    }
+
+    const saved = localStorage.getItem('shelf-editorial-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setMode(saved === 'dark' || (saved === null && prefersDark));
+
+    btn.addEventListener('click', () => {
+      const next = !root.classList.contains('dark');
+      setMode(next);
+      localStorage.setItem('shelf-editorial-theme', next ? 'dark' : 'light');
+    });
+  })();
+
+  // ===== Filter buttons (visual only) =====
+  (function () {
+    const btns = document.querySelectorAll('.filter-btn');
+    btns.forEach((b) => b.addEventListener('click', () => {
+      btns.forEach((x) => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+    }));
+  })();
+
+  // ===== Intersection-observer reveal =====
+  (function () {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const els = document.querySelectorAll('.reveal');
+    if (reduce || !('IntersectionObserver' in window)) {
+      els.forEach((el) => el.classList.add('in'));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add('in');
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+  })();
+</script>
+</body>
+</html>
