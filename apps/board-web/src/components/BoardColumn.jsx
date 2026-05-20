@@ -1,10 +1,14 @@
+import { useState } from 'react';
+
 import { cn } from '../lib/cn.js';
 
+import { BoardColumnHeader } from './BoardColumnHeader.jsx';
 import { CardComposer } from './CardComposer.jsx';
+import { ConfirmDialog } from './ConfirmDialog.jsx';
 import { KanbanCard } from './KanbanCard.jsx';
 
 /**
- * 보드 컬럼 1개 — 헤더 + 카드 리스트 + 인라인 컴포저.
+ * 보드 컬럼 1개 — 헤더 + 카드 리스트 + 인라인 컴포저 (#206 컬럼 rename/delete 포함).
  *
  * @param {{
  *   column: { id: string; name: string; order: number };
@@ -25,6 +29,9 @@ import { KanbanCard } from './KanbanCard.jsx';
  *   memberNameByUserId?: Record<string, string | null>;
  *   isAddingCard?: boolean;
  *   isLoading?: boolean;
+ *   onRenameColumn?: (name: string) => void;
+ *   onDeleteColumn?: () => void;
+ *   canDeleteColumn?: boolean;
  * }} props
  */
 export const BoardColumn = ({
@@ -39,19 +46,20 @@ export const BoardColumn = ({
   memberNameByUserId = {},
   isAddingCard = false,
   isLoading = false,
+  onRenameColumn,
+  onDeleteColumn,
+  canDeleteColumn = true,
 }) => {
-  const accent = columnAccent(column.name);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   return (
     <section aria-label={`${column.name} 컬럼`} className="flex flex-col bg-background">
-      <header className="flex items-center justify-between border-b border-hairline px-5 py-4">
-        <div className="flex items-center gap-2">
-          <span aria-hidden="true" className={cn('h-1.5 w-1.5 rounded-full', accent)} />
-          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/80">
-            {column.name}
-          </h2>
-          <span className="font-mono text-[11px] text-muted-foreground">· {cards.length}</span>
-        </div>
-      </header>
+      <BoardColumnHeader
+        column={column}
+        cardCount={cards.length}
+        onRename={onRenameColumn}
+        onDelete={onDeleteColumn ? () => setConfirmDelete(true) : undefined}
+        canDelete={canDeleteColumn}
+      />
 
       {isLoading ? (
         <div className="px-5 py-6" role="status" aria-label={`${column.name} 카드 불러오는 중`}>
@@ -60,10 +68,14 @@ export const BoardColumn = ({
           ))}
         </div>
       ) : (
-        <ul className="card-stack flex flex-col">
+        <ul className={cn('card-stack flex flex-col')}>
           {cards.length === 0 ? (
-            <li className="px-5 py-6 text-center text-[11px] text-muted-foreground">
-              카드 없음 — 아래에서 추가
+            // #282: composer 와 중복 카피 제거. 시각적 여백만 유지.
+            <li
+              aria-hidden="true"
+              className="px-5 py-2 text-center text-[11px] text-muted-foreground/0"
+            >
+              &nbsp;
             </li>
           ) : (
             cards.map((card, idx) => (
@@ -90,17 +102,19 @@ export const BoardColumn = ({
       )}
 
       <CardComposer onSubmit={onAddCard} submitting={isAddingCard} />
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="컬럼을 삭제할까요?"
+        description={`"${column.name}" 컬럼과 안의 카드 ${cards.length}개가 영구 삭제돼요.`}
+        confirmLabel="삭제"
+        destructive
+        onConfirm={() => {
+          setConfirmDelete(false);
+          onDeleteColumn?.();
+        }}
+        onClose={() => setConfirmDelete(false)}
+      />
     </section>
   );
-};
-
-/**
- * 컬럼 이름별 헤더 도트 컬러.
- *
- * @param {string} name
- */
-const columnAccent = (name) => {
-  if (name === 'Doing') return 'bg-indigo-accent';
-  if (name === 'Done') return 'bg-foreground';
-  return 'bg-muted-foreground/60';
 };

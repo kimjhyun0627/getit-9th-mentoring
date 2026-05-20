@@ -78,9 +78,8 @@ const cardsByCol = {
 const stubHappyPath = () => {
   vi.spyOn(api, 'getProject').mockResolvedValue({ data: { project: PROJECT } });
   vi.spyOn(api, 'listColumns').mockResolvedValue({ data: { columns: COLUMNS } });
-  vi.spyOn(api, 'listCards').mockImplementation((columnId) =>
-    Promise.resolve({ data: { cards: cardsByCol[columnId] ?? [] } }),
-  );
+  // #258: batch endpoint 로 전환. 컬럼별 listCards 는 더 이상 호출 안 됨.
+  vi.spyOn(api, 'listCardsBatch').mockResolvedValue({ data: { cardsByColumn: cardsByCol } });
 };
 
 /**
@@ -158,9 +157,10 @@ describe('BoardViewPage', () => {
     const grid = await screen.findByTestId('board-grid');
     expect(grid.className).toMatch(/gap-px/);
     expect(grid.className).toMatch(/bg-hairline/);
-    // 반응형: 모바일 1열, md 이상 3열
-    expect(grid.className).toMatch(/grid-cols-1/);
-    expect(grid.className).toMatch(/md:grid-cols-3/);
+    // #223: 모바일은 가로 스크롤 (snap), md 이상은 auto-fit grid.
+    expect(grid.className).toMatch(/overflow-x-auto/);
+    expect(grid.className).toMatch(/snap-x/);
+    expect(grid.className).toMatch(/md:grid/);
   });
 
   it('"+ Add card" 클릭 → 입력 → 생성 시 optimistic 으로 즉시 보인다', async () => {
@@ -260,7 +260,7 @@ describe('BoardViewPage', () => {
     expect(within(doneRegion).queryByText('SSO 토큰 만료 정책 정리')).not.toBeInTheDocument();
   });
 
-  it('카드 삭제 버튼 클릭 시 optimistic 으로 제거된다', async () => {
+  it('카드 삭제 버튼 → confirm 후 optimistic 으로 제거된다 (#219)', async () => {
     const user = userEvent.setup();
     stubHappyPath();
     // 서버 응답 지연 — optimistic 제거가 서버 응답 전 발생함을 검증
@@ -272,7 +272,18 @@ describe('BoardViewPage', () => {
       within(todoRegion).getByRole('button', { name: /SSO 토큰 만료 정책 정리 삭제/ }),
     );
 
-    // 서버 응답 도착 전에 카드가 사라져야 한다 (optimistic remove)
+    // confirm 다이얼로그 — jsdom 에선 <dialog> open 이 안 잡힐 수 있어 hidden: true 로 조회.
+    const heading = await screen.findByRole('heading', {
+      name: '카드를 삭제할까요?',
+      hidden: true,
+    });
+    // 다이얼로그 footer 의 "삭제" 버튼 — heading 의 부모 dialog 안에서만 찾는다.
+    const dialog = heading.closest('dialog');
+    expect(dialog).not.toBeNull();
+    expect(within(todoRegion).getByText('SSO 토큰 만료 정책 정리')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: '삭제', hidden: true }));
+
+    // 확인 후 카드가 사라져야 한다 (optimistic remove)
     await waitFor(() => {
       expect(within(todoRegion).queryByText('SSO 토큰 만료 정책 정리')).not.toBeInTheDocument();
     });
@@ -301,7 +312,7 @@ describe('BoardViewPage', () => {
     const columnsSpy = vi
       .spyOn(api, 'listColumns')
       .mockRejectedValue({ isAxiosError: true, response: { status: 500 } });
-    vi.spyOn(api, 'listCards').mockResolvedValue({ data: { cards: [] } });
+    vi.spyOn(api, 'listCardsBatch').mockResolvedValue({ data: { cardsByColumn: {} } });
     renderPage();
     expect(await screen.findByText(/보드를 불러오지 못했어요/)).toBeInTheDocument();
     columnsSpy.mockClear();
@@ -311,17 +322,13 @@ describe('BoardViewPage', () => {
     });
   });
 
-  it('카드 로드 실패 시에도 에러 상태 + 다시 시도 시 카드 refetch', async () => {
+  it('카드 batch 로드 실패 시에도 에러 상태 + 다시 시도 시 batch refetch (#258)', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'getProject').mockResolvedValue({ data: { project: PROJECT } });
     vi.spyOn(api, 'listColumns').mockResolvedValue({ data: { columns: COLUMNS } });
-    // 한 컬럼이라도 카드 fetch 실패면 에러 상태로 진입
-    const cardsSpy = vi.spyOn(api, 'listCards').mockImplementation((columnId) => {
-      if (columnId === 'c-doing') {
-        return Promise.reject({ isAxiosError: true, response: { status: 500 } });
-      }
-      return Promise.resolve({ data: { cards: cardsByCol[columnId] ?? [] } });
-    });
+    const cardsSpy = vi
+      .spyOn(api, 'listCardsBatch')
+      .mockRejectedValue({ isAxiosError: true, response: { status: 500 } });
     renderPage();
     expect(await screen.findByText(/보드를 불러오지 못했어요/)).toBeInTheDocument();
     cardsSpy.mockClear();
@@ -329,5 +336,17 @@ describe('BoardViewPage', () => {
     await waitFor(() => {
       expect(cardsSpy).toHaveBeenCalled();
     });
+  });
+
+  it('비멤버 403 응답은 친화 안내 + /boards 복귀 (#238)', async () => {
+    vi.spyOn(api, 'getProject').mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 403 },
+    });
+    vi.spyOn(api, 'listColumns').mockResolvedValue({ data: { columns: [] } });
+    vi.spyOn(api, 'listCardsBatch').mockResolvedValue({ data: { cardsByColumn: {} } });
+    renderPage();
+    expect(await screen.findByText(/접근할 권한이 없어요/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '프로젝트 목록으로' })).toBeInTheDocument();
   });
 });

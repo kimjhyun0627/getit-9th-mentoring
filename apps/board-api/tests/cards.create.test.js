@@ -164,6 +164,30 @@ describe('board-api cards create/read', () => {
       const res = await request(app).get('/api/cards?columnId=col_nope').set(authHeader('alice'));
       expect(res.status).toBe(404);
     });
+
+    // #258: batch endpoint — 컬럼당 1 query 회피.
+    it('?projectId 로 모든 컬럼 카드 batch (cardsByColumn)', async () => {
+      const pid = await createProject(request, app, 'alice');
+      const [todo, doing, done] = columnsOf(pid);
+      await createCard(app, 'alice', todo.id, { title: 'T1' });
+      await createCard(app, 'alice', todo.id, { title: 'T2' });
+      await createCard(app, 'alice', doing.id, { title: 'D1' });
+      // done 비어있어도 키는 존재해야 한다.
+      const res = await request(app).get(`/api/cards?projectId=${pid}`).set(authHeader('alice'));
+      expect(res.status).toBe(200);
+      expect(Object.keys(res.body.cardsByColumn).sort()).toEqual(
+        [todo.id, doing.id, done.id].sort(),
+      );
+      expect(res.body.cardsByColumn[todo.id].map((c) => c.title)).toEqual(['T1', 'T2']);
+      expect(res.body.cardsByColumn[doing.id].map((c) => c.title)).toEqual(['D1']);
+      expect(res.body.cardsByColumn[done.id]).toEqual([]);
+    });
+
+    it('?projectId batch 비멤버 → 403', async () => {
+      const pid = await createProject(request, app, 'alice');
+      const res = await request(app).get(`/api/cards?projectId=${pid}`).set(authHeader('eve'));
+      expect(res.status).toBe(403);
+    });
   });
 
   describe('GET /api/cards/:id', () => {

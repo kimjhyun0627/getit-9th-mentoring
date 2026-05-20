@@ -120,10 +120,36 @@ const isValidAssignee = async (assigneeId, projectId) => {
 export const createCardsRouter = () => {
   const router = Router();
 
-  // GET /api/cards?columnId=xxx — 컬럼별 카드 목록
+  // GET /api/cards?columnId=xxx — 컬럼별 카드 목록 (단일 컬럼).
+  // GET /api/cards?projectId=xxx — 프로젝트 전체 카드 batch (#258).
+  //   N+1 회피: 프로젝트 단위 batch는 prisma 한 번에 모든 컬럼의 카드를 조회한다.
+  //   응답: { cardsByColumn: Record<columnId, Card[]> } — FE useQuery 단일 키.
   router.get('/', async (req, res, next) => {
     try {
       const userId = req.user.sub;
+      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+      if (projectId) {
+        const member = await prisma.projectMember.findFirst({ where: { projectId, userId } });
+        if (!member) return res.status(403).json({ error: 'Forbidden' });
+        const columns = await prisma.boardColumn.findMany({
+          where: { projectId },
+          orderBy: [{ order: 'asc' }, { id: 'asc' }],
+        });
+        const columnIds = columns.map((c) => c.id);
+        const rows =
+          columnIds.length === 0
+            ? []
+            : await prisma.card.findMany({
+                where: { columnId: { in: columnIds } },
+                orderBy: [{ order: 'asc' }, { id: 'asc' }],
+              });
+        /** @type {Record<string, ReturnType<typeof publicCard>[]>} */
+        const cardsByColumn = {};
+        for (const id of columnIds) cardsByColumn[id] = [];
+        for (const c of rows) cardsByColumn[c.columnId]?.push(publicCard(c));
+        return res.status(200).json({ cardsByColumn });
+      }
+
       const columnId = typeof req.query.columnId === 'string' ? req.query.columnId : undefined;
       const access = await lookupColumnAccess(columnId, userId);
       if (!access.ok) return res.status(access.status).json(access.body);

@@ -1,8 +1,11 @@
 import {
+  BoardColumnCreateInput,
+  BoardColumnUpdateInput,
   CardCreateInput,
   CardMoveInput,
   CardUpdateInput,
   ProjectMemberInput,
+  ProjectUpdateInput,
 } from '@getit/schemas/board';
 import axios from 'axios';
 
@@ -89,11 +92,56 @@ export const api = {
    */
   getProject: (projectId) => client.get(`/projects/${projectId}`),
   /**
+   * 프로젝트 단건 수정 (name / description). 멤버 누구나.
+   *
+   * @param {string} projectId
+   * @param {{ name?: string; description?: string | null }} body
+   */
+  updateProject: (projectId, body) =>
+    parseOrReject(ProjectUpdateInput, body).then((parsed) =>
+      client.patch(`/projects/${projectId}`, parsed),
+    ),
+  /**
+   * 프로젝트 삭제 (OWNER 전용 — 서버가 게이트).
+   *
+   * @param {string} projectId
+   */
+  deleteProject: (projectId) => client.delete(`/projects/${projectId}`),
+  /**
    * 프로젝트 컬럼 목록 (order asc).
    *
    * @param {string} projectId
    */
   listColumns: (projectId) => client.get(`/projects/${projectId}/columns`),
+  /**
+   * 컬럼 생성 — order 미입력 시 서버가 마지막 + 1000 으로 자동 배치.
+   *
+   * @param {string} projectId
+   * @param {{ name: string; order?: number }} body
+   */
+  createColumn: (projectId, body) =>
+    parseOrReject(BoardColumnCreateInput, body).then((parsed) =>
+      client.post(`/projects/${projectId}/columns`, parsed),
+    ),
+  /**
+   * 컬럼 수정 (name / order).
+   *
+   * @param {string} projectId
+   * @param {string} columnId
+   * @param {{ name?: string; order?: number }} body
+   */
+  updateColumn: (projectId, columnId, body) =>
+    parseOrReject(BoardColumnUpdateInput, body).then((parsed) =>
+      client.patch(`/projects/${projectId}/columns/${columnId}`, parsed),
+    ),
+  /**
+   * 컬럼 삭제. 마지막 1개는 409 (LastColumn) 로 막힌다.
+   *
+   * @param {string} projectId
+   * @param {string} columnId
+   */
+  deleteColumn: (projectId, columnId) =>
+    client.delete(`/projects/${projectId}/columns/${columnId}`),
   /**
    * 프로젝트 멤버 목록 (담당자 picker / 멤버 관리용).
    *
@@ -127,6 +175,13 @@ export const api = {
    * @param {string} columnId
    */
   listCards: (columnId) => client.get('/cards', { params: { columnId } }),
+  /**
+   * 프로젝트 전체 카드 batch (#258) — { cardsByColumn: Record<columnId, Card[]> }.
+   * BE 한 번 호출로 모든 컬럼 카드를 받아 N+1 회피.
+   *
+   * @param {string} projectId
+   */
+  listCardsBatch: (projectId) => client.get('/cards', { params: { projectId } }),
   /**
    * 카드 생성. zod 검증을 통과한 페이로드만 서버로 보낸다.
    *
