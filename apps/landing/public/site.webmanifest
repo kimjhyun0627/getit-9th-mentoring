@@ -1,0 +1,32 @@
+{
+  "name": "GETIT 9기 멘토링",
+  "short_name": "GETIT/9",
+  "description": "GETIT 9기 멘토링 4개 프로젝트 허브. SSO·다크모드·반응형 완비.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#08090b",
+  "theme_color": "#08090b",
+  "lang": "ko",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}

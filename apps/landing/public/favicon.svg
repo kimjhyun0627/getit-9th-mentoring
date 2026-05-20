@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 32 32"
+  role="img"
+  aria-label="GETIT 9기"
+>
+  <!--
+    GETIT 9기 favicon (Tech-Dark).
+    ink-950 #08090b 베이스 + cyan-neon #22d3ee G9 모노그램.
+    32×32 viewBox; SVG favicon은 modern browser 전역 지원 (Safari 9+ / Chrome / Firefox / Edge).
+  -->
+  <rect width="32" height="32" rx="6" fill="#08090b" />
+  <g
+    font-family='"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
+    font-weight="700"
+    fill="#22d3ee"
+    text-anchor="middle"
+  >
+    <text x="16" y="21" font-size="14" letter-spacing="-0.04em">G9</text>
+  </g>
+</svg>
