@@ -67,17 +67,23 @@ pnpm --filter @getit/letter-api prisma:seed
 
 ## 스크립트
 
-| 스크립트                | 설명                                      |
-| :---------------------- | :---------------------------------------- |
-| `dev`                   | `node --watch src/server.js` (hot reload) |
-| `start`                 | prod 실행                                 |
-| `test`                  | `vitest run`                              |
-| `lint`                  | `eslint src prisma`                       |
-| `prisma:generate`       | Prisma Client 생성                        |
-| `prisma:migrate`        | dev 마이그레이션 실행                     |
-| `prisma:migrate:deploy` | prod 마이그레이션 적용                    |
-| `prisma:seed`           | 더미 메시지 seed                          |
-| `prisma:studio`         | Prisma Studio (DB 브라우저)               |
+| 스크립트                | 설명                                           |
+| :---------------------- | :--------------------------------------------- |
+| `dev`                   | `node --watch src/server.js` (hot reload)      |
+| `start`                 | prod 실행                                      |
+| `test`                  | `vitest run` (API 테스트는 Vitest + supertest) |
+| `lint`                  | `eslint src prisma`                            |
+| `prisma:generate`       | Prisma Client 생성                             |
+| `prisma:migrate`        | dev 마이그레이션 실행                          |
+| `prisma:migrate:deploy` | prod 마이그레이션 적용                         |
+| `prisma:seed`           | 더미 메시지 seed                               |
+| `prisma:studio`         | Prisma Studio (DB 브라우저)                    |
+
+## 테스트 정책
+
+- `apps/*-api` 는 **Express + Prisma + Zod** 스택, **TDD 필수**.
+- 단위/통합 테스트는 **Vitest**, HTTP 엔드포인트는 **supertest** 로 작성.
+- API 라우트는 #52/#53 에서 도입 — 이 PR (#51) 은 schema/migration/seed 범위.
 
 ## 관련 문서
 

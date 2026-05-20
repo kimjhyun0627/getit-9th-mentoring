@@ -8,6 +8,9 @@
  *
  * 실행: `pnpm --filter @getit/letter-api prisma:seed`
  *       또는 `pnpm --filter @getit/letter-api exec prisma db seed`
+ *
+ * 안전 가드: production 환경에서 실수로 실행 시 DB 전체가 날아가므로
+ * NODE_ENV=production 이면 SEED_CONFIRM=YES 가 명시되어야만 실행한다.
  */
 
 import 'dotenv/config';
@@ -45,6 +48,9 @@ const SEED_MESSAGES = [
 const prisma = new PrismaClient();
 
 const main = async () => {
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_CONFIRM !== 'YES') {
+    throw new Error('seed aborted: NODE_ENV=production. SEED_CONFIRM=YES 를 명시해야 실행 가능.');
+  }
   console.log(`seeding letter-api dev messages...`);
   await prisma.message.deleteMany({});
   await prisma.message.createMany({ data: SEED_MESSAGES });
