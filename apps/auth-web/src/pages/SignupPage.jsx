@@ -89,7 +89,7 @@ export const SignupPage = () => {
         <FormField
           label="이름"
           autoComplete="name"
-          placeholder="홍길동"
+          placeholder="이름"
           error={errors.name?.message}
           {...register('name')}
         />
@@ -105,7 +105,7 @@ export const SignupPage = () => {
           label="비밀번호"
           type="password"
           autoComplete="new-password"
-          placeholder="8자 이상"
+          placeholder="••••••••"
           error={errors.password?.message}
           {...register('password')}
         />
@@ -113,7 +113,7 @@ export const SignupPage = () => {
           label="비밀번호 확인"
           type="password"
           autoComplete="new-password"
-          placeholder="다시 한 번 입력"
+          placeholder="••••••••"
           error={errors.passwordConfirm?.message}
           {...register('passwordConfirm')}
         />
