@@ -92,14 +92,17 @@ describe('validateEnv', () => {
 
   it('에러 메시지에 실제 키 값이 노출되지 않음 (secret leak 방지)', () => {
     const secretValue = 'super-secret-key-do-not-leak-aaaaaa';
-    try {
+    // JWT_SECRET 을 의도적으로 짧게 → 무조건 throw 경로. KAKAO_BOOK_API_KEY 는 실제값.
+    const call = () =>
       validateEnv({
         NODE_ENV: 'production',
-        JWT_SECRET: 'test-secret-min-32-chars-long-aaaaaaaaa',
-        KAKAO_BOOK_API_KEY: secretValue.slice(0, 3), // too short triggers? actually we use dummy detection
+        JWT_SECRET: 'short',
+        KAKAO_BOOK_API_KEY: secretValue,
       });
+    expect(call).toThrow();
+    try {
+      call();
     } catch (err) {
-      // 메시지에는 어떤 키도 노출되면 안 됨
       expect(err.message).not.toContain(secretValue);
     }
   });

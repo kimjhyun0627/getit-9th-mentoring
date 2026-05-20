@@ -36,16 +36,15 @@ describe('compareBy', () => {
     expect(sorted).toEqual(['b', 'a']);
   });
 
-  it('completedAt-desc: 최근 완독, null 은 뒤', () => {
+  it('completedAt-desc: 최근 완독, null 은 뒤 (null 끼리는 addedAt desc tie-break)', () => {
     const rows = [
-      makeRow({ id: 'null1' }),
+      makeRow({ id: 'null-old', addedAt: new Date('2026-04-01') }),
       makeRow({ id: 'recent', completedAt: new Date('2026-05-15') }),
       makeRow({ id: 'old', completedAt: new Date('2026-04-01') }),
-      makeRow({ id: 'null2' }),
+      makeRow({ id: 'null-new', addedAt: new Date('2026-05-01') }),
     ];
     const sorted = [...rows].sort(compareBy('completedAt-desc')).map((r) => r.id);
-    expect(sorted.slice(0, 2)).toEqual(['recent', 'old']);
-    expect(new Set(sorted.slice(2))).toEqual(new Set(['null1', 'null2']));
+    expect(sorted).toEqual(['recent', 'old', 'null-new', 'null-old']);
   });
 
   it('rating-desc: 별점 높은 순, null/0 처리 (null 은 뒤, 0 은 0)', () => {

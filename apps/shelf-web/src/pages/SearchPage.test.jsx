@@ -1,13 +1,10 @@
-import { ThemeProvider } from '@getit/theme';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
-import { SearchPage } from './SearchPage.jsx';
+import { renderSearch } from './SearchPage.testkit.jsx';
 
 /**
  * SearchPage TDD 가드 (Issue #43).
@@ -16,23 +13,9 @@ import { SearchPage } from './SearchPage.jsx';
  *  - debounce 300ms (입력 → 300ms 후 검색)
  *  - 추가 후 토스트 + 캐시 invalidate
  *  - 빈 결과 placeholder
+ *
+ * #217 / #236 시나리오는 별도 spec 파일 (`SearchPage.cross-reference.test.jsx`).
  */
-
-const renderSearch = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  const view = render(
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <MemoryRouter initialEntries={['/search']}>
-          <SearchPage />
-        </MemoryRouter>
-      </ThemeProvider>
-    </QueryClientProvider>,
-  );
-  return { ...view, queryClient };
-};
 
 describe('SearchPage', () => {
   beforeEach(() => {
@@ -185,105 +168,6 @@ describe('SearchPage', () => {
     renderSearch();
     const heading = screen.getByRole('heading', { name: /책을 찾아보세요/ });
     expect(heading.className).toMatch(/text-ink-strong/);
-  });
-
-  it('내 서재 cross-reference 로 isAdded 가 새로고침 후에도 유지된다 (#217)', async () => {
-    const user = userEvent.setup();
-    // 내 서재에 같은 book-1 이 이미 있음 — search 결과에서 "담김" 으로 떠야 함.
-    vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: {
-        shelves: [
-          {
-            id: 's1',
-            bookId: 'book-1',
-            status: 'WANT',
-            rating: null,
-            review: null,
-            addedAt: '2026-05-01T00:00:00Z',
-            completedAt: null,
-            i_added: true,
-            book: {
-              id: 'book-1',
-              isbn: '9788932917245',
-              title: '데미안',
-              author: '헤르만 헤세',
-              coverUrl: null,
-            },
-          },
-        ],
-        pagination: { page: 1, pageSize: 100, total: 1 },
-      },
-    });
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [
-        {
-          id: 'book-1',
-          isbn: '9788932917245',
-          title: '데미안',
-          author: '헤르만 헤세',
-          publisher: '민음사',
-          coverUrl: null,
-        },
-      ],
-    });
-
-    renderSearch();
-    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
-
-    // 결과 카드가 "서재에 담김" 으로 disabled 되어 있어야 함.
-    const btn = await screen.findByRole('button', { name: /데미안 서재에 담김/ });
-    expect(btn).toBeDisabled();
-  });
-
-  it('422 응답(이미 존재) 직후 isAdded 가 즉시 true 가 된다 (#217 race fix)', async () => {
-    const user = userEvent.setup();
-    vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: { shelves: [], pagination: { page: 1, pageSize: 100, total: 0 } },
-    });
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [
-        {
-          id: 'book-1',
-          isbn: '9788932917245',
-          title: '데미안',
-          author: '헤르만 헤세',
-          publisher: '민음사',
-          coverUrl: null,
-        },
-      ],
-    });
-    vi.spyOn(api, 'addToShelf').mockRejectedValue({
-      isAxiosError: true,
-      response: { status: 422, data: { error: 'ShelfAlreadyExists' } },
-    });
-
-    renderSearch();
-    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
-    await user.click(await screen.findByRole('button', { name: /데미안 서재에 추가/ }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /데미안 서재에 담김/ })).toBeDisabled();
-    });
-  });
-
-  it('book.stale=true 면 "캐시된 정보" 라벨이 노출된다 (#236)', async () => {
-    const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [
-        {
-          id: 'book-1',
-          isbn: '9788932917245',
-          title: '데미안',
-          author: '헤르만 헤세',
-          publisher: '민음사',
-          coverUrl: null,
-          stale: true,
-        },
-      ],
-    });
-    renderSearch();
-    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
-    expect(await screen.findByTestId('stale-label')).toHaveTextContent(/캐시된 정보/);
   });
 
   it('서재 추가 실패(422 이미 존재) 시 안내 토스트가 노출된다', async () => {

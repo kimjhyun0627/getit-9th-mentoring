@@ -109,26 +109,43 @@ describe('GET /api/shelves/me?sort=<key>', () => {
     expect(titlesFromRes(res)).toEqual(['가', '라', '나', '다']);
   });
 
-  it('sort=completedAt-desc — 최근 완독 순, null 은 뒤', async () => {
+  it('sort=completedAt-desc — 최근 완독 순, null 은 addedAt desc tie-break', async () => {
     const res = await request(app)
       .get('/api/shelves/me?sort=completedAt-desc')
       .set(authHeader(ALICE));
     expect(res.status).toBe(200);
-    // '가' 완독 2026-05-15, '나' 완독 2026-05-05, 나머지 둘 null (안정성: 추가 desc tie-break)
-    const titles = titlesFromRes(res);
-    expect(titles[0]).toBe('가');
-    expect(titles[1]).toBe('나');
-    expect(new Set(titles.slice(2))).toEqual(new Set(['다', '라']));
+    // '가' 완독 2026-05-15, '나' 완독 2026-05-05 — null 인 '다'(addedAt 5-10), '라'(addedAt 4-15)
+    expect(titlesFromRes(res)).toEqual(['가', '나', '다', '라']);
   });
 
-  it('sort=rating-desc — 별점 높은 순, null 은 뒤', async () => {
+  it('sort=rating-desc — 별점 높은 순, 동점은 addedAt desc tie-break, null 은 뒤', async () => {
     const res = await request(app).get('/api/shelves/me?sort=rating-desc').set(authHeader(ALICE));
     expect(res.status).toBe(200);
-    const titles = titlesFromRes(res);
-    // 별점 5: 가, 다 — 3: 나 — null: 라
-    expect(new Set(titles.slice(0, 2))).toEqual(new Set(['가', '다']));
-    expect(titles[2]).toBe('나');
-    expect(titles[3]).toBe('라');
+    // 별점 5: '다'(addedAt 5-10) > '가'(addedAt 4-1) — 3: '나' — null: '라'
+    expect(titlesFromRes(res)).toEqual(['다', '가', '나', '라']);
+  });
+
+  it('pagination + sort=rating-desc — 전역 정렬 후 페이지 자르기 (page=2)', async () => {
+    const res = await request(app)
+      .get('/api/shelves/me?sort=rating-desc&page=2&pageSize=2')
+      .set(authHeader(ALICE));
+    expect(res.status).toBe(200);
+    // 전역 정렬: 다, 가, 나, 라 → 2 페이지 (size=2) = 나, 라
+    expect(titlesFromRes(res)).toEqual(['나', '라']);
+    expect(res.body.pagination).toMatchObject({
+      page: 2,
+      pageSize: 2,
+      total: 4,
+      sort: 'rating-desc',
+    });
+  });
+
+  it('sort=<array> (?sort=a&sort=b) → 400', async () => {
+    const res = await request(app)
+      .get('/api/shelves/me?sort=addedAt-desc&sort=rating-desc')
+      .set(authHeader(ALICE));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('ValidationError');
   });
 
   it('sort=title-asc — 가나다 순', async () => {

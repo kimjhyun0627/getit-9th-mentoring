@@ -135,10 +135,16 @@ export const createShelvesRouter = () => {
         Number.isFinite(pageSizeRaw) && pageSizeRaw >= 1 ? Math.min(pageSizeRaw, 100) : 20;
       const skip = (page - 1) * pageSize;
 
-      // sort 미지정 → 기본값. 명시되었으면 enum 검증.
+      // sort 미지정 → 기본값. 명시되었으면 enum 검증. 배열 입력은 400 거절.
       const sortParam = req.query.sort;
       let sort = SHELF_SORT_DEFAULT;
-      if (typeof sortParam === 'string' && sortParam.length > 0) {
+      if (sortParam !== undefined) {
+        if (typeof sortParam !== 'string' || sortParam.length === 0) {
+          return res.status(400).json({
+            error: 'ValidationError',
+            issues: [{ path: 'sort', message: 'unsupported sort key' }],
+          });
+        }
         const parsed = ShelfSortKey.safeParse(sortParam);
         if (!parsed.success) {
           return res.status(400).json({
@@ -150,22 +156,19 @@ export const createShelvesRouter = () => {
       }
 
       const where = { userId: req.user.sub };
-      // 페이지 단위로 받아온 뒤 in-memory 정렬 — pageSize ≤ 100 이라 비용 무시.
-      // Prisma orderBy 만으론 nullsLast / book.title 컬럼 정렬을 일관되게 표현하기 어려움.
-      const [total, rows] = await Promise.all([
-        prisma.bookShelf.count({ where }),
-        prisma.bookShelf.findMany({
-          where,
-          orderBy: { addedAt: 'desc' },
-          include: { book: true },
-          skip,
-          take: pageSize,
-        }),
-      ]);
-      const sorted = [...rows].sort(compareBy(sort));
+      // 전체 row 를 가져와서 정렬한 뒤 페이지를 자른다. Prisma orderBy 만으론
+      // nullsLast / book.title 정렬을 일관되게 표현하기 어렵고, 페이지를 먼저 자르면
+      // 전역 정렬이 깨진다. 서재 행수는 사용자당 수백 건 이내 가정 (heavy-user 는
+      // 별도 pageSize 상한 + lightweight bookIds 엔드포인트로 대응).
+      const all = await prisma.bookShelf.findMany({
+        where,
+        include: { book: true },
+      });
+      const sorted = [...all].sort(compareBy(sort));
+      const paged = sorted.slice(skip, skip + pageSize);
       return res.status(200).json({
-        shelves: sorted.map(publicShelf),
-        pagination: { page, pageSize, total, sort },
+        shelves: paged.map(publicShelf),
+        pagination: { page, pageSize, total: all.length, sort },
       });
     } catch (err) {
       return next(err);

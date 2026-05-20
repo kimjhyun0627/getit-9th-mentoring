@@ -74,7 +74,10 @@ export const SearchPage = () => {
   const queryClient = useQueryClient();
 
   // 내 서재 — search 결과와 cross-reference 로 isAdded 영속 (#217).
-  const myShelves = useMyShelves();
+  // pageSize 100 (BE max) 으로 받아오고, 그 이상 보유 시엔 lightweight bookIds 엔드포인트
+  // 도입 전까지는 100 권 이상 보유 유저는 "담김" 표시가 일부 안 보일 수 있음 — known trade-off.
+  // 검색 결과 카드의 disabled 상태가 아니어도 422 응답 직후 즉시 optimistic 반영되어 회복.
+  const myShelves = useMyShelves({ pageSize: 100 });
   const shelvedKeys = useMemo(() => {
     const set = new Set();
     for (const s of myShelves.data?.shelves ?? []) {

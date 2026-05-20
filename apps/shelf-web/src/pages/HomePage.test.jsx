@@ -175,5 +175,11 @@ describe('HomePage', () => {
     await waitFor(() => {
       expect(spy).toHaveBeenCalledWith(expect.objectContaining({ sort: 'rating-desc' }));
     });
+
+    // 기본값으로 되돌리면 URL 의 ?sort=가 제거되어 default 로 호출 (회귀 가드).
+    await user.selectOptions(screen.getByRole('combobox', { name: /정렬/ }), 'addedAt-desc');
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ sort: 'addedAt-desc' }));
+    });
   });
 });

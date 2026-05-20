@@ -15,7 +15,8 @@ const compareCompletedDesc = (a, b) => {
   if (av === null && bv === null) return addedDesc(a, b);
   if (av === null) return 1; // null 은 뒤
   if (bv === null) return -1;
-  return bv - av;
+  if (bv !== av) return bv - av;
+  return addedDesc(a, b);
 };
 
 const compareRatingDesc = (a, b) => {

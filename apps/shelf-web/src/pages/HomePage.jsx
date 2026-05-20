@@ -1,3 +1,4 @@
+import { SHELF_SORT_DEFAULT, ShelfSortKey } from '@getit/schemas/shelf';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -8,11 +9,10 @@ import { FilterTabs } from '../components/FilterTabs.jsx';
 import { SortControl } from '../components/SortControl.jsx';
 import { useMyShelves, useRemoveShelf, useUpdateShelf } from '../hooks/useShelves.js';
 
-/** @typedef {'addedAt-desc'|'addedAt-asc'|'completedAt-desc'|'rating-desc'|'title-asc'} SortKey */
+/** @typedef {import('@getit/schemas/shelf').ShelfSortKeyT} SortKey */
 
 /** @type {SortKey[]} */
-const SORT_KEYS = ['addedAt-desc', 'addedAt-asc', 'completedAt-desc', 'rating-desc', 'title-asc'];
-const DEFAULT_SORT = 'addedAt-desc';
+const SORT_KEYS = ShelfSortKey.options;
 
 /** @typedef {import('../components/BookCard.jsx').Shelf} Shelf */
 /** @typedef {'ALL' | 'WANT' | 'READING' | 'READ'} FilterKey */
@@ -31,7 +31,7 @@ export const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const sortParam = searchParams.get('sort');
   const sort = /** @type {SortKey} */ (
-    SORT_KEYS.includes(/** @type {SortKey} */ (sortParam)) ? sortParam : DEFAULT_SORT
+    SORT_KEYS.includes(/** @type {SortKey} */ (sortParam)) ? sortParam : SHELF_SORT_DEFAULT
   );
 
   const { data, isLoading, isError, error } = useMyShelves({ sort });
@@ -44,7 +44,7 @@ export const HomePage = () => {
   /** @param {SortKey} next */
   const handleSortChange = (next) => {
     const params = new URLSearchParams(searchParams);
-    if (next === DEFAULT_SORT) params.delete('sort');
+    if (next === SHELF_SORT_DEFAULT) params.delete('sort');
     else params.set('sort', next);
     setSearchParams(params, { replace: true });
   };
