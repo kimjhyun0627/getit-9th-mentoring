@@ -34,7 +34,7 @@ describe('Header', () => {
 
   it('다크모드 토글 버튼이 보인다', () => {
     renderHeader();
-    // ThemeToggle 은 aria-label 이 라이트/다크 상태에 따라 다르므로 정규식으로 매칭
-    expect(screen.getByRole('button', { name: /(라이트|다크)모드로 전환/ })).toBeInTheDocument();
+    // PlayfulThemeToggle 은 role="switch" + 상태별 aria-label.
+    expect(screen.getByRole('switch', { name: /(라이트|다크)모드로 전환/ })).toBeInTheDocument();
   });
 });
