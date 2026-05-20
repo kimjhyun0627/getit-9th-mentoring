@@ -83,7 +83,7 @@ describe('SearchPage', () => {
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '없는책');
 
     expect(
-      await screen.findByText(/이 서가에는 그 책이 없네요/, {}, { timeout: 2000 }),
+      await screen.findByText(/이 서가에는 그 책이 없습니다/, {}, { timeout: 2000 }),
     ).toBeInTheDocument();
   });
 

@@ -32,7 +32,7 @@ const addErrorMessage = (err) => {
   if (status === 401) return '로그인이 필요합니다.';
   if (status === 404) return '그 책의 정보를 찾지 못했습니다.';
   if (typeof status === 'number' && status >= 500) return '잠시 후 다시 담아 주세요.';
-  return '책을 서재에 담는 데 실패했습니다.';
+  return '책을 서재에 담는 데 실패했습니다. 잠시 후 다시 시도해 주세요.';
 };
 
 /**
@@ -202,7 +202,7 @@ const PromptEmpty = () => (
 /** @param {{ query: string }} props */
 const EmptyResults = ({ query }) => (
   <div className="bg-paper-2 border-rule-1 rounded-sm border border-dashed px-6 py-10 text-center">
-    <p className="font-display text-ink-strong text-lg">이 서가에는 그 책이 없네요</p>
+    <p className="font-display text-ink-strong text-lg">이 서가에는 그 책이 없습니다.</p>
     <p className="mt-2 font-serif text-sm text-meta">
       <span className="text-ink-strong">&ldquo;{query}&rdquo;</span>로는 찾지 못했습니다. 제목
       일부나 저자 이름으로 다시 시도해 보세요.
