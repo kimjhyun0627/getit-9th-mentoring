@@ -104,3 +104,77 @@ describe('GET /api/shelves/me', () => {
     expect(res.body.pagination.pageSize).toBe(100);
   });
 });
+
+describe('GET /api/shelves/u/:userId (#292 공개 서재)', () => {
+  /** @type {import('express').Express} */
+  let app;
+
+  beforeAll(() => {
+    process.env.JWT_SECRET = 'test-secret-min-32-chars-long-aaaaaaaaa';
+    app = createApp({ rateLimitMax: 1000 });
+  });
+
+  it('비로그인이어도 200 + 공개 서재', async () => {
+    const book = await seedBook({ isbn: '9788932917245', title: 'A' });
+    memDb.bookShelves.set('bs_public_1', {
+      id: 'bs_public_1',
+      userId: ALICE,
+      bookId: book.id,
+      status: 'READ',
+      rating: 5,
+      review: '인생책',
+      addedAt: new Date('2026-05-01'),
+      completedAt: new Date('2026-05-02'),
+    });
+
+    const res = await request(app).get('/api/shelves/u/alice');
+    expect(res.status).toBe(200);
+    expect(res.body.userId).toBe('alice');
+    expect(res.body.shelves).toHaveLength(1);
+    expect(res.body.shelves[0]).toMatchObject({
+      bookId: book.id,
+      status: 'READ',
+      rating: 5,
+      review: '인생책',
+    });
+    // 공개 응답은 userId/i_added 미노출.
+    expect(res.body.shelves[0].userId).toBeUndefined();
+    expect(res.body.shelves[0].i_added).toBeUndefined();
+  });
+
+  it('다른 유저 서재 row 는 노출 X', async () => {
+    const book = await seedBook({ isbn: '9788932917245', title: 'A' });
+    memDb.bookShelves.set('bs_isol_1', {
+      id: 'bs_isol_1',
+      userId: ALICE,
+      bookId: book.id,
+      status: 'READ',
+      addedAt: new Date(),
+    });
+    memDb.bookShelves.set('bs_isol_2', {
+      id: 'bs_isol_2',
+      userId: BOB,
+      bookId: book.id,
+      status: 'WANT',
+      addedAt: new Date(),
+    });
+
+    const res = await request(app).get('/api/shelves/u/alice');
+    expect(res.status).toBe(200);
+    expect(res.body.shelves).toHaveLength(1);
+    expect(res.body.shelves[0].status).toBe('READ');
+  });
+
+  it('잘못된 userId → 400', async () => {
+    const res = await request(app).get('/api/shelves/u/..%2Fetc');
+    // express path 디코드 결과에 따라 400 또는 404 — 어느 쪽이든 200/공개 노출은 X
+    expect([400, 404]).toContain(res.status);
+  });
+
+  it('존재하지 않는 userId → 200 + 빈 배열 (privacy: 존재 여부 노출 X)', async () => {
+    const res = await request(app).get('/api/shelves/u/ghost');
+    expect(res.status).toBe(200);
+    expect(res.body.shelves).toEqual([]);
+    expect(res.body.pagination.total).toBe(0);
+  });
+});

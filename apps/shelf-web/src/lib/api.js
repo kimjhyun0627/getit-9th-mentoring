@@ -95,4 +95,36 @@ export const api = {
     const parsed = ShelfAddInput.parse(body);
     return client.post('/shelves', parsed);
   },
+
+  /**
+   * 책 상세 (캐시 + 외부) — #201.
+   *
+   * @param {string} isbn
+   */
+  getBook: (isbn) => client.get(`/books/${encodeURIComponent(isbn)}`),
+
+  /**
+   * 동일 책을 서재에 가진 유저 수 — #201, #292.
+   *
+   * @param {string} isbn
+   */
+  getBookOwners: (isbn) => client.get(`/books/${encodeURIComponent(isbn)}/owners`),
+
+  /**
+   * 같은 작가 책 추천 — #209.
+   *
+   * @param {string} isbn
+   */
+  getRecommendations: (isbn) => client.get(`/books/${encodeURIComponent(isbn)}/recommendations`),
+
+  /**
+   * 다른 유저 서재 공개 조회 — #292.
+   *
+   * @param {string} userId
+   * @param {{ page?: number; pageSize?: number; sort?: string }} [opts]
+   */
+  listUserShelves: (userId, opts = {}) =>
+    client.get(`/shelves/u/${encodeURIComponent(userId)}`, {
+      params: { page: opts.page, pageSize: opts.pageSize, sort: opts.sort },
+    }),
 };

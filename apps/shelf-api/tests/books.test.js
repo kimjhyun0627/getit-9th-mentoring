@@ -302,4 +302,118 @@ describe('shelf-api books routes', () => {
       }
     });
   });
+
+  describe('GET /api/books/:isbn/owners (#201, #292)', () => {
+    beforeEach(() => {
+      // 캐시에 책 1권 + 서재 2명 미리 세팅
+      memDb.books.set('b_1', {
+        id: 'b_1',
+        isbn: '9788932917245',
+        title: '소년이 온다',
+        author: '한강',
+        publisher: '창비',
+        coverUrl: '',
+        source: 'kakao',
+        cachedAt: new Date(),
+      });
+      memDb.bookShelves.set('bs_1', {
+        id: 'bs_1',
+        userId: 'u_a',
+        bookId: 'b_1',
+        status: 'READ',
+        addedAt: new Date(),
+      });
+      memDb.bookShelves.set('bs_2', {
+        id: 'bs_2',
+        userId: 'u_b',
+        bookId: 'b_1',
+        status: 'WANT',
+        addedAt: new Date(),
+      });
+    });
+
+    it('서재에 책 가진 유저 카운트', async () => {
+      const res = await request(app).get('/api/books/9788932917245/owners');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ isbn: '9788932917245', count: 2 });
+    });
+
+    it('없는 isbn → 404', async () => {
+      const res = await request(app).get('/api/books/9999999999999/owners');
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('BookNotFound');
+    });
+
+    it('잘못된 isbn → 400', async () => {
+      const res = await request(app).get('/api/books/not-isbn/owners');
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('GET /api/books/:isbn/recommendations (#209)', () => {
+    beforeEach(() => {
+      const now = new Date();
+      memDb.books.set('b_seed', {
+        id: 'b_seed',
+        isbn: '9788932917245',
+        title: '소년이 온다',
+        author: '한강',
+        publisher: '창비',
+        coverUrl: '',
+        source: 'kakao',
+        cachedAt: now,
+      });
+      memDb.books.set('b_same', {
+        id: 'b_same',
+        isbn: '9788936433598',
+        title: '채식주의자',
+        author: '한강',
+        publisher: '창비',
+        coverUrl: '',
+        source: 'kakao',
+        cachedAt: now,
+      });
+      memDb.books.set('b_other', {
+        id: 'b_other',
+        isbn: '9788954651288',
+        title: '다른 책',
+        author: '다른 작가',
+        publisher: '문학동네',
+        coverUrl: '',
+        source: 'kakao',
+        cachedAt: now,
+      });
+    });
+
+    it('같은 작가의 다른 책 반환 (자기 자신 제외)', async () => {
+      // 캐시에 1권만 있으므로 외부 호출도 시도 — 빈 응답 stub.
+      mockKakaoPool()
+        .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+        .reply(200, { documents: [], meta: { total_count: 0 } });
+
+      const res = await request(app).get('/api/books/9788932917245/recommendations');
+      expect(res.status).toBe(200);
+      expect(res.body.author).toBe('한강');
+      expect(res.body.items.length).toBeGreaterThanOrEqual(1);
+      const isbns = res.body.items.map((i) => i.isbn);
+      expect(isbns).toContain('9788936433598');
+      expect(isbns).not.toContain('9788932917245');
+      expect(isbns).not.toContain('9788954651288');
+    });
+
+    it('외부 API 실패해도 캐시 결과만 graceful 반환', async () => {
+      mockKakaoPool()
+        .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+        .reply(503, 'down');
+
+      const res = await request(app).get('/api/books/9788932917245/recommendations');
+      expect(res.status).toBe(200);
+      expect(res.body.items.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('없는 isbn → 404', async () => {
+      const res = await request(app).get('/api/books/9999999999999/recommendations');
+      expect(res.status).toBe(404);
+    });
+  });
 });

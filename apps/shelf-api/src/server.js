@@ -32,7 +32,14 @@ const main = async () => {
 
   // 운영 환경에선 Traefik 프록시 뒤에 있으므로 trustProxy 명시 활성화.
   // (createApp 기본값은 fail-closed 로 false.)
-  const app = createApp({ trustProxy: true });
+  // RATE_LIMIT_* 는 환경별 튜닝(#286) — 미설정 시 createApp 의 기본값(30/60s) 사용.
+  const rateLimitMax = Number.parseInt(process.env.RATE_LIMIT_MAX ?? '', 10);
+  const rateLimitWindowMs = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '', 10);
+  const app = createApp({
+    trustProxy: true,
+    ...(Number.isFinite(rateLimitMax) && rateLimitMax > 0 ? { rateLimitMax } : {}),
+    ...(Number.isFinite(rateLimitWindowMs) && rateLimitWindowMs > 0 ? { rateLimitWindowMs } : {}),
+  });
   const port = Number.parseInt(process.env.PORT ?? '3003', 10);
   const server = app.listen(port, () => {
     log.info({ port }, `shelf-api listening on :${port}`);

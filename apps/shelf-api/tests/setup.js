@@ -69,6 +69,7 @@ const matchWhere = (row, where) => {
       if ('lt' in v) checks.push(row[k] < v.lt);
       if ('lte' in v) checks.push(row[k] <= v.lte);
       if ('in' in v) checks.push(v.in.includes(row[k]));
+      if ('not' in v) checks.push(row[k] !== v.not);
       return checks.length > 0 ? checks.every((c) => c) : false;
     }
     return row[k] === v;

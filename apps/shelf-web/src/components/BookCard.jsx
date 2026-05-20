@@ -3,6 +3,28 @@ import { cn } from '../lib/cn.js';
 import { StarRating } from './StarRating.jsx';
 
 /**
+ * BookCardSkeleton — 로딩 중 placeholder.
+ * - role="status" + aria-busy="true" + aria-label="책 정보를 불러오는 중"
+ *   → SR 가 "loading" 으로 announce.
+ * - 다크/라이트 양쪽 paper-2 톤. shimmer 는 prefers-reduced-motion 시 정지 (CSS @media).
+ *
+ * @param {{ className?: string }} props
+ */
+export const BookCardSkeleton = ({ className }) => (
+  <div
+    role="status"
+    aria-busy="true"
+    aria-label="책 정보를 불러오는 중"
+    className={cn('book-card-skeleton block w-full', className)}
+  >
+    <div className="cover relative w-full bg-paper-2 book-skeleton-shimmer" />
+    <div className="mt-3 h-2 w-16 bg-paper-2 book-skeleton-shimmer" />
+    <div className="mt-2 h-4 w-3/4 bg-paper-2 book-skeleton-shimmer" />
+    <div className="mt-1 h-3 w-1/2 bg-paper-2 book-skeleton-shimmer" />
+  </div>
+);
+
+/**
  * @typedef {object} Shelf
  * @property {string} id 서재 row id
  * @property {string} bookId 책 id (BE의 BookShelf.bookId)

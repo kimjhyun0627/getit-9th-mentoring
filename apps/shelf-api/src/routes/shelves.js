@@ -15,101 +15,20 @@
  * 별점 0-5 정수 검증은 ShelfAddInput / ShelfUpdateInput 의 zod schema 가 강제.
  */
 import { requireAuth } from '@getit/auth-utils/server';
-import {
-  SHELF_SORT_DEFAULT,
-  ShelfAddInput,
-  ShelfSortKey,
-  ShelfUpdateInput,
-} from '@getit/schemas/shelf';
+import { ShelfAddInput, ShelfUpdateInput } from '@getit/schemas/shelf';
 import { Router } from 'express';
 
-import {
-  KakaoApiError,
-  KakaoConfigError,
-  searchKakaoBooks,
-  toBookRecord,
-} from '../lib/external/kakao.js';
 import { prisma } from '../lib/prisma.js';
 import { compareBy } from '../lib/shelf-sort.js';
 
-/**
- * Zod 에러 → 400 응답 본문.
- *
- * @param {import('zod').ZodError} err
- */
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
-
-/**
- * 응답용 BookShelf 직렬화 (book 동봉 옵션).
- *
- * `i_added` — 이 row 가 "내 서재에 담겨 있음" 을 명시. GET /me 응답은 항상 내 서재 row 이므로
- * 항상 true. SearchPage (#217) 가 새로고침 후에도 cross-reference 로 추가 여부 판정 가능.
- *
- * @param {Record<string, any>} row
- */
-const publicShelf = (row) => ({
-  id: row.id,
-  userId: row.userId,
-  bookId: row.bookId,
-  status: row.status,
-  rating: row.rating ?? null,
-  review: row.review ?? null,
-  addedAt: row.addedAt,
-  completedAt: row.completedAt ?? null,
-  i_added: true,
-  book: row.book ? { ...row.book } : undefined,
-});
-
-/**
- * isbn 으로 Book 조회/upsert — 캐시 hit 우선, miss 시 외부 카카오 호출.
- *
- * @param {string} isbn
- * @returns {Promise<{ status: number, book?: Record<string, any>, error?: string }>}
- */
-const findOrFetchBookByIsbn = async (isbn) => {
-  const cached = await prisma.book.findUnique({ where: { isbn } });
-  if (cached) return { status: 200, book: cached };
-
-  const apiKey = process.env.KAKAO_BOOK_API_KEY ?? '';
-  try {
-    const docs = await searchKakaoBooks({ query: isbn, apiKey, target: 'isbn', size: 1 });
-    const record = docs.map(toBookRecord).find(Boolean);
-    if (!record) return { status: 404, error: 'BookNotFound' };
-    const saved = await prisma.book.upsert({
-      where: { isbn: record.isbn },
-      create: record,
-      update: {
-        title: record.title,
-        author: record.author,
-        publisher: record.publisher,
-        publishedAt: record.publishedAt,
-        coverUrl: record.coverUrl,
-        description: record.description,
-        source: record.source,
-      },
-    });
-    return { status: 201, book: saved };
-  } catch (err) {
-    if (err instanceof KakaoConfigError || err instanceof KakaoApiError) {
-      return { status: 503, error: 'ExternalApiUnavailable' };
-    }
-    throw err;
-  }
-};
-
-/**
- * Prisma P2002 (unique constraint violation) 에러 판별.
- *
- * `PrismaClientKnownRequestError` name 만으로 판별하면 P2025 (record not found),
- * P2003 (FK violation) 등 다른 known error 까지 unique 충돌로 오해됨 → code 만 확인.
- *
- * @param {any} err
- * @returns {boolean}
- */
-const isUniqueViolation = (err) => err?.code === 'P2002';
+import {
+  findOrFetchBookByIsbn,
+  isUniqueViolation,
+  parseListQuery,
+  publicReadOnlyShelf,
+  publicShelf,
+  zodErrorBody,
+} from './shelves.helpers.js';
 
 /**
  * Shelves 라우터.
@@ -123,52 +42,66 @@ export const createShelvesRouter = () => {
   if (!jwtSecret) throw new Error('JWT_SECRET env required');
   const auth = requireAuth({ secret: jwtSecret });
 
+  // GET /u/:userId — 다른 유저 서재 공개 조회 (#292)
+  // - 공개·읽기 전용. 별점/리뷰/상태 모두 노출 (현 단계 정책: 모두 공개).
+  // - requireAuth 적용 전에 등록 → 비로그인 게스트도 조회 가능.
+  // - 페이지네이션 + 정렬은 /me 와 동일한 컨벤션.
+  // - userId 검증은 cuid 같은 url-safe 문자만 허용 (path traversal 방지).
+  router.get('/u/:userId', async (req, res, next) => {
+    try {
+      const { userId } = req.params;
+      if (typeof userId !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(userId)) {
+        return res.status(400).json({ error: 'ValidationError', message: 'invalid userId' });
+      }
+      const parsed = parseListQuery(req.query);
+      if (!parsed.ok) return res.status(400).json(parsed.body);
+
+      const all = await prisma.bookShelf.findMany({
+        where: { userId },
+        include: { book: true },
+      });
+      const sorted = [...all].sort(compareBy(parsed.sort));
+      const paged = sorted.slice(parsed.skip, parsed.skip + parsed.pageSize);
+      return res.status(200).json({
+        userId,
+        shelves: paged.map(publicReadOnlyShelf),
+        pagination: {
+          page: parsed.page,
+          pageSize: parsed.pageSize,
+          total: all.length,
+          sort: parsed.sort,
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
   router.use(auth);
 
   // GET /me — 내 서재 (page-based pagination: ?page=1&pageSize=20, 최대 100, sort=<key>)
   router.get('/me', async (req, res, next) => {
     try {
-      const pageRaw = Number.parseInt(req.query.page, 10);
-      const pageSizeRaw = Number.parseInt(req.query.pageSize, 10);
-      const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1;
-      const pageSize =
-        Number.isFinite(pageSizeRaw) && pageSizeRaw >= 1 ? Math.min(pageSizeRaw, 100) : 20;
-      const skip = (page - 1) * pageSize;
-
-      // sort 미지정 → 기본값. 명시되었으면 enum 검증. 배열 입력은 400 거절.
-      const sortParam = req.query.sort;
-      let sort = SHELF_SORT_DEFAULT;
-      if (sortParam !== undefined) {
-        if (typeof sortParam !== 'string' || sortParam.length === 0) {
-          return res.status(400).json({
-            error: 'ValidationError',
-            issues: [{ path: 'sort', message: 'unsupported sort key' }],
-          });
-        }
-        const parsed = ShelfSortKey.safeParse(sortParam);
-        if (!parsed.success) {
-          return res.status(400).json({
-            error: 'ValidationError',
-            issues: [{ path: 'sort', message: 'unsupported sort key' }],
-          });
-        }
-        sort = parsed.data;
-      }
-
-      const where = { userId: req.user.sub };
+      const parsed = parseListQuery(req.query);
+      if (!parsed.ok) return res.status(400).json(parsed.body);
       // 전체 row 를 가져와서 정렬한 뒤 페이지를 자른다. Prisma orderBy 만으론
       // nullsLast / book.title 정렬을 일관되게 표현하기 어렵고, 페이지를 먼저 자르면
       // 전역 정렬이 깨진다. 서재 행수는 사용자당 수백 건 이내 가정 (heavy-user 는
       // 별도 pageSize 상한 + lightweight bookIds 엔드포인트로 대응).
       const all = await prisma.bookShelf.findMany({
-        where,
+        where: { userId: req.user.sub },
         include: { book: true },
       });
-      const sorted = [...all].sort(compareBy(sort));
-      const paged = sorted.slice(skip, skip + pageSize);
+      const sorted = [...all].sort(compareBy(parsed.sort));
+      const paged = sorted.slice(parsed.skip, parsed.skip + parsed.pageSize);
       return res.status(200).json({
         shelves: paged.map(publicShelf),
-        pagination: { page, pageSize, total: all.length, sort },
+        pagination: {
+          page: parsed.page,
+          pageSize: parsed.pageSize,
+          total: all.length,
+          sort: parsed.sort,
+        },
       });
     } catch (err) {
       return next(err);

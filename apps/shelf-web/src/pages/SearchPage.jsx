@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Toast } from '../components/Toast.jsx';
+import { ToastStack } from '../components/Toast.jsx';
+import { useToastQueue } from '../components/useToastQueue.js';
 import { useMyShelves } from '../hooks/useShelves.js';
 import { api } from '../lib/api.js';
 import { useDebounce } from '../lib/useDebounce.js';
@@ -75,9 +76,8 @@ export const SearchPage = () => {
   const [target, setTarget] = useState(/** @type {TargetKey} */ ('all'));
   const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
   const debouncedQuery = useDebounce(query, DEBOUNCE_MS);
-  const [toast, setToast] = useState(
-    /** @type {{ message: string, variant: 'success'|'error' } | null} */ (null),
-  );
+  // 다중 토스트 스택 — 빠른 연속 추가 시 같은 메시지 머지 + 카운터 (#294).
+  const toastQueue = useToastQueue({ max: 3, duration: 2400 });
   // 낙관 추가 직후 즉시 UI 반영용. 새로고침 시 휘발되어도 OK —
   // 서버 truth (myShelves) 가 cross-reference 로 isAdded 를 다시 채운다.
   const optimisticKeys = useRef(new Set());
@@ -121,8 +121,11 @@ export const SearchPage = () => {
 
   useEffect(() => {
     if (search.isError) {
-      setToast({ message: searchErrorMessage(search.error), variant: 'error' });
+      toastQueue.push({ message: searchErrorMessage(search.error), variant: 'error' });
     }
+    // toastQueue 는 객체라 매 렌더 동일성이 깨지지만 push 는 setState 호출이라 stable.
+    // 안전을 위해 의존성에 메서드만 포함.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search.isError, search.error]);
 
   const addMutation = useMutation({
@@ -138,7 +141,7 @@ export const SearchPage = () => {
         optimisticKeys.current.add(key);
         forceRerender((n) => n + 1);
       }
-      setToast({ message: '서재에 담았습니다.', variant: 'success' });
+      toastQueue.push({ message: '서재에 담았습니다.', variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['shelves', 'me'] });
     },
     onError: (err, vars) => {
@@ -152,7 +155,7 @@ export const SearchPage = () => {
         }
         queryClient.invalidateQueries({ queryKey: ['shelves', 'me'] });
       }
-      setToast({ message: addErrorMessage(err), variant: 'error' });
+      toastQueue.push({ message: addErrorMessage(err), variant: 'error' });
     },
   });
 
@@ -164,7 +167,7 @@ export const SearchPage = () => {
     [addMutation],
   );
 
-  const handleDismissToast = useCallback(() => setToast(null), []);
+  const handleDismissToast = useCallback((id) => toastQueue.dismiss(id), [toastQueue]);
 
   const items = useMemo(() => /** @type {BookItem[]} */ (search.data ?? []), [search.data]);
   const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount]);
@@ -175,11 +178,7 @@ export const SearchPage = () => {
 
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 pt-12 md:px-10 md:pb-20 md:pt-16">
-      <Toast
-        message={toast?.message ?? null}
-        variant={toast?.variant ?? 'success'}
-        onDismiss={handleDismissToast}
-      />
+      <ToastStack items={toastQueue.items} onDismiss={handleDismissToast} />
 
       <header className="flex flex-col gap-3">
         <p className="smallcaps text-xs">Vol. IX · 서재 검색</p>

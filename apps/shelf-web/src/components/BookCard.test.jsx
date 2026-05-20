@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import { BookCard } from './BookCard.jsx';
+import { BookCard, BookCardSkeleton } from './BookCard.jsx';
 
 const sample = {
   id: 'shelf-1',
@@ -61,5 +61,19 @@ describe('BookCard', () => {
     // 잉크 스크림 (검은색 그라데이션) 이 존재
     const scrim = container.querySelector('[aria-hidden="true"].bg-gradient-to-t');
     expect(scrim).not.toBeNull();
+  });
+});
+
+describe('BookCardSkeleton (#301 로딩 스켈레톤)', () => {
+  it('aria-busy=true + role=status 로 SR announce', () => {
+    render(<BookCardSkeleton />);
+    const sk = screen.getByRole('status');
+    expect(sk).toHaveAttribute('aria-busy', 'true');
+    expect(sk).toHaveAttribute('aria-label', '책 정보를 불러오는 중');
+  });
+
+  it('shimmer 자식이 존재 (book-skeleton-shimmer 클래스)', () => {
+    const { container } = render(<BookCardSkeleton />);
+    expect(container.querySelectorAll('.book-skeleton-shimmer').length).toBeGreaterThan(0);
   });
 });

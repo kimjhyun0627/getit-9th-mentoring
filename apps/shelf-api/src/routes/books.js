@@ -162,6 +162,90 @@ export const createBooksRouter = () => {
     }
   });
 
+  // GET /api/books/:isbn/owners — 같은 책을 서재에 가진 유저 수 (#201, #292)
+  // - 공개 카운트만 노출 (userId 목록은 노출 X — privacy)
+  // - Book 캐시 없으면 404
+  // - 캐시 hit 이지만 아무도 안 가지고 있으면 count=0
+  router.get('/:isbn/owners', async (req, res, next) => {
+    try {
+      const isbnParse = IsbnParam.safeParse(req.params.isbn);
+      if (!isbnParse.success) {
+        return res.status(400).json({ error: 'ValidationError', message: 'invalid isbn' });
+      }
+      const isbn = isbnParse.data;
+      const book = await prisma.book.findUnique({ where: { isbn } });
+      if (!book) return res.status(404).json({ error: 'BookNotFound' });
+      const count = await prisma.bookShelf.count({ where: { bookId: book.id } });
+      return res.status(200).json({ isbn, count });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // GET /api/books/:isbn/recommendations — 같은 작가 책 추천 (#209)
+  // - 룰: Book.author 동일 + isbn ≠ 자기 자신 → 최대 8건
+  // - 캐시 우선. 캐시에 작가 책이 적으면 외부 검색(target=person) 으로 보강
+  // - 외부 실패해도 캐시 결과만 반환 (graceful)
+  router.get('/:isbn/recommendations', async (req, res, next) => {
+    try {
+      const isbnParse = IsbnParam.safeParse(req.params.isbn);
+      if (!isbnParse.success) {
+        return res.status(400).json({ error: 'ValidationError', message: 'invalid isbn' });
+      }
+      const isbn = isbnParse.data;
+      const seed = await prisma.book.findUnique({ where: { isbn } });
+      if (!seed) return res.status(404).json({ error: 'BookNotFound' });
+
+      // 작가 비어있으면 추천 불가 — 빈 배열.
+      const author = (seed.author ?? '').trim();
+      if (!author) return res.status(200).json({ isbn, author: '', items: [] });
+
+      // 캐시에서 같은 작가 책 우선
+      const cachedSameAuthor = await prisma.book.findMany({
+        where: { author, isbn: { not: isbn } },
+        orderBy: { cachedAt: 'desc' },
+        take: 8,
+      });
+
+      // 부족하면 외부 보강 (best-effort)
+      const extras = [];
+      if (cachedSameAuthor.length < 4) {
+        const apiKey = process.env.KAKAO_BOOK_API_KEY ?? '';
+        try {
+          const docs = await searchKakaoBooks({
+            query: author,
+            apiKey,
+            target: 'person',
+            size: 10,
+          });
+          const records = docs.map(toBookRecord).filter(Boolean);
+          const haveIsbns = new Set([isbn, ...cachedSameAuthor.map((b) => b.isbn)]);
+          for (const r of records) {
+            if (haveIsbns.has(r.isbn)) continue;
+            try {
+              const saved = await upsertBook(r);
+              extras.push(saved);
+              haveIsbns.add(r.isbn);
+            } catch {
+              // upsert 실패해도 다른 결과로 계속
+            }
+            if (cachedSameAuthor.length + extras.length >= 8) break;
+          }
+        } catch (err) {
+          if (!(err instanceof KakaoConfigError || err instanceof KakaoApiError)) throw err;
+          req.log?.warn({ err, isbn }, 'kakao recommendations failed (best-effort)');
+        }
+      }
+
+      const items = [...cachedSameAuthor, ...extras]
+        .slice(0, 8)
+        .map((row) => toResponseBook(row, { cached: true }));
+      return res.status(200).json({ isbn, author, items });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
   // GET /api/books/:isbn
   router.get('/:isbn', async (req, res, next) => {
     try {
