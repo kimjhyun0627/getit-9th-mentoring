@@ -74,5 +74,6 @@ const formatUpdated = (value) => {
   if (hr < 24) return `${hr}시간 전`;
   const day = Math.floor(hr / 24);
   if (day < 7) return `${day}일 전`;
-  return d.toISOString().slice(0, 10);
+  // 사용자 로컬 타임존 기준 YYYY-MM-DD (en-CA 로케일이 ISO 형식 보장).
+  return d.toLocaleDateString('en-CA');
 };

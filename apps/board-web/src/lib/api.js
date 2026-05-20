@@ -5,7 +5,8 @@ import axios from 'axios';
  * - baseURL: VITE_API_URL 우선, 없으면 '/api' (prod 동일 origin 가정)
  * - withCredentials: true — JWT는 HttpOnly 쿠키. `.get-it.cloud` 도메인 공유 (SSO).
  */
-const baseURL = import.meta.env?.VITE_API_URL ?? '/api';
+// `||` 사용 — `VITE_API_URL=""` (빈 문자열) 도 fallback `'/api'` 로 처리.
+const baseURL = import.meta.env?.VITE_API_URL || '/api';
 
 export const client = axios.create({
   baseURL,

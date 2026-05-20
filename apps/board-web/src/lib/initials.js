@@ -13,7 +13,7 @@ export const initials = (input) => {
   const trimmed = String(input).trim();
   if (!trimmed) return '??';
   // 한글 포함이면 마지막 2글자
-  if (/[가-힯]/.test(trimmed)) {
+  if (/[가-힣]/.test(trimmed)) {
     const compact = trimmed.replace(/\s+/g, '');
     return compact.slice(-2).toUpperCase();
   }
