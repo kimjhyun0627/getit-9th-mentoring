@@ -41,6 +41,8 @@ model Book {
 /// - addedAt: 서재에 담은 시각.
 /// - completedAt: status=READ 전환 시각. 미완독이면 null.
 /// - @@unique([userId, bookId]): 같은 책을 한 유저가 중복 저장 X.
+///   composite unique가 userId 선행 인덱스 역할 자동 수행 → 단일 @@index([userId]) 불필요.
+/// - @@index([bookId]): bookId 단독 조회용(역방향 lookup).
 model BookShelf {
   id          String    @id @default(cuid())
   userId      String
@@ -53,7 +55,6 @@ model BookShelf {
   book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@unique([userId, bookId])
-  @@index([userId])
   @@index([bookId])
 }
 

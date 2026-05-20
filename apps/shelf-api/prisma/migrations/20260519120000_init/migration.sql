@@ -27,7 +27,6 @@ CREATE TABLE `BookShelf` (
     `addedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `completedAt` DATETIME(3) NULL,
 
-    INDEX `BookShelf_userId_idx`(`userId`),
     INDEX `BookShelf_bookId_idx`(`bookId`),
     UNIQUE INDEX `BookShelf_userId_bookId_key`(`userId`, `bookId`),
     PRIMARY KEY (`id`)
