@@ -37,16 +37,54 @@ const zodErrorBody = (err) => ({
  * 응답에 노출할 안전한 Project 필드만 추림.
  *
  * @param {{ id: string, ownerId: string, name: string, description: string | null, createdAt: Date, updatedAt: Date }} p
- * @returns {{ id: string, ownerId: string, name: string, description: string | null, createdAt: Date, updatedAt: Date }}
+ * @param {{
+ *   role?: 'OWNER' | 'MEMBER' | null,
+ *   members?: Array<{ userId: string, role: 'OWNER'|'MEMBER', name: string | null }>,
+ *   currentUserId?: string | null,
+ * }} [extra]
  */
-const publicProject = (p) => ({
+const publicProject = (p, extra = {}) => ({
   id: p.id,
   ownerId: p.ownerId,
   name: p.name,
   description: p.description ?? null,
   createdAt: p.createdAt,
   updatedAt: p.updatedAt,
+  role: extra.role ?? null,
+  members: extra.members ?? [],
+  currentUserId: extra.currentUserId ?? null,
 });
+
+/**
+ * 주어진 프로젝트들에 대해 (현재 user role, 전체 멤버 목록) 을 한 번에 조회한다.
+ * SSO User 테이블은 다른 DB라서 name 은 일단 null 로 둔다 — 추후 user lookup 연동 지점.
+ *
+ * 단계:
+ *   1. 한 쿼리로 해당 프로젝트들의 모든 ProjectMember 조회 (N+1 회피)
+ *   2. projectId 별로 그룹핑 + 현재 user role 추출
+ *
+ * @param {Array<{ id: string }>} projects
+ * @param {string} userId
+ * @returns {Promise<Map<string, { role: 'OWNER'|'MEMBER'|null, members: Array<{ userId: string, role: 'OWNER'|'MEMBER', name: string|null }> }>>}
+ */
+const fetchRoleAndMembers = async (projects, userId) => {
+  /** @type {Map<string, { role: 'OWNER'|'MEMBER'|null, members: Array<{ userId: string, role: 'OWNER'|'MEMBER', name: string|null }> }>} */
+  const out = new Map();
+  if (projects.length === 0) return out;
+  const ids = projects.map((p) => p.id);
+  const memberships = await prisma.projectMember.findMany({
+    where: { projectId: { in: ids } },
+    orderBy: { userId: 'asc' },
+  });
+  for (const id of ids) out.set(id, { role: null, members: [] });
+  for (const m of memberships) {
+    const bucket = out.get(m.projectId);
+    if (!bucket) continue;
+    bucket.members.push({ userId: m.userId, role: m.role, name: null });
+    if (m.userId === userId) bucket.role = m.role;
+  }
+  return out;
+};
 
 /**
  * Projects 라우터 생성.
@@ -56,7 +94,8 @@ const publicProject = (p) => ({
 export const createProjectsRouter = () => {
   const router = Router();
 
-  // GET /projects — 본인 멤버인 프로젝트만 (DB 레벨 필터링 — 전체 스캔 방지)
+  // GET /projects — 본인 멤버인 프로젝트만 (DB 레벨 필터링 — 전체 스캔 방지).
+  // 응답에 현재 user role + 전체 멤버 목록 + currentUserId (FE 카드 표시용, #297) 포함.
   router.get('/', async (req, res, next) => {
     try {
       const userId = req.user.sub;
@@ -64,7 +103,10 @@ export const createProjectsRouter = () => {
         where: { members: { some: { userId } } },
         orderBy: { createdAt: 'desc' },
       });
-      const projects = rows.map(publicProject);
+      const meta = await fetchRoleAndMembers(rows, userId);
+      const projects = rows.map((p) =>
+        publicProject(p, { ...meta.get(p.id), currentUserId: userId }),
+      );
       return res.status(200).json({ projects });
     } catch (err) {
       return next(err);
@@ -93,15 +135,26 @@ export const createProjectsRouter = () => {
         return created;
       });
 
-      return res.status(201).json({ project: publicProject(project) });
+      const meta = await fetchRoleAndMembers([project], userId);
+      return res.status(201).json({
+        project: publicProject(project, { ...meta.get(project.id), currentUserId: userId }),
+      });
     } catch (err) {
       return next(err);
     }
   });
 
-  // GET /projects/:id — 멤버만
-  router.get('/:id', requireProjectMember(), (req, res) => {
-    return res.status(200).json({ project: publicProject(req.project) });
+  // GET /projects/:id — 멤버만. role + 멤버 목록 + currentUserId 동봉 (#297).
+  router.get('/:id', requireProjectMember(), async (req, res, next) => {
+    try {
+      const userId = req.user.sub;
+      const meta = await fetchRoleAndMembers([req.project], userId);
+      return res.status(200).json({
+        project: publicProject(req.project, { ...meta.get(req.project.id), currentUserId: userId }),
+      });
+    } catch (err) {
+      return next(err);
+    }
   });
 
   // PATCH /projects/:id — 멤버 누구나 수정 가능 (board spec — MVP)
@@ -115,7 +168,11 @@ export const createProjectsRouter = () => {
         where: { id: req.params.id },
         data: parsed.data,
       });
-      return res.status(200).json({ project: publicProject(updated) });
+      const userId = req.user.sub;
+      const meta = await fetchRoleAndMembers([updated], userId);
+      return res.status(200).json({
+        project: publicProject(updated, { ...meta.get(updated.id), currentUserId: userId }),
+      });
     } catch (err) {
       return next(err);
     }

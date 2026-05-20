@@ -20,6 +20,9 @@ import { KanbanCard } from './KanbanCard.jsx';
  *   onAddCard: (title: string) => void;
  *   onMoveCard: (cardId: string, targetColumnId: string) => void;
  *   onDeleteCard: (cardId: string) => void;
+ *   onEditCard?: (cardId: string) => void;
+ *   onReorderCard?: (cardId: string, direction: 'up' | 'down') => void;
+ *   memberNameByUserId?: Record<string, string | null>;
  *   isAddingCard?: boolean;
  *   isLoading?: boolean;
  * }} props
@@ -31,6 +34,9 @@ export const BoardColumn = ({
   onAddCard,
   onMoveCard,
   onDeleteCard,
+  onEditCard,
+  onReorderCard,
+  memberNameByUserId = {},
   isAddingCard = false,
   isLoading = false,
 }) => {
@@ -60,7 +66,7 @@ export const BoardColumn = ({
               카드 없음 — 아래에서 추가
             </li>
           ) : (
-            cards.map((card) => (
+            cards.map((card, idx) => (
               <KanbanCard
                 key={card.id}
                 card={card}
@@ -68,6 +74,15 @@ export const BoardColumn = ({
                 otherColumns={otherColumns}
                 onMove={(targetColumnId) => onMoveCard(card.id, targetColumnId)}
                 onDelete={() => onDeleteCard(card.id)}
+                onEdit={onEditCard ? () => onEditCard(card.id) : undefined}
+                onReorder={
+                  onReorderCard ? (direction) => onReorderCard(card.id, direction) : undefined
+                }
+                canReorderUp={idx > 0}
+                canReorderDown={idx < cards.length - 1}
+                assigneeName={
+                  card.assigneeId ? (memberNameByUserId[card.assigneeId] ?? null) : null
+                }
               />
             ))
           )}
