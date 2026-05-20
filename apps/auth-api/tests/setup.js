@@ -19,10 +19,11 @@ process.env.COOKIE_SECURE = 'false';
 process.env.CORS_ORIGINS = 'http://localhost:5173';
 process.env.PORT = '0';
 
-/** @type {{ users: Map<string, any>, refreshTokens: Map<string, any> }} */
+/** @type {{ users: Map<string, any>, refreshTokens: Map<string, any>, passwordResetTokens: Map<string, any> }} */
 export const memDb = {
   users: new Map(),
   refreshTokens: new Map(),
+  passwordResetTokens: new Map(),
 };
 
 let idCounter = 0;
@@ -32,6 +33,7 @@ const nextId = (prefix) => `${prefix}_${++idCounter}`;
 export const resetDb = () => {
   memDb.users.clear();
   memDb.refreshTokens.clear();
+  memDb.passwordResetTokens.clear();
   idCounter = 0;
 };
 
@@ -81,6 +83,50 @@ class FakePrismaClient {
         const row = { id, ...data, createdAt: now, updatedAt: now };
         memDb.users.set(id, row);
         return { ...row };
+      },
+      update: async ({ where, data }) => {
+        for (const [id, u] of memDb.users) {
+          if (matchWhere(u, where)) {
+            const updated = { ...u, ...data, updatedAt: new Date() };
+            memDb.users.set(id, updated);
+            return { ...updated };
+          }
+        }
+        throw new Error('User not found');
+      },
+    };
+
+    this.passwordResetToken = {
+      create: async ({ data }) => {
+        const id = nextId('prt');
+        const row = { id, usedAt: null, createdAt: new Date(), ...data };
+        memDb.passwordResetTokens.set(id, row);
+        return { ...row };
+      },
+      findUnique: async ({ where }) => {
+        for (const t of memDb.passwordResetTokens.values())
+          if (matchWhere(t, where)) return { ...t };
+        return null;
+      },
+      updateMany: async ({ where, data }) => {
+        let count = 0;
+        for (const [id, t] of memDb.passwordResetTokens) {
+          if (matchWhere(t, where)) {
+            memDb.passwordResetTokens.set(id, { ...t, ...data });
+            count++;
+          }
+        }
+        return { count };
+      },
+      deleteMany: async ({ where }) => {
+        let count = 0;
+        for (const [id, t] of memDb.passwordResetTokens) {
+          if (matchWhere(t, where)) {
+            memDb.passwordResetTokens.delete(id);
+            count++;
+          }
+        }
+        return { count };
       },
     };
 

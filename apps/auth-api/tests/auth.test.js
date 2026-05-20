@@ -121,6 +121,47 @@ describe('auth-api', () => {
         .send({ email: 'nobody@get-it.cloud', password: 'password1234' });
       expect(res.status).toBe(401);
     });
+
+    it('미존재 email 응답시간이 존재 email 잘못된 비번 시간과 비슷 (timing leak 방어, #299)', async () => {
+      // 동일 cost (BCRYPT_COST=4) 의 bcrypt.compare 가 두 케이스 모두 실행돼야 한다.
+      await signupOk(app);
+
+      const measure = async (body) => {
+        const start = process.hrtime.bigint();
+        await request(app).post('/api/login').send(body);
+        return Number(process.hrtime.bigint() - start);
+      };
+
+      // 두 케이스 모두 3번 측정 후 중간값 비교 → 노이즈 흡수
+      const existingTimes = [];
+      const missingTimes = [];
+      for (let i = 0; i < 3; i++) {
+        existingTimes.push(
+          await measure({ email: VALID_SIGNUP.email, password: 'wrong-password-xxx' }),
+        );
+        missingTimes.push(
+          await measure({ email: `nobody${i}@get-it.cloud`, password: 'password1234' }),
+        );
+      }
+      const median = (arr) => arr.sort((a, b) => a - b)[Math.floor(arr.length / 2)];
+      const existingMed = median(existingTimes);
+      const missingMed = median(missingTimes);
+      // 더미 hash 가 실행되지 않으면 missing 이 existing 의 1/3 미만으로 짧다.
+      // 안전 마진: missing 이 existing 의 절반 이상이어야 통과.
+      expect(missingMed).toBeGreaterThan(existingMed * 0.5);
+    });
+
+    it('미존재 email + 존재 email 잘못된 비번 → 동일한 에러 응답 (enumeration 차단, #299)', async () => {
+      await signupOk(app);
+      const a = await request(app)
+        .post('/api/login')
+        .send({ email: VALID_SIGNUP.email, password: 'wrong-password-xxx' });
+      const b = await request(app)
+        .post('/api/login')
+        .send({ email: 'nobody@get-it.cloud', password: 'password1234' });
+      expect(a.status).toBe(b.status);
+      expect(a.body).toEqual(b.body);
+    });
   });
 
   describe('GET /api/me', () => {

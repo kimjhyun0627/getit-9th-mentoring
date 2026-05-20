@@ -39,7 +39,8 @@ export const LoginPage = () => {
     setServerError(null);
     try {
       await api.login(values);
-      redirectAfterAuth(searchParams);
+      // ?redirect= 가 없으면 landing 으로 (브랜드 hub). #295 가드와 동선 일치.
+      redirectAfterAuth(searchParams, 'https://get-it.cloud');
     } catch (err) {
       setServerError(toFriendlyError(err));
     }
@@ -122,15 +123,25 @@ export const LoginPage = () => {
 
       <div className="divider-mono text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
 
-      <p className="text-center font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-        계정이 없으신가요?{' '}
-        <Link
-          to={`/signup${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
-          className="font-semibold text-cyan-700 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none dark:text-cyan-neon"
-        >
-          회원가입 <span aria-hidden="true">./signup</span>
-        </Link>
-      </p>
+      <div className="flex flex-col items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+        <p>
+          계정이 없으신가요?{' '}
+          <Link
+            to={`/signup${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
+            className="font-semibold text-cyan-700 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none dark:text-cyan-neon"
+          >
+            회원가입 <span aria-hidden="true">./signup</span>
+          </Link>
+        </p>
+        <p>
+          <Link
+            to="/forgot-password"
+            className="text-zinc-500 underline-offset-4 hover:text-cyan-700 hover:underline focus-visible:outline-none dark:text-zinc-500 dark:hover:text-cyan-neon"
+          >
+            비밀번호 찾기 <span aria-hidden="true">./forgot</span>
+          </Link>
+        </p>
+      </div>
     </div>
   );
 };

@@ -7,6 +7,8 @@
  * - refresh: opaque 토큰 + SHA-256 해시만 DB에 저장 → 회전
  * - 쿠키: HttpOnly, SameSite=Lax, prod에선 Secure, `.get-it.cloud`
  */
+import crypto from 'node:crypto';
+
 import { requireAuth } from '@getit/auth-utils/server';
 import { LoginInput, SignupInput } from '@getit/schemas/auth';
 import bcrypt from 'bcrypt';
@@ -25,6 +27,18 @@ import {
 } from '../lib/tokens.js';
 
 const BCRYPT_COST = Number.parseInt(process.env.BCRYPT_COST ?? '12', 10);
+
+/**
+ * Login 경로의 timing 누수 방어용 더미 hash (Issue #299).
+ *
+ * 미등록 이메일이 들어와도 동일 cost 의 bcrypt.compare 를 1회 실행시켜
+ * "이 이메일이 등록되어 있는가" 를 응답 시간으로 판별 불가하게 만든다.
+ *
+ * 운영 BCRYPT_COST 변경 시 부팅마다 새로 생성되며, 실제 비밀번호와
+ * 충돌할 확률은 0 (랜덤 64-hex 입력 hash). 동기 호출이라 부팅에 ~300ms
+ * (cost=12 기준) 추가되지만 1회뿐이라 허용.
+ */
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), BCRYPT_COST);
 
 /**
  * Zod 에러를 400 응답 본문으로 변환.
@@ -127,10 +141,12 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter }) => {
 
       const { email, password } = parsed.data;
       const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) return res.status(401).json({ error: 'InvalidCredentials' });
-
-      const ok = await bcrypt.compare(password, user.passwordHash);
-      if (!ok) return res.status(401).json({ error: 'InvalidCredentials' });
+      // 사용자 존재 여부와 무관하게 bcrypt.compare 1회 실행 → 응답 시간 일정화
+      // (Issue #299 — email enumeration via timing leak 방어).
+      // 미존재 시 더미 hash 와 비교: 결과는 항상 false 이지만 시간은 동일.
+      const passwordHash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
+      const ok = await bcrypt.compare(password, passwordHash);
+      if (!user || !ok) return res.status(401).json({ error: 'InvalidCredentials' });
 
       await issueTokensAndCookies(user, res);
       return res.status(200).json({ user: publicUser(user) });

@@ -9,7 +9,7 @@ import base from '@getit/config-eslint/base';
 export default [
   ...base,
   {
-    files: ['src/client.js'],
+    files: ['src/client.js', 'src/client.test.js'],
     languageOptions: {
       globals: { ...globals.browser },
     },

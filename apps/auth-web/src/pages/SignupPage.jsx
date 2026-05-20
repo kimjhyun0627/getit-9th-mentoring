@@ -39,7 +39,8 @@ export const SignupPage = () => {
     setServerError(null);
     try {
       await api.signup(values);
-      redirectAfterAuth(searchParams);
+      // ?redirect= 가 없으면 landing 으로 (브랜드 hub). #295 가드와 동선 일치.
+      redirectAfterAuth(searchParams, 'https://get-it.cloud');
     } catch (err) {
       setServerError(toFriendlyError(err));
     }
