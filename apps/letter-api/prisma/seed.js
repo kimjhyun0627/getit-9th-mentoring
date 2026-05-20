@@ -13,10 +13,6 @@
  * NODE_ENV=production 이면 SEED_CONFIRM=YES 가 명시되어야만 실행한다.
  */
 
-import 'dotenv/config';
-
-import { PrismaClient } from '@prisma/client';
-
 const SEED_MESSAGES = [
   {
     authorId: 'seed-user-alice',
@@ -45,25 +41,53 @@ const SEED_MESSAGES = [
   },
 ];
 
-const prisma = new PrismaClient();
-
-const main = async () => {
-  if (process.env.NODE_ENV === 'production' && process.env.SEED_CONFIRM !== 'YES') {
-    throw new Error('seed aborted: NODE_ENV=production. SEED_CONFIRM=YES 를 명시해야 실행 가능.');
-  }
-  console.log(`seeding letter-api dev messages...`);
-  await prisma.message.deleteMany({});
-  await prisma.message.createMany({ data: SEED_MESSAGES });
-  const count = await prisma.message.count();
-  console.log(`  seeded: ${count} messages`);
-  console.log(`done.`);
+/**
+ * production 안전 가드. NODE_ENV=production 이면 SEED_CONFIRM=YES 가 명시되어야만 허용.
+ * 단위 테스트(tests/seed-guard.test.js)에서 import 해서 검증한다.
+ *
+ * @param {object} opts
+ * @param {string} [opts.nodeEnv] - process.env.NODE_ENV 값.
+ * @param {string} [opts.seedConfirm] - process.env.SEED_CONFIRM 값.
+ * @returns {boolean} seed 실행 허용 여부.
+ */
+export const shouldAllowSeed = ({ nodeEnv, seedConfirm } = {}) => {
+  if (nodeEnv === 'production' && seedConfirm !== 'YES') return false;
+  return true;
 };
 
-main()
-  .catch((err) => {
-    console.error('seed failed:', err);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// `prisma db seed` 진입 시에만 실행 (테스트에서 import 시 자동 실행/Prisma 연결 방지).
+const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
+
+if (isDirectRun) {
+  // dotenv / PrismaClient 는 실제 실행 시점에만 로드 (테스트 import 시 의존성 회피).
+  await import('dotenv/config');
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+
+  const main = async () => {
+    if (
+      !shouldAllowSeed({ nodeEnv: process.env.NODE_ENV, seedConfirm: process.env.SEED_CONFIRM })
+    ) {
+      throw new Error('seed aborted: NODE_ENV=production. SEED_CONFIRM=YES 를 명시해야 실행 가능.');
+    }
+    console.log(`seeding letter-api dev messages...`);
+    // deleteMany + createMany 를 트랜잭션으로 묶어 원자성 보장.
+    // (createMany 실패 시 deleteMany 도 롤백되어 테이블이 빈 상태로 남지 않는다.)
+    await prisma.$transaction([
+      prisma.message.deleteMany({}),
+      prisma.message.createMany({ data: SEED_MESSAGES }),
+    ]);
+    const count = await prisma.message.count();
+    console.log(`  seeded: ${count} messages`);
+    console.log(`done.`);
+  };
+
+  main()
+    .catch((err) => {
+      console.error('seed failed:', err);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

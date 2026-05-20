@@ -4,14 +4,12 @@
  * seed 는 deleteMany 로 DB 전체를 날리므로 production 에서는
  * SEED_CONFIRM=YES 가 명시되어야만 실행돼야 한다.
  *
- * 여기서는 가드 로직만 단위로 검증 — 실 PrismaClient 호출은 하지 않는다.
+ * 가드 함수(`shouldAllowSeed`)는 seed.js 에서 export 한 실제 구현을
+ * import 해서 검증한다 — 로직이 바뀌어도 회귀를 잡을 수 있도록.
  */
 import { describe, expect, it } from 'vitest';
 
-const shouldAllowSeed = ({ nodeEnv, seedConfirm }) => {
-  if (nodeEnv === 'production' && seedConfirm !== 'YES') return false;
-  return true;
-};
+import { shouldAllowSeed } from '../prisma/seed.js';
 
 describe('seed production guard', () => {
   it('dev 환경에서는 항상 허용', () => {
