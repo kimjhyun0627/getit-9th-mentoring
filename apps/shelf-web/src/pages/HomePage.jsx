@@ -2,7 +2,7 @@ import { SHELF_SORT_DEFAULT, ShelfSortKey } from '@getit/schemas/shelf';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { BookCard } from '../components/BookCard.jsx';
+import { BookCard, BookCardSkeleton } from '../components/BookCard.jsx';
 import { EditShelfModal } from '../components/EditShelfModal.jsx';
 import { EmptyShelf } from '../components/EmptyShelf.jsx';
 import { FilterTabs } from '../components/FilterTabs.jsx';
@@ -204,7 +204,16 @@ export const HomePage = () => {
         ) : null}
 
         {isLoading ? (
-          <p className="text-meta essay-kr text-[14px]">서가를 펼치는 중…</p>
+          <div
+            role="status"
+            aria-busy="true"
+            aria-label="서가를 펼치는 중"
+            className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 md:gap-x-10 md:gap-y-14 lg:grid-cols-4"
+          >
+            {Array.from({ length: 8 }).map((_, i) => (
+              <BookCardSkeleton key={i} />
+            ))}
+          </div>
         ) : pageError ? null : visible.length === 0 ? (
           <EmptyShelf filter={filter} />
         ) : (

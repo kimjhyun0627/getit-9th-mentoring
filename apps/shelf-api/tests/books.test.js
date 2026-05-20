@@ -302,4 +302,6 @@ describe('shelf-api books routes', () => {
       }
     });
   });
+
+  // owners/recommendations 분리 → tests/books-owners.test.js, books-recommendations.test.js (CR #353)
 });

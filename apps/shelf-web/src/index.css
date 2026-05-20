@@ -92,8 +92,12 @@
     --ink-hint: #6b6b6b;
     --rule-1: #2a2a2a;
     --rule-2: #3a3a3a;
-    --wine: #c79a48;
-    --wine-soft: #d9b06f;
+    /* #264 다크 mustard accent: WCAG AA 보장.
+     *   #d4a651 on paper-1 (#141414) → ~9.0:1 (AAA large, AA normal text 통과).
+     *   이전 #c79a48 (≈7.55:1) 도 AA pass 였지만, hero 의 짧은 strain (".") 와
+     *   smallcaps tracking 으로 인해 시각적 weight 가 낮아 가독성 강화 차원에서 +0.05L. */
+    --wine: #d4a651;
+    --wine-soft: #e1bc7a;
   }
 
   html {
@@ -190,9 +194,11 @@
       11px 11px;
   }
   .dark .paper-grain {
+    /* #264 다크 paper texture: 라이트 톤(0.022/0.015) 과 동등한 perceived density.
+     * 다크 배경(#141414) 에 흰 점은 contrast 격차로 흐려 보여 약간 더 강하게. */
     background-image:
-      radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      radial-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+      radial-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+      radial-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px);
   }
 
   /* Drop cap (매거진 컬럼 opener) */
@@ -306,6 +312,35 @@
   }
   .book-card:hover .cover-inner {
     transform: scale(1.02);
+  }
+
+  /* BookCard 로딩 skeleton (#301).
+   * - aria-busy="true" 로 SR announce
+   * - shimmer 는 좌→우 그라데이션. prefers-reduced-motion 시 정적 톤만. */
+  .book-skeleton-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--paper-2) 0%,
+      var(--paper-3) 50%,
+      var(--paper-2) 100%
+    );
+    background-size: 200% 100%;
+    animation: book-skeleton-pulse 1.4s ease-in-out infinite;
+    border-radius: 1px;
+  }
+  @keyframes book-skeleton-pulse {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .book-skeleton-shimmer {
+      animation: none;
+      background: var(--paper-2);
+    }
   }
 
   /* Editorial 다크 토글 — 책 페이지 3D flip (A안). */

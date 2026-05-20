@@ -49,4 +49,27 @@ describe('BookFlipToggle', () => {
     await user.keyboard('{Enter}');
     expect(useTheme.getState().resolved).toBe('dark');
   });
+
+  /**
+   * #260 — prefers-reduced-motion 시 즉시 스왑 가드.
+   *
+   * jsdom 은 CSS @media 를 실제로 평가하지 않는다. 대신 contract:
+   *  - reduced-motion CSS 가 `book-flip-card` 의 transition/transform 을 0 로 무력화하고,
+   *    뒷면을 `display: none` 으로 가린다.
+   *  - JSX 는 상태와 무관하게 두 면(`book-flip-face--front/back`)을 항상 렌더링.
+   * → jsdom 에선 "두 면이 모두 DOM 에 존재하고, 토글 즉시 클래스 `is-dark` 만 바뀐다" 만 검증.
+   *   실제 즉시 스왑은 `index.css` 의 reduced-motion 미디어 블록이 책임.
+   */
+  it('reduced-motion 회귀 가드: 두 면 모두 DOM 에 렌더 + is-dark 클래스 즉시 토글', async () => {
+    const user = userEvent.setup();
+    render(<BookFlipToggle />);
+    const sw = screen.getByRole('switch');
+    const card = sw.querySelector('.book-flip-card');
+    expect(card).not.toBeNull();
+    expect(sw.querySelector('.book-flip-face--front')).not.toBeNull();
+    expect(sw.querySelector('.book-flip-face--back')).not.toBeNull();
+    expect(card?.classList.contains('is-dark')).toBe(false);
+    await user.click(sw);
+    expect(card?.classList.contains('is-dark')).toBe(true);
+  });
 });

@@ -50,6 +50,35 @@ const searchResponseSchema = z.object({
   items: z.array(bookItemSchema).default([]),
 });
 
+// CR #353: 신규 응답도 경계에서 최소 스키마 검증 → 화면까지 깨진 응답 전파 차단.
+// passthrough 로 추가 필드는 허용 (BE 가 후에 필드 늘려도 FE 안 깨짐).
+const bookSchema = z.record(z.unknown());
+const shelfRowSchema = z.record(z.unknown());
+const paginationSchema = z
+  .object({
+    page: z.number().int().min(1).default(1),
+    pageSize: z.number().int().min(1).default(20),
+    total: z.number().int().min(0).default(0),
+    sort: z.string().optional(),
+  })
+  .passthrough();
+
+const bookResponseSchema = z.object({ book: bookSchema });
+const ownersResponseSchema = z.object({
+  isbn: z.string(),
+  count: z.number().int().min(0).default(0),
+});
+const recsResponseSchema = z.object({
+  isbn: z.string(),
+  author: z.string().default(''),
+  items: z.array(bookSchema).default([]),
+});
+const userShelvesResponseSchema = z.object({
+  userId: z.string(),
+  shelves: z.array(shelfRowSchema).default([]),
+  pagination: paginationSchema,
+});
+
 /**
  * 서재 API — 페이지에서 axios 직접 노출 X.
  *
@@ -94,5 +123,52 @@ export const api = {
   addToShelf: (body) => {
     const parsed = ShelfAddInput.parse(body);
     return client.post('/shelves', parsed);
+  },
+
+  /**
+   * 책 상세 (캐시 + 외부) — #201.
+   * Zod 로 응답 경계 파싱 (CR #353).
+   *
+   * @param {string} isbn
+   * @returns {Promise<{ data: { book: Record<string, unknown> } }>}
+   */
+  getBook: async (isbn) => {
+    const res = await client.get(`/books/${encodeURIComponent(isbn)}`);
+    return { ...res, data: bookResponseSchema.parse(res.data ?? {}) };
+  },
+
+  /**
+   * 동일 책을 서재에 가진 유저 수 — #201, #292.
+   *
+   * @param {string} isbn
+   * @returns {Promise<{ data: { isbn: string, count: number } }>}
+   */
+  getBookOwners: async (isbn) => {
+    const res = await client.get(`/books/${encodeURIComponent(isbn)}/owners`);
+    return { ...res, data: ownersResponseSchema.parse(res.data ?? {}) };
+  },
+
+  /**
+   * 같은 작가 책 추천 — #209.
+   *
+   * @param {string} isbn
+   * @returns {Promise<{ data: { isbn: string, author: string, items: Array<Record<string, unknown>> } }>}
+   */
+  getRecommendations: async (isbn) => {
+    const res = await client.get(`/books/${encodeURIComponent(isbn)}/recommendations`);
+    return { ...res, data: recsResponseSchema.parse(res.data ?? {}) };
+  },
+
+  /**
+   * 다른 유저 서재 공개 조회 — #292.
+   *
+   * @param {string} userId
+   * @param {{ page?: number; pageSize?: number; sort?: string }} [opts]
+   */
+  listUserShelves: async (userId, opts = {}) => {
+    const res = await client.get(`/shelves/u/${encodeURIComponent(userId)}`, {
+      params: { page: opts.page, pageSize: opts.pageSize, sort: opts.sort },
+    });
+    return { ...res, data: userShelvesResponseSchema.parse(res.data ?? {}) };
   },
 };
