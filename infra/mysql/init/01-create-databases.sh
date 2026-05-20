@@ -23,14 +23,18 @@ CNF="$(mktemp)"
 trap 'rm -f "$CNF"' EXIT
 chmod 600 "$CNF"
 
-# Password is quoted in case it contains spaces or `#`. Note: my.cnf treats
-# backslash as an escape char inside values, so passwords with `\` need to
-# avoid that character.
+# my.cnf [client] section parses `\` as an escape char and `"` as a string
+# delimiter. Escape both before writing so the password MySQL actually receives
+# matches MYSQL_ROOT_PASSWORD byte-for-byte. Quoting handles spaces / `#` too.
+escaped_password=${MYSQL_ROOT_PASSWORD//\\/\\\\}
+escaped_password=${escaped_password//\"/\\\"}
+
 cat >"$CNF" <<EOF
 [client]
 user=root
-password="${MYSQL_ROOT_PASSWORD}"
+password="${escaped_password}"
 EOF
+unset escaped_password
 
 # All 5 service-specific DBs. Adding a new app: append here.
 DATABASES=(auth hobby shelf board letter)
