@@ -64,7 +64,8 @@ export const createColumnsRouter = () => {
     }
   });
 
-  // POST / — 컬럼 생성
+  // POST / — 컬럼 생성. order 자동 배치 시 last-lookup + create 를
+  // $transaction 으로 묶어 동시 생성 race 에서 결정적 순서를 보장한다.
   router.post('/', async (req, res, next) => {
     try {
       const parsed = BoardColumnCreateInput.safeParse(req.body);
@@ -72,19 +73,18 @@ export const createColumnsRouter = () => {
 
       const projectId = req.params.id;
       const { name } = parsed.data;
-      let { order } = parsed.data;
+      const explicitOrder = parsed.data.order;
 
-      if (order === undefined) {
-        // 마지막 컬럼 뒤 + ORDER_GAP
-        const last = await prisma.boardColumn.findFirst({
-          where: { projectId },
-          orderBy: [{ order: 'desc' }, { id: 'desc' }],
-        });
-        order = (last?.order ?? 0) + ORDER_GAP;
-      }
-
-      const created = await prisma.boardColumn.create({
-        data: { projectId, name, order },
+      const created = await prisma.$transaction(async (tx) => {
+        let order = explicitOrder;
+        if (order === undefined) {
+          const last = await tx.boardColumn.findFirst({
+            where: { projectId },
+            orderBy: [{ order: 'desc' }, { id: 'desc' }],
+          });
+          order = (last?.order ?? 0) + ORDER_GAP;
+        }
+        return tx.boardColumn.create({ data: { projectId, name, order } });
       });
       return res.status(201).json({ column: publicColumn(created) });
     } catch (err) {
@@ -116,24 +116,28 @@ export const createColumnsRouter = () => {
     }
   });
 
-  // DELETE /:colId — 마지막 컬럼 가드
+  // DELETE /:colId — 마지막 컬럼 가드. count + delete 를 $transaction 으로 묶어
+  // 동시 삭제로 컬럼 0개가 되는 race 를 막는다. (DB 격리/잠금이 최종 보증)
   router.delete('/:colId', async (req, res, next) => {
     try {
       const projectId = req.params.id;
       const colId = req.params.colId;
 
-      const existing = await prisma.boardColumn.findUnique({ where: { id: colId } });
-      if (!existing || existing.projectId !== projectId) {
-        return res.status(404).json({ error: 'ColumnNotFound' });
-      }
+      const result = await prisma.$transaction(async (tx) => {
+        const existing = await tx.boardColumn.findUnique({ where: { id: colId } });
+        if (!existing || existing.projectId !== projectId) {
+          return { status: 404, body: { error: 'ColumnNotFound' } };
+        }
+        const total = await tx.boardColumn.count({ where: { projectId } });
+        if (total <= 1) {
+          return { status: 409, body: { error: 'LastColumn' } };
+        }
+        await tx.boardColumn.delete({ where: { id: colId } });
+        return { status: 204 };
+      });
 
-      const total = await prisma.boardColumn.count({ where: { projectId } });
-      if (total <= 1) {
-        return res.status(409).json({ error: 'LastColumn' });
-      }
-
-      await prisma.boardColumn.delete({ where: { id: colId } });
-      return res.status(204).send();
+      if (result.status === 204) return res.status(204).send();
+      return res.status(result.status).json(result.body);
     } catch (err) {
       return next(err);
     }
