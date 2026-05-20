@@ -6,6 +6,7 @@ import {
   ShelfSortKey,
   ShelfStatus,
   ShelfUpdateInput,
+  normalizeIsbn,
 } from './shelf.js';
 
 describe('ShelfStatus', () => {
@@ -47,6 +48,25 @@ describe('ShelfAddInput', () => {
     if (r.success) expect(r.data.isbn).toBe('9788932917245');
   });
 
+  it('ISBN-10 끝자리 소문자 x → 대문자 X 정규화 (#224)', () => {
+    const r = ShelfAddInput.safeParse({ isbn: '012345678x' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.isbn).toBe('012345678X');
+  });
+
+  it('ISBN-10 끝자리 대문자 X 통과', () => {
+    const r = ShelfAddInput.safeParse({ isbn: '012345678X' });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.isbn).toBe('012345678X');
+  });
+
+  it('하이픈 + 소문자 x 혼합 → 같은 정규형으로 수렴', () => {
+    const a = ShelfAddInput.safeParse({ isbn: '0-12345-678-x' });
+    const b = ShelfAddInput.safeParse({ isbn: '012345678X' });
+    expect(a.success && b.success).toBe(true);
+    if (a.success && b.success) expect(a.data.isbn).toBe(b.data.isbn);
+  });
+
   it('isbn/bookId 모두 누락 거부', () => {
     const r = ShelfAddInput.safeParse({ status: 'WANT' });
     expect(r.success).toBe(false);
@@ -84,6 +104,18 @@ describe('ShelfUpdateInput', () => {
 
   it('rating 6 → 거부', () => {
     expect(ShelfUpdateInput.safeParse({ rating: 6 }).success).toBe(false);
+  });
+});
+
+describe('normalizeIsbn', () => {
+  it('하이픈/공백 제거 + 소문자 x → 대문자 X', () => {
+    expect(normalizeIsbn(' 0-12345-678-x ')).toBe('012345678X');
+  });
+
+  it('비문자열 입력은 그대로', () => {
+    expect(normalizeIsbn(123)).toBe(123);
+    expect(normalizeIsbn(null)).toBe(null);
+    expect(normalizeIsbn(undefined)).toBe(undefined);
   });
 });
 

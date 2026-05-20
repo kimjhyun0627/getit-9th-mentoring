@@ -24,12 +24,24 @@ import {
 } from '../lib/external/kakao.js';
 import { prisma } from '../lib/prisma.js';
 
+/**
+ * `target` 검색 토글 (#202).
+ * - 미지정: 카카오 기본(전체)
+ * - title / person / publisher / isbn: 카카오 target 필드 그대로 전달
+ *   isbn 은 ISBN-10 X 대문자 정규화까지 거친다.
+ */
+const SearchTarget = z.enum(['title', 'person', 'publisher', 'isbn']);
+
 const SearchQuery = z.object({
   q: z.string().min(1, 'q is required').max(100, 'q too long'),
+  target: SearchTarget.optional(),
 });
 
-// ISBN 10/13 자리(끝자리 X 허용). 입력 검증용 — 외부 카카오는 ISBN만 받음.
-const IsbnParam = z.string().regex(/^(?:\d{10}|\d{9}[Xx]|\d{13})$/, 'invalid isbn');
+// ISBN 10/13 자리. 끝자리 X 는 대소문자 모두 받아 대문자로 정규화 — 캐시 키 일관성 (#224).
+const IsbnParam = z.preprocess(
+  (v) => (typeof v === 'string' ? v.toUpperCase() : v),
+  z.string().regex(/^(?:\d{10}|\d{9}X|\d{13})$/, 'invalid isbn'),
+);
 
 const DEFAULT_TTL_HOURS = 24;
 
@@ -119,9 +131,16 @@ export const createBooksRouter = () => {
       }
 
       const apiKey = process.env.KAKAO_BOOK_API_KEY ?? '';
+      // target=isbn 인 경우 입력값을 대문자로 정규화 (캐시 키 #224 와 동일 규칙)
+      const queryNormalized =
+        parsed.data.target === 'isbn' ? parsed.data.q.toUpperCase() : parsed.data.q;
       let docs;
       try {
-        docs = await searchKakaoBooks({ query: parsed.data.q, apiKey });
+        docs = await searchKakaoBooks({
+          query: queryNormalized,
+          apiKey,
+          target: parsed.data.target,
+        });
       } catch (err) {
         if (err instanceof KakaoConfigError || err instanceof KakaoApiError) {
           req.log?.warn({ err }, 'kakao search failed');

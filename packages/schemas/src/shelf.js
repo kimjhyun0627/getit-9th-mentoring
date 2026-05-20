@@ -31,14 +31,28 @@ const reviewSchema = z.string().max(5000, '감상평은 5000자 이내').nullabl
  * - bookId: 이미 캐시된 Book.id 직접 지정
  */
 /**
+ * ISBN 정규화 — 하이픈/공백 제거 + ISBN-10 끝자리 X 대문자 통일 (#224).
+ *
+ * 같은 ISBN-10 이 `123456789x` / `123456789X` 두 형태로 들어오면 캐시 키 불일치로
+ * 같은 책에 row 2개 생성. 항상 대문자로 통일해 캐시 hit률 유지.
+ *
+ * @param {unknown} v
+ * @returns {unknown}
+ */
+export const normalizeIsbn = (v) => {
+  if (typeof v !== 'string') return v;
+  return v.replace(/[\s-]/g, '').toUpperCase();
+};
+
+/**
  * ISBN 입력 — 하이픈/공백 정규화 후 ISBN-10 / ISBN-13 검증.
  *
- * 실제 입력은 `978-89-329-1724-5`, `9788932917245` 둘 다 흔함 → 입력 시 strip 하고 검증.
- * 정규화된 값은 캐시 키로도 안전하다 (DB 저장 형식 = 하이픈 없는 숫자열).
+ * 실제 입력은 `978-89-329-1724-5`, `9788932917245`, `123456789x` 모두 흔함 →
+ * 입력 시 strip + X 대문자화 한 뒤 검증. 정규화된 값은 캐시 키로 안전하다.
  */
 const isbnSchema = z.preprocess(
-  (v) => (typeof v === 'string' ? v.replace(/[\s-]/g, '') : v),
-  z.string().regex(/^(?:\d{10}|\d{9}[Xx]|\d{13})$/, 'invalid isbn'),
+  normalizeIsbn,
+  z.string().regex(/^(?:\d{10}|\d{9}X|\d{13})$/, 'invalid isbn'),
 );
 
 export const ShelfAddInput = z

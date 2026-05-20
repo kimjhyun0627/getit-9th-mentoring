@@ -170,6 +170,88 @@ describe('SearchPage', () => {
     expect(heading.className).toMatch(/text-ink-strong/);
   });
 
+  it('검색 페이지에서 status 기본값은 WANT (#298 회귀 가드)', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'searchBooks').mockResolvedValue({
+      items: [
+        {
+          id: 'book-1',
+          isbn: '9788932917245',
+          title: '데미안',
+          author: '헤르만 헤세',
+          publisher: '민음사',
+          coverUrl: null,
+        },
+      ],
+    });
+    const addSpy = vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
+
+    renderSearch();
+    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
+    await user.click(await screen.findByRole('button', { name: /데미안 서재에 추가/ }));
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'WANT' }));
+    });
+  });
+
+  it('검색 카드에서 status 를 READ 로 선택 후 추가하면 READ 가 전달된다 (#298)', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'searchBooks').mockResolvedValue({
+      items: [
+        {
+          id: 'book-1',
+          isbn: '9788932917245',
+          title: '데미안',
+          author: '헤르만 헤세',
+          publisher: '민음사',
+          coverUrl: null,
+        },
+      ],
+    });
+    const addSpy = vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
+
+    renderSearch();
+    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
+    // 카드가 렌더링될 때까지 대기.
+    await screen.findByRole('button', { name: /데미안 서재에 추가/ });
+    // 카드 내부 라디오에서 "읽은 책" 선택.
+    const readRadio = screen.getByRole('radio', { name: '읽은 책' });
+    await user.click(readRadio);
+    await user.click(screen.getByRole('button', { name: /데미안 서재에 추가/ }));
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'READ' }));
+    });
+  });
+
+  it('target 토글 → searchBooks 가 target opt 와 함께 호출된다 (#202)', async () => {
+    const user = userEvent.setup();
+    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
+    renderSearch();
+    await user.click(screen.getByRole('radio', { name: '저자' }));
+    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '한강');
+    await waitFor(
+      () => {
+        expect(spy).toHaveBeenCalledWith('한강', { target: 'person' });
+      },
+      { timeout: 1500 },
+    );
+  });
+
+  it('검색어 입력은 100자 초과 시 잘려서 입력된다 (#232)', async () => {
+    const user = userEvent.setup();
+    // debounce 이후 실제 호출 발생을 막아 테스트 안정화 (CR #346).
+    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
+    renderSearch();
+    const input = /** @type {HTMLInputElement} */ (
+      screen.getByRole('searchbox', { name: /책 검색/ })
+    );
+    const long = 'ㄱ'.repeat(150);
+    await user.type(input, long);
+    expect(input.value.length).toBe(100);
+  });
+
   it('서재 추가 실패(422 이미 존재) 시 안내 토스트가 노출된다', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'searchBooks').mockResolvedValue({

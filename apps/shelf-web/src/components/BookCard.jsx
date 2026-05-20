@@ -46,15 +46,36 @@ export const BookCard = ({ shelf, onEdit, className }) => {
   return (
     <button
       type="button"
-      className={cn('book-card group block w-full text-left', className)}
+      className={cn(
+        'book-card group block w-full text-left transition',
+        'hover:[&_.cover-inner]:scale-[1.015]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+        'focus-visible:ring-[var(--wine,#7a1a2a)] focus-visible:ring-offset-[var(--paper-1)]',
+        className,
+      )}
       onClick={() => onEdit(shelf)}
       aria-label={`${book.title} 자세히 보기`}
     >
-      <div className="cover w-full">
-        <div className="cover-inner" style={coverStyle} aria-hidden="true" />
+      <div className="cover relative w-full">
+        <div
+          className="cover-inner transition-transform duration-300 ease-out"
+          style={coverStyle}
+          aria-hidden="true"
+        />
         {!book.coverUrl ? (
+          // 표지 없음 fallback (#243):
+          // mix-blend-difference 는 그라데이션 hue 에 따라 반전 결과가 흐려질 수 있어
+          // 가독성 보강을 위해 반투명 잉크 스크림 + 흰 글자 + soft drop-shadow 로 교체.
+          // dark/light 양쪽에서 본문 대비 4.5:1 이상 유지.
           <div className="absolute inset-0 z-10 flex flex-col justify-end p-4">
-            <p className="font-display text-base font-black leading-[1.05] tracking-tightest text-paper-1 mix-blend-difference">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"
+            />
+            <p
+              className="relative font-display text-base font-black leading-[1.05] tracking-tightest text-white"
+              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+            >
               {book.title}
             </p>
           </div>

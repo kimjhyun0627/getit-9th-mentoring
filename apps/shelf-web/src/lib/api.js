@@ -78,10 +78,12 @@ export const api = {
 
   /**
    * @param {string} q
+   * @param {{ target?: 'title' | 'person' | 'publisher' | 'isbn' }} [opts]
    * @returns {Promise<{ items: Array<Record<string, unknown>> }>}
    */
-  searchBooks: async (q) => {
-    const res = await client.get('/books/search', { params: { q } });
+  searchBooks: async (q, opts = {}) => {
+    const params = opts.target ? { q, target: opts.target } : { q };
+    const res = await client.get('/books/search', { params });
     return searchResponseSchema.parse(res.data ?? {});
   },
 
