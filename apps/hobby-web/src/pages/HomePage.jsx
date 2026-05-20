@@ -164,9 +164,29 @@ export const HomePage = () => {
           </div>
 
           {isError ? (
-            <p role="alert" className="text-rose-600 dark:text-rose-300 font-round">
-              모집 목록을 불러오지 못했어. 잠시 후 다시 시도해줘.
-            </p>
+            <div
+              role="alert"
+              className="rounded-3xl bg-white/80 dark:bg-white/5 ring-1 ring-rose-200/60 dark:ring-rose-400/20 px-6 py-8 text-center shadow-sm"
+            >
+              <p className="text-2xl" aria-hidden="true">
+                🌧️
+              </p>
+              <p className="mt-2 font-display font-extrabold text-lg text-slate-900 dark:text-white">
+                모집 목록을 불러오지 못했어
+              </p>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 font-round">
+                서버가 잠시 자리를 비웠나봐. 잠시 후 다시 시도해줘.
+              </p>
+              <button
+                type="button"
+                onClick={() => query.refetch()}
+                disabled={query.isFetching}
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-rose-500 hover:bg-rose-600 text-white px-5 py-2.5 text-sm font-display font-bold shadow-sm disabled:opacity-50"
+              >
+                <span aria-hidden="true">↻</span>
+                {query.isFetching ? '다시 시도 중…' : '다시 시도'}
+              </button>
+            </div>
           ) : null}
 
           {isLoading ? (

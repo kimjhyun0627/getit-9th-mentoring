@@ -29,15 +29,69 @@ export const setUnauthorizedHandler = (fn) => {
   handlers.onUnauthorized = fn;
 };
 
-client.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err?.response?.status === 401 && handlers.onUnauthorized) {
-      handlers.onUnauthorized();
-    }
-    return Promise.reject(err);
-  },
-);
+/**
+ * 응답 본체가 진짜 JSON 형태인지 확인.
+ *
+ * BE 미기동 시 vite dev server 가 SPA fallback 으로 `/api/*` 요청에
+ * `index.html` (HTML 문자열) 을 status 200 으로 응답하는 케이스가 실측됨 (issue #89).
+ * axios 는 그대로 통과시켜 `res.data` 가 문자열이 되고, 이후 `.pages.flatMap` 등에서
+ * undefined dereference 로 React 가 컴포넌트 전체 unmount → 빈 화면.
+ *
+ * 글로벌 interceptor 에서 호출돼 `client` / `authClient` 모든 요청에 적용된다.
+ * 여기서 미리 throw 해서 react-query 의 `isError` 분기로 흘려보낸다.
+ *
+ * axios 1.x 는 응답 헤더 키를 소문자로 정규화하므로 `content-type` 만 본다.
+ *
+ * @param {unknown} data
+ * @param {Record<string, string> | undefined} headers
+ * @returns {void}
+ */
+export const assertJsonObject = (data, headers) => {
+  const contentType = headers?.['content-type'] ?? '';
+  if (typeof contentType === 'string' && contentType.includes('text/html')) {
+    throw new Error('invalid response: expected JSON, got HTML (BE down?)');
+  }
+  if (typeof data === 'string') {
+    throw new Error('invalid response: expected JSON object, got string');
+  }
+  if (data === null || typeof data !== 'object') {
+    throw new Error('invalid response: expected JSON object');
+  }
+};
+
+/**
+ * 글로벌 응답 interceptor 핸들러.
+ *
+ * - 2xx 응답: JSON 검증 (HEAD/204 는 skip)
+ * - 401 응답: onUnauthorized 콜백 (있으면) 발화
+ *
+ * @param {import('axios').AxiosResponse} res
+ * @returns {import('axios').AxiosResponse}
+ */
+const onSuccess = (res) => {
+  // 204 No Content / HEAD 응답은 body 가 없을 수 있어 검증 skip.
+  if (res.status === 204 || res.config?.method?.toLowerCase() === 'head') {
+    return res;
+  }
+  assertJsonObject(res.data, res.headers);
+  return res;
+};
+
+/**
+ * @param {unknown} err
+ * @returns {Promise<never>}
+ */
+const onError = (err) => {
+  if (
+    /** @type {{ response?: { status?: number } }} */ (err)?.response?.status === 401 &&
+    handlers.onUnauthorized
+  ) {
+    handlers.onUnauthorized();
+  }
+  return Promise.reject(err);
+};
+
+client.interceptors.response.use(onSuccess, onError);
 
 /**
  * GET /api/posts query string 빌더.
@@ -52,6 +106,20 @@ const buildListParams = (params) => {
   if (params.cursor) out.cursor = params.cursor;
   if (params.limit !== undefined) out.limit = params.limit;
   return out;
+};
+
+/**
+ * 리스트 응답 shape 검증.
+ * 호출 시점에 `data` 가 이미 JSON 객체임이 보장되므로 (interceptor), items 만 본다.
+ *
+ * @param {unknown} data
+ * @returns {asserts data is PostListResponse}
+ */
+export const assertListShape = (data) => {
+  const d = /** @type {{ items?: unknown }} */ (data);
+  if (!Array.isArray(d.items)) {
+    throw new Error('invalid response: items must be an array');
+  }
 };
 
 /**
@@ -114,6 +182,9 @@ const authClient = axios.create({
   timeout: 10000,
 });
 
+// `client` 와 동일 interceptor 적용 — getMe 등 auth 요청도 BE-down 시 fail-soft.
+authClient.interceptors.response.use(onSuccess, onError);
+
 /**
  * 페이지에서 axios 를 직접 다루지 않고 이 헬퍼만 import 한다.
  *
@@ -129,7 +200,10 @@ export const api = {
    * @returns {Promise<PostListResponse>}
    */
   listPosts: async (params = {}) => {
+    // JSON shape (HTML / 문자열 / null) 은 글로벌 interceptor 에서 이미 검증됨.
+    // 여기서는 리스트 전용 shape (items 가 배열) 만 추가로 본다.
     const res = await client.get('/posts', { params: buildListParams(params) });
+    assertListShape(res.data);
     return res.data;
   },
 
