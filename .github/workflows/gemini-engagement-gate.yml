@@ -9,8 +9,10 @@ name: gemini engagement gate
 # review를 아예 안 주는 케이스가 잦음. 이때는 PR-level issue comment 로 사유를
 #남기는데, 게이트가 review 1개 강제하면 영구 BLOCK 됨.
 # 따라서 Gemini가 refusal 키워드 ("quota", "rate limit", "not supported",
-# "currently supported", "unable", "skipping") 가 포함된 PR-level comment 를
-# 남긴 경우 → engagement attempted 로 보고 soft pass.
+# "unable", "skipping") 가 포함된 PR-level comment 를 남긴 경우
+# → engagement attempted 로 보고 soft pass.
+# 단 옛날 refusal 코멘트로 새 커밋이 영구 통과되는 우회를 막기 위해
+# PR head commit 타임스탬프 이후에 달린 refusal 만 인정.
 
 on:
   pull_request:
@@ -93,7 +95,6 @@ jobs:
               /\bquota\b/i,
               /\brate[\s-]?limit/i,
               /\bnot (currently )?supported\b/i,
-              /\bcurrently supported\b/i,
               /\bunable to (review|process|analyze)\b/i,
               /\bskipping\b.*\breview\b/i,
               /\bskipped\b.*\breview\b/i,
@@ -101,6 +102,37 @@ jobs:
               /\bdaily limit\b/i,
               /\btoo (large|many)\b/i,
             ];
+
+            // 현재 PR head commit 의 author/committer 타임스탬프 기준선.
+            // 이보다 이전에 달린 Gemini refusal 코멘트는 "예전 quota 발언" 이므로
+            // 이후 새 커밋(synchronize)을 그냥 통과시키면 안 됨.
+            // pr.head.sha → commit → committer.date.
+            let prHeadTimestamp = null;
+            try {
+              const prDetail = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pr.number,
+              });
+              const headSha = prDetail.data.head && prDetail.data.head.sha;
+              if (headSha) {
+                const commit = await github.rest.repos.getCommit({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: headSha,
+                });
+                const t =
+                  (commit.data.commit.committer &&
+                    commit.data.commit.committer.date) ||
+                  (commit.data.commit.author && commit.data.commit.author.date);
+                if (t) prHeadTimestamp = new Date(t).getTime();
+              }
+            } catch (e) {
+              core.warning(
+                `PR head commit 타임스탬프 조회 실패: ${e.message}. ` +
+                  `refusal 코멘트 시간 필터 우회 (보수적으로 모든 코멘트 검사).`,
+              );
+            }
 
             const issueComments = await github.paginate(
               github.rest.issues.listComments,
@@ -114,7 +146,13 @@ jobs:
             const geminiRefusal = issueComments.find((c) => {
               if (!c.user || !GEMINI_LOGIN_RE.test(c.user.login)) return false;
               const body = c.body || '';
-              return REFUSAL_PATTERNS.some((re) => re.test(body));
+              if (!REFUSAL_PATTERNS.some((re) => re.test(body))) return false;
+              // 현재 head 이후에 달린 refusal 만 인정. 옛날 quota 코멘트로
+              // 후속 커밋이 영구 통과되는 우회 차단.
+              if (prHeadTimestamp !== null && c.created_at) {
+                return new Date(c.created_at).getTime() >= prHeadTimestamp;
+              }
+              return true;
             });
 
             if (!geminiReviewed) {
