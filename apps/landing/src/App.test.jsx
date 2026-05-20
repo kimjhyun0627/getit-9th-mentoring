@@ -5,6 +5,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App.jsx';
 import { PROJECTS } from './data/projects.js';
 
+// Header (#343 / #246) 가 mount 시 auth /api/me 를 fetch 한다.
+// 기존 App.test 는 세션 분기와 무관한 카드/Hero/Footer 가드 → 401 로 강제해
+// 항상 비로그인(sign in CTA) 경로로 안정화.
+beforeEach(() => {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: false,
+    status: 401,
+    json: async () => ({ error: 'Unauthorized' }),
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 // #233 — git log 5건은 빌드/런타임 환경에 따라 변할 수 있으므로 테스트는 결정론적 모킹.
 vi.mock('./data/git-log.js', () => ({
   getGitLog: () => [
@@ -184,11 +199,12 @@ describe('Header nav + Sign in (#24)', () => {
     expect(about).toHaveAttribute('href', '#about');
   });
 
-  it('Header Sign in 링크가 auth.get-it.cloud 로 향한다', () => {
+  it('Header Sign in 링크가 auth.get-it.cloud 로 향한다 (비로그인 경로)', async () => {
+    // Header (#343 / #246): 비로그인 분기는 useSession 의 401 응답 이후 mount 되므로 findBy.
     renderApp();
-    const header = screen.getByRole('banner');
-    const signIn = within(header).getByRole('link', { name: /로그인/ });
+    const signIn = await screen.findByTestId('session-signin');
     expect(signIn).toHaveAttribute('href', expect.stringContaining('auth.get-it.cloud'));
+    expect(signIn).toHaveAccessibleName(/로그인/);
   });
 });
 
