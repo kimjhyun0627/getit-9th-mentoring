@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Editorial 시안 (docs/design/shelf/editorial.html 1:1) — 페이퍼 잉크 / 미드나잇 차콜.
+ * - 라이트: 페이퍼 베이지 베이스 + 와인 액센트
+ * - 다크: 차콜 베이스 + 머스타드 액센트
+ * - shadcn HSL 토큰 호환 (foreground, muted 등)
+ */
+@layer base {
+  :root {
+    /* Editorial 페이퍼/잉크 — 시안 1:1 */
+    --bg-1: 0 0% 98%; /* page */
+    --bg-2: 41 22% 93%; /* subtle band */
+    --bg-3: 38 19% 90%; /* deepest paper */
+    --text-1: 0 0% 4%; /* heading ink */
+    --text-2: 0 0% 12%; /* body charcoal */
+    --text-3: 0 0% 32%; /* meta */
+    --text-hint: 0 0% 64%;
+    --rule-1: 39 16% 81%;
+    --rule-2: 0 0% 4%;
+    --accent-h: 0 62% 30%; /* wine */
+    --accent-soft-h: 0 49% 43%;
+
+    /* shadcn 호환 매핑 */
+    --background: var(--bg-1);
+    --foreground: var(--text-2);
+
+    --card: var(--bg-1);
+    --card-foreground: var(--text-2);
+
+    --popover: var(--bg-1);
+    --popover-foreground: var(--text-2);
+
+    --primary: var(--text-1);
+    --primary-foreground: var(--bg-1);
+
+    --secondary: var(--bg-2);
+    --secondary-foreground: var(--text-1);
+
+    --muted: var(--bg-2);
+    --muted-foreground: var(--text-3);
+
+    --accent: var(--accent-h);
+    --accent-foreground: 36 50% 97%;
+
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: var(--rule-1);
+    --input: var(--rule-1);
+    --ring: var(--accent-h);
+
+    --radius: 0.25rem;
+  }
+
+  .dark {
+    --bg-1: 0 0% 8%;
+    --bg-2: 0 0% 11%;
+    --bg-3: 0 0% 14%;
+    --text-1: 40 38% 93%;
+    --text-2: 0 0% 93%;
+    --text-3: 0 0% 64%;
+    --text-hint: 0 0% 42%;
+    --rule-1: 0 0% 16%;
+    --rule-2: 0 0% 23%;
+    --accent-h: 38 53% 53%; /* nude mustard */
+    --accent-soft-h: 36 56% 64%;
+
+    --background: var(--bg-1);
+    --foreground: var(--text-2);
+
+    --card: var(--bg-1);
+    --card-foreground: var(--text-2);
+
+    --popover: var(--bg-1);
+    --popover-foreground: var(--text-2);
+
+    --primary: var(--text-1);
+    --primary-foreground: var(--bg-1);
+
+    --secondary: var(--bg-2);
+    --secondary-foreground: var(--text-1);
+
+    --muted: var(--bg-2);
+    --muted-foreground: var(--text-3);
+
+    --accent: var(--accent-h);
+    --accent-foreground: var(--bg-1);
+
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: var(--rule-1);
+    --input: var(--rule-1);
+    --ring: var(--accent-h);
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'kern', 'liga', 'onum';
+    text-rendering: optimizeLegibility;
+    transition:
+      background-color 280ms ease,
+      color 280ms ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: hsl(var(--text-1));
+  }
+
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+}
+
+/* Editorial 유틸 — 시안 1:1 */
+@layer utilities {
+  .text-meta {
+    color: hsl(var(--text-3));
+  }
+  .text-hint {
+    color: hsl(var(--text-hint));
+  }
+  .text-ink {
+    color: hsl(var(--text-1));
+  }
+  .text-accent-wine {
+    color: hsl(var(--accent));
+  }
+  .bg-band {
+    background-color: hsl(var(--bg-2));
+  }
+  .smallcaps {
+    font-variant: small-caps;
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+    color: hsl(var(--text-3));
+  }
+  .hairline {
+    height: 1px;
+    background-color: hsl(var(--rule-1));
+  }
+  .hairline-strong {
+    height: 1px;
+    background-color: hsl(var(--rule-2));
+  }
+  .num-display {
+    font-feature-settings: 'lnum', 'tnum';
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+}

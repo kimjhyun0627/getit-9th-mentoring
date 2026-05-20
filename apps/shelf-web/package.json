@@ -1,0 +1,41 @@
+{
+  "name": "@getit/shelf-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GETIT 9기 스마트 서재 웹 UI (shelf.get-it.cloud) — editorial",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "typecheck": "echo \"JS only, skip\"",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@getit/config-tailwind": "workspace:*",
+    "@getit/schemas": "workspace:*",
+    "@getit/theme": "workspace:*",
+    "@tanstack/react-query": "^5.62.16",
+    "axios": "^1.15.1",
+    "clsx": "^2.1.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^6.28.1"
+  },
+  "devDependencies": {
+    "@getit/config-eslint": "workspace:*",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.18.0",
+    "jsdom": "^25.0.1",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  }
+}
