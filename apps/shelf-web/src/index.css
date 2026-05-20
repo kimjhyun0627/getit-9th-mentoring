@@ -154,6 +154,12 @@
   .bg-paper-3 {
     background-color: var(--paper-3);
   }
+  .border-rule-1 {
+    border-color: var(--rule-1);
+  }
+  .border-rule-2 {
+    border-color: var(--rule-2);
+  }
 
   .num-display {
     font-feature-settings: 'lnum', 'tnum';
