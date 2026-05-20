@@ -1,0 +1,233 @@
+/**
+ * /api/shelves 라우터 — 내 서재 CRUD.
+ *
+ * 모든 엔드포인트는 부모 미들웨어로 requireAuth 통과 후 진입 → req.user.sub 가 userId.
+ *
+ * - GET    /me                내 서재 목록 (addedAt desc, Book 조인)
+ * - POST   /                  책 추가 (isbn 또는 bookId)
+ *                             · isbn 캐시 hit → 즉시 BookShelf.create
+ *                             · isbn 캐시 miss → 외부 카카오 → Book.upsert → BookShelf.create
+ *                             · @@unique(userId, bookId) 충돌 → 422
+ * - PATCH  /:bookId           status / rating / review 수정 (내 row 만)
+ * - DELETE /:bookId           내 서재에서 제거 (내 row 만)
+ *
+ * 권한 모델: WHERE 절에 userId 강제 결합 → 다른 유저 row 는 영원히 404.
+ * 별점 0-5 정수 검증은 ShelfAddInput / ShelfUpdateInput 의 zod schema 가 강제.
+ */
+import { requireAuth } from '@getit/auth-utils/server';
+import { ShelfAddInput, ShelfUpdateInput } from '@getit/schemas/shelf';
+import { Router } from 'express';
+
+import {
+  KakaoApiError,
+  KakaoConfigError,
+  searchKakaoBooks,
+  toBookRecord,
+} from '../lib/external/kakao.js';
+import { prisma } from '../lib/prisma.js';
+
+/**
+ * Zod 에러 → 400 응답 본문.
+ *
+ * @param {import('zod').ZodError} err
+ */
+const zodErrorBody = (err) => ({
+  error: 'ValidationError',
+  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+});
+
+/**
+ * 응답용 BookShelf 직렬화 (book 동봉 옵션).
+ *
+ * @param {Record<string, any>} row
+ */
+const publicShelf = (row) => ({
+  id: row.id,
+  userId: row.userId,
+  bookId: row.bookId,
+  status: row.status,
+  rating: row.rating ?? null,
+  review: row.review ?? null,
+  addedAt: row.addedAt,
+  completedAt: row.completedAt ?? null,
+  book: row.book ? { ...row.book } : undefined,
+});
+
+/**
+ * isbn 으로 Book 조회/upsert — 캐시 hit 우선, miss 시 외부 카카오 호출.
+ *
+ * @param {string} isbn
+ * @returns {Promise<{ status: number, book?: Record<string, any>, error?: string }>}
+ */
+const findOrFetchBookByIsbn = async (isbn) => {
+  const cached = await prisma.book.findUnique({ where: { isbn } });
+  if (cached) return { status: 200, book: cached };
+
+  const apiKey = process.env.KAKAO_BOOK_API_KEY ?? '';
+  try {
+    const docs = await searchKakaoBooks({ query: isbn, apiKey, target: 'isbn', size: 1 });
+    const record = docs.map(toBookRecord).find(Boolean);
+    if (!record) return { status: 404, error: 'BookNotFound' };
+    const saved = await prisma.book.upsert({
+      where: { isbn: record.isbn },
+      create: record,
+      update: {
+        title: record.title,
+        author: record.author,
+        publisher: record.publisher,
+        publishedAt: record.publishedAt,
+        coverUrl: record.coverUrl,
+        description: record.description,
+        source: record.source,
+      },
+    });
+    return { status: 201, book: saved };
+  } catch (err) {
+    if (err instanceof KakaoConfigError || err instanceof KakaoApiError) {
+      return { status: 503, error: 'ExternalApiUnavailable' };
+    }
+    throw err;
+  }
+};
+
+/**
+ * Prisma P2002 (unique) 에러 판별.
+ *
+ * @param {any} err
+ * @returns {boolean}
+ */
+const isUniqueViolation = (err) =>
+  err && (err.code === 'P2002' || err.name === 'PrismaClientKnownRequestError');
+
+/**
+ * Shelves 라우터.
+ *
+ * @returns {import('express').Router}
+ */
+export const createShelvesRouter = () => {
+  const router = Router();
+
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) throw new Error('JWT_SECRET env required');
+  const auth = requireAuth({ secret: jwtSecret });
+
+  router.use(auth);
+
+  // GET /me — 내 서재
+  router.get('/me', async (req, res, next) => {
+    try {
+      const rows = await prisma.bookShelf.findMany({
+        where: { userId: req.user.sub },
+        orderBy: { addedAt: 'desc' },
+        include: { book: true },
+      });
+      return res.status(200).json({ shelves: rows.map(publicShelf) });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // POST / — 책 추가
+  router.post('/', async (req, res, next) => {
+    try {
+      const parsed = ShelfAddInput.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
+
+      const { isbn, bookId, status, rating, review } = parsed.data;
+
+      // Book 확보
+      let book = null;
+      if (bookId) {
+        book = await prisma.book.findUnique({ where: { id: bookId } });
+        if (!book) return res.status(404).json({ error: 'BookNotFound' });
+      } else {
+        const result = await findOrFetchBookByIsbn(isbn);
+        if (!result.book) return res.status(result.status).json({ error: result.error });
+        book = result.book;
+      }
+
+      // BookShelf.create — unique 충돌 → 422
+      try {
+        const created = await prisma.bookShelf.create({
+          data: {
+            userId: req.user.sub,
+            bookId: book.id,
+            status,
+            rating: rating ?? null,
+            review: review ?? null,
+            completedAt: status === 'READ' ? new Date() : null,
+          },
+          include: { book: true },
+        });
+        return res.status(201).json({ shelf: publicShelf(created) });
+      } catch (err) {
+        if (isUniqueViolation(err)) {
+          return res.status(422).json({ error: 'ShelfAlreadyExists' });
+        }
+        throw err;
+      }
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // PATCH /:bookId — 내 row 만 수정
+  router.patch('/:bookId', async (req, res, next) => {
+    try {
+      const parsed = ShelfUpdateInput.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
+
+      const userId = req.user.sub;
+      const { bookId } = req.params;
+
+      const existing = await prisma.bookShelf.findUnique({
+        where: { userId_bookId: { userId, bookId } },
+      });
+      if (!existing) return res.status(404).json({ error: 'ShelfNotFound' });
+
+      // status=READ 전환 시 completedAt 자동 설정 (이미 READ였으면 유지)
+      const nextStatus = parsed.data.status ?? existing.status;
+      const completedAt =
+        parsed.data.status === 'READ' && existing.status !== 'READ'
+          ? new Date()
+          : parsed.data.status && parsed.data.status !== 'READ'
+            ? null
+            : existing.completedAt;
+
+      const updated = await prisma.bookShelf.update({
+        where: { userId_bookId: { userId, bookId } },
+        data: {
+          ...parsed.data,
+          status: nextStatus,
+          completedAt,
+        },
+        include: { book: true },
+      });
+      return res.status(200).json({ shelf: publicShelf(updated) });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // DELETE /:bookId — 내 row 만 삭제
+  router.delete('/:bookId', async (req, res, next) => {
+    try {
+      const userId = req.user.sub;
+      const { bookId } = req.params;
+
+      const existing = await prisma.bookShelf.findUnique({
+        where: { userId_bookId: { userId, bookId } },
+      });
+      if (!existing) return res.status(404).json({ error: 'ShelfNotFound' });
+
+      await prisma.bookShelf.delete({
+        where: { userId_bookId: { userId, bookId } },
+      });
+      return res.status(204).send();
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  return router;
+};

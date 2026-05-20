@@ -2,10 +2,13 @@
  * shelf-api Express 앱 팩토리. server.js의 listen()과 분리해 supertest 친화적으로.
  *
  * 미들웨어 스택:
- *   helmet → cors → json → pino-http(test silent) → rate-limit(search burst)
+ *   helmet → cors → cookieParser → json → pino-http(test silent)
+ *   → rate-limit(search burst)
  *   → /api/health
- *   → /api/books/* (search + :isbn)
+ *   → /api/books/*    (public, search + :isbn)
+ *   → /api/shelves/*  (requireAuth)
  */
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
@@ -13,6 +16,7 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 
 import { createBooksRouter } from './routes/books.js';
+import { createShelvesRouter } from './routes/shelves.js';
 
 /**
  * 콤마 분리 ORIGIN 목록 파싱.
@@ -56,6 +60,7 @@ export const createApp = (opts = {}) => {
       credentials: allowedOrigins.length > 0,
     }),
   );
+  app.use(cookieParser());
   app.use(express.json({ limit: '64kb' }));
 
   // 로깅 — test 환경에선 silent
@@ -76,6 +81,9 @@ export const createApp = (opts = {}) => {
   });
 
   app.use('/api/books', searchLimiter, createBooksRouter());
+
+  // /api/shelves — requireAuth 는 라우터 내부에서 적용 (JWT_SECRET 가드 한 곳에 집중).
+  app.use('/api/shelves', createShelvesRouter());
 
   // 마지막 fallback 에러 핸들러 (4-인자 시그니처 유지).
   // 500 이상은 pino 로 스택 트레이스까지 로깅 → 운영 환경에서 신속히 트리아지.
