@@ -38,10 +38,10 @@ export const FormField = forwardRef(
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={error ? errorId : hint ? hintId : undefined}
           className={cn(
-            'h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm shadow-sm transition',
+            'h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 shadow-sm transition [color-scheme:light]',
             'placeholder:text-slate-400',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-            'dark:border-white/10 dark:bg-white/[0.06] dark:placeholder:text-slate-500 dark:focus-visible:ring-amber-300',
+            'dark:border-white/10 dark:bg-zinc-900/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:shadow-inner dark:shadow-black/30 dark:[color-scheme:dark] dark:focus-visible:ring-amber-300',
             error && 'border-rose-500 focus-visible:ring-rose-500 dark:border-rose-400',
           )}
         />

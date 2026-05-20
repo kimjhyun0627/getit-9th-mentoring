@@ -79,9 +79,9 @@ export const TagInput = ({
 
       <div
         className={cn(
-          'flex min-h-[2.75rem] flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition',
+          'flex min-h-[2.75rem] flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition [color-scheme:light]',
           'focus-within:ring-2 focus-within:ring-rose-400 focus-within:ring-offset-2 focus-within:ring-offset-background',
-          'dark:border-white/10 dark:bg-white/[0.06] dark:focus-within:ring-amber-300',
+          'dark:border-white/10 dark:bg-zinc-900/60 dark:shadow-inner dark:shadow-black/30 dark:[color-scheme:dark] dark:focus-within:ring-amber-300',
           error && 'border-rose-500 focus-within:ring-rose-500 dark:border-rose-400',
         )}
       >
@@ -112,7 +112,7 @@ export const TagInput = ({
           placeholder={value.length === 0 ? placeholder : ''}
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={error ? errorId : hint ? hintId : undefined}
-          className="min-w-[8rem] flex-1 bg-transparent px-2 py-1 text-sm outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+          className="min-w-[8rem] flex-1 bg-transparent px-2 py-1 text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
         />
       </div>
 
