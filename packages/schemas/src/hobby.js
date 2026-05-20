@@ -189,7 +189,12 @@ export const ApplicationIdParam = z.object({
  * 알림 종류. enum 미강제 (BE schema.prisma 의 String kind 와 일치) — 향후 확장 자유.
  * 알려진 값만 클라이언트가 표시 분기에 쓰면 됨.
  */
-export const NotificationKind = z.enum(['MATCH_FULL', 'APPLICATION_CANCELED', 'NO_SHOW_REPORTED']);
+export const NotificationKind = z.enum([
+  'MATCH_FULL',
+  'APPLICATION_CANCELED',
+  'NO_SHOW_REPORTED',
+  'POST_CLOSED',
+]);
 
 /**
  * 알림 리스트 조회 query.

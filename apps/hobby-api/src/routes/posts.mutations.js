@@ -150,16 +150,36 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
         });
       }
 
-      const closed = await prisma.post.update({
-        where: { id: post.id },
-        data: { status: 'CLOSED' },
-      });
-      const fresh = await prisma.post.findUnique({
-        where: { id: post.id },
-        include: { tags: { include: { tag: true } } },
+      // CR review #348: 상태 전이 + 알림 fan-out 을 원자 트랜잭션으로 묶음.
+      // 동시 close 요청 → updateMany 조건부 ({ not: 'CLOSED' }) 로 1회만 알림 발생.
+      const fresh = await prisma.$transaction(async (tx) => {
+        const { count } = await tx.post.updateMany({
+          where: { id: post.id, status: { not: 'CLOSED' } },
+          data: { status: 'CLOSED' },
+        });
+        if (count === 1) {
+          const applicants = await tx.application.findMany({
+            where: { postId: post.id },
+            select: { userId: true },
+          });
+          if (applicants.length) {
+            await tx.notification.createMany({
+              data: applicants.map(({ userId }) => ({
+                userId,
+                postId: post.id,
+                kind: 'POST_CLOSED',
+                message: `「${post.title}」 모집이 종료됐어.`,
+              })),
+            });
+          }
+        }
+        return tx.post.findUnique({
+          where: { id: post.id },
+          include: { tags: { include: { tag: true } } },
+        });
       });
       return res.status(200).json({
-        post: serializePost(fresh ?? closed, { exposeOpenChat: true, myApplication: null }),
+        post: serializePost(fresh, { exposeOpenChat: true, myApplication: null }),
       });
     } catch (err) {
       return next(err);
@@ -229,23 +249,29 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
       const idsToMark = new Set(parsed.data.applicantIds);
       const targets = apps.filter((a) => idsToMark.has(a.userId) && !a.noShow);
 
-      // 노쇼 마크 + 당사자 알림 (#247). 병렬 fan-out 으로 한 번에.
-      const tasks = targets.flatMap((a) => [
-        prisma.application.updateMany?.({
-          where: { id: a.id },
-          data: { noShow: true },
-        }),
-        prisma.notification.create({
-          data: {
-            userId: a.userId,
-            postId: post.id,
-            kind: 'NO_SHOW_REPORTED',
-            message: `「${post.title}」 모임에서 방장이 노쇼로 신고했어요.`,
-          },
-        }),
-      ]);
-      await Promise.all(tasks);
-      const updated = targets.length;
+      // CR review #348: 노쇼 마크 + 알림 생성을 원자 트랜잭션 + 동시 가드 (noShow=false WHERE 조건).
+      // 동시 신고 시에도 같은 application 에 대해 알림 1회만 발생.
+      const updated = await prisma.$transaction(async (tx) => {
+        let changed = 0;
+        for (const a of targets) {
+          const result = await tx.application.updateMany({
+            where: { id: a.id, noShow: false },
+            data: { noShow: true },
+          });
+          if (result.count === 1) {
+            changed += 1;
+            await tx.notification.create({
+              data: {
+                userId: a.userId,
+                postId: post.id,
+                kind: 'NO_SHOW_REPORTED',
+                message: `「${post.title}」 모임에서 방장이 노쇼로 신고했어요.`,
+              },
+            });
+          }
+        }
+        return changed;
+      });
       return res.status(200).json({ updated });
     } catch (err) {
       return next(err);

@@ -23,6 +23,15 @@ export const matchClause = (row, where) => {
         // MySQL utf8mb4_unicode_ci 가 case-insensitive — 그 동작에 맞춤.
         return haystack.toLowerCase().includes(needle.toLowerCase());
       }
+      // `{ not: value }` — 단순 부등 / 또는 중첩 컬럼 필터.
+      if ('not' in v) {
+        const nv = v.not;
+        if (nv !== null && typeof nv === 'object' && !(nv instanceof Date)) {
+          // { not: { in: [...] } } 같은 중첩 — 재귀 호출.
+          return !matchClause({ [k]: row[k] }, { [k]: nv });
+        }
+        return row[k] !== nv;
+      }
       // 비교 연산자 다중 조합 ({ gt, lt } 등) 도 지원.
       const hasComparator = 'lt' in v || 'lte' in v || 'gt' in v || 'gte' in v;
       if (hasComparator) {

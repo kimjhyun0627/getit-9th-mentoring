@@ -203,7 +203,8 @@ export const buildApplicationModel = (memDb, nextId) => ({
       }
     }
     const id = data.id ?? nextId('app');
-    const row = { id, createdAt: new Date(), ...data };
+    // schema.prisma 의 default(false) 와 동일하게 noShow 초기값 보장.
+    const row = { id, createdAt: new Date(), noShow: false, ...data };
     memDb.applications.set(id, row);
     return { ...row };
   },

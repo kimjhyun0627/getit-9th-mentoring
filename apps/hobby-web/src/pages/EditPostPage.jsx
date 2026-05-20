@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -65,6 +65,8 @@ export const EditPostPage = () => {
   const navigate = useNavigate();
   const { me, isLoading: meLoading, isLoggedIn, is401 } = useRequireAuth();
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
+  // CR review #348: prefill 은 최초 1회만. refetch 시 사용자 입력 덮어쓰지 않도록 가드.
+  const didPrefillRef = useRef(false);
 
   const postQuery = useQuery({
     queryKey: ['post', id],
@@ -92,10 +94,10 @@ export const EditPostPage = () => {
     },
   });
 
-  // 데이터 도착 시 폼 prefill (한 번만).
+  // 데이터 도착 시 폼 prefill — refetch / 캐시 갱신 때마다 reset 하지 않도록 ref 가드.
   useEffect(() => {
     const post = postQuery.data?.post;
-    if (!post) return;
+    if (!post || didPrefillRef.current) return;
     reset({
       title: post.title,
       body: post.body,
@@ -104,6 +106,7 @@ export const EditPostPage = () => {
       openChatUrl: post.openChatUrl ?? '',
       tags: (post.tags ?? []).map((t) => t.name),
     });
+    didPrefillRef.current = true;
   }, [postQuery.data, reset]);
 
   if (meLoading || (!isLoggedIn && is401)) {

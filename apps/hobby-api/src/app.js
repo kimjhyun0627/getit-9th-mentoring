@@ -46,11 +46,11 @@ const readJwtSecret = () => {
 export const createApp = (opts = {}) => {
   const envMax = Number.parseInt(process.env.RATE_LIMIT_MAX ?? '30', 10);
   const envWindow = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '60000', 10);
-  const {
-    trustProxy = true,
-    rateLimitMax = Number.isFinite(envMax) ? envMax : 30,
-    rateLimitWindowMs = Number.isFinite(envWindow) ? envWindow : 60_000,
-  } = opts;
+  // express-rate-limit v7: max=0 은 모든 요청 차단, 음수는 미정의 동작.
+  // 1 이상 정수만 허용. 아니면 기본값으로 fallback (CR review #348).
+  const safeEnvMax = Number.isInteger(envMax) && envMax > 0 ? envMax : 30;
+  const safeEnvWindow = Number.isInteger(envWindow) && envWindow > 0 ? envWindow : 60_000;
+  const { trustProxy = true, rateLimitMax = safeEnvMax, rateLimitWindowMs = safeEnvWindow } = opts;
   const app = express();
 
   if (trustProxy) {

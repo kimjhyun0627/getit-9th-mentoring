@@ -78,6 +78,18 @@ export const ApplicantsPage = () => {
       </PageShell>
     );
   }
+  // CR review #348: 500/네트워크 에러는 빈 목록 fallback 으로 보이면 안 됨.
+  if (query.isError) {
+    return (
+      <PageShell>
+        <ErrorState
+          title="신청자 정보를 불러오지 못했어"
+          body="잠시 후 다시 시도해줘."
+          postId={id}
+        />
+      </PageShell>
+    );
+  }
 
   if (query.isLoading) {
     return (
