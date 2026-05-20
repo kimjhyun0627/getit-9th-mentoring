@@ -181,6 +181,8 @@ describe('ComposeModal', () => {
     await user.type(screen.getByLabelText('내용'), '안녕!');
     await user.click(screen.getByRole('button', { name: /붙이기|등록/ }));
 
-    expect(await screen.findByText(/서버.*쉬는 중|서버 오류|잠시 후 다시/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/서버가 잠깐 쉬는 중|잠시 후 다시 붙여주세요/),
+    ).toBeInTheDocument();
   });
 });

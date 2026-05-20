@@ -98,6 +98,29 @@ describe('Postit', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('confirm 다이얼로그에서 Escape 키로 닫고 onDelete 가 호출되지 않는다', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    const mine = { ...base, is_mine: true };
+    render(<Postit message={mine} onDelete={onDelete} now={fixedNow} />);
+
+    await user.click(screen.getByRole('button', { name: /이 쪽지 삭제/ }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('confirm 다이얼로그 열릴 때 "그대로 두기" 버튼으로 초기 포커스가 이동한다', async () => {
+    const user = userEvent.setup();
+    const mine = { ...base, is_mine: true };
+    render(<Postit message={mine} now={fixedNow} />);
+
+    await user.click(screen.getByRole('button', { name: /이 쪽지 삭제/ }));
+    // destructive 가 아닌 안전한 "그대로 두기" 가 초기 포커스 — 키보드 사용자 보호.
+    expect(screen.getByRole('button', { name: /그대로 두기/ })).toHaveFocus();
+  });
+
   it('색상 prop 별로 다른 배경 클래스를 적용한다 (PINK/MINT/LEMON/LAVENDER)', () => {
     const colors = /** @type {const} */ (['PINK', 'MINT', 'LEMON', 'LAVENDER']);
     for (const color of colors) {
