@@ -28,11 +28,11 @@ const MIN_QUERY = 2;
  */
 const addErrorMessage = (err) => {
   const status = err?.response?.status;
-  if (status === 422) return '이미 서재에 있는 책이에요';
-  if (status === 401) return '로그인이 필요해요';
-  if (status === 404) return '책 정보를 찾지 못했어요';
-  if (typeof status === 'number' && status >= 500) return '잠시 후 다시 시도해주세요';
-  return '서재 추가에 실패했어요';
+  if (status === 422) return '이미 서재에 꽂혀 있는 책입니다.';
+  if (status === 401) return '로그인이 필요합니다.';
+  if (status === 404) return '그 책의 정보를 찾지 못했습니다.';
+  if (typeof status === 'number' && status >= 500) return '잠시 후 다시 담아 주세요.';
+  return '책을 서재에 담는 데 실패했습니다.';
 };
 
 /**
@@ -43,10 +43,10 @@ const addErrorMessage = (err) => {
  */
 const searchErrorMessage = (err) => {
   const status = err?.response?.status;
-  if (status === 401) return '로그인이 필요해요';
-  if (status === 503) return '도서 검색 서비스가 잠시 불안정해요';
-  if (status === 400) return '검색어를 다시 확인해주세요';
-  return '검색 중 문제가 생겼어요';
+  if (status === 401) return '로그인이 필요합니다.';
+  if (status === 503) return '도서 정보를 잠시 불러올 수 없습니다. 잠시 후 다시 펼쳐 주세요.';
+  if (status === 400) return '검색어를 다시 살펴봐 주세요.';
+  return '검색 중 문제가 생겼습니다. 잠시 후 다시 시도해 주세요.';
 };
 
 /**
@@ -99,7 +99,7 @@ export const SearchPage = () => {
         addedKeys.current.add(key);
         forceRerender((n) => n + 1);
       }
-      setToast({ message: '서재에 담았어요', variant: 'success' });
+      setToast({ message: '서재에 담았습니다.', variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['shelves', 'me'] });
     },
     onError: (err) => {
@@ -131,12 +131,12 @@ export const SearchPage = () => {
       />
 
       <header className="flex flex-col gap-3">
-        <p className="smallcaps text-xs">VOL. I · 서재 검색</p>
+        <p className="smallcaps text-xs">Vol. IX · 서재 검색</p>
         <h1 className="font-display text-ink-strong text-4xl font-semibold tracking-hero sm:text-5xl">
           책을 찾아보세요
         </h1>
         <p className="font-serif text-base text-meta">
-          제목, 저자, ISBN 으로 검색해서 마음에 드는 책을 서재에 담아두세요.
+          제목이나 저자로 찾아, 마음에 드는 책을 서재에 담아두세요.
         </p>
       </header>
 
@@ -181,11 +181,11 @@ const SearchField = ({ value, onChange }) => {
           aria-label="책 검색"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="제목, 저자, ISBN…"
+          placeholder="제목 또는 저자를 적어 보세요…"
           className="text-body w-full bg-transparent font-serif text-xl placeholder:text-hint focus:outline-none"
         />
       </div>
-      <p className="font-serif text-xs text-hint">두 글자 이상 입력하면 자동으로 검색돼요.</p>
+      <p className="font-serif text-xs text-hint">두 글자 이상 입력하면 자동으로 검색됩니다.</p>
     </div>
   );
 };
@@ -202,10 +202,10 @@ const PromptEmpty = () => (
 /** @param {{ query: string }} props */
 const EmptyResults = ({ query }) => (
   <div className="bg-paper-2 border-rule-1 rounded-sm border border-dashed px-6 py-10 text-center">
-    <p className="font-display text-ink-strong text-lg">책장에 비춰진 책이 없네요</p>
+    <p className="font-display text-ink-strong text-lg">이 서가에는 그 책이 없네요</p>
     <p className="mt-2 font-serif text-sm text-meta">
-      <span className="text-ink-strong">&ldquo;{query}&rdquo;</span> 로는 결과가 비어 있어요. 다른
-      키워드도 시도해 보세요.
+      <span className="text-ink-strong">&ldquo;{query}&rdquo;</span>로는 찾지 못했습니다. 제목
+      일부나 저자 이름으로 다시 시도해 보세요.
     </p>
   </div>
 );

@@ -120,7 +120,7 @@ describe('HomePage', () => {
       data: { shelves: [], pagination: { page: 1, pageSize: 100, total: 0 } },
     });
     renderHome();
-    expect(await screen.findByText(/서가가 비어 있어/)).toBeInTheDocument();
+    expect(await screen.findByText(/서가가 아직 비어 있습니다/)).toBeInTheDocument();
   });
 
   it('책 카드 클릭 → 편집 모달 오픈', async () => {
@@ -129,7 +129,7 @@ describe('HomePage', () => {
       data: { shelves, pagination: { page: 1, pageSize: 100, total: 3 } },
     });
     renderHome();
-    const card = await screen.findByRole('button', { name: /읽기의 계절 편집/ });
+    const card = await screen.findByRole('button', { name: /읽기의 계절 자세히 보기/ });
     await user.click(card);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
@@ -143,7 +143,7 @@ describe('HomePage', () => {
       .spyOn(api, 'updateShelf')
       .mockResolvedValue({ data: { shelf: { ...shelves[0], rating: 4 } } });
     renderHome();
-    const card = await screen.findByRole('button', { name: /읽기의 계절 편집/ });
+    const card = await screen.findByRole('button', { name: /읽기의 계절 자세히 보기/ });
     await user.click(card);
     await user.click(screen.getByRole('radio', { name: '별점 4점' }));
     await user.click(screen.getByRole('button', { name: '저장' }));
@@ -158,6 +158,6 @@ describe('HomePage', () => {
       response: { status: 500, data: { error: 'InternalError' } },
     });
     renderHome();
-    expect(await screen.findByText(/서버 오류가 발생했어요/)).toBeInTheDocument();
+    expect(await screen.findByText(/지금은 서재를 펼칠 수 없습니다/)).toBeInTheDocument();
   });
 });

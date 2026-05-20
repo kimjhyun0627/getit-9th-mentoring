@@ -14,12 +14,12 @@ import { cn } from '../lib/cn.js';
  * }} props
  */
 export const FilterTabs = ({ active, onChange, counts, className }) => {
-  /** @type {{ key: FilterKey; label: string }[]} */
+  /** @type {{ key: FilterKey; label: string; ko: string }[]} */
   const tabs = [
-    { key: 'ALL', label: 'All' },
-    { key: 'READ', label: 'Read' },
-    { key: 'READING', label: 'Reading' },
-    { key: 'WANT', label: 'Wishlist' },
+    { key: 'ALL', label: 'All', ko: '전체' },
+    { key: 'READ', label: 'Read', ko: '읽은 책' },
+    { key: 'READING', label: 'Reading', ko: '읽는 중' },
+    { key: 'WANT', label: 'Wishlist', ko: '읽고 싶은 책' },
   ];
 
   return (
@@ -28,7 +28,7 @@ export const FilterTabs = ({ active, onChange, counts, className }) => {
       role="group"
       aria-label="서재 필터"
     >
-      {tabs.map(({ key, label }) => {
+      {tabs.map(({ key, label, ko }) => {
         const isActive = active === key;
         const count = counts[key] ?? 0;
         return (
@@ -36,6 +36,7 @@ export const FilterTabs = ({ active, onChange, counts, className }) => {
             key={key}
             type="button"
             aria-pressed={isActive}
+            aria-label={`${label} · ${ko} 보기`}
             className={cn('filter-btn smallcaps', isActive && 'is-active')}
             onClick={() => onChange(key)}
           >

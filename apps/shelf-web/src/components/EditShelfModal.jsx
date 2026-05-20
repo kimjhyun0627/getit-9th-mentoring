@@ -83,7 +83,7 @@ export const EditShelfModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        aria-label="모달 닫기"
+        aria-label="닫기"
         className="fixed inset-0 z-0 cursor-default bg-black/60"
         onClick={onClose}
       />
@@ -153,7 +153,7 @@ export const EditShelfModal = ({
               onChange={(e) => setReview(e.target.value)}
               rows={4}
               maxLength={5000}
-              placeholder="이 책을 펼치던 계절은 어떤 색이었어?"
+              placeholder="이 책을 펼치던 계절을 한 줄로 적어 보세요."
               className="essay-kr text-body w-full resize-none bg-transparent p-3 text-[14px] leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               style={{ border: '1px solid var(--rule-1)' }}
             />
@@ -179,7 +179,7 @@ export const EditShelfModal = ({
                   disabled={deleting}
                   className="text-destructive text-[12.5px] font-serif underline-offset-4 hover:underline disabled:opacity-60"
                 >
-                  {deleting ? '제거 중…' : '정말 제거하기'}
+                  {deleting ? '덜어내는 중…' : '정말 덜어내기'}
                 </button>
               ) : (
                 <button
@@ -187,7 +187,7 @@ export const EditShelfModal = ({
                   onClick={() => setConfirmDelete(true)}
                   className="text-meta text-[12.5px] font-serif underline-offset-4 hover:underline"
                 >
-                  서재에서 제거
+                  서가에서 덜어내기
                 </button>
               )}
             </div>

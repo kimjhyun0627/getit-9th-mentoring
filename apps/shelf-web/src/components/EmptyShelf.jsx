@@ -28,24 +28,24 @@ export const EmptyShelf = ({ filter }) => {
 const messageFor = (filter) => {
   if (filter === 'READ') {
     return {
-      headline: '아직 읽은 책이 없어.',
-      body: '첫 한 권을 끝낼 때마다, 작게 어른이 되어가는 기분.',
+      headline: '아직 읽은 책이 없습니다.',
+      body: '첫 한 권을 끝낼 때마다, 작게 어른이 되어가는 기분이 있죠.',
     };
   }
   if (filter === 'READING') {
     return {
-      headline: '지금 읽는 책이 없어.',
-      body: '오늘 펼치는 한 페이지가 이번 계절의 첫 줄이 된다.',
+      headline: '지금 읽고 있는 책이 없습니다.',
+      body: '오늘 펼치는 한 페이지가 이번 계절의 첫 줄이 됩니다.',
     };
   }
   if (filter === 'WANT') {
     return {
-      headline: '아직 위시리스트가 비어 있어.',
-      body: '우연히 본 책 한 권을, 잊지 않게 여기에 적어두자.',
+      headline: '위시리스트가 아직 비어 있습니다.',
+      body: '우연히 마주친 한 권을, 잊지 않도록 여기에 적어두세요.',
     };
   }
   return {
-    headline: '서가가 비어 있어.',
-    body: '한 사람이 모은 책장은, 결국 그 사람의 가장 정직한 자서전이다.',
+    headline: '서가가 아직 비어 있습니다.',
+    body: '한 사람이 모은 책장은, 결국 그 사람의 가장 정직한 자서전입니다.',
   };
 };

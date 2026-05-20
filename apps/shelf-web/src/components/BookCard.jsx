@@ -48,7 +48,7 @@ export const BookCard = ({ shelf, onEdit, className }) => {
       type="button"
       className={cn('book-card group block w-full text-left', className)}
       onClick={() => onEdit(shelf)}
-      aria-label={`${book.title} 편집`}
+      aria-label={`${book.title} 자세히 보기`}
     >
       <div className="cover w-full">
         <div className="cover-inner" style={coverStyle} aria-hidden="true" />

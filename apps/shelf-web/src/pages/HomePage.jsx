@@ -179,9 +179,9 @@ const countByStatus = (shelves) => {
 const toFriendlyError = (err) => {
   const status = /** @type {{response?: {status?: number}}} */ (err)?.response?.status;
   if (status === 401) return '로그인이 필요합니다.';
-  if (status === 404) return '서재에서 책을 찾을 수 없어요.';
-  if (status === 422) return '이미 서재에 있는 책이에요.';
+  if (status === 404) return '서재에서 그 책을 찾을 수 없습니다.';
+  if (status === 422) return '이미 서재에 꽂혀 있는 책입니다.';
   if (typeof status === 'number' && status >= 500)
-    return '서버 오류가 발생했어요. 잠시 후 다시 시도해주세요.';
-  return '서재를 불러오는 데 실패했어요. 잠시 후 다시 시도해주세요.';
+    return '지금은 서재를 펼칠 수 없습니다. 잠시 후 다시 시도해 주세요.';
+  return '서재를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
 };
