@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="ko" class="dark scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>auth.get-it.cloud — Tech-Dark mockup (Login + Signup)</title>
+
+    <!-- Fonts: Pretendard (KO body), Inter (LATIN body), JetBrains Mono (heading/meta) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- 미리 .dark 적용해서 색 flash 방지 (localStorage 'getit:theme' 키와 동일). -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('getit:theme');
+          if (saved !== 'light') document.documentElement.classList.add('dark');
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'],
+              mono: ['JetBrains Mono', 'ui-monospace', 'SF Mono', 'monospace'],
+            },
+            colors: {
+              cyan: { neon: '#22d3ee' },
+              magenta: { neon: '#e879f9' },
+              lime: { neon: '#a3e635' },
+              ink: {
+                700: '#1f2228',
+                800: '#16181d',
+                850: '#101114',
+                900: '#0c0d10',
+                950: '#08090b',
+              },
+            },
+            letterSpacing: { tightest: '-0.04em' },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      :root {
+        --cyan: #22d3ee;
+      }
+      body {
+        font-family: 'Inter', 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+        font-feature-settings: 'cv11', 'ss01', 'tnum';
+      }
+      .scene-dark {
+        background-color: #08090b;
+        background-image:
+          radial-gradient(900px 500px at 85% -10%, rgba(34, 211, 238, 0.12), transparent 60%),
+          radial-gradient(700px 400px at 5% 20%, rgba(232, 121, 249, 0.07), transparent 60%),
+          linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        background-size:
+          auto,
+          auto,
+          48px 48px,
+          48px 48px;
+      }
+      html:not(.dark) .scene-dark {
+        background-color: #fafaf9;
+        background-image:
+          radial-gradient(900px 500px at 85% -10%, rgba(8, 145, 178, 0.06), transparent 60%),
+          radial-gradient(700px 400px at 5% 20%, rgba(192, 38, 211, 0.05), transparent 60%),
+          linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+        background-size:
+          auto,
+          auto,
+          48px 48px,
+          48px 48px;
+      }
+      .hairline {
+        border-color: rgba(15, 23, 42, 0.1);
+      }
+      .dark .hairline {
+        border-color: rgba(255, 255, 255, 0.08);
+      }
+      .scanlines::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-image: repeating-linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.012) 0,
+          rgba(255, 255, 255, 0.012) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+        mix-blend-mode: overlay;
+        opacity: 0;
+      }
+      .dark .scanlines::after {
+        opacity: 1;
+      }
+      .caret {
+        display: inline-block;
+        width: 0.55ch;
+        height: 1em;
+        background: currentColor;
+        animation: blink 1.05s steps(1) infinite;
+        margin-left: 0.12em;
+        vertical-align: -0.12em;
+      }
+      @keyframes blink {
+        0%,
+        49% {
+          opacity: 1;
+        }
+        50%,
+        100% {
+          opacity: 0;
+        }
+      }
+      .pulse-dot {
+        animation: pulseDot 1.8s ease-in-out infinite;
+      }
+      @keyframes pulseDot {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.55;
+        }
+      }
+      .divider-mono {
+        background-image: repeating-linear-gradient(
+          90deg,
+          currentColor 0,
+          currentColor 6px,
+          transparent 6px,
+          transparent 12px
+        );
+        height: 1px;
+      }
+      input.tech:focus {
+        outline: none;
+        border-color: var(--cyan);
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
+      }
+    </style>
+  </head>
+
+  <body
+    class="bg-stone-50 text-zinc-900 antialiased dark:bg-ink-950 dark:text-zinc-200"
+  >
+    <!-- ░░░ Sticky theme toggle ░░░ -->
+    <div
+      class="hairline fixed right-4 top-4 z-50 flex items-center gap-2 rounded-full border bg-white/80 px-3 py-2 shadow-sm backdrop-blur dark:bg-ink-900/80"
+    >
+      <span class="pl-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+        theme
+      </span>
+      <button
+        id="themeToggle"
+        type="button"
+        aria-label="Toggle theme"
+        class="hairline inline-flex h-8 w-8 items-center justify-center rounded-full border text-zinc-700 transition hover:border-cyan-neon hover:text-cyan-neon dark:text-zinc-200"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="hidden h-4 w-4 dark:block"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+          />
+        </svg>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="block h-4 w-4 dark:hidden"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- ═══════════════════════ HEADER ═══════════════════════ -->
+    <header
+      class="hairline sticky top-0 z-30 border-b bg-white/80 backdrop-blur dark:bg-ink-950/80"
+    >
+      <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-10">
+        <a href="#" class="group flex items-center gap-2">
+          <span
+            class="hairline grid h-7 w-7 place-items-center rounded-md border bg-ink-950 font-mono text-[11px] font-bold text-cyan-neon dark:bg-cyan-neon dark:text-ink-950"
+          >
+            G9
+          </span>
+          <span class="font-mono text-sm font-semibold tracking-tight">
+            <span class="text-cyan-700 dark:text-cyan-neon">GETIT</span><span class="text-zinc-400 dark:text-zinc-500">/</span>9
+          </span>
+        </a>
+
+        <div class="flex items-center gap-2">
+          <div
+            class="hairline hidden items-center gap-2 rounded-md border bg-white/60 px-2.5 py-1.5 font-mono text-[11px] text-zinc-600 dark:bg-ink-900/60 dark:text-zinc-400 sm:flex"
+          >
+            <span
+              class="pulse-dot inline-block size-1.5 rounded-full bg-lime-600 text-lime-600 dark:bg-lime-neon dark:text-lime-neon"
+            ></span>
+            <span>auth / nominal</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════ MAIN — 2 frames side by side ═══════════════════════ -->
+    <main class="scene-dark scanlines relative">
+      <!-- 코너 + 마크 -->
+      <div
+        class="pointer-events-none absolute left-4 top-4 font-mono text-[10px] tracking-wider text-zinc-500 dark:text-zinc-600"
+      >
+        +
+      </div>
+      <div
+        class="pointer-events-none absolute right-4 top-4 font-mono text-[10px] tracking-wider text-zinc-500 dark:text-zinc-600"
+      >
+        +
+      </div>
+      <div
+        class="pointer-events-none absolute bottom-4 left-4 font-mono text-[10px] tracking-wider text-zinc-500 dark:text-zinc-600"
+      >
+        +
+      </div>
+      <div
+        class="pointer-events-none absolute bottom-4 right-4 font-mono text-[10px] tracking-wider text-zinc-500 dark:text-zinc-600"
+      >
+        +
+      </div>
+
+      <div
+        class="mx-auto grid max-w-5xl gap-10 px-6 py-16 md:grid-cols-2 lg:px-10 lg:py-20"
+      >
+        <!-- ─── LOGIN CARD ─── -->
+        <section
+          class="hairline rounded-lg border bg-white/70 p-8 backdrop-blur dark:bg-ink-900/60 sm:p-10"
+        >
+          <div class="flex flex-col gap-7">
+            <header class="flex flex-col gap-2">
+              <div
+                class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500"
+              >
+                <span class="text-cyan-700 dark:text-cyan-neon">~/auth/login</span>
+                <span class="text-zinc-300 dark:text-zinc-700">·</span>
+                <span>method: post</span>
+                <span class="text-zinc-300 dark:text-zinc-700">·</span>
+                <span>
+                  sso
+                  <span class="text-lime-700 dark:text-lime-neon">ready</span>
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span
+                  class="rounded border border-cyan-700/30 bg-cyan-50 px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-neon/40 dark:bg-cyan-neon/10 dark:text-cyan-neon"
+                >
+                  [01]
+                </span>
+                <span
+                  class="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400"
+                >
+                  LOGIN
+                </span>
+              </div>
+              <h1
+                class="font-mono text-3xl font-semibold tracking-tightest text-ink-950 dark:text-white"
+              >
+                GETIT 9기 로그인<span
+                  class="caret bg-cyan-700 text-cyan-700 dark:bg-cyan-neon dark:text-cyan-neon"
+                  aria-hidden="true"
+                ></span>
+              </h1>
+              <p class="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                한 번 로그인으로 네 개 프로젝트 모두 사용.
+              </p>
+            </header>
+
+            <form class="flex flex-col gap-4">
+              <div class="flex flex-col gap-1.5">
+                <label
+                  class="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-400"
+                  >이메일</label
+                >
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  class="hairline tech h-10 w-full rounded-md border bg-white/70 px-3 text-sm placeholder:font-mono placeholder:text-[12px] placeholder:text-zinc-400 dark:bg-ink-950/60 dark:text-zinc-200 dark:placeholder:text-zinc-500"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label
+                  class="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-400"
+                  >비밀번호</label
+                >
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  class="hairline tech h-10 w-full rounded-md border bg-white/70 px-3 text-sm placeholder:font-mono placeholder:text-[12px] placeholder:text-zinc-400 dark:bg-ink-950/60 dark:text-zinc-200 dark:placeholder:text-zinc-500"
+                />
+              </div>
+
+              <button
+                type="button"
+                class="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink-950 px-4 font-mono text-sm font-semibold text-cyan-neon transition hover:brightness-110 dark:bg-cyan-neon dark:text-ink-950 dark:shadow-[0_0_0_1px_rgba(34,211,238,0.4),0_0_28px_-4px_rgba(34,211,238,0.55)]"
+              >
+                <span aria-hidden="true" class="opacity-60">$</span>
+                <span>로그인</span>
+              </button>
+            </form>
+
+            <div
+              class="divider-mono text-zinc-300 dark:text-zinc-700"
+              aria-hidden="true"
+            ></div>
+
+            <p
+              class="text-center font-mono text-[12px] text-zinc-500 dark:text-zinc-400"
+            >
+              아직 계정이 없나요?
+              <a
+                href="#signup"
+                class="font-semibold text-cyan-700 underline-offset-4 hover:underline dark:text-cyan-neon"
+                >회원가입 <span aria-hidden="true">./signup</span></a
+              >
+            </p>
+          </div>
+        </section>
+
+        <!-- ─── SIGNUP CARD ─── -->
+        <section
+          id="signup"
+          class="hairline rounded-lg border bg-white/70 p-8 backdrop-blur dark:bg-ink-900/60 sm:p-10"
+        >
+          <div class="flex flex-col gap-7">
+            <header class="flex flex-col gap-2">
+              <div
+                class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500"
+              >
+                <span class="text-cyan-700 dark:text-cyan-neon">~/auth/signup</span>
+                <span class="text-zinc-300 dark:text-zinc-700">·</span>
+                <span>method: post</span>
+                <span class="text-zinc-300 dark:text-zinc-700">·</span>
+                <span>
+                  auto-login <span class="text-lime-700 dark:text-lime-neon">on</span>
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span
+                  class="rounded border border-fuchsia-700/30 bg-fuchsia-50 px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-fuchsia-700 dark:border-magenta-neon/40 dark:bg-magenta-neon/10 dark:text-magenta-neon"
+                >
+                  [02]
+                </span>
+                <span
+                  class="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400"
+                >
+                  SIGN UP
+                </span>
+              </div>
+              <h1
+                class="font-mono text-3xl font-semibold tracking-tightest text-ink-950 dark:text-white"
+              >
+                GETIT 9기 회원가입<span
+                  class="caret bg-cyan-700 text-cyan-700 dark:bg-cyan-neon dark:text-cyan-neon"
+                  aria-hidden="true"
+                ></span>
+              </h1>
+              <p class="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                멘토링 기간 동안 4개 프로젝트를 한 계정으로.
+              </p>
+            </header>
+
+            <form class="flex flex-col gap-4">
+              <div class="flex flex-col gap-1.5">
+                <label
+                  class="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-400"
+                  >이름</label
+                >
+                <input
+                  type="text"
+                  placeholder="홍길동"
+                  class="hairline tech h-10 w-full rounded-md border bg-white/70 px-3 text-sm placeholder:font-mono placeholder:text-[12px] placeholder:text-zinc-400 dark:bg-ink-950/60 dark:text-zinc-200 dark:placeholder:text-zinc-500"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label
+                  class="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-400"
+                  >이메일</label
+                >
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  class="hairline tech h-10 w-full rounded-md border bg-white/70 px-3 text-sm placeholder:font-mono placeholder:text-[12px] placeholder:text-zinc-400 dark:bg-ink-950/60 dark:text-zinc-200 dark:placeholder:text-zinc-500"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label
+                  class="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-400"
+                  >비밀번호</label
+                >
+                <input
+                  type="password"
+                  placeholder="8자 이상"
+                  class="hairline tech h-10 w-full rounded-md border bg-white/70 px-3 text-sm placeholder:font-mono placeholder:text-[12px] placeholder:text-zinc-400 dark:bg-ink-950/60 dark:text-zinc-200 dark:placeholder:text-zinc-500"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label
+                  class="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-400"
+                  >비밀번호 확인</label
+                >
+                <input
+                  type="password"
+                  placeholder="다시 한 번 입력"
+                  class="hairline tech h-10 w-full rounded-md border bg-white/70 px-3 text-sm placeholder:font-mono placeholder:text-[12px] placeholder:text-zinc-400 dark:bg-ink-950/60 dark:text-zinc-200 dark:placeholder:text-zinc-500"
+                />
+              </div>
+
+              <button
+                type="button"
+                class="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink-950 px-4 font-mono text-sm font-semibold text-cyan-neon transition hover:brightness-110 dark:bg-cyan-neon dark:text-ink-950 dark:shadow-[0_0_0_1px_rgba(34,211,238,0.4),0_0_28px_-4px_rgba(34,211,238,0.55)]"
+              >
+                <span aria-hidden="true" class="opacity-60">$</span>
+                <span>회원가입</span>
+              </button>
+            </form>
+
+            <div
+              class="divider-mono text-zinc-300 dark:text-zinc-700"
+              aria-hidden="true"
+            ></div>
+
+            <p
+              class="text-center font-mono text-[12px] text-zinc-500 dark:text-zinc-400"
+            >
+              이미 계정이 있나요?
+              <a
+                href="#"
+                class="font-semibold text-cyan-700 underline-offset-4 hover:underline dark:text-cyan-neon"
+                >로그인 <span aria-hidden="true">./login</span></a
+              >
+            </p>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+    <footer
+      class="hairline border-t bg-white/60 backdrop-blur dark:bg-ink-950/60"
+    >
+      <div
+        class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-2 px-6 py-6 font-mono text-[11px] text-zinc-500 dark:text-zinc-500 lg:px-10 sm:flex-row sm:items-center"
+      >
+        <p>
+          <span class="text-zinc-400 dark:text-zinc-600">©</span> GETIT/9 — KNU ·
+          경북대학교 IT 학회
+        </p>
+        <p class="tracking-wider">
+          <span class="text-cyan-700 dark:text-cyan-neon">~/</span>auth.get-it.cloud
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var KEY = 'getit:theme';
+        var btn = document.getElementById('themeToggle');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+          var isDark = root.classList.toggle('dark');
+          try {
+            localStorage.setItem(KEY, isDark ? 'dark' : 'light');
+          } catch (_) {}
+        });
+      })();
+    </script>
+  </body>
+</html>

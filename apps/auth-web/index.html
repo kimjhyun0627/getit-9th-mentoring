@@ -7,8 +7,8 @@
       name="description"
       content="GETIT 9기 통합 로그인. 한 번 로그인으로 4개 프로젝트 모두 사용."
     />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#08090b" media="(prefers-color-scheme: dark)" />
 
     <!-- Open Graph -->
     <meta property="og:title" content="로그인 · GETIT 9기" />
@@ -23,15 +23,42 @@
     <meta name="twitter:title" content="로그인 · GETIT 9기" />
     <meta name="twitter:description" content="GETIT 9기 통합 SSO 로그인." />
 
-    <!-- Pretendard Variable (landing과 동일) -->
+    <!-- Pretendard Variable (KO body) — landing과 동일 -->
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
       integrity="sha384-f9iEnfDmuRSuBrXQjpPibejnfJMrZ2yI+715EjxlzBsPFIpaD1NxMh1MIzthxtCh"
       crossorigin="anonymous"
     />
+    <!-- Inter (LATIN body) + JetBrains Mono (heading/meta) — Tech-Dark 시안 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
     <title>로그인 · GETIT 9기</title>
+
+    <!--
+      No-flash 다크 부트스트랩 (landing과 동일).
+      Tech-Dark는 다크가 기본. localStorage 저장값이 'light'가 아니면 다크 클래스 미리 적용
+      → React/ThemeProvider hydration 전에 .dark가 박혀 색 깜빡임 없음.
+      packages/theme의 STORAGE_KEY('getit:theme')와 동일 키 사용.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = window.localStorage.getItem('getit:theme');
+          var isLight = saved === 'light';
+          if (!isLight) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (_) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

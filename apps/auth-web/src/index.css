@@ -3,25 +3,27 @@
 @tailwind utilities;
 
 /**
- * Minimalist 시안 (landing과 1:1 동일) — zinc 베이스 + 인디고 단일 액센트.
- * - 라이트: white / zinc 뉴트럴
- * - 다크: zinc-950 베이스 (pure black 회피) + rgba(255,255,255,0.08) hairline
- * - primary 인디고 #4f46e5 는 본문에 안 씀 (eyebrow 도트 + 포커스 링 전용)
- * shadcn 호환 CSS variable 시스템 유지.
+ * Tech-Dark 시안 토큰 시스템 (landing과 1:1, Issue #172).
+ * - 베이스: ink-950 (#08090b) 다크 기본
+ * - 라이트: stone-50 (#fafaf9) — 절제된 charcoal 액센트
+ * - 액센트: cyan-neon (#22d3ee) 단일 (auth는 1 캔버스라 카드처럼 색 4분배 안 함)
+ * - 폰트 시스템: mono(JetBrains)=heading/meta, sans(Inter+Pretendard)=body
+ * shadcn 호환 CSS variable 시스템 유지 (--background/--foreground/...).
  */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 6% 10%;
+    --background: 60 9% 98%;
+    --foreground: 240 10% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 6% 10%;
+    --card-foreground: 240 10% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 10%;
+    --popover-foreground: 240 10% 4%;
 
-    --primary: 239 84% 58%;
-    --primary-foreground: 0 0% 100%;
+    /* 라이트 모드 primary: charcoal 잉크 + cyan glyph */
+    --primary: 240 10% 4%;
+    --primary-foreground: 187 92% 53%;
 
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 10%;
@@ -37,32 +39,35 @@
 
     --border: 240 6% 90%;
     --input: 240 6% 90%;
-    --ring: 239 84% 58%;
+    --ring: 187 92% 30%;
 
     --radius: 0.5rem;
+
+    /* hairline (1px subtle 분리자). light=검정 10%, dark=흰 8% */
+    --hairline: 0 0% 0% / 0.1;
   }
 
   .dark {
-    --background: 240 10% 4%;
+    --background: 220 12% 4%;
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 4%;
+    --card: 220 11% 7%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 4%;
+    --popover: 220 11% 7%;
     --popover-foreground: 0 0% 98%;
 
-    /* CTA — indigo 액센트 유지 (Issue #91). 다크 zinc-950 위 흰 글씨와 ~5.9:1 (WCAG AA). */
-    --primary: 239 84% 58%;
-    --primary-foreground: 0 0% 100%;
+    /* 다크 primary: cyan-neon CTA (auth.get-it.cloud 통일 액센트, 187 92% 53%) */
+    --primary: 187 92% 53%;
+    --primary-foreground: 220 12% 4%;
 
-    --secondary: 240 6% 10%;
+    --secondary: 220 11% 9%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 6% 10%;
+    --muted: 220 11% 9%;
     --muted-foreground: 240 5% 65%;
 
-    --accent: 240 6% 10%;
+    --accent: 220 11% 9%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 63% 31%;
@@ -70,28 +75,135 @@
 
     --border: 240 4% 16%;
     --input: 240 4% 16%;
-    --ring: 239 84% 67%;
+    --ring: 187 92% 53%;
+
+    --hairline: 0 0% 100% / 0.08;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: 'ss01', 'tnum';
+
+    font-feature-settings: 'cv11', 'ss01', 'tnum';
     text-rendering: optimizeLegibility;
   }
 }
 
-/* 1px hairline: light 8% black, dark 8% white. shadcn --border 와 별개 운영. */
 @layer utilities {
+  /* 1px hairline (border or bg fill). landing과 동일 변수-기반. */
   .border-hairline {
-    border-color: rgba(0, 0, 0, 0.08);
-  }
-  .dark .border-hairline {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: hsla(var(--hairline));
   }
   .bg-hairline {
-    background-color: rgba(0, 0, 0, 0.08);
+    background-color: hsla(var(--hairline));
   }
-  .dark .bg-hairline {
-    background-color: rgba(255, 255, 255, 0.08);
+
+  /**
+   * Auth scene 배경 (landing과 같은 패턴).
+   * 다크: cyan/magenta 글로우 + 흰 3.5% 그리드.
+   * 라이트: 채도 낮은 cyan/magenta + 검정 5% 그리드.
+   */
+  .scene-dark {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(900px 500px at 85% -10%, rgba(34, 211, 238, 0.12), transparent 60%),
+      radial-gradient(700px 400px at 5% 20%, rgba(232, 121, 249, 0.07), transparent 60%),
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size:
+      auto,
+      auto,
+      48px 48px,
+      48px 48px;
+  }
+  html:not(.dark) .scene-dark {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(900px 500px at 85% -10%, rgba(8, 145, 178, 0.06), transparent 60%),
+      radial-gradient(700px 400px at 5% 20%, rgba(192, 38, 211, 0.05), transparent 60%),
+      linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+    background-size:
+      auto,
+      auto,
+      48px 48px,
+      48px 48px;
+  }
+
+  /* 다크에서만 보이는 미세 스캔라인 오버레이. */
+  .scanlines::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.012) 0,
+      rgba(255, 255, 255, 0.012) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .dark .scanlines::after {
+    opacity: 1;
+  }
+
+  /* 헤드라인 caret 깜빡임 (1곳에만 — login/signup 타이틀). */
+  .caret {
+    display: inline-block;
+    width: 0.55ch;
+    height: 1em;
+    background: currentColor;
+    animation: blink 1.05s steps(1) infinite;
+    margin-left: 0.12em;
+    vertical-align: -0.12em;
+  }
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* "auth · live" status pulse dot (header). */
+  .pulse-dot {
+    animation: pulse-dot 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 currentColor;
+    }
+    50% {
+      opacity: 0.55;
+      box-shadow: 0 0 0 6px transparent;
+    }
+  }
+
+  /* dotted/dashed mono 디바이더 (form below). */
+  .divider-mono {
+    background-image: repeating-linear-gradient(
+      90deg,
+      currentColor 0,
+      currentColor 6px,
+      transparent 6px,
+      transparent 12px
+    );
+    height: 1px;
+  }
+
+  /* 모션 감소 사용자 설정 존중 */
+  @media (prefers-reduced-motion: reduce) {
+    .caret,
+    .pulse-dot {
+      animation: none;
+    }
   }
 }
