@@ -60,6 +60,39 @@ describe('toBookRecord — 카카오 응답을 Book 도메인으로 매핑', () 
     expect(book.coverUrl).toBe('');
     expect(book.description).toBe('');
   });
+
+  // #359 — Kakao thumbnail 기본은 R120x174 저화질. CDN URL 의 사이즈 토큰을
+  // R480x696 로 갈아끼우면 같은 자산의 고해상도가 즉시 떨어진다.
+  it('coverUrl: kakaocdn R120x174 → R480x696 로 업스케일', () => {
+    const book = toBookRecord({
+      ...sampleKakaoDoc,
+      thumbnail:
+        'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F123.jpg',
+    });
+    expect(book.coverUrl).toBe(
+      'https://search1.kakaocdn.net/thumb/R480x696.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F123.jpg',
+    );
+  });
+
+  it('coverUrl: 다른 사이즈 토큰 (R98x140, C120x174 등) 도 모두 R480x696 로', () => {
+    expect(
+      toBookRecord({
+        ...sampleKakaoDoc,
+        thumbnail: 'https://search1.kakaocdn.net/thumb/R98x140.q85/?fname=x',
+      }).coverUrl,
+    ).toBe('https://search1.kakaocdn.net/thumb/R480x696.q85/?fname=x');
+    expect(
+      toBookRecord({
+        ...sampleKakaoDoc,
+        thumbnail: 'https://search1.kakaocdn.net/thumb/C120x174.q85/?fname=x',
+      }).coverUrl,
+    ).toBe('https://search1.kakaocdn.net/thumb/R480x696.q85/?fname=x');
+  });
+
+  it('coverUrl: kakaocdn 아닌 URL 은 그대로 유지', () => {
+    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: 'https://example.com/cover.jpg' });
+    expect(book.coverUrl).toBe('https://example.com/cover.jpg');
+  });
 });
 
 describe('searchKakaoBooks — HTTP 호출', () => {
