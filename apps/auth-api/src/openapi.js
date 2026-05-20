@@ -3,7 +3,12 @@
  *
  * /api/docs 가 이걸 swagger-ui-express로 렌더.
  */
-import { LoginInput, SignupInput } from '@getit/schemas/auth';
+import {
+  ForgotPasswordInput,
+  LoginInput,
+  ResetPasswordInput,
+  SignupInput,
+} from '@getit/schemas/auth';
 import { z } from 'zod';
 import { createDocument, extendZodWithOpenApi } from 'zod-openapi';
 
@@ -101,6 +106,37 @@ export const buildOpenApiDoc = () =>
           responses: {
             200: ok(z.object({ user: UserResponse })),
             401: errResp('Unauthorized'),
+          },
+        },
+      },
+      '/api/password/forgot': {
+        post: {
+          summary: '비밀번호 재설정 토큰 발급 (Issue #221)',
+          description:
+            '미등록 이메일도 동일 응답으로 enumeration 방지. dev 모드에선 응답에 token 포함.',
+          requestBody: { content: { 'application/json': { schema: ForgotPasswordInput } } },
+          responses: {
+            200: ok(
+              z.object({
+                ok: z.boolean(),
+                token: z.string().optional(),
+                expiresAt: z.string().optional(),
+              }),
+            ),
+            400: errResp('ValidationError'),
+            429: errResp('RateLimitExceeded'),
+          },
+        },
+      },
+      '/api/password/reset': {
+        post: {
+          summary: '비밀번호 재설정 확정 (Issue #221)',
+          description: '토큰 1회 소비 + 비밀번호 교체 + 기존 refresh 토큰 전체 revoke.',
+          requestBody: { content: { 'application/json': { schema: ResetPasswordInput } } },
+          responses: {
+            200: ok(z.object({ ok: z.boolean() })),
+            400: errResp('ValidationError | InvalidOrExpiredToken'),
+            429: errResp('RateLimitExceeded'),
           },
         },
       },

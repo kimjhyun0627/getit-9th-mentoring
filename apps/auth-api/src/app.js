@@ -16,6 +16,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import { buildOpenApiDoc } from './openapi.js';
 import { createAuthRouter } from './routes/auth.js';
+import { createPasswordResetRouter } from './routes/password-reset.js';
 
 /**
  * 콤마 분리 ORIGIN 목록 파싱.
@@ -83,8 +84,17 @@ export const createApp = (opts = {}) => {
     legacyHeaders: false,
     message: { error: 'RateLimitExceeded' },
   });
+  // password-reset 은 burst 공격에 더 민감 → 별도 limiter (signup/login 과 동일 정책).
+  const resetLimiter = rateLimit({
+    windowMs: rateLimitWindowMs,
+    max: rateLimitMax,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'RateLimitExceeded' },
+  });
 
   app.use('/api', createAuthRouter({ signupLimiter, loginLimiter }));
+  app.use('/api', createPasswordResetRouter({ resetLimiter }));
 
   // /api/docs — swagger UI
   const openapi = buildOpenApiDoc();

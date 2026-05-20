@@ -53,4 +53,17 @@ export const api = {
   signup: (body) => client.post('/signup', body),
   me: () => client.get('/me'),
   logout: () => client.post('/logout'),
+  /**
+   * 비밀번호 재설정 토큰 발급 요청 (Issue #221).
+   * BE 는 enumeration 차단을 위해 항상 200 응답.
+   *
+   * @param {{ email: string }} body
+   */
+  forgotPassword: (body) => client.post('/password/forgot', body),
+  /**
+   * 비밀번호 재설정 확정 (Issue #221).
+   *
+   * @param {{ token: string; password: string; passwordConfirm: string }} body
+   */
+  resetPassword: (body) => client.post('/password/reset', body),
 };
