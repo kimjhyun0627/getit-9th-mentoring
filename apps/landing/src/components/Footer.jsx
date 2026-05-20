@@ -55,6 +55,7 @@ export const Footer = () => {
                 className="hover:text-zinc-900 dark:hover:text-zinc-200"
               >
                 github
+                <span className="sr-only"> — 새 탭에서 열림</span>
               </a>
               <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
                 ·
@@ -66,6 +67,7 @@ export const Footer = () => {
                 className="hover:text-zinc-900 dark:hover:text-zinc-200"
               >
                 notion
+                <span className="sr-only"> — 새 탭에서 열림</span>
               </a>
               <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
                 ·

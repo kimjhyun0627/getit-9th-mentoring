@@ -112,7 +112,7 @@ export const Hero = () => {
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <a
             href="#projects"
-            aria-label="전체 프로젝트 보기"
+            aria-label="./explore --all (전체 프로젝트 보기)"
             className="group inline-flex items-center gap-2 rounded-md bg-ink-950 px-4 py-2.5 font-mono text-sm font-semibold text-cyan-neon transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-cyan-neon dark:text-ink-950 dark:shadow-[0_0_0_1px_rgba(34,211,238,0.4),0_0_28px_-4px_rgba(34,211,238,0.55)]"
           >
             <span aria-hidden="true">./explore --all</span>
@@ -123,7 +123,7 @@ export const Hero = () => {
             href="https://github.com/kimjhyun0627/getit-9th-mentoring"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="GitHub 저장소 — 새 탭에서 열림"
+            aria-label="git remote (GitHub 저장소) — 새 탭에서 열림"
             className="inline-flex items-center gap-2 rounded-md border border-hairline bg-white/60 px-4 py-2.5 font-mono text-sm text-zinc-800 transition hover:border-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-ink-900/60 dark:text-zinc-200 dark:hover:border-zinc-400"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

@@ -45,14 +45,14 @@ export const Header = () => {
           <nav aria-label="주요 섹션" className="hidden items-center gap-8 md:flex">
             <a
               href="#projects"
-              aria-label="프로젝트 섹션으로 이동"
+              aria-label="services (프로젝트 섹션으로 이동)"
               className="font-mono text-xs text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
             >
               services
             </a>
             <a
               href="#about"
-              aria-label="소개 섹션으로 이동"
+              aria-label="about (소개 섹션으로 이동)"
               className="font-mono text-xs text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
             >
               about
@@ -73,7 +73,7 @@ export const Header = () => {
 
           <a
             href={buildLoginUrl()}
-            aria-label="로그인"
+            aria-label="sign in (로그인)"
             className="inline-flex items-center gap-1.5 rounded-md border border-hairline bg-white/70 px-3 py-1.5 font-mono text-xs font-medium text-zinc-800 transition hover:border-cyan-700 hover:text-cyan-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-ink-900/70 dark:text-zinc-200 dark:hover:border-cyan-neon dark:hover:text-cyan-neon"
           >
             <span className="opacity-60" aria-hidden="true">
