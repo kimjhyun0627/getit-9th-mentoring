@@ -94,4 +94,162 @@
       radial-gradient(900px 500px at 110% 10%, rgba(168, 184, 154, 0.14), transparent 60%),
       linear-gradient(180deg, #2c2420 0%, #261e1a 100%);
   }
+
+  /* ─────────────────────────────────────────────────────────
+     Board 전용 유틸 (#54):
+     - .paper  : 종이 노이즈 텍스처 (SVG turbulence)
+     - .stitch : 점선 디바이더
+     - .scribble : 손글씨 밑줄 (peach)
+     ───────────────────────────────────────────────────────── */
+  .paper {
+    position: relative;
+    isolation: isolate;
+  }
+  .paper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.55;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.23 0 0 0 0 0.18 0 0 0 0 0.15 0 0 0 0.08 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+  }
+  .dark .paper::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.75 0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    mix-blend-mode: screen;
+    opacity: 0.5;
+  }
+  .paper > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .stitch {
+    background-image: linear-gradient(90deg, rgba(58, 46, 39, 0.35) 50%, transparent 50%);
+    background-size: 12px 1px;
+    background-repeat: repeat-x;
+    background-position: center;
+    height: 1px;
+  }
+  .dark .stitch {
+    background-image: linear-gradient(90deg, rgba(232, 214, 196, 0.35) 50%, transparent 50%);
+  }
+
+  .scribble {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'><path d='M2 7 Q 50 1, 100 6 T 198 5' stroke='%23E8B89F' stroke-width='5' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: 0 88%;
+    background-size: 100% 0.5em;
+  }
+  .dark .scribble {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 12'><path d='M2 7 Q 50 1, 100 6 T 198 5' stroke='%23D9A892' stroke-width='5' fill='none' stroke-linecap='round'/></svg>");
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   Sticky Note (#54) — 시안 핵심 컴포넌트.
+   - rotate(var(--rot)) : ID 해시 기반 살짝 회전 (deterministic)
+   - hover 시 보정 + 살짝 떠오름
+   - .mine 은 dashed 테두리 + 워시테이프 라벨
+   - prefers-reduced-motion 대응
+   ───────────────────────────────────────────────────────── */
+@layer components {
+  .note {
+    position: relative;
+    border-radius: 6px 18px 8px 14px;
+    padding: 22px 20px 18px;
+    box-shadow:
+      0 1px 0 rgba(58, 46, 39, 0.05),
+      0 12px 18px -10px rgba(58, 46, 39, 0.28);
+    transition:
+      transform 380ms cubic-bezier(0.2, 0.7, 0.2, 1),
+      box-shadow 380ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    min-height: 168px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transform: rotate(var(--rot, 0deg));
+    will-change: transform;
+  }
+  .dark .note {
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.25),
+      0 14px 22px -12px rgba(0, 0, 0, 0.55);
+  }
+  .note:hover,
+  .note:focus-within {
+    transform: rotate(0deg) translateY(-6px) scale(1.02);
+    box-shadow:
+      0 2px 0 rgba(58, 46, 39, 0.06),
+      0 24px 32px -14px rgba(58, 46, 39, 0.35);
+    z-index: 5;
+  }
+  .note::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(225deg, rgba(0, 0, 0, 0.1) 50%, transparent 50%);
+    border-bottom-left-radius: 6px;
+  }
+  .note.mine {
+    outline: 2px dashed rgba(232, 184, 159, 0.95);
+    outline-offset: -8px;
+  }
+  .dark .note.mine {
+    outline-color: rgba(217, 168, 146, 0.85);
+  }
+
+  .washi {
+    position: absolute;
+    top: -10px;
+    width: 64px;
+    height: 18px;
+    border-radius: 2px;
+    box-shadow: 0 2px 6px rgba(58, 46, 39, 0.12);
+    opacity: 0.9;
+  }
+  .washi.left {
+    left: 14px;
+    transform: rotate(-5deg);
+  }
+  .washi.right {
+    right: 14px;
+    transform: rotate(4deg);
+  }
+  .washi.center {
+    left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+  }
+
+  .mine-badge {
+    position: absolute;
+    top: -14px;
+    right: -10px;
+    transform: rotate(8deg);
+    padding: 4px 10px;
+    background: theme('colors.peachDk');
+    color: theme('colors.ink');
+    font-family: theme('fontFamily.hand');
+    font-size: 16px;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(58, 46, 39, 0.18);
+  }
+  .dark .mine-badge {
+    background: theme('colors.rose');
+    color: theme('colors.mocha');
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note {
+    transform: rotate(0deg) !important;
+  }
+  .note:hover,
+  .note:focus-within {
+    transform: translateY(-3px) !important;
+  }
 }
