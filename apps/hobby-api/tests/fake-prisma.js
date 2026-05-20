@@ -256,8 +256,25 @@ export class FakePrismaClient {
       release = r;
     });
     try {
-      await prev;
-      return await fn(this);
+      // 이전 트랜잭션이 reject 해도 큐가 막히면 안 됨. catch 로 흡수해서 다음 tx 가 진행.
+      await prev.catch(() => {});
+      // 콜백 throw 시 자동 롤백 — 실 Prisma 의 `$transaction(fn)` 시멘틱.
+      // memDb 스냅샷 후 실행, 예외 시 복구.
+      const snapshot = {
+        tags: new Map(memDb.tags),
+        posts: new Map(memDb.posts),
+        postTags: new Map(memDb.postTags),
+        applications: new Map(memDb.applications),
+      };
+      try {
+        return await fn(this);
+      } catch (err) {
+        memDb.tags = snapshot.tags;
+        memDb.posts = snapshot.posts;
+        memDb.postTags = snapshot.postTags;
+        memDb.applications = snapshot.applications;
+        throw err;
+      }
     } finally {
       release();
     }

@@ -59,64 +59,81 @@ export const createApplicationsRouter = ({ jwtSecret }) => {
 
       // 트랜잭션: 좌석 확보 + Application 생성.
       // 조건부 updateMany 로 race condition 차단 (atomic UPDATE...WHERE row-lock).
-      const result = await prisma.$transaction(async (tx) => {
-        const post = await tx.post.findUnique({
-          where: { id: postId },
-          select: { id: true, ownerId: true, capacity: true, currentCapacity: true, status: true },
-        });
-        if (!post) return { kind: 'NotFound' };
-        if (post.ownerId === userId) return { kind: 'OwnerCannotApply' };
-        if (post.status !== 'RECRUITING') return { kind: 'PostNotOpen', status: post.status };
+      //
+      // 흐름 제어 노트: kind!=='Ok' 인 비즈니스 거부는 sentinel error (BizReject) 로
+      // throw → 트랜잭션 자동 롤백 → 바깥에서 catch 해서 HTTP 분기.
+      // 이렇게 하면 P2002 보상 decrement 같은 수동 롤백을 안 해도 됨 (Gemini #2 적용).
+      class BizReject extends Error {
+        constructor(kind, extra = {}) {
+          super(kind);
+          this.kind = kind;
+          this.extra = extra;
+        }
+      }
 
-        // 중복 신청 사전 체크 — capacity 를 헛 increment 하지 않기 위함.
-        // 진짜 race (동시 신청자 둘) 는 아래 unique 제약 + 보상 decrement 가 잡음.
-        const existing = await tx.application.findUnique({
-          where: { postId_userId: { postId, userId } },
-        });
-        if (existing) return { kind: 'AlreadyApplied' };
-
-        // 좌석 확보: 조건부 increment. count==0 → 다른 트랜잭션이 먼저 가져갔거나 마감.
-        const seat = await tx.post.updateMany({
-          where: {
-            id: postId,
-            status: 'RECRUITING',
-            currentCapacity: { lt: post.capacity },
-          },
-          data: { currentCapacity: { increment: 1 } },
-        });
-        if (seat.count === 0) return { kind: 'PostFull' };
-
-        // Application 생성. unique 제약 (postId, userId) 충돌 → 409 AlreadyApplied.
-        // 사전 체크와 unique create 사이 race 면 P2002 가 발생할 수 있으므로
-        // 보상 decrement 로 currentCapacity 를 원복 (FakePrisma 는 진짜 롤백이
-        // 없고, 실 Prisma 도 콜백 throw 만 자동 롤백 → 명시적 보상이 안전).
-        let application;
-        try {
-          application = await tx.application.create({
-            data: { postId, userId },
+      let result;
+      try {
+        result = await prisma.$transaction(async (tx) => {
+          const post = await tx.post.findUnique({
+            where: { id: postId },
+            select: { id: true, ownerId: true, capacity: true, status: true },
           });
-        } catch (err) {
-          if (err?.code === 'P2002') {
-            await tx.post.updateMany({
-              where: { id: postId, currentCapacity: { gt: 0 } },
-              data: { currentCapacity: { decrement: 1 } },
-            });
-            return { kind: 'AlreadyApplied' };
+          if (!post) throw new BizReject('NotFound');
+          if (post.ownerId === userId) throw new BizReject('OwnerCannotApply');
+          if (post.status !== 'RECRUITING') {
+            throw new BizReject('PostNotOpen', { status: post.status });
           }
+
+          // 중복 신청 사전 체크 — 좋은 UX (409 즉시 응답) + 헛 increment 회피.
+          // 진짜 race 는 application.create 의 unique 제약이 backstop.
+          const existing = await tx.application.findUnique({
+            where: { postId_userId: { postId, userId } },
+          });
+          if (existing) throw new BizReject('AlreadyApplied');
+
+          // 좌석 확보: 조건부 increment. count==0 → 마감 또는 동시 신청 패배.
+          const seat = await tx.post.updateMany({
+            where: {
+              id: postId,
+              status: 'RECRUITING',
+              currentCapacity: { lt: post.capacity },
+            },
+            data: { currentCapacity: { increment: 1 } },
+          });
+          if (seat.count === 0) throw new BizReject('PostFull');
+
+          // Application 생성. P2002 (중복 신청 race) → throw 로 자동 롤백
+          // → currentCapacity 도 같이 원복 (Gemini #2 — 수동 보상 제거).
+          let application;
+          try {
+            application = await tx.application.create({ data: { postId, userId } });
+          } catch (err) {
+            if (err?.code === 'P2002') throw new BizReject('AlreadyApplied');
+            throw err;
+          }
+
+          // 정원 도달 확인. 스냅샷 + 1 이 아닌 fresh refetch 로 검사 (Gemini #1).
+          // 진짜 currentCapacity 가 capacity 에 도달했을 때만 FULL 로 전이.
+          const fresh = await tx.post.findUnique({
+            where: { id: postId },
+            select: { currentCapacity: true, capacity: true, status: true },
+          });
+          if (fresh && fresh.status === 'RECRUITING' && fresh.currentCapacity >= fresh.capacity) {
+            await tx.post.update({
+              where: { id: postId },
+              data: { status: 'FULL' },
+            });
+          }
+
+          return { kind: 'Ok', application };
+        });
+      } catch (err) {
+        if (err instanceof BizReject) {
+          result = { kind: err.kind, ...err.extra };
+        } else {
           throw err;
         }
-
-        // 정원 도달했으면 FULL 전이.
-        const after = post.currentCapacity + 1;
-        if (after >= post.capacity) {
-          await tx.post.update({
-            where: { id: postId },
-            data: { status: 'FULL' },
-          });
-        }
-
-        return { kind: 'Ok', application };
-      });
+      }
 
       switch (result.kind) {
         case 'NotFound':
