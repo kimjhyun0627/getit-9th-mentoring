@@ -164,15 +164,22 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /*
+   * animation/transition 만 제거해서 모션은 끄지만, aria-checked 변경 시 적용되는
+   * 상태 transform (puck 의 translateX + rotate, icon 의 scale/rotate) 은 유지.
+   * → reduced-motion 사용자도 토글의 최종 시각 상태는 정확히 봐야 함 (WCAG).
+   */
   .playful-toggle,
   .playful-toggle__puck,
   .playful-toggle__icon,
   .playful-toggle__rays,
-  .playful-toggle__stars,
-  .playful-toggle:hover,
-  .playful-toggle:active {
+  .playful-toggle__stars {
     animation: none !important;
     transition: none !important;
+  }
+  /* hover/active 의 미세 스케일 모션만 제거. */
+  .playful-toggle:hover,
+  .playful-toggle:active {
     transform: none !important;
   }
 }

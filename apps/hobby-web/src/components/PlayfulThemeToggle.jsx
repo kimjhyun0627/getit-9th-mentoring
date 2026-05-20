@@ -27,7 +27,7 @@ export const PlayfulThemeToggle = ({ className = '' }) => {
   const toggle = useTheme((s) => s.toggle);
   const isDark = resolved === 'dark';
   const [bouncing, setBouncing] = useState(false);
-  const timerRef = useRef(/** @type {number | null} */ (null));
+  const timerRef = useRef(null);
 
   // 토글 직후 600ms 동안 'bouncing' 클래스 부착 → spring 모션 1회 재생.
   // 컴포넌트가 unmount 되면 타이머 정리.
