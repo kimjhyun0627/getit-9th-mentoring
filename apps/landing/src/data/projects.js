@@ -1,6 +1,21 @@
+import { z } from 'zod';
+
 /**
  * @typedef {'cyan' | 'magenta' | 'lime' | 'amber'} ProjectAccent
  */
+
+const ProjectSchema = z.object({
+  eyebrow: z.string(),
+  idLabel: z.string(),
+  slug: z.string(),
+  subtitle: z.string(),
+  title: z.string(),
+  href: z.string().url(),
+  emoji: z.string(),
+  description: z.string(),
+  hostLabel: z.string(),
+  accent: z.enum(['cyan', 'magenta', 'lime', 'amber']),
+});
 
 /**
  * @typedef {object} Project
@@ -22,7 +37,7 @@
  *
  * @type {Project[]}
  */
-export const PROJECTS = [
+export const PROJECTS = ProjectSchema.array().parse([
   {
     eyebrow: '[01]',
     idLabel: 'ID: HBY-01',
@@ -71,4 +86,4 @@ export const PROJECTS = [
     hostLabel: 'letter.get-it.cloud',
     accent: 'amber',
   },
-];
+]);
