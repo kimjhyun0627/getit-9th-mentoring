@@ -1,5 +1,6 @@
-import { ThemeToggle } from '@getit/theme';
 import { Link } from 'react-router-dom';
+
+import { CandleToggle } from './CandleToggle.jsx';
 
 /**
  * 롤링페이퍼 공통 레이아웃 — Warm 톤 (warm.html 기준).
@@ -24,7 +25,7 @@ export const LetterLayout = ({ children }) => {
         </Link>
 
         <div className="flex items-center gap-3">
-          <ThemeToggle className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg shadow-sm ring-1 ring-ink/10 transition hover:scale-105 dark:bg-mocha2 dark:ring-beige/20" />
+          <CandleToggle className="candle-toggle inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-ink/10 transition hover:scale-105 dark:bg-mocha2 dark:ring-beige/20" />
         </div>
       </header>
 
