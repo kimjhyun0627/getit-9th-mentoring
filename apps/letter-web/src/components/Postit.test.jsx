@@ -1,0 +1,99 @@
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+
+import { Postit } from './Postit.jsx';
+
+/**
+ * Postit TDD 가드 (#54).
+ *
+ * 핵심:
+ *  - 익명 메시지: 본문 + 시간만. 작성자 정보 노출 X.
+ *  - 본인 메시지(is_mine=true): "내 메시지" 워시테이프 라벨 + 편집/삭제 버튼.
+ *  - 색상 prop 에 맞는 background class (PINK/MINT/LEMON/LAVENDER).
+ *  - 회전 각도는 ID 해시 기반 deterministic → CSS var `--rot` 가 -3~+3 범위.
+ */
+describe('Postit', () => {
+  // 실시간 시계에 의존하면 "5분 전" 같은 상대시간 단언이 실행 타이밍에 따라 깜박이므로
+  // 고정된 now 를 만들어 Postit 에 주입하고 createdAt/updatedAt 도 거기서 역산한다.
+  const fixedNow = new Date('2026-05-20T12:00:00.000Z');
+  const fiveMinutesAgo = new Date(fixedNow.getTime() - 5 * 60_000).toISOString();
+  const base = {
+    id: 'm1',
+    content: '9기 화이팅! 한 학기 같이 잘해봐요.',
+    color: 'LEMON',
+    createdAt: fiveMinutesAgo,
+    updatedAt: fiveMinutesAgo,
+    is_mine: false,
+  };
+
+  it('익명 메시지는 본문 + 시간만 렌더하고 작성자 정보를 노출하지 않는다', () => {
+    render(<Postit message={base} now={fixedNow} />);
+    expect(screen.getByText(/9기 화이팅/)).toBeInTheDocument();
+    expect(screen.getByText('5분 전')).toBeInTheDocument();
+    expect(screen.queryByText(/내 메시지/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /편집|삭제/ })).not.toBeInTheDocument();
+  });
+
+  it('익명 메시지의 article 에는 "내 메시지" aria-label 이 붙지 않는다', () => {
+    render(<Postit message={base} now={fixedNow} />);
+    const article = screen.getByRole('article');
+    // aria-label 자체가 없거나 (null), 있더라도 "내 메시지" 텍스트는 포함되지 않아야 한다.
+    const label = article.getAttribute('aria-label');
+    expect(label ?? '').not.toMatch(/내 메시지/);
+  });
+
+  it('is_mine=true 면 "내 메시지" 라벨과 편집/삭제 버튼이 보인다', () => {
+    render(<Postit message={{ ...base, is_mine: true }} now={fixedNow} />);
+    const article = screen.getByRole('article');
+    expect(article).toHaveClass('mine');
+    expect(within(article).getByText('내 메시지')).toBeInTheDocument();
+    expect(within(article).getByRole('button', { name: /편집/ })).toBeInTheDocument();
+    expect(within(article).getByRole('button', { name: /삭제/ })).toBeInTheDocument();
+  });
+
+  it('편집/삭제 버튼 클릭 시 콜백이 메시지와 함께 호출된다', async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+    const mine = { ...base, is_mine: true };
+    render(<Postit message={mine} onEdit={onEdit} onDelete={onDelete} now={fixedNow} />);
+
+    await user.click(screen.getByRole('button', { name: /편집/ }));
+    expect(onEdit).toHaveBeenCalledWith(mine);
+
+    await user.click(screen.getByRole('button', { name: /삭제/ }));
+    expect(onDelete).toHaveBeenCalledWith(mine);
+  });
+
+  it('색상 prop 별로 다른 배경 클래스를 적용한다 (PINK/MINT/LEMON/LAVENDER)', () => {
+    const colors = /** @type {const} */ (['PINK', 'MINT', 'LEMON', 'LAVENDER']);
+    for (const color of colors) {
+      const { unmount } = render(
+        <Postit message={{ ...base, id: `id-${color}`, color }} now={fixedNow} />,
+      );
+      const article = screen.getByRole('article');
+      expect(article.className).toMatch(/bg-note-/);
+      unmount();
+    }
+  });
+
+  it('회전 각도 CSS 변수 --rot 가 -3deg ~ 3deg 범위 안이다', () => {
+    render(<Postit message={base} now={fixedNow} />);
+    const article = screen.getByRole('article');
+    const rot = article.style.getPropertyValue('--rot');
+    const num = Number.parseFloat(rot.replace('deg', ''));
+    expect(Number.isFinite(num)).toBe(true);
+    expect(num).toBeGreaterThanOrEqual(-3);
+    expect(num).toBeLessThanOrEqual(3);
+  });
+
+  it('같은 ID 는 항상 같은 회전 각도 (deterministic)', () => {
+    const { unmount } = render(<Postit message={base} now={fixedNow} />);
+    const first = screen.getByRole('article').style.getPropertyValue('--rot');
+    unmount();
+    render(<Postit message={base} now={fixedNow} />);
+    const second = screen.getByRole('article').style.getPropertyValue('--rot');
+    expect(first).toBe(second);
+  });
+});
