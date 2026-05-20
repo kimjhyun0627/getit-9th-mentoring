@@ -1,3 +1,5 @@
+import { useEffect, useId, useRef, useState } from 'react';
+
 import { cn } from '../lib/cn.js';
 import { formatRelative, rotationFromId } from '../lib/time.js';
 
@@ -59,6 +61,29 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
   const palette = PALETTE[message.color] ?? PALETTE.LEMON;
   const rot = `${rotationFromId(message.id)}deg`;
   const tape = tapePosition(message.id);
+  const confirmId = useId();
+  const deleteBtnRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
+  const confirmPrimaryRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
+  const [confirming, setConfirming] = useState(false);
+
+  // 확인 다이얼로그 a11y — Escape 닫기 + 자동 포커스 + 닫힐 때 삭제 버튼으로 포커스 복원.
+  // Round 2 (CR id=3276028448, Gemini id=3276012497/3276012522/3276012539): inline
+  // confirm 이지만 키보드 사용자에게는 모달처럼 동작해야 — Escape / autofocus / focus
+  // restoration. aria-modal 은 inline (페이지 차단 X) 이라 제거 (Gemini 권고).
+  useEffect(() => {
+    if (!confirming) return undefined;
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setConfirming(false);
+        deleteBtnRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    // 다이얼로그 열리면 destructive 가 아닌 안전한 "그대로 두기" 로 초기 포커스.
+    confirmPrimaryRef.current?.focus();
+    return () => window.removeEventListener('keydown', handler);
+  }, [confirming]);
 
   return (
     <article
@@ -84,15 +109,18 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
             <button
               type="button"
               onClick={() => onEdit?.(message)}
-              aria-label="편집"
               className="inline-flex items-center gap-1 rounded-full border border-ink/15 bg-white/60 px-2.5 py-1 text-xs text-ink transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:border-beige/25 dark:bg-mocha3/65 dark:text-beige dark:hover:bg-mocha3"
             >
               <span aria-hidden="true">✏</span> 편집
             </button>
             <button
+              ref={deleteBtnRef}
               type="button"
-              onClick={() => onDelete?.(message)}
-              aria-label="삭제"
+              onClick={() => setConfirming(true)}
+              aria-label="이 쪽지 삭제"
+              aria-haspopup="dialog"
+              aria-controls={confirming ? confirmId : undefined}
+              aria-expanded={confirming || undefined}
               className="inline-flex items-center justify-center rounded-full border border-ink/15 bg-white/60 px-2.5 py-1 text-xs text-ink transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:border-beige/25 dark:bg-mocha3/65 dark:text-beige dark:hover:bg-mocha3"
             >
               <span aria-hidden="true">🗑</span>
@@ -100,6 +128,46 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
           </div>
         ) : null}
       </div>
+
+      {confirming ? (
+        <div
+          id={confirmId}
+          role="dialog"
+          aria-labelledby={`${confirmId}-title`}
+          aria-describedby={`${confirmId}-desc`}
+          className="mt-3 rounded-2xl border border-ink/10 bg-white/85 p-3 text-ink shadow-sm dark:border-beige/15 dark:bg-mocha2/90 dark:text-beige"
+        >
+          <p id={`${confirmId}-title`} className="text-sm font-semibold">
+            이 쪽지를 떼어낼까요?
+          </p>
+          <p id={`${confirmId}-desc`} className="mt-1 font-hand text-xs text-ink2 dark:text-beige2">
+            한 번 떼어내면 다시 붙일 수 없어요.
+          </p>
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <button
+              ref={confirmPrimaryRef}
+              type="button"
+              onClick={() => {
+                setConfirming(false);
+                deleteBtnRef.current?.focus();
+              }}
+              className="rounded-full px-3 py-1 text-xs font-medium text-ink2 transition hover:bg-cream2 dark:text-beige2 dark:hover:bg-mocha3"
+            >
+              그대로 두기
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setConfirming(false);
+                onDelete?.(message);
+              }}
+              className="rounded-full bg-ink px-3 py-1 text-xs font-semibold text-cream shadow-sm transition hover:bg-mocha2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-beige dark:text-mocha dark:hover:bg-beige2"
+            >
+              떼어내기
+            </button>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 };

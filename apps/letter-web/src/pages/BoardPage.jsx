@@ -85,7 +85,7 @@ const TitleStrip = ({ count }) => (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="font-pen text-2xl leading-none text-sageDk sm:text-3xl dark:text-sageW">
-          우리들의 한 마디
+          우리들의 한 줄
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight leading-tight sm:text-5xl">
           GETIT 9기 <span className="scribble">롤링페이퍼</span>
@@ -94,9 +94,16 @@ const TitleStrip = ({ count }) => (
           이름은 숨기고, 마음은 전하고. 부원실 벽에 살며시 붙여둔 한 줄이에요.
         </p>
       </div>
-      <div className="font-hand text-xs text-ink2/80 sm:text-sm dark:text-beige2/80">
-        총 <span className="font-bold text-ink dark:text-beige">{count}</span>장의 쪽지가 붙어있어요
-      </div>
+      {count > 0 ? (
+        <div className="font-hand text-xs text-ink2/80 sm:text-sm dark:text-beige2/80">
+          총 <span className="font-bold text-ink dark:text-beige">{count}</span>장의 쪽지가
+          붙어있어요
+        </div>
+      ) : (
+        <div className="font-hand text-xs text-ink2/80 sm:text-sm dark:text-beige2/80">
+          벽이 비어있어요
+        </div>
+      )}
     </div>
     <div className="stitch mt-6 opacity-70" />
   </div>
@@ -140,8 +147,9 @@ const EmptyBoard = () => (
   <div className="mx-auto flex max-w-md flex-col items-center justify-center gap-3 rounded-[6px_18px_8px_14px] border-2 border-dashed border-ink2/25 bg-white/55 px-6 py-16 text-center dark:border-beige2/30 dark:bg-mocha3/45">
     <div className="font-pen text-4xl text-peachDk dark:text-rose">+</div>
     <p className="text-sm font-medium text-ink dark:text-beige">아직 쪽지가 없어요</p>
-    <p className="font-hand text-base text-ink2 dark:text-beige2">
-      여기에 당신의 한 줄을 살며시 붙여주세요
+    <p className="font-hand text-base text-ink2 dark:text-beige2">첫 한 줄을 살며시 붙여주세요</p>
+    <p className="font-hand text-xs text-sageDk dark:text-sageW">
+      이름은 표시되지 않아요 · 마음만 전해져요
     </p>
   </div>
 );
@@ -156,7 +164,7 @@ const ErrorState = ({ onRetry }) => (
   >
     <p className="text-sm font-semibold text-ink dark:text-beige">쪽지를 불러오지 못했어요</p>
     <p className="text-xs leading-relaxed text-ink2 dark:text-beige2">
-      네트워크 상태를 확인한 뒤 다시 시도해줘.
+      잠깐 연결이 끊겼나봐요. 새로고침해볼까요?
     </p>
     <button
       type="button"
