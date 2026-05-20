@@ -108,18 +108,18 @@
         <div class="card">
           <h2>A · binary switch (light)</h2>
           <div class="row">
-            <button class="switch" aria-pressed="false" aria-label="다크모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')">
+            <button class="switch" aria-pressed="false" aria-label="다크모드로 전환" data-toggle="switch">
               <span class="puck"></span>
             </button>
-            <div class="meta">정사각 puck · <code>28×56</code> · 4px 슬라이드. 아이콘 없음.</div>
+            <div class="meta">정사각 puck · <code>56×28</code> · 4px 슬라이드. 아이콘 없음.</div>
           </div>
           <h2>B · segmented control (light)</h2>
           <div class="row">
-            <div class="segmented" data-mode="light">
+            <div class="segmented" role="radiogroup" aria-label="테마 모드" data-mode="light">
               <span class="indicator"></span>
-              <button data-val="light" onclick="this.parentElement.dataset.mode='light'">Light</button>
-              <button data-val="auto" onclick="this.parentElement.dataset.mode='auto'">Auto</button>
-              <button data-val="dark" onclick="this.parentElement.dataset.mode='dark'">Dark</button>
+              <button role="radio" aria-checked="true" data-val="light">Light</button>
+              <button role="radio" aria-checked="false" data-val="auto">Auto</button>
+              <button role="radio" aria-checked="false" data-val="dark">Dark</button>
             </div>
             <div class="meta">시스템 모드 추적이 디폴트가 되는 3-state.</div>
           </div>
@@ -127,18 +127,18 @@
         <div class="card dark">
           <h2>A · binary switch (dark)</h2>
           <div class="row">
-            <button class="switch" aria-pressed="true" aria-label="라이트모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')">
+            <button class="switch" aria-pressed="true" aria-label="라이트모드로 전환" data-toggle="switch">
               <span class="puck"></span>
             </button>
             <div class="meta">accent 컬러 <code>indigo-400</code> · 1px 보더 유지.</div>
           </div>
           <h2>B · segmented control (dark)</h2>
           <div class="row">
-            <div class="segmented" data-mode="dark">
+            <div class="segmented" role="radiogroup" aria-label="테마 모드" data-mode="dark">
               <span class="indicator"></span>
-              <button data-val="light" onclick="this.parentElement.dataset.mode='light'">Light</button>
-              <button data-val="auto" onclick="this.parentElement.dataset.mode='auto'">Auto</button>
-              <button data-val="dark" onclick="this.parentElement.dataset.mode='dark'">Dark</button>
+              <button role="radio" aria-checked="false" data-val="light">Light</button>
+              <button role="radio" aria-checked="false" data-val="auto">Auto</button>
+              <button role="radio" aria-checked="true" data-val="dark">Dark</button>
             </div>
             <div class="meta">indicator만 살짝 떠 있고 나머지는 평면.</div>
           </div>
@@ -148,5 +148,27 @@
         <strong>컨셉.</strong> A안은 가장 작은 단위의 binary switch — 색·아이콘·라운드 다 제거. B안은 시스템 모드까지 지원하는 세그먼티드 컨트롤. 헤더엔 A, 설정 화면엔 B 추천. linear.app / vercel.com 톤. 8px grid 정확.
       </p>
     </div>
+    <script>
+      // binary switch: aria-pressed + aria-label 동기화.
+      document.querySelectorAll('button[data-toggle="switch"]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const next = btn.getAttribute('aria-pressed') !== 'true';
+          btn.setAttribute('aria-pressed', String(next));
+          btn.setAttribute('aria-label', next ? '라이트모드로 전환' : '다크모드로 전환');
+        });
+      });
+      // segmented control: data-mode + aria-checked 동기화.
+      document.querySelectorAll('.segmented').forEach((group) => {
+        group.querySelectorAll('button[data-val]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const val = btn.dataset.val;
+            group.dataset.mode = val;
+            group.querySelectorAll('button[data-val]').forEach((b) => {
+              b.setAttribute('aria-checked', String(b === btn));
+            });
+          });
+        });
+      });
+    </script>
   </body>
 </html>

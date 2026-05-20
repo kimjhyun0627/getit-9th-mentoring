@@ -108,7 +108,7 @@
       .sunflower[aria-pressed='true'] {
         background: radial-gradient(circle, #ddd6fe 0%, #8b5cf6 60%, #4c1d95 100%);
         box-shadow: 0 6px 18px -6px rgba(139,92,246,0.7);
-        transform: rotate(180deg);
+        transform: rotate(360deg);
       }
       .sunflower::before {
         content: '🌻';
@@ -118,7 +118,10 @@
       }
       .sunflower[aria-pressed='true']::before { content: '🌙'; }
       .sunflower:hover { transform: scale(1.1) rotate(15deg); }
-      .sunflower[aria-pressed='true']:hover { transform: scale(1.1) rotate(195deg); }
+      .sunflower[aria-pressed='true']:hover { transform: scale(1.1) rotate(375deg); }
+      @media (prefers-reduced-motion: reduce) {
+        .sunmoon, .sunmoon .puck, .sunflower { transition-duration: 0.01ms !important; }
+      }
       .row { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
       .row .label { font-weight: 700; font-size: 13px; }
       .row .label small { display:block; font-weight:500; font-size:11px; opacity:0.6; margin-top:2px; }
@@ -139,22 +142,22 @@
         <div class="card light">
           <h2>A. 햇님↔달 슬라이드 (light)</h2>
           <div class="row">
-            <button class="sunmoon" aria-pressed="false" aria-label="다크모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')">
+            <button class="sunmoon" aria-pressed="false" aria-label="다크모드로 전환" data-toggle="sunmoon">
               <span class="ray"></span><span class="stars"></span>
               <span class="puck">☀️</span>
             </button>
-            <div class="label">햇살 모드 켜짐<small>클릭 → 달이 360° 회전하며 우측으로 슬라이드</small></div>
+            <div class="label">햇살 모드 켜짐<small>클릭 → 달이 우측으로 슬라이드</small></div>
           </div>
           <h2 style="margin-top:24px;">B. 해바라기 회전 (light)</h2>
           <div class="row">
-            <button class="sunflower" aria-pressed="false" aria-label="다크모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')"></button>
-            <div class="label">해바라기 모드<small>호버하면 살짝 회전, 클릭하면 180° 뒤집힘</small></div>
+            <button class="sunflower" aria-pressed="false" aria-label="다크모드로 전환" data-toggle="sunflower"></button>
+            <div class="label">해바라기 모드<small>호버 시 살짝 회전, 클릭 시 360° 회전하며 달로 변신</small></div>
           </div>
         </div>
         <div class="card dark">
           <h2>A. 햇님↔달 슬라이드 (dark)</h2>
           <div class="row">
-            <button class="sunmoon" aria-pressed="true" aria-label="라이트모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')">
+            <button class="sunmoon" aria-pressed="true" aria-label="라이트모드로 전환" data-toggle="sunmoon">
               <span class="ray"></span><span class="stars"></span>
               <span class="puck">🌙</span>
             </button>
@@ -162,16 +165,31 @@
           </div>
           <h2 style="margin-top:24px;">B. 해바라기 회전 (dark)</h2>
           <div class="row">
-            <button class="sunflower" aria-pressed="true" aria-label="라이트모드로 전환" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed')==='true'?'false':'true')"></button>
+            <button class="sunflower" aria-pressed="true" aria-label="라이트모드로 전환" data-toggle="sunflower"></button>
             <div class="label">달밤 모드<small>해바라기가 달로 변신 + 보랏빛 글로우</small></div>
           </div>
         </div>
       </div>
       <p class="footnote">
         <strong>컨셉.</strong> 취미는 노는 거. 토글도 놀이여야 함. A안은 가로 슬라이드 + 별빛 페이드,
-        B안은 동그란 해바라기 자체가 달로 회전. 둘 다 spring easing (cubic-bezier(0.68,-0.55,0.32,1.55))로
-        통통 튀는 느낌. 헤더에서는 B안이 작아서 잘 어울리고, 설정 페이지에선 A안이 시각적 만족도 큼.
+        B안은 동그란 해바라기 자체가 360° 회전하며 달로 변신. 둘 다 spring easing
+        (cubic-bezier(0.68,-0.55,0.32,1.55))로 통통 튀는 느낌. 헤더에서는 B안이
+        작아서 잘 어울리고, 설정 페이지에선 A안이 시각적 만족도 큼.
       </p>
     </div>
+    <script>
+      // 토글 시 aria-pressed + aria-label + puck 이모지를 동기화. 모든 mockup 공통 패턴.
+      document.querySelectorAll('button[data-toggle]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const next = btn.getAttribute('aria-pressed') !== 'true';
+          btn.setAttribute('aria-pressed', String(next));
+          btn.setAttribute('aria-label', next ? '라이트모드로 전환' : '다크모드로 전환');
+          if (btn.dataset.toggle === 'sunmoon') {
+            const puck = btn.querySelector('.puck');
+            if (puck) puck.textContent = next ? '🌙' : '☀️';
+          }
+        });
+      });
+    </script>
   </body>
 </html>
