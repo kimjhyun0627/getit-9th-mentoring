@@ -255,6 +255,18 @@ const makeCardDelegate = () => ({
     }
     throw new Error('Card not found');
   },
+  // #253 conflict detection 용 — Prisma updateMany 흉내.
+  // WHERE 에 id + updatedAt 같이 들어와 한 번에 검증+쓰기.
+  updateMany: async ({ where, data }) => {
+    let count = 0;
+    for (const [id, c] of memDb.cards) {
+      if (matchWhere(c, where)) {
+        memDb.cards.set(id, { ...c, ...data, updatedAt: new Date() });
+        count += 1;
+      }
+    }
+    return { count };
+  },
   delete: async ({ where }) => {
     for (const [id, c] of memDb.cards) {
       if (matchWhere(c, where)) {

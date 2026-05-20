@@ -97,21 +97,23 @@ export const MoveMenu = ({ cardTitle, otherColumns, onMove }) => {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`${cardTitle} 이동할 컬럼 선택`}
+        title="다른 컬럼으로 이동"
         onClick={() => setOpen((v) => !v)}
         onKeyDown={handleTriggerKeyDown}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-hairline text-muted-foreground transition hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+        className="inline-flex h-6 items-center justify-center gap-0.5 rounded-md border border-hairline px-1.5 text-[10px] font-medium text-muted-foreground transition hover:bg-foreground/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
       >
+        <span>이동</span>
         <svg
           aria-hidden="true"
-          className="h-3.5 w-3.5"
+          className="h-2.5 w-2.5"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <polyline points="9 18 15 12 9 6" />
+          <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
       {open ? (

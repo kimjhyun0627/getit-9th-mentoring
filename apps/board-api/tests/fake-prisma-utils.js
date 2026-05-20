@@ -63,6 +63,12 @@ export const makeMatchWhere = (memDb) => {
         if ('in' in v) return Array.isArray(v.in) && v.in.includes(row[k]);
         return false;
       }
+      // Date 동등성은 참조가 아니라 timestamp 비교.
+      if (v instanceof Date) {
+        return row[k] instanceof Date
+          ? row[k].getTime() === v.getTime()
+          : new Date(row[k]).getTime() === v.getTime();
+      }
       return row[k] === v;
     });
   };

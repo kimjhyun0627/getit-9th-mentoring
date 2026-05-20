@@ -217,7 +217,8 @@ export const createCardsRouter = () => {
     }
   });
 
-  // PATCH /api/cards/:id — title/description/assigneeId 수정 (order 변경은 /move 전담)
+  // PATCH /api/cards/:id — title/description/assigneeId 수정 (order 는 /move 전담).
+  // #253: body.expectedUpdatedAt 있으면 row.updatedAt 과 비교 → 다르면 409 Conflict.
   router.patch('/:id', async (req, res, next) => {
     try {
       const parsed = CardUpdateInput.safeParse(req.body);
@@ -226,15 +227,36 @@ export const createCardsRouter = () => {
       const access = await lookupCardAccess(req.params.id, req.user.sub);
       if (!access.ok) return res.status(access.status).json(access.body);
 
-      if ('assigneeId' in parsed.data) {
-        if (!(await isValidAssignee(parsed.data.assigneeId, access.projectId))) {
+      // expectedUpdatedAt 은 Prisma data 가 아니라 비교용 — 분리.
+      const { expectedUpdatedAt, ...data } = parsed.data;
+
+      if ('assigneeId' in data) {
+        if (!(await isValidAssignee(data.assigneeId, access.projectId))) {
           return res.status(422).json({ error: 'AssigneeNotMember' });
         }
       }
 
+      // #253: expectedUpdatedAt 가 있으면 updateMany 의 WHERE 에 포함해 검증+쓰기를 원자적으로.
+      // 분리해 두면 read-then-write 사이의 race 에서 덮어쓰기 발생 가능 (CR 지적).
+      if (expectedUpdatedAt) {
+        const expected = new Date(expectedUpdatedAt);
+        const result = await prisma.card.updateMany({
+          where: { id: req.params.id, updatedAt: expected },
+          data,
+        });
+        if (result.count === 0) {
+          // 0 건이면 다른 쓰기로 updatedAt 이 바뀐 상태. 최신 row 를 함께 돌려준다.
+          const latest = await prisma.card.findUnique({ where: { id: req.params.id } });
+          if (!latest) return res.status(404).json({ error: 'CardNotFound' });
+          return res.status(409).json({ error: 'Conflict', card: publicCard(latest) });
+        }
+        const saved = await prisma.card.findUnique({ where: { id: req.params.id } });
+        return res.status(200).json({ card: publicCard(saved) });
+      }
+
       const updated = await prisma.card.update({
         where: { id: req.params.id },
-        data: parsed.data,
+        data,
       });
       return res.status(200).json({ card: publicCard(updated) });
     } catch (err) {

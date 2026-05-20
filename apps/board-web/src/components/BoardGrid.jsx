@@ -1,4 +1,5 @@
 import { BoardColumn } from './BoardColumn.jsx';
+import { BoardDndContext } from './BoardDndContext.jsx';
 import { NewColumnComposer } from './NewColumnComposer.jsx';
 
 /**
@@ -14,7 +15,7 @@ import { NewColumnComposer } from './NewColumnComposer.jsx';
  *   isBoardLoading: boolean;
  *   memberNameByUserId: Record<string, string | null>;
  *   onAddCard: (columnId: string, title: string) => void;
- *   onMoveCard: (cardId: string, sourceColumnId: string, targetColumnId: string) => void;
+ *   onMoveCard: (cardId: string, sourceColumnId: string, targetColumnId: string, order?: number) => void;
  *   onDeleteCard: (cardId: string, columnId: string) => void;
  *   onEditCard: (cardId: string) => void;
  *   onReorderCard: (cardId: string, direction: 'up' | 'down') => void;
@@ -42,36 +43,44 @@ export const BoardGrid = ({
   isCreateColumnPending,
 }) => (
   <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-10">
-    <div
-      data-testid="board-grid"
-      className="flex w-full snap-x snap-mandatory gap-px overflow-x-auto rounded-lg border border-hairline bg-hairline md:grid md:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] md:overflow-visible"
+    <BoardDndContext
+      columns={columns}
+      cardsByColumn={cardsByColumn}
+      onMoveCard={(cardId, sourceColumnId, targetColumnId, order) =>
+        onMoveCard(cardId, sourceColumnId, targetColumnId, order)
+      }
     >
-      {columns.map((col) => (
-        <div
-          key={col.id}
-          className="w-[85vw] min-w-[16rem] shrink-0 snap-start md:w-auto md:min-w-0"
-        >
-          <BoardColumn
-            column={col}
-            cards={cardsByColumn[col.id] ?? []}
-            otherColumns={columns.filter((c) => c.id !== col.id)}
-            onAddCard={(title) => onAddCard(col.id, title)}
-            onMoveCard={(cardId, targetColumnId) => onMoveCard(cardId, col.id, targetColumnId)}
-            onDeleteCard={(cardId) => onDeleteCard(cardId, col.id)}
-            onEditCard={onEditCard}
-            onReorderCard={onReorderCard}
-            memberNameByUserId={memberNameByUserId}
-            isAddingCard={addingColumnId === col.id && isAddingCardPending}
-            isLoading={isBoardLoading && (cardsByColumn[col.id] ?? []).length === 0}
-            onRenameColumn={(name) => onRenameColumn(col.id, name)}
-            onDeleteColumn={() => onDeleteColumn(col.id)}
-            canDeleteColumn={columns.length > 1}
-          />
+      <div
+        data-testid="board-grid"
+        className="flex w-full snap-x snap-mandatory gap-px overflow-x-auto rounded-lg border border-hairline bg-hairline md:grid md:grid-cols-[repeat(auto-fit,minmax(16rem,1fr))] md:overflow-visible"
+      >
+        {columns.map((col) => (
+          <div
+            key={col.id}
+            className="w-[85vw] min-w-[16rem] shrink-0 snap-start md:w-auto md:min-w-0"
+          >
+            <BoardColumn
+              column={col}
+              cards={cardsByColumn[col.id] ?? []}
+              otherColumns={columns.filter((c) => c.id !== col.id)}
+              onAddCard={(title) => onAddCard(col.id, title)}
+              onMoveCard={(cardId, targetColumnId) => onMoveCard(cardId, col.id, targetColumnId)}
+              onDeleteCard={(cardId) => onDeleteCard(cardId, col.id)}
+              onEditCard={onEditCard}
+              onReorderCard={onReorderCard}
+              memberNameByUserId={memberNameByUserId}
+              isAddingCard={addingColumnId === col.id && isAddingCardPending}
+              isLoading={isBoardLoading && (cardsByColumn[col.id] ?? []).length === 0}
+              onRenameColumn={(name) => onRenameColumn(col.id, name)}
+              onDeleteColumn={() => onDeleteColumn(col.id)}
+              canDeleteColumn={columns.length > 1}
+            />
+          </div>
+        ))}
+        <div className="w-[85vw] min-w-[16rem] shrink-0 snap-start md:w-auto md:min-w-0">
+          <NewColumnComposer onSubmit={onCreateColumn} submitting={isCreateColumnPending} />
         </div>
-      ))}
-      <div className="w-[85vw] min-w-[16rem] shrink-0 snap-start md:w-auto md:min-w-0">
-        <NewColumnComposer onSubmit={onCreateColumn} submitting={isCreateColumnPending} />
       </div>
-    </div>
+    </BoardDndContext>
   </section>
 );

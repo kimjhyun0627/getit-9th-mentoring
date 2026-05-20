@@ -116,6 +116,37 @@ describe('board-api cards modify', () => {
         .send({ title: 'x' });
       expect(res.status).toBe(404);
     });
+
+    // #253 conflict detection
+    it('expectedUpdatedAt 일치 → 200', async () => {
+      const pid = await createProject(request, app, 'alice');
+      const [todo] = columnsOf(pid);
+      const card = await createCard(app, 'alice', todo.id);
+      const res = await request(app)
+        .patch(`/api/cards/${card.id}`)
+        .set(authHeader('alice'))
+        .send({
+          title: 'new',
+          expectedUpdatedAt: new Date(card.updatedAt).toISOString(),
+        });
+      expect(res.status).toBe(200);
+      expect(res.body.card.title).toBe('new');
+    });
+
+    it('expectedUpdatedAt 불일치 → 409 Conflict', async () => {
+      const pid = await createProject(request, app, 'alice');
+      const [todo] = columnsOf(pid);
+      const card = await createCard(app, 'alice', todo.id);
+      const res = await request(app).patch(`/api/cards/${card.id}`).set(authHeader('alice')).send({
+        title: 'new',
+        // 임의의 옛 시점 — 충돌 시뮬레이션
+        expectedUpdatedAt: '2020-01-01T00:00:00.000Z',
+      });
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('Conflict');
+      // 서버는 현재 row 를 함께 돌려준다 (FE 새로고침 없이도 최신 값 보여줄 수 있게)
+      expect(res.body.card).toBeDefined();
+    });
   });
 
   describe('DELETE /api/cards/:id', () => {
