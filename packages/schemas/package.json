@@ -9,7 +9,8 @@
     ".": "./src/index.js",
     "./auth": "./src/auth.js",
     "./board": "./src/board.js",
-    "./hobby": "./src/hobby.js"
+    "./hobby": "./src/hobby.js",
+    "./shelf": "./src/shelf.js"
   },
   "scripts": {
     "lint": "eslint src",

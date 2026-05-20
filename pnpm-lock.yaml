@@ -396,9 +396,18 @@ importers:
 
   apps/shelf-api:
     dependencies:
+      '@getit/auth-utils':
+        specifier: workspace:*
+        version: link:../../packages/auth-utils
+      '@getit/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@prisma/client':
         specifier: ^6.2.1
         version: 6.19.3(prisma@6.19.3(typescript@6.0.3))(typescript@6.0.3)
+      cookie-parser:
+        specifier: ^1.4.7
+        version: 1.4.7
       cors:
         specifier: ^2.8.5
         version: 2.8.6
@@ -434,6 +443,9 @@ importers:
       eslint:
         specifier: ^9.18.0
         version: 9.39.4(jiti@2.7.0)
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.3
       prisma:
         specifier: ^6.2.1
         version: 6.19.3(typescript@6.0.3)
