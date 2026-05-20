@@ -84,7 +84,7 @@ export const SignupPage = () => {
         onSubmit={handleSubmit(onSubmit)}
         noValidate
         className="flex flex-col gap-4"
-        aria-label="회원가입 폼"
+        aria-label="회원가입 양식"
       >
         <FormField
           label="이름"

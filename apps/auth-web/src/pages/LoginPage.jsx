@@ -86,7 +86,7 @@ export const LoginPage = () => {
         onSubmit={handleSubmit(onSubmit)}
         noValidate
         className="flex flex-col gap-4"
-        aria-label="로그인 폼"
+        aria-label="로그인 양식"
       >
         <FormField
           label="이메일"
