@@ -14,7 +14,7 @@ import { redirectAfterAuth } from '../lib/redirect.js';
  */
 
 /**
- * 회원가입 페이지.
+ * 회원가입 페이지 — Tech-Dark 페르소나 (Issue #172).
  * - Zod (SignupInput) 검증 (passwordConfirm refine 포함)
  * - POST /api/signup → auth-api가 자동 로그인까지 처리 (HttpOnly 쿠키)
  * - 409 → 이메일 중복 안내
@@ -46,16 +46,36 @@ export const SignupPage = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-2">
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-indigo-accent" />
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Sign up
+    <div className="flex flex-col gap-7">
+      <header className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-500">
+          <span className="text-cyan-700 dark:text-cyan-neon">~/auth/signup</span>
+          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <span>method: post</span>
+          <span className="text-zinc-300 dark:text-zinc-700">·</span>
+          <span>
+            auto-login <span className="text-lime-700 dark:text-lime-neon">on</span>
           </span>
         </div>
-        <h1 className="text-2xl font-bold tracking-tightest text-foreground">GETIT 9기 회원가입</h1>
-        <p className="text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="rounded border border-fuchsia-700/30 bg-fuchsia-50 px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-fuchsia-700 dark:border-magenta-neon/40 dark:bg-magenta-neon/10 dark:text-magenta-neon"
+          >
+            [02]
+          </span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+            SIGN UP
+          </span>
+        </div>
+        <h1 className="font-mono text-3xl font-semibold tracking-tightest text-ink-950 dark:text-white">
+          GETIT 9기 회원가입
+          <span
+            aria-hidden="true"
+            className="caret bg-cyan-700 text-cyan-700 dark:bg-cyan-neon dark:text-cyan-neon"
+          />
+        </h1>
+        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
           멘토링 기간 동안 4개 프로젝트를 한 계정으로.
         </p>
       </header>
@@ -99,7 +119,11 @@ export const SignupPage = () => {
         />
 
         {serverError ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p
+            role="alert"
+            className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 font-mono text-[12px] text-destructive"
+          >
+            <span aria-hidden="true">! </span>
             {serverError}
           </p>
         ) : null}
@@ -107,13 +131,15 @@ export const SignupPage = () => {
         <SubmitButton loading={isSubmitting}>회원가입</SubmitButton>
       </form>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <div className="divider-mono text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
+
+      <p className="text-center font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
         이미 계정이 있나요?{' '}
         <Link
           to={`/login${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
-          className="font-medium text-foreground underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+          className="font-semibold text-cyan-700 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none dark:text-cyan-neon"
         >
-          로그인
+          로그인 <span aria-hidden="true">./login</span>
         </Link>
       </p>
     </div>
