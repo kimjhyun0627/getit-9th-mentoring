@@ -110,4 +110,28 @@ describe('HomePage', () => {
     renderPage();
     expect(await screen.findByRole('alert')).toHaveTextContent('모집 목록을 불러오지 못했어');
   });
+
+  it('에러 상태에서 "다시 시도" 버튼을 누르면 listPosts 가 재호출된다', async () => {
+    const user = userEvent.setup();
+    const spy = vi.spyOn(api, 'listPosts').mockRejectedValueOnce(new Error('boom'));
+    renderPage();
+    await screen.findByRole('alert');
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    // 두 번째 호출은 성공 mock 으로 교체
+    spy.mockResolvedValueOnce({ items: [samplePost()], nextCursor: null });
+    await user.click(screen.getByRole('button', { name: /다시 시도/ }));
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledTimes(2);
+    });
+    expect(await screen.findByText('북문 마라탕 같이 갈 사람!')).toBeInTheDocument();
+  });
+
+  it('BE 가 HTML 을 status 200 으로 응답하면 (SPA fallback) 에러 UI 를 표시한다', async () => {
+    vi.spyOn(api, 'listPosts').mockRejectedValue(new Error('invalid response: expected JSON'));
+    renderPage();
+    expect(await screen.findByRole('alert')).toHaveTextContent('모집 목록을 불러오지 못했어');
+    expect(screen.getByRole('button', { name: /다시 시도/ })).toBeInTheDocument();
+  });
 });

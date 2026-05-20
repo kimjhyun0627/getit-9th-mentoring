@@ -55,6 +55,49 @@ const buildListParams = (params) => {
 };
 
 /**
+ * 응답 본체가 진짜 JSON 형태인지 확인.
+ *
+ * BE 미기동 시 vite dev server 가 SPA fallback 으로 `/api/*` 요청에
+ * `index.html` (HTML 문자열) 을 status 200 으로 응답하는 케이스가 실측됨 (issue #89).
+ * axios 는 그대로 통과시켜 `res.data` 가 문자열이 되고, 이후 `.pages.flatMap` 등에서
+ * undefined dereference 로 React 가 컴포넌트 전체 unmount → 빈 화면.
+ *
+ * 여기서 미리 throw 해서 react-query 의 `isError` 분기로 흘려보낸다.
+ *
+ * @param {unknown} data
+ * @param {Record<string, string> | undefined} headers
+ * @returns {void}
+ */
+const assertJsonObject = (data, headers) => {
+  const contentType = headers?.['content-type'] ?? headers?.['Content-Type'] ?? '';
+  if (typeof contentType === 'string' && contentType.includes('text/html')) {
+    throw new Error('invalid response: expected JSON, got HTML (BE down?)');
+  }
+  if (typeof data === 'string') {
+    throw new Error('invalid response: expected JSON object, got string');
+  }
+  if (data === null || typeof data !== 'object') {
+    throw new Error('invalid response: expected JSON object');
+  }
+};
+
+/**
+ * 리스트 응답 shape 검증.
+ *
+ * @param {unknown} data
+ * @returns {asserts data is PostListResponse}
+ */
+const assertListShape = (data) => {
+  if (!data || typeof data !== 'object') {
+    throw new Error('invalid response: expected { items, nextCursor }');
+  }
+  const d = /** @type {{ items?: unknown }} */ (data);
+  if (!Array.isArray(d.items)) {
+    throw new Error('invalid response: items must be an array');
+  }
+};
+
+/**
  * 모집 게시글 (`/api/posts` 리스트 / `/api/posts/:id` 단건 응답 공통 형태).
  *
  * @typedef {object} PostItem
@@ -130,6 +173,8 @@ export const api = {
    */
   listPosts: async (params = {}) => {
     const res = await client.get('/posts', { params: buildListParams(params) });
+    assertJsonObject(res.data, res.headers);
+    assertListShape(res.data);
     return res.data;
   },
 
