@@ -22,7 +22,7 @@ const renderSearch = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <MemoryRouter initialEntries={['/search']}>
@@ -31,6 +31,7 @@ const renderSearch = () => {
       </ThemeProvider>
     </QueryClientProvider>,
   );
+  return { ...view, queryClient };
 };
 
 describe('SearchPage', () => {
@@ -49,14 +50,14 @@ describe('SearchPage', () => {
   });
 
   it('초기 상태에서는 검색 API 를 호출하지 않는다', () => {
-    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue({ data: { items: [] } });
+    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
     renderSearch();
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('타이핑 직후엔 검색 API 가 호출되지 않고, 300ms 후엔 호출된다 (debounce)', async () => {
     const user = userEvent.setup();
-    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue({ data: { items: [] } });
+    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
 
     renderSearch();
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
@@ -76,7 +77,7 @@ describe('SearchPage', () => {
 
   it('빈 검색 결과면 placeholder 를 노출한다', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({ data: { items: [] } });
+    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
 
     renderSearch();
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '없는책');
@@ -89,18 +90,16 @@ describe('SearchPage', () => {
   it('결과 카드의 "서재에 추가" 버튼 클릭 시 addToShelf 가 호출된다', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      data: {
-        items: [
-          {
-            id: 'book-1',
-            isbn: '9788932917245',
-            title: '데미안',
-            author: '헤르만 헤세',
-            publisher: '민음사',
-            coverUrl: null,
-          },
-        ],
-      },
+      items: [
+        {
+          id: 'book-1',
+          isbn: '9788932917245',
+          title: '데미안',
+          author: '헤르만 헤세',
+          publisher: '민음사',
+          coverUrl: null,
+        },
+      ],
     });
     const addSpy = vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
 
@@ -118,18 +117,16 @@ describe('SearchPage', () => {
   it('서재 추가 성공 시 토스트가 노출된다', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      data: {
-        items: [
-          {
-            id: 'book-1',
-            isbn: '9788932917245',
-            title: '데미안',
-            author: '헤르만 헤세',
-            publisher: '민음사',
-            coverUrl: null,
-          },
-        ],
-      },
+      items: [
+        {
+          id: 'book-1',
+          isbn: '9788932917245',
+          title: '데미안',
+          author: '헤르만 헤세',
+          publisher: '민음사',
+          coverUrl: null,
+        },
+      ],
     });
     vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
 
@@ -140,21 +137,46 @@ describe('SearchPage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(/서재에 담았어요/);
   });
 
+  it('서재 추가 성공 시 /shelves/me 캐시를 무효화한다', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'searchBooks').mockResolvedValue({
+      items: [
+        {
+          id: 'book-1',
+          isbn: '9788932917245',
+          title: '데미안',
+          author: '헤르만 헤세',
+          publisher: '민음사',
+          coverUrl: null,
+        },
+      ],
+    });
+    vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
+
+    const { queryClient } = renderSearch();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
+    await user.click(await screen.findByRole('button', { name: /데미안 서재에 추가/ }));
+
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['shelves', 'me'] });
+    });
+  });
+
   it('서재 추가 실패(422 이미 존재) 시 안내 토스트가 노출된다', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      data: {
-        items: [
-          {
-            id: 'book-1',
-            isbn: '9788932917245',
-            title: '데미안',
-            author: '헤르만 헤세',
-            publisher: '민음사',
-            coverUrl: null,
-          },
-        ],
-      },
+      items: [
+        {
+          id: 'book-1',
+          isbn: '9788932917245',
+          title: '데미안',
+          author: '헤르만 헤세',
+          publisher: '민음사',
+          coverUrl: null,
+        },
+      ],
     });
     vi.spyOn(api, 'addToShelf').mockRejectedValue({
       isAxiosError: true,

@@ -9,6 +9,7 @@ import preset from '@getit/config-tailwind/preset';
  * @type {import('tailwindcss').Config}
  */
 export default {
+  darkMode: 'class',
   presets: [preset],
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {

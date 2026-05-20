@@ -685,6 +685,9 @@ importers:
       react-router-dom:
         specifier: ^6.28.1
         version: 6.30.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@getit/config-eslint':
         specifier: workspace:*

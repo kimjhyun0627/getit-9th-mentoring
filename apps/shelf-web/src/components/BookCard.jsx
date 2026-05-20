@@ -18,10 +18,11 @@
  * }} props
  */
 export const BookCard = ({ book, onAdd, isPending = false, isAdded = false }) => {
+  const canAdd = Boolean(book.id || book.isbn);
   const buttonLabel = isAdded ? '서재에 담김' : isPending ? '담는 중…' : '서재에 추가';
 
   const handleClick = () => {
-    if (isPending || isAdded) return;
+    if (isPending || isAdded || !canAdd) return;
     if (book.id) {
       onAdd({ bookId: book.id });
     } else if (book.isbn) {
@@ -59,7 +60,7 @@ export const BookCard = ({ book, onAdd, isPending = false, isAdded = false }) =>
       <button
         type="button"
         onClick={handleClick}
-        disabled={isPending || isAdded}
+        disabled={isPending || isAdded || !canAdd}
         aria-label={`${book.title} ${buttonLabel}`}
         className="mt-1 inline-flex items-center justify-center gap-2 rounded-sm border border-border bg-background px-3 py-2 font-serif text-xs text-ink transition hover:border-foreground hover:text-accent-wine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
       >

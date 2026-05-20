@@ -43,6 +43,7 @@ const addErrorMessage = (err) => {
  */
 const searchErrorMessage = (err) => {
   const status = err?.response?.status;
+  if (status === 401) return '로그인이 필요해요';
   if (status === 503) return '도서 검색 서비스가 잠시 불안정해요';
   if (status === 400) return '검색어를 다시 확인해주세요';
   return '검색 중 문제가 생겼어요';
@@ -75,8 +76,8 @@ export const SearchPage = () => {
   const search = useQuery({
     queryKey: ['books', 'search', trimmed],
     queryFn: async () => {
-      const res = await api.searchBooks(trimmed);
-      return res.data?.items ?? [];
+      const result = await api.searchBooks(trimmed);
+      return result.items ?? [];
     },
     enabled: isQueryable,
   });
@@ -222,15 +223,17 @@ const ResultsGrid = ({ items, onAdd, pendingKey, addedKeys }) => (
     className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
     data-testid="results-grid"
   >
-    {items.map((book) => {
-      const key = book.id ?? book.isbn ?? book.title;
+    {items.map((book, idx) => {
+      const identity = book.id ?? book.isbn ?? null;
+      // 식별자 없으면 동명 도서 충돌 막으려고 index 합성키 사용.
+      const key = identity ?? `${book.title}-${idx}`;
       return (
         <li key={key}>
           <BookCard
             book={book}
             onAdd={onAdd}
-            isPending={pendingKey === (book.id ?? book.isbn)}
-            isAdded={addedKeys.has(book.id ?? book.isbn ?? '')}
+            isPending={identity !== null && pendingKey === identity}
+            isAdded={identity !== null && addedKeys.has(identity)}
           />
         </li>
       );
