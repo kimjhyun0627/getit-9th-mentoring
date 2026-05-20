@@ -6,5 +6,6 @@ export default defineConfig({
     globals: false,
     pool: 'forks',
     poolOptions: { forks: { singleFork: true } },
+    setupFiles: ['./tests/setup.js'],
   },
 });
