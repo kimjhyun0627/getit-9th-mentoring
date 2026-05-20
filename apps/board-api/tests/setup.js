@@ -8,6 +8,8 @@
  */
 import { beforeEach, vi } from 'vitest';
 
+import { compareBy, makeMatchWhere, PrismaUniqueViolation } from './fake-prisma-utils.js';
+
 // 테스트용 환경 변수 (실 .env 안 건드림)
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret-min-32-chars-long-aaaaaaaaa';
@@ -43,48 +45,7 @@ export const resetDb = () => {
   idCounter = 0;
 };
 
-/**
- * Prisma where 절을 in-memory row 에 적용. equals/gt/gte/lt/lte 만 지원.
- *
- * @param {Record<string, any>} row
- * @param {Record<string, any> | undefined} where
- * @returns {boolean}
- */
-const matchWhere = (row, where) => {
-  if (!where) return true;
-  return Object.entries(where).every(([k, v]) => {
-    // 복합 unique key (예: projectId_userId) — Prisma의 `{ projectId, userId }`
-    if (k === 'projectId_userId' && v && typeof v === 'object') {
-      return row.projectId === v.projectId && row.userId === v.userId;
-    }
-    // 관계 필터 (Project.members.some) — 메모리 컬렉션을 순회해서 매칭
-    if (k === 'members' && v && typeof v === 'object' && v.some) {
-      for (const m of memDb.projectMembers.values()) {
-        if (m.projectId === row.id && matchWhere(m, v.some)) return true;
-      }
-      return false;
-    }
-    if (v !== null && typeof v === 'object' && !(v instanceof Date)) {
-      if ('equals' in v) return row[k] === v.equals;
-      if ('gt' in v) return row[k] > v.gt;
-      if ('gte' in v) return row[k] >= v.gte;
-      if ('lt' in v) return row[k] < v.lt;
-      if ('lte' in v) return row[k] <= v.lte;
-      return false;
-    }
-    return row[k] === v;
-  });
-};
-
-/** Prisma `P2002` 흉내 (unique constraint violation). */
-class PrismaUniqueViolation extends Error {
-  constructor(target) {
-    super(`Unique constraint failed on the fields: ${target}`);
-    this.name = 'PrismaClientKnownRequestError';
-    this.code = 'P2002';
-    this.meta = { target };
-  }
-}
+const matchWhere = makeMatchWhere(memDb);
 
 const makeProjectDelegate = () => ({
   create: async ({ data }) => {
@@ -203,13 +164,48 @@ const makeBoardColumnDelegate = () => ({
     }
     return { count: data.length };
   },
+  findUnique: async ({ where }) => {
+    for (const c of memDb.boardColumns.values()) if (matchWhere(c, where)) return { ...c };
+    return null;
+  },
+  findFirst: async ({ where, orderBy } = {}) => {
+    let list = [...memDb.boardColumns.values()];
+    if (where) list = list.filter((c) => matchWhere(c, where));
+    if (orderBy) list.sort(compareBy(orderBy));
+    return list.length ? { ...list[0] } : null;
+  },
   findMany: async ({ where, orderBy } = {}) => {
     let list = [...memDb.boardColumns.values()];
     if (where) list = list.filter((c) => matchWhere(c, where));
-    if (orderBy?.order) {
-      list.sort((a, b) => (orderBy.order === 'desc' ? b.order - a.order : a.order - b.order));
-    }
+    if (orderBy) list.sort(compareBy(orderBy));
     return list.map((c) => ({ ...c }));
+  },
+  count: async ({ where } = {}) => {
+    let n = 0;
+    for (const c of memDb.boardColumns.values()) if (matchWhere(c, where)) n++;
+    return n;
+  },
+  update: async ({ where, data }) => {
+    for (const [id, c] of memDb.boardColumns) {
+      if (matchWhere(c, where)) {
+        const updated = { ...c, ...data };
+        memDb.boardColumns.set(id, updated);
+        return { ...updated };
+      }
+    }
+    throw new Error('BoardColumn not found');
+  },
+  delete: async ({ where }) => {
+    for (const [id, c] of memDb.boardColumns) {
+      if (matchWhere(c, where)) {
+        memDb.boardColumns.delete(id);
+        for (const [cardId, card] of memDb.cards) {
+          if (card.columnId === id) memDb.cards.delete(cardId);
+        }
+        return { ...c };
+      }
+    }
+    throw new Error('BoardColumn not found');
   },
 });
 
