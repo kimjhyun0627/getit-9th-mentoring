@@ -88,7 +88,22 @@ export const PostIdParam = z.object({
 });
 
 /**
+ * 매칭 신청 입력.
+ * - postId: 신청할 게시글 id.
+ * userId 는 JWT 의 sub 를 사용 (body 로 받지 않음 — spoof 방지).
+ */
+export const ApplicationCreateInput = z.object({
+  postId: z.string().min(1).max(64),
+});
+
+/** 경로 파라미터 :id (Application.id). */
+export const ApplicationIdParam = z.object({
+  id: z.string().min(1).max(64),
+});
+
+/**
  * @typedef {z.infer<typeof PostCreateInput>} PostCreateInputT
  * @typedef {z.infer<typeof PostListQuery>} PostListQueryT
  * @typedef {z.infer<typeof PostStatus>} PostStatusT
+ * @typedef {z.infer<typeof ApplicationCreateInput>} ApplicationCreateInputT
  */

@@ -3,13 +3,27 @@
  *
  * /api/docs 가 이걸 swagger-ui-express 로 렌더.
  */
-import { PostCreateInput, PostListQuery, PostStatus } from '@getit/schemas/hobby';
+import {
+  ApplicationCreateInput,
+  PostCreateInput,
+  PostListQuery,
+  PostStatus,
+} from '@getit/schemas/hobby';
 import { z } from 'zod';
 import { createDocument, extendZodWithOpenApi } from 'zod-openapi';
 
 extendZodWithOpenApi(z);
 
 const TagResponse = z.object({ id: z.string(), name: z.string() }).openapi({ ref: 'Tag' });
+
+const ApplicationResponse = z
+  .object({
+    id: z.string(),
+    postId: z.string(),
+    userId: z.string(),
+    createdAt: z.string(),
+  })
+  .openapi({ ref: 'Application' });
 
 const PostResponse = z
   .object({
@@ -78,6 +92,34 @@ export const buildOpenApiDoc = () =>
             201: ok(z.object({ post: PostResponse })),
             400: errResp('ValidationError'),
             401: errResp('Unauthorized'),
+          },
+        },
+      },
+      '/api/applications': {
+        post: {
+          summary: '매칭 신청 (JWT 필요, race-safe)',
+          security: [{ bearerAuth: [] }],
+          requestBody: { content: { 'application/json': { schema: ApplicationCreateInput } } },
+          responses: {
+            201: ok(z.object({ application: ApplicationResponse })),
+            400: errResp('ValidationError'),
+            401: errResp('Unauthorized'),
+            404: errResp('PostNotFound'),
+            409: errResp('AlreadyApplied / OwnerCannotApply'),
+            422: errResp('PostFull / PostNotOpen'),
+          },
+        },
+      },
+      '/api/applications/{id}': {
+        delete: {
+          summary: '매칭 신청 취소 (JWT 필요, 본인만)',
+          security: [{ bearerAuth: [] }],
+          parameters: [{ in: 'path', name: 'id', required: true, schema: z.string() }],
+          responses: {
+            204: { description: 'No Content' },
+            401: errResp('Unauthorized'),
+            403: errResp('Forbidden'),
+            404: errResp('ApplicationNotFound'),
           },
         },
       },

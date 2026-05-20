@@ -14,6 +14,7 @@ import pinoHttp from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
 
 import { buildOpenApiDoc } from './openapi.js';
+import { createApplicationsRouter } from './routes/applications.js';
 import { createPostsRouter } from './routes/posts.js';
 
 const parseOrigins = (raw) =>
@@ -66,6 +67,7 @@ export const createApp = (opts = {}) => {
 
   const jwtSecret = readJwtSecret();
   app.use('/api', createPostsRouter({ jwtSecret }));
+  app.use('/api', createApplicationsRouter({ jwtSecret }));
 
   const openapi = buildOpenApiDoc();
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi));
