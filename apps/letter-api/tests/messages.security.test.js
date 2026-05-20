@@ -28,8 +28,20 @@ const SECRET = process.env.JWT_SECRET;
 const tokenFor = (sub, email = `${sub}@get-it.cloud`, name = sub) =>
   signJwt({ sub, email, name }, SECRET);
 
-const ALLOWED_KEYS = ['id', 'content', 'color', 'createdAt', 'updatedAt', 'is_mine'];
-const FORBIDDEN_KEYS = ['authorId', 'author_id', 'author', 'user', 'userId', 'user_id'];
+// updatedAt 은 응답에서 제거됨 (#251 — 편집 시점 누설 차단).
+// createdAt 만 노출, 분 단위로 truncate (#250).
+const ALLOWED_KEYS = ['id', 'content', 'color', 'createdAt', 'is_mine'];
+const FORBIDDEN_KEYS = [
+  'authorId',
+  'author_id',
+  'author',
+  'user',
+  'userId',
+  'user_id',
+  // updatedAt 도 forbidden — 편집 시점 누설 (#251).
+  'updatedAt',
+  'updated_at',
+];
 
 const createMessage = (app, sub, content = '익명 인사', color = 'PINK') =>
   request(app)
@@ -102,13 +114,13 @@ describe('letter-api messages — security regression (#53)', () => {
       expect(res.status).toBe(200);
       expect(res.body.items).toHaveLength(1);
 
-      // ISO date 와 id 는 런타임 가변 → 정규화 후 snapshot
+      // ISO date 와 id 는 런타임 가변 → 정규화 후 snapshot.
+      // updatedAt 은 응답에서 제거 (#251). createdAt 만 노출 + 분 단위 truncate (#250).
       const normalized = {
         items: res.body.items.map((m) => ({
           ...m,
           id: '<id>',
           createdAt: '<iso>',
-          updatedAt: '<iso>',
         })),
       };
       expect(normalized).toEqual({
@@ -118,7 +130,6 @@ describe('letter-api messages — security regression (#53)', () => {
             content: 'snapshot test',
             color: 'MINT',
             createdAt: '<iso>',
-            updatedAt: '<iso>',
             is_mine: true,
           },
         ],
@@ -134,13 +145,11 @@ describe('letter-api messages — security regression (#53)', () => {
         ...m,
         id: '<id>',
         createdAt: '<iso>',
-        updatedAt: '<iso>',
       }).toEqual({
         id: '<id>',
         content: 'snap post',
         color: 'LEMON',
         createdAt: '<iso>',
-        updatedAt: '<iso>',
         is_mine: true,
       });
     });
@@ -194,6 +203,39 @@ describe('letter-api messages — security regression (#53)', () => {
 
       // is_mine 외 모든 필드는 동일해야 함 (응답이 viewer 별로 분기되면 안 됨)
       expect({ ...mine, is_mine: undefined }).toEqual({ ...other, is_mine: undefined });
+    });
+  });
+
+  describe('timing 안전성 — createdAt 분 단위 truncate / updatedAt 미노출 (#250, #251)', () => {
+    it('createdAt 의 초/ms 자리는 00.000Z 로 잘려있다', async () => {
+      const res = await createMessage(app, 'alice', 'timing test', 'PINK');
+      expect(res.status).toBe(201);
+      // ISO 8601 의 마지막 6자리 (`SS.sssZ`) 는 분 단위 truncate 후 `00.000Z` 고정.
+      expect(res.body.message.createdAt).toMatch(/T\d{2}:\d{2}:00\.000Z$/);
+    });
+
+    it('GET 의 모든 item createdAt 도 동일하게 분 단위 truncate', async () => {
+      await createMessage(app, 'alice', 'a', 'PINK');
+      await createMessage(app, 'bob', 'b', 'MINT');
+
+      const res = await request(app)
+        .get('/api/messages')
+        .set('Authorization', `Bearer ${tokenFor('alice')}`);
+      expect(res.status).toBe(200);
+      for (const item of res.body.items) {
+        expect(item.createdAt).toMatch(/T\d{2}:\d{2}:00\.000Z$/);
+      }
+    });
+
+    it('PATCH 응답에 updatedAt 키가 없다 (편집 시점 누설 차단)', async () => {
+      const created = await createMessage(app, 'alice', 'before', 'PINK');
+      const res = await request(app)
+        .patch(`/api/messages/${created.body.message.id}`)
+        .set('Authorization', `Bearer ${tokenFor('alice')}`)
+        .send({ content: 'after' });
+      expect(res.status).toBe(200);
+      expect(res.body.message.updatedAt).toBeUndefined();
+      expect(res.body.message.updated_at).toBeUndefined();
     });
   });
 

@@ -1,6 +1,7 @@
 import { ThemeProvider } from '@getit/theme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,14 +10,16 @@ import { api } from '../lib/api.js';
 import { BoardPage } from './BoardPage.jsx';
 
 /**
- * BoardPage TDD 가드 (#54).
+ * BoardPage TDD 가드 (#54 + #249 + #305).
  *
+ * - 세션 게이트: getMe 성공 후에만 보드 마운트 (#305)
  * - 헤더/타이틀 + 쪽지 카운트
  * - 메시지 그리드 렌더 (포스트잇)
  * - is_mine=true → "내 메시지" + 편집/삭제 노출
  * - 빈 상태 placeholder
  * - 에러/로딩 분기
  * - 작성자 정보 (authorId/author 등) 절대 노출 X (보안 가드 — FE 회귀)
+ * - 본인 메시지 삭제 mutation 호출 + 옵티미스틱 제거 (#249)
  */
 
 const renderPage = () => {
@@ -34,9 +37,15 @@ const renderPage = () => {
   );
 };
 
+/** 모든 테스트 공통: 세션 인증 성공으로 mock — #305 게이트 통과. */
+const mockAuthed = () => {
+  vi.spyOn(api, 'getMe').mockResolvedValue({ user: { sub: 'me-sub' } });
+};
+
 describe('BoardPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    mockAuthed();
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -51,7 +60,6 @@ describe('BoardPage', () => {
             content: 'hi',
             color: 'PINK',
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
             is_mine: false,
           },
         ],
@@ -61,10 +69,8 @@ describe('BoardPage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: /롤링페이퍼/ }),
     ).toBeInTheDocument();
-    // 카운트는 `총 <span>1</span>장의 쪽지가 붙어있어요` 처럼 노드가 쪼개져 있어
-    // 부모 div 의 정규화된 textContent 전체로 검증
-    // (CR Round 3: `'1'` 단독 매칭은 시간 표기 등과 오탐 가능 → 카운트 문구 전체로 정밀화).
-    await screen.findByRole('heading', { level: 1, name: /롤링페이퍼/ });
+    // 메시지 목록이 로드 완료될 때까지 대기 (카드 본문이 보이면 카운트도 갱신됨).
+    expect(await screen.findByText('hi')).toBeInTheDocument();
     const countWrap = screen
       .getAllByText(/장의 쪽지가 붙어있어요/)
       .map((el) => el.closest('div'))
@@ -76,7 +82,6 @@ describe('BoardPage', () => {
     vi.spyOn(api, 'listMessages').mockResolvedValue({ data: { items: [] } });
     renderPage();
     expect(await screen.findByText(/아직 쪽지가 없어요/)).toBeInTheDocument();
-    // FAB ("메시지 남기기") 는 항상 노출 (작성 진입점).
     expect(screen.getByRole('button', { name: /메시지 남기기/ })).toBeInTheDocument();
   });
 
@@ -89,7 +94,6 @@ describe('BoardPage', () => {
             content: '내 메시지 내용',
             color: 'LEMON',
             createdAt: new Date(Date.now() - 60_000).toISOString(),
-            updatedAt: new Date(Date.now() - 60_000).toISOString(),
             is_mine: true,
           },
           {
@@ -97,7 +101,6 @@ describe('BoardPage', () => {
             content: '익명 메시지 내용',
             color: 'MINT',
             createdAt: new Date(Date.now() - 2 * 60_000).toISOString(),
-            updatedAt: new Date(Date.now() - 2 * 60_000).toISOString(),
             is_mine: false,
           },
         ],
@@ -116,7 +119,6 @@ describe('BoardPage', () => {
     expect(
       within(/** @type {HTMLElement} */ (mine)).getByRole('button', { name: /편집/ }),
     ).toBeInTheDocument();
-    // CR Round 3: 삭제 버튼 회귀 가드 (편집만 검증하면 삭제 사라져도 통과).
     expect(
       within(/** @type {HTMLElement} */ (mine)).getByRole('button', { name: /삭제/ }),
     ).toBeInTheDocument();
@@ -129,8 +131,6 @@ describe('BoardPage', () => {
   });
 
   it('익명 메시지 영역에 author/authorId 같은 작성자 정보가 절대 노출되지 않는다', async () => {
-    // 보안 회귀 가드: 백엔드가 실수로 authorId 를 흘려도, FE 가 노출하면 안 됨.
-    // (Postit 컴포넌트가 message.author* 를 읽지 않으므로 본문에 나타날 수 없음을 확인.)
     vi.spyOn(api, 'listMessages').mockResolvedValue({
       data: {
         items: [
@@ -139,7 +139,6 @@ describe('BoardPage', () => {
             content: '깨끗한 메시지',
             color: 'PINK',
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
             is_mine: false,
             // 가상의 흘러나온 필드 — FE 가 무시해야 함
             authorId: 'user-leak-id',
@@ -164,9 +163,53 @@ describe('BoardPage', () => {
     expect(screen.getByRole('button', { name: /다시 시도/ })).toBeInTheDocument();
   });
 
-  it('로딩 중에는 status placeholder 가 보인다', () => {
+  it('로딩 중에는 status placeholder 가 보인다', async () => {
     vi.spyOn(api, 'listMessages').mockReturnValue(new Promise(() => {}));
     renderPage();
-    expect(screen.getByRole('status', { name: /불러오는/ })).toBeInTheDocument();
+    expect(await screen.findByRole('status', { name: /불러오는/ })).toBeInTheDocument();
+  });
+
+  // #305 — 세션 미인증 게이트
+  it('비인증 (getMe 401) 이면 보드 데이터 안 부르고 redirect placeholder 표시 (#305)', async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(api, 'getMe').mockRejectedValue({ response: { status: 401 } });
+    const listSpy = vi.spyOn(api, 'listMessages').mockResolvedValue({ data: { items: [] } });
+    renderPage();
+    expect(await screen.findByText(/로그인 페이지로 이동/)).toBeInTheDocument();
+    // listMessages 는 호출되면 안 됨 — 게이트가 enabled:false 로 막아야 함.
+    expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  // #249 — 본인 메시지 삭제 mutation 연결
+  it('본인 메시지 삭제 클릭 시 deleteMessage 호출되고 카드가 사라진다 (#249)', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'listMessages').mockResolvedValue({
+      data: {
+        items: [
+          {
+            id: 'mine-del',
+            content: '떼어낼 메시지',
+            color: 'PINK',
+            createdAt: new Date().toISOString(),
+            is_mine: true,
+          },
+        ],
+      },
+    });
+    const delSpy = vi.spyOn(api, 'deleteMessage').mockResolvedValue({ status: 204 });
+    renderPage();
+    expect(await screen.findByText('떼어낼 메시지')).toBeInTheDocument();
+
+    // 휴지통 버튼 클릭
+    const trash = screen.getByRole('button', { name: /이 쪽지 삭제/ });
+    await user.click(trash);
+
+    // confirm 다이얼로그 → "떼어내기" 클릭
+    const confirm = await screen.findByRole('button', { name: /떼어내기/ });
+    await user.click(confirm);
+
+    expect(delSpy).toHaveBeenCalledWith('mine-del');
+    // 옵티미스틱 제거 — 카드가 즉시 사라짐.
+    expect(screen.queryByText('떼어낼 메시지')).not.toBeInTheDocument();
   });
 });
