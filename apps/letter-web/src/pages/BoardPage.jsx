@@ -32,6 +32,12 @@ export const BoardPage = () => {
   const [statusLive, setStatusLive] = useState('');
   const queryClient = useQueryClient();
 
+  // CR #345 — 같은 문구 연속 announce. 한 번 비웠다 다시 셋팅해야 SR 이 재발화.
+  const announceStatus = (msg) => {
+    setStatusLive('');
+    window.setTimeout(() => setStatusLive(msg), 0);
+  };
+
   // localStorage 는 effect 안에서만 (SSR / 테스트 안전).
   useEffect(() => {
     setSortMode(readSortMode());
@@ -70,7 +76,7 @@ export const BoardPage = () => {
     onError: (_err, _id, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(['messages'], ctx.prev);
     },
-    onSuccess: () => setStatusLive('쪽지를 떼어냈어요'),
+    onSuccess: () => announceStatus('쪽지를 떼어냈어요'),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['messages'] }),
   });
 
@@ -170,7 +176,7 @@ export const BoardPage = () => {
         onClose={() => setComposeOpen(false)}
         onSuccess={() => {
           setComposeOpen(false);
-          setStatusLive('한 줄 살며시 붙였어요');
+          announceStatus('한 줄 살며시 붙였어요');
           queryClient.invalidateQueries({ queryKey: ['messages'] });
         }}
       />
@@ -180,7 +186,7 @@ export const BoardPage = () => {
         onClose={() => setEditTarget(null)}
         onSuccess={() => {
           setEditTarget(null);
-          setStatusLive('쪽지를 다시 다듬었어요');
+          announceStatus('쪽지를 다시 다듬었어요');
         }}
       />
     </section>

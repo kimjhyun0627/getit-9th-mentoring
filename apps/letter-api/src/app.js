@@ -59,9 +59,10 @@ export const createApp = (opts = {}) => {
   const envWindow = Number.parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '60000', 10);
   const envReadMax = Number.parseInt(process.env.RATE_LIMIT_READ_MAX ?? '60', 10);
   const {
-    rateLimitMax = Number.isFinite(envMax) ? envMax : 30,
-    rateLimitWindowMs = Number.isFinite(envWindow) ? envWindow : 60_000,
-    readRateLimitMax = Number.isFinite(envReadMax) ? envReadMax : 60,
+    rateLimitMax = Number.isFinite(envMax) && envMax >= 1 ? envMax : 30,
+    rateLimitWindowMs = Number.isFinite(envWindow) && envWindow >= 1 ? envWindow : 60_000,
+    // CR #345 — 0/음수 방어. 잘못된 배포 설정에서 조회 전면 차단 회피.
+    readRateLimitMax = Number.isFinite(envReadMax) && envReadMax >= 1 ? envReadMax : 60,
     trustProxy = true,
   } = opts;
 

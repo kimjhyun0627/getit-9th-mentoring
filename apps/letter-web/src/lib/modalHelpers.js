@@ -28,6 +28,9 @@ export const counterColorClass = (len) =>
  * express-rate-limit standardHeaders 가 RateLimit-Reset (초 단위) 또는
  * Retry-After 를 보낸다. 둘 다 0~3600 정수 가정.
  *
+ * CR #345 — 첫 헤더가 존재하지만 invalid 한 경우에도 두 번째로 fallback.
+ * 단순 `??` 는 invalid 값에 대한 fallback 을 못해 회복력 약함.
+ *
  * @param {unknown} err
  * @returns {number | null}
  */
@@ -35,9 +38,11 @@ export const retryAfterSec = (err) => {
   const headers = /** @type {{ response?: { headers?: Record<string, string> } }} */ (err)?.response
     ?.headers;
   if (!headers) return null;
-  const raw = headers['ratelimit-reset'] ?? headers['retry-after'];
-  if (!raw) return null;
-  const n = Number.parseInt(String(raw), 10);
-  if (!Number.isFinite(n) || n < 0 || n > 3600) return null;
-  return n;
+  const candidates = [headers['ratelimit-reset'], headers['retry-after']];
+  for (const raw of candidates) {
+    if (raw == null) continue;
+    const n = Number.parseInt(String(raw), 10);
+    if (Number.isFinite(n) && n >= 0 && n <= 3600) return n;
+  }
+  return null;
 };
