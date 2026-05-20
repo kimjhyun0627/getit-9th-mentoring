@@ -164,6 +164,24 @@ describe('SearchPage', () => {
     });
   });
 
+  it('루트 section 이 max-w-7xl + mx-auto 컨테이너로 감싸져 있다 (다크 모드 회귀 가드)', () => {
+    // Issue #90: 다크 모드에서 max-w 가 사라지고 본문이 viewport 왼쪽에 붙는 회귀를 막는다.
+    const { container } = renderSearch();
+    const section = container.querySelector('section');
+    expect(section).not.toBeNull();
+    expect(section?.className).toMatch(/max-w-7xl/);
+    expect(section?.className).toMatch(/mx-auto/);
+    // 좌우 padding 도 함께 — 모바일/데스크탑 둘 다.
+    expect(section?.className).toMatch(/px-6/);
+  });
+
+  it('헤딩이 토큰 기반 색(text-ink-strong)을 사용한다 (다크 모드 대비 가드)', () => {
+    // 정의되지 않은 text-ink 클래스로 다크 모드에서 헤딩이 깨졌던 회귀 방지.
+    renderSearch();
+    const heading = screen.getByRole('heading', { name: /책을 찾아보세요/ });
+    expect(heading.className).toMatch(/text-ink-strong/);
+  });
+
   it('서재 추가 실패(422 이미 존재) 시 안내 토스트가 노출된다', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'searchBooks').mockResolvedValue({
