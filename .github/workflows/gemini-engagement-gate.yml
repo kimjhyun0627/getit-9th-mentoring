@@ -46,7 +46,10 @@ jobs:
                 ? { number: context.payload.issue.number }
                 : null);
             if (!pr) {
-              core.setFailed('pull_request 컨텍스트가 없음');
+              // issue_comment 이벤트는 일반 이슈에도 트리거됨. PR 컨텍스트가
+              // 없으면 이 게이트와 무관 → silent skip (일반 이슈 댓글로 액션이
+              // FAIL 떨어지는 거 방지).
+              core.info('PR 컨텍스트가 아니므로 스킵');
               return;
             }
 
@@ -100,7 +103,8 @@ jobs:
               /\bskipped\b.*\breview\b/i,
               /\bcannot review\b/i,
               /\bdaily limit\b/i,
-              /\btoo (large|many)\b/i,
+              /\btoo (large|many)\s+(files?|changes?|diffs?|lines?|chunks?)\b/i,
+              /\btoo (large|many)\s+to\s+(review|process|analyze)\b/i,
             ];
 
             // 현재 PR head commit 의 author/committer 타임스탬프 기준선.
