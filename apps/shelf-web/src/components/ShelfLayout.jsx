@@ -52,7 +52,7 @@ export const ShelfLayout = ({ children }) => {
               Colophon<span className="text-wine">.</span>
             </p>
             <p className="essay-kr text-body mt-4 max-w-[34ch] text-[14px] leading-relaxed">
-              이 도서관은 한 사람의 읽기와 한 사람의 손글씨로 쌓아 올려졌습니다.
+              한 사람의 읽기와 손글씨로 쌓아 올린 도서관입니다.
             </p>
           </div>
           <div className="col-span-12 grid grid-cols-2 gap-6 text-[12.5px] md:col-span-7 md:grid-cols-3">

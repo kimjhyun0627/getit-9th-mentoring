@@ -98,8 +98,8 @@ describe('EditShelfModal', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: '서재에서 제거' }));
-    await user.click(screen.getByRole('button', { name: '정말 제거하기' }));
+    await user.click(screen.getByRole('button', { name: '서가에서 덜어내기' }));
+    await user.click(screen.getByRole('button', { name: '정말 덜어내기' }));
     expect(onDelete).toHaveBeenCalled();
   });
 

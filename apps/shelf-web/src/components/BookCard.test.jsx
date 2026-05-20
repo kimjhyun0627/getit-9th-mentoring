@@ -39,7 +39,7 @@ describe('BookCard', () => {
     const user = userEvent.setup();
     const onEdit = vi.fn();
     render(<BookCard shelf={sample} onEdit={onEdit} />);
-    await user.click(screen.getByRole('button', { name: /읽기의 계절 편집/ }));
+    await user.click(screen.getByRole('button', { name: /읽기의 계절 자세히 보기/ }));
     expect(onEdit).toHaveBeenCalledWith(sample);
   });
 

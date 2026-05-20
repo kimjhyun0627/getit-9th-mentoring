@@ -83,7 +83,7 @@ describe('SearchPage', () => {
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '없는책');
 
     expect(
-      await screen.findByText(/책장에 비춰진 책이 없네요/, {}, { timeout: 2000 }),
+      await screen.findByText(/이 서가에는 그 책이 없습니다/, {}, { timeout: 2000 }),
     ).toBeInTheDocument();
   });
 
@@ -134,7 +134,7 @@ describe('SearchPage', () => {
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
     await user.click(await screen.findByRole('button', { name: /데미안 서재에 추가/ }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(/서재에 담았어요/);
+    expect(await screen.findByRole('status')).toHaveTextContent(/서재에 담았습니다/);
   });
 
   it('서재 추가 성공 시 /shelves/me 캐시를 무효화한다', async () => {
@@ -205,6 +205,6 @@ describe('SearchPage', () => {
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
     await user.click(await screen.findByRole('button', { name: /데미안 서재에 추가/ }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(/이미 서재에 있는 책/);
+    expect(await screen.findByRole('status')).toHaveTextContent(/이미 서재에 꽂혀 있는 책/);
   });
 });
