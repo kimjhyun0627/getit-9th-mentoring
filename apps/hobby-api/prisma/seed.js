@@ -49,9 +49,12 @@ export const seedTags = async (prisma) => {
 };
 
 export const seedPost = async (prisma) => {
+  // update 도 SEED_POST 전체 필드로 — 시드 스펙 변경 시 재시드로 수렴 보장.
+  // id 는 where 로 식별하니 update payload 에서 제외 (Prisma 가 거부함).
+  const { id: _id, ...updatePayload } = SEED_POST;
   const post = await prisma.post.upsert({
     where: { id: SEED_POST.id },
-    update: { title: SEED_POST.title, body: SEED_POST.body },
+    update: updatePayload,
     create: SEED_POST,
   });
   console.log(`  seeded post: ${post.title} (id=${post.id})`);
