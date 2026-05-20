@@ -7,8 +7,8 @@ afterEach(() => {
   cleanup();
 });
 
-// Node 25의 실험적 `--localstorage-file` 플래그가 jsdom localStorage를
-// shadow하는 충돌을 회피하기 위한 인메모리 stub (auth-web 과 동일).
+// Node 25의 실험적 `--localstorage-file` 플래그가 jsdom localStorage 를
+// shadow 하는 충돌 회피 — auth-web 과 동일 stub.
 const memoryStorage = () => {
   let store = {};
   return {

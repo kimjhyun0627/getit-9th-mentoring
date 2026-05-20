@@ -55,9 +55,9 @@ const buildListParams = (params) => {
 };
 
 /**
- * 모집 게시글 리스트 응답 아이템.
+ * 모집 게시글 (`/api/posts` 리스트 / `/api/posts/:id` 단건 응답 공통 형태).
  *
- * @typedef {object} PostListItem
+ * @typedef {object} PostItem
  * @property {string} id - 게시글 id (cuid)
  * @property {string} ownerId - 방장 user id
  * @property {string} title - 제목
@@ -69,16 +69,50 @@ const buildListParams = (params) => {
  * @property {string} createdAt - 생성 시각 (ISO 8601)
  * @property {string} updatedAt - 수정 시각 (ISO 8601)
  * @property {Array<{ id: string; name: string }>} tags - 태그 목록
- * @property {string} [openChatUrl] - 오픈채팅 URL (매칭 완료 후 + 방장만 노출)
+ * @property {string} [openChatUrl] - 오픈채팅 URL (방장 OR FULL 일 때만 응답에 포함)
  */
 
 /**
  * 리스트 응답.
  *
  * @typedef {object} PostListResponse
- * @property {PostListItem[]} items - 카드 아이템
+ * @property {PostItem[]} items - 카드 아이템
  * @property {string | null} nextCursor - 다음 페이지 cursor (없으면 null)
  */
+
+/**
+ * 단건 조회 응답.
+ *
+ * @typedef {object} PostDetailResponse
+ * @property {PostItem} post - 게시글 본체
+ */
+
+/**
+ * 매칭 신청 응답.
+ *
+ * @typedef {object} ApplicationResponse
+ * @property {{ id: string; postId: string; userId: string; createdAt: string }} application - 새로 생성된 신청
+ */
+
+/**
+ * 현재 로그인 사용자 응답. 비로그인이면 401.
+ *
+ * @typedef {object} MeResponse
+ * @property {string} id - user id (= JWT sub)
+ * @property {string} [email] - 이메일 (응답에 포함될 수도 있음)
+ * @property {string} [name] - 이름 (응답에 포함될 수도 있음)
+ */
+
+/**
+ * auth-api 와 통신할 axios 인스턴스. VITE_AUTH_API_URL 우선,
+ * 없으면 hobby-api 와 동일 origin (`/api`) 가정 (Traefik path-based routing 시).
+ */
+const authBaseURL = import.meta.env?.VITE_AUTH_API_URL ?? '/api';
+const authClient = axios.create({
+  baseURL: authBaseURL,
+  withCredentials: true,
+  timeout: 10000,
+});
 
 /**
  * 페이지에서 axios 를 직접 다루지 않고 이 헬퍼만 import 한다.
@@ -88,6 +122,17 @@ const buildListParams = (params) => {
  * tz 누락으로 거절되니, `new Date(local).toISOString()` 변환 필수.
  */
 export const api = {
+  /**
+   * GET /api/posts — 모집 게시글 리스트. cursor 페이지네이션.
+   *
+   * @param {{ status?: string; tag?: string; cursor?: string; limit?: number }} [params]
+   * @returns {Promise<PostListResponse>}
+   */
+  listPosts: async (params = {}) => {
+    const res = await client.get('/posts', { params: buildListParams(params) });
+    return res.data;
+  },
+
   /**
    * 게시글 작성.
    *
@@ -103,13 +148,44 @@ export const api = {
   createPost: (body) => client.post('/posts', body),
 
   /**
-   * GET /api/posts — 모집 게시글 리스트. cursor 페이지네이션.
+   * GET /api/posts/:id — 단건 상세. JWT 쿠키가 있으면 owner 판정.
    *
-   * @param {{ status?: string; tag?: string; cursor?: string; limit?: number }} [params]
-   * @returns {Promise<PostListResponse>}
+   * @param {string} id
+   * @returns {Promise<PostDetailResponse>}
    */
-  listPosts: async (params = {}) => {
-    const res = await client.get('/posts', { params: buildListParams(params) });
+  getPost: async (id) => {
+    const res = await client.get(`/posts/${encodeURIComponent(id)}`);
+    return res.data;
+  },
+
+  /**
+   * POST /api/applications — 매칭 신청. JWT 필요.
+   *
+   * @param {string} postId
+   * @returns {Promise<ApplicationResponse>}
+   */
+  applyPost: async (postId) => {
+    const res = await client.post('/applications', { postId });
+    return res.data;
+  },
+
+  /**
+   * DELETE /api/applications/:id — 신청 취소. 본인 application id 필요.
+   *
+   * @param {string} applicationId
+   * @returns {Promise<void>}
+   */
+  cancelApplication: async (applicationId) => {
+    await client.delete(`/applications/${encodeURIComponent(applicationId)}`);
+  },
+
+  /**
+   * GET (auth-api) /api/me — 현재 사용자. 비로그인이면 401 reject.
+   *
+   * @returns {Promise<MeResponse>}
+   */
+  getMe: async () => {
+    const res = await authClient.get('/me');
     return res.data;
   },
 };
