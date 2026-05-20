@@ -88,15 +88,26 @@ export const BoardPage = () => {
     );
   }
 
-  // 401 → main.jsx 인터셉터가 redirect 발화. 화면이 새로고침되기 전에는
-  // 빈 placeholder 유지 (메시지/보드 UI 노출 X — #305).
-  if (!isAuthed) {
+  // CR #335 — 401 와 그 외(네트워크/500) 를 분기. 401 만 redirect placeholder,
+  // 그 외는 재시도 가능한 ErrorState. 다 같이 묶으면 BE down 시 영원히 막힘.
+  if (meQuery.isError) {
+    const meStatus = /** @type {{response?: {status?: number}}} */ (meQuery.error)?.response
+      ?.status;
+    if (meStatus === 401) {
+      return (
+        <section className="paper relative">
+          <div className="relative z-10 mx-auto max-w-md py-16 text-center">
+            <p className="font-hand text-sm text-ink2 dark:text-beige2">
+              로그인 페이지로 이동 중이에요…
+            </p>
+          </div>
+        </section>
+      );
+    }
     return (
       <section className="paper relative">
-        <div className="relative z-10 mx-auto max-w-md py-16 text-center">
-          <p className="font-hand text-sm text-ink2 dark:text-beige2">
-            로그인 페이지로 이동 중이에요…
-          </p>
+        <div className="relative z-10">
+          <ErrorState onRetry={() => meQuery.refetch()} />
         </div>
       </section>
     );

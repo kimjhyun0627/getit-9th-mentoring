@@ -117,6 +117,7 @@ describe('letter-api 다중 사용자 익명성 E2E (#322)', () => {
   });
 
   // 시나리오 5 — 미존재 메시지: 응답 모양 = 다른 사람 소유와 동일 (둘 다 error 키만)
+  // CR #335: status 코드도 같이 잠가서 403/404 분기 회귀 방지.
   it('미존재 vs 타인 소유 응답 모양 동일 (PATCH)', async () => {
     const otherOwned = await post(app, 'aliceShape', { content: 'x', color: 'PINK' });
     const otherRes = await request(app)
@@ -129,6 +130,9 @@ describe('letter-api 다중 사용자 익명성 E2E (#322)', () => {
       .set('Authorization', `Bearer ${tokenFor('bobShape')}`)
       .send({ content: 'x' });
 
+    // status 분기 회귀 방지 (CR #335) — 403 vs 404 가 섞이거나 한쪽으로 무너지면 잡힌다.
+    expect(otherRes.status).toBe(403);
+    expect(notFoundRes.status).toBe(404);
     // status 는 다르지만 (403 vs 404) 응답 모양은 둘 다 `{ error: string }` 만.
     expect(Object.keys(otherRes.body).sort()).toEqual(['error']);
     expect(Object.keys(notFoundRes.body).sort()).toEqual(['error']);
@@ -144,6 +148,9 @@ describe('letter-api 다중 사용자 익명성 E2E (#322)', () => {
       .delete('/api/messages/missing_id_xyz')
       .set('Authorization', `Bearer ${tokenFor('bobShapeD')}`);
 
+    // status 분기 회귀 방지 (CR #335).
+    expect(otherRes.status).toBe(403);
+    expect(notFoundRes.status).toBe(404);
     expect(Object.keys(otherRes.body).sort()).toEqual(['error']);
     expect(Object.keys(notFoundRes.body).sort()).toEqual(['error']);
   });

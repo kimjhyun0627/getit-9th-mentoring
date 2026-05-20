@@ -180,6 +180,18 @@ describe('BoardPage', () => {
     expect(listSpy).not.toHaveBeenCalled();
   });
 
+  // CR #335 — getMe 가 401 외 에러(네트워크/500) 면 재시도 ErrorState 노출
+  it('getMe 500 이면 재시도 ErrorState 노출 (401 redirect 와 분리)', async () => {
+    vi.restoreAllMocks();
+    vi.spyOn(api, 'getMe').mockRejectedValue({ response: { status: 500 } });
+    vi.spyOn(api, 'listMessages').mockResolvedValue({ data: { items: [] } });
+    renderPage();
+    expect(await screen.findByText(/쪽지를 불러오지 못했어요/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /다시 시도/ })).toBeInTheDocument();
+    // redirect placeholder 텍스트는 노출되면 안 됨.
+    expect(screen.queryByText(/로그인 페이지로 이동/)).not.toBeInTheDocument();
+  });
+
   // #249 — 본인 메시지 삭제 mutation 연결
   it('본인 메시지 삭제 클릭 시 deleteMessage 호출되고 카드가 사라진다 (#249)', async () => {
     const user = userEvent.setup();
