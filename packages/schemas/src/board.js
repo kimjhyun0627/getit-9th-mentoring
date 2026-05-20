@@ -71,6 +71,10 @@ export const BoardColumnUpdateInput = z
  * assigneeId가 들어오면 라우터에서 프로젝트 멤버 검증.
  */
 export const CardCreateInput = z.object({
+  columnId: z
+    .string({ required_error: 'columnId가 필요합니다' })
+    .trim()
+    .min(1, 'columnId가 필요합니다'),
   title: z
     .string({ required_error: '카드 제목이 필요합니다' })
     .trim()

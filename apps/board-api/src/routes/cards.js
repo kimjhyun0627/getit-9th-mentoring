@@ -151,24 +151,16 @@ export const createCardsRouter = () => {
 
   // POST /api/cards — 생성. order 자동 배치 + assignee 검증을 transaction 으로 묶어
   // 동시 생성 race 에서 결정적 순서를 보장한다.
+  // columnId 는 CardCreateInput Zod 스키마가 검증한다 (라우터 안에서 별도 검증 X).
   router.post('/', async (req, res, next) => {
     try {
-      // columnId 는 access lookup 전용이고 카드 본문 검증은 Zod 가 담당.
-      const columnId = typeof req.body?.columnId === 'string' ? req.body.columnId : undefined;
-      if (!columnId) {
-        return res.status(400).json({
-          error: 'ValidationError',
-          issues: [{ path: 'columnId', message: 'columnId가 필요합니다' }],
-        });
-      }
-
       const result = CardCreateInput.safeParse(req.body);
       if (!result.success) return res.status(400).json(zodErrorBody(result.error));
 
+      const { columnId, title, description, assigneeId, order: explicitOrder } = result.data;
+
       const access = await lookupColumnAccess(columnId, req.user.sub);
       if (!access.ok) return res.status(access.status).json(access.body);
-
-      const { title, description, assigneeId, order: explicitOrder } = result.data;
 
       if (!(await isValidAssignee(assigneeId, access.projectId))) {
         return res.status(422).json({ error: 'AssigneeNotMember' });
@@ -262,11 +254,13 @@ export const createCardsRouter = () => {
             where: { columnId: targetColumn.id },
             orderBy: [{ order: 'desc' }, { id: 'desc' }],
           });
-          // 자기 자신이 끝이면 그대로 — 그 외엔 +1000
-          order =
-            last && last.id !== access.card.id
-              ? last.order + ORDER_GAP
-              : (last?.order ?? 0) + ORDER_GAP;
+          // 자기 자신이 이미 같은 컬럼 끝이면 order 유지 (no-op move) — 그 외엔 +1000.
+          // last 가 자기 자신인 경우 +1000 하면 같은 카드 no-op 호출만으로 order 가 계속 커진다.
+          if (last && last.id === access.card.id) {
+            order = last.order;
+          } else {
+            order = (last?.order ?? 0) + ORDER_GAP;
+          }
         }
         return tx.card.update({
           where: { id: access.card.id },
