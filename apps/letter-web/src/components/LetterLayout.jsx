@@ -25,7 +25,8 @@ export const LetterLayout = ({ children }) => {
         </Link>
 
         <div className="flex items-center gap-3">
-          <CandleToggle className="candle-toggle inline-flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-ink/10 transition hover:scale-105 dark:bg-mocha2 dark:ring-beige/20" />
+          {/* 필수 internal 클래스(candle-toggle / inline-flex / 사이즈)는 컴포넌트가 보존. 외관만 오버라이드. */}
+          <CandleToggle className="bg-white shadow-sm ring-1 ring-ink/10 dark:bg-mocha2 dark:ring-beige/20" />
         </div>
       </header>
 
