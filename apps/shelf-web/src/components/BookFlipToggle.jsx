@@ -12,7 +12,8 @@ import { cn } from '../lib/cn.js';
  * - store 는 `@getit/theme` 공유 — 다른 5개 FE 앱 영향 0
  * - role="switch" + aria-checked + Space/Enter 키보드 동작
  * - `prefers-reduced-motion: reduce` 시 트랜지션 0 (즉시 스왑)
- * - currentColor 만 사용 — paper/ink 토큰과 자연스럽게 호흡
+ * - 스타일은 `index.css` 의 `.book-flip-toggle` / `.book-flip-card[.is-dark]`
+ *   / `.book-flip-face--{front,back}` 으로 전담 — JSX 는 상태만 토글
  *
  * @param {{ className?: string }} props
  */
@@ -30,17 +31,16 @@ export const BookFlipToggle = ({ className }) => {
       onClick={toggle}
       className={cn(
         'book-flip-toggle smallcaps relative inline-flex items-center justify-center',
-        'h-9 w-[3.25rem] rounded-[2px] border text-[11px] uppercase',
+        'h-9 w-[3.25rem] rounded-[2px] border border-rule-2 text-[11px] uppercase',
         'transition-colors duration-300 ease-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         'focus-visible:ring-[var(--wine)] focus-visible:ring-offset-[var(--paper-1)]',
         className,
       )}
-      style={{ borderColor: 'var(--rule-2)', perspective: '600px' }}
     >
       <span className="sr-only">{isDark ? '다크모드 켜짐' : '다크모드 꺼짐'}</span>
 
-      {/* 책장 카드 — 3D flip wrapper */}
+      {/* 책장 카드 — 3D flip wrapper (transform 은 .is-dark 가 CSS 에서 제어) */}
       <span
         aria-hidden="true"
         className={cn(
@@ -48,39 +48,14 @@ export const BookFlipToggle = ({ className }) => {
           'transition-transform duration-[520ms] ease-[cubic-bezier(0.65,0.05,0.36,1)]',
           isDark && 'is-dark',
         )}
-        style={{
-          transformStyle: 'preserve-3d',
-          transform: isDark ? 'rotateY(180deg)' : 'rotateY(0deg)',
-        }}
       >
         {/* 앞면 — light: 종이 위 'day' */}
-        <span
-          className="book-flip-face flex items-center justify-center font-serif text-[12px] tracking-wider"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backfaceVisibility: 'hidden',
-            background: 'var(--paper-2)',
-            color: 'var(--ink-1)',
-            borderRight: '1px solid var(--rule-1)',
-          }}
-        >
+        <span className="book-flip-face book-flip-face--front flex items-center justify-center font-serif text-[12px] tracking-wider">
           day
         </span>
 
         {/* 뒷면 — dark: 잉크 위 'night' (180도 뒤집힌 면) */}
-        <span
-          className="book-flip-face flex items-center justify-center font-serif text-[12px] tracking-wider"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backfaceVisibility: 'hidden',
-            transform: 'rotateY(180deg)',
-            background: 'var(--ink-1)',
-            color: 'var(--paper-1)',
-            borderLeft: '1px solid var(--rule-2)',
-          }}
-        >
+        <span className="book-flip-face book-flip-face--back flex items-center justify-center font-serif text-[12px] tracking-wider">
           night
         </span>
       </span>

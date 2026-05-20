@@ -40,4 +40,13 @@ describe('BookFlipToggle', () => {
     await user.keyboard(' ');
     expect(useTheme.getState().resolved).toBe('dark');
   });
+
+  it('Enter 키로도 토글된다 (키보드 a11y)', async () => {
+    const user = userEvent.setup();
+    render(<BookFlipToggle />);
+    const sw = screen.getByRole('switch');
+    sw.focus();
+    await user.keyboard('{Enter}');
+    expect(useTheme.getState().resolved).toBe('dark');
+  });
 });
