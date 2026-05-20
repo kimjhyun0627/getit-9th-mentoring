@@ -9,12 +9,10 @@ import { PostDetailPage } from './pages/PostDetailPage.jsx';
  * hobby-web 루트.
  *
  * Routes:
- *  - /             → HomePage (모집 카드 리스트, #37)
- *  - /new          → CreatePostPage (작성 페이지, #38)
- *  - /posts/:id    → PostDetailPage (상세 + 신청, #39)
- *  - 그 외          → / redirect
- *
- * 상세 페이지는 자체 PageShell 을 가지므로 HobbyLayout 바깥에서 렌더.
+ *  - /             → HomePage (모집 카드 리스트, Issue #37). 자체 Header 보유 → HobbyLayout wrap X.
+ *  - /new          → CreatePostPage (작성 페이지, Issue #38). HobbyLayout 으로 wrap.
+ *  - /posts/:id    → PostDetailPage (상세 + 신청, Issue #39). 자체 PageShell → HobbyLayout wrap X.
+ *  - 그 외          → / 로 리다이렉트.
  */
 export const App = () => {
   return (

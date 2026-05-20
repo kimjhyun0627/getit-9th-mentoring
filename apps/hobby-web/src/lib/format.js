@@ -23,11 +23,13 @@ export const formatMeetAt = (input, now = new Date()) => {
 
 /**
  * 닉네임 → 한 글자 이니셜 (한국어 이름이면 첫 음절 첫 자).
+ * 공백/null/undefined 도 안전하게 '?' fallback (trim 후 0자면 빈 카드 회피).
  *
- * @param {string} name
+ * @param {string | null | undefined} name
  * @returns {string}
  */
 export const initialOf = (name) => {
-  if (!name) return '?';
-  return name.trim().charAt(0);
+  const trimmed = name?.trim?.() ?? '';
+  if (!trimmed) return '?';
+  return trimmed.charAt(0);
 };

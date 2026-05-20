@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { EmptyCard } from '../components/EmptyCard.jsx';
 import { FilterChips } from '../components/FilterChips.jsx';
@@ -127,8 +128,8 @@ export const HomePage = () => {
             </p>
           </div>
 
-          <a
-            href="/new"
+          <Link
+            to="/new"
             className="group relative inline-flex items-center gap-3 rounded-full card-coral text-white px-7 py-4 font-display font-extrabold text-lg shadow-xl shadow-rose-400/40 hover:scale-[1.04] hover:-rotate-2 transition self-start"
           >
             <span aria-hidden="true" className="text-2xl emoji">
@@ -138,7 +139,7 @@ export const HomePage = () => {
             <span aria-hidden="true" className="arrow">
               →
             </span>
-          </a>
+          </Link>
         </div>
 
         <FilterChips
@@ -172,14 +173,14 @@ export const HomePage = () => {
             <p role="status" className="text-slate-500 dark:text-slate-400 font-round">
               모집을 불러오는 중...
             </p>
-          ) : (
+          ) : !isError ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
               {posts.map((post) => (
                 <MeetupCard key={post.id} post={post} />
               ))}
               <EmptyCard />
             </div>
-          )}
+          ) : null}
 
           {query.hasNextPage ? (
             <div className="mt-10 flex items-center justify-center gap-3">

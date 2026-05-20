@@ -9,8 +9,7 @@ import './index.css';
 
 /**
  * React 19 + ThemeProvider + Router + QueryClient.
- * - 리스트는 GET 위주라 staleTime 30s, retry 1.
- * - 작성 페이지 mutation 은 retry 비활성.
+ * 서재 데이터는 사용자별이라 staleTime 1분 (목록 갱신은 mutation 후 invalidate).
  */
 const container = document.getElementById('root');
 if (!container) {
@@ -19,11 +18,7 @@ if (!container) {
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30_000,
-      refetchOnWindowFocus: false,
-    },
+    queries: { retry: false, staleTime: 60_000, refetchOnWindowFocus: false },
     mutations: { retry: false },
   },
 });
