@@ -58,14 +58,67 @@ export const EditShelfModal = ({
     setConfirmDelete(false);
   }, [shelf]);
 
+  // Esc 닫기 + Tab 포커스 트랩 + body scroll lock + 이전 포커스 복귀 (#257).
   useEffect(() => {
     if (!open) return undefined;
+    const dialog = dialogRef.current;
+    /** @type {HTMLElement | null} */
+    const previouslyFocused = /** @type {any} */ (document.activeElement);
+
+    // 1) body scroll lock — 모바일 safari 위해 padding 보정도 함께.
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    // 2) 첫 포커스 — close 버튼 대신 dialog 자체에 옮겨 두면 스크린리더가 제목부터 읽는다.
+    dialog?.focus();
+
+    // 3) keydown: Esc 닫기 + Tab 트랩.
     const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialog) return;
+      const focusables = /** @type {HTMLElement[]} */ (
+        Array.from(
+          dialog.querySelectorAll(
+            'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        )
+      );
+      if (focusables.length === 0) {
+        e.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === dialog)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener('keydown', onKey);
-    dialogRef.current?.focus();
-    return () => window.removeEventListener('keydown', onKey);
+
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
+      // 4) 이전 포커스 복귀 — 키보드 사용자가 어디서 모달을 열었는지 잊지 않게.
+      if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
+        previouslyFocused.focus();
+      }
+    };
   }, [open, onClose]);
 
   if (!open || !shelf) return null;

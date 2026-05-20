@@ -1,13 +1,17 @@
 import { SHELF_SORT_DEFAULT, ShelfSortKey } from '@getit/schemas/shelf';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { BookCard } from '../components/BookCard.jsx';
 import { EditShelfModal } from '../components/EditShelfModal.jsx';
 import { EmptyShelf } from '../components/EmptyShelf.jsx';
 import { FilterTabs } from '../components/FilterTabs.jsx';
+import { Pagination } from '../components/Pagination.jsx';
+import { RatingFilter } from '../components/RatingFilter.jsx';
 import { SortControl } from '../components/SortControl.jsx';
 import { useMyShelves, useRemoveShelf, useUpdateShelf } from '../hooks/useShelves.js';
+
+const PAGE_SIZE = 50;
 
 /** @typedef {import('@getit/schemas/shelf').ShelfSortKeyT} SortKey */
 
@@ -34,12 +38,28 @@ export const HomePage = () => {
     SORT_KEYS.includes(/** @type {SortKey} */ (sortParam)) ? sortParam : SHELF_SORT_DEFAULT
   );
 
-  const { data, isLoading, isError, error } = useMyShelves({ sort });
+  // 페이지네이션 — 100건 넘는 서재 처리 (#269). 50권/페이지.
+  const pageParam = Number.parseInt(searchParams.get('page') ?? '', 10);
+  const page = Number.isFinite(pageParam) && pageParam >= 1 ? pageParam : 1;
+
+  const { data, isLoading, isError, error } = useMyShelves({ sort, page, pageSize: PAGE_SIZE });
   const update = useUpdateShelf();
   const remove = useRemoveShelf();
 
   const [filter, setFilter] = useState(/** @type {FilterKey} */ ('ALL'));
+  // 별점 2차 필터 (#199): 0=전체, 1~5=최소 별점.
+  const [minRating, setMinRating] = useState(0);
   const [editing, setEditing] = useState(/** @type {Shelf | null} */ (null));
+
+  // 필터/정렬 바뀌면 page 1 로 리셋 — URL state 일관성.
+  useEffect(() => {
+    if (page === 1) return;
+    const params = new URLSearchParams(searchParams);
+    params.delete('page');
+    setSearchParams(params, { replace: true });
+    // 의도적으로 sort 만 dep — filter / minRating 은 클라이언트 cull 이라 page reset 불필요.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
 
   /** @param {SortKey} next */
   const handleSortChange = (next) => {
@@ -50,12 +70,24 @@ export const HomePage = () => {
   };
 
   const shelves = useMemo(() => data?.shelves ?? [], [data]);
+  const total = data?.pagination?.total ?? shelves.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const counts = useMemo(() => countByStatus(shelves), [shelves]);
-  const visible = useMemo(
-    () => (filter === 'ALL' ? shelves : shelves.filter((s) => s.status === filter)),
-    [shelves, filter],
-  );
+  const visible = useMemo(() => {
+    let next = filter === 'ALL' ? shelves : shelves.filter((s) => s.status === filter);
+    if (minRating > 0) {
+      next = next.filter((s) => (s.rating ?? 0) >= minRating);
+    }
+    return next;
+  }, [shelves, filter, minRating]);
+
+  const handlePageChange = (next) => {
+    const params = new URLSearchParams(searchParams);
+    if (next <= 1) params.delete('page');
+    else params.set('page', String(next));
+    setSearchParams(params, { replace: false });
+  };
 
   const pageError = isError ? toFriendlyError(error) : null;
 
@@ -133,6 +165,7 @@ export const HomePage = () => {
           </div>
           <div className="flex flex-wrap items-end gap-5">
             <FilterTabs active={filter} onChange={setFilter} counts={counts} />
+            <RatingFilter value={minRating} onChange={setMinRating} />
             <SortControl value={sort} onChange={handleSortChange} />
           </div>
         </div>
@@ -148,11 +181,21 @@ export const HomePage = () => {
         ) : pageError ? null : visible.length === 0 ? (
           <EmptyShelf filter={filter} />
         ) : (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 md:gap-x-10 md:gap-y-14 lg:grid-cols-4">
-            {visible.map((shelf) => (
-              <BookCard key={shelf.id} shelf={shelf} onEdit={setEditing} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 md:gap-x-10 md:gap-y-14 lg:grid-cols-4">
+              {visible.map((shelf) => (
+                <BookCard key={shelf.id} shelf={shelf} onEdit={setEditing} />
+              ))}
+            </div>
+            {totalPages > 1 ? (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onChange={handlePageChange}
+                className="mt-12"
+              />
+            ) : null}
+          </>
         )}
       </section>
 

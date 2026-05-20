@@ -119,6 +119,60 @@ describe('EditShelfModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('open 시 body scroll lock 적용, 닫으면 해제 (#257)', () => {
+    document.body.style.overflow = '';
+    const { rerender } = render(
+      <EditShelfModal
+        open
+        shelf={sampleShelf}
+        onClose={() => {}}
+        onSave={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(document.body.style.overflow).toBe('hidden');
+    rerender(
+      <EditShelfModal
+        open={false}
+        shelf={sampleShelf}
+        onClose={() => {}}
+        onSave={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('open 시 dialog 가 첫 포커스를 가진다 (#257)', () => {
+    render(
+      <EditShelfModal
+        open
+        shelf={sampleShelf}
+        onClose={() => {}}
+        onSave={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(document.activeElement).toBe(screen.getByRole('dialog'));
+  });
+
+  it('Shift+Tab on first focusable → 마지막 포커스로 wrap (#257 트랩)', async () => {
+    const user = userEvent.setup();
+    render(
+      <EditShelfModal
+        open
+        shelf={sampleShelf}
+        onClose={() => {}}
+        onSave={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    // dialog 에 첫 포커스 — Shift+Tab 시 마지막 focusable 로 이동.
+    await user.tab({ shift: true });
+    // 마지막 focusable 은 "저장" 버튼.
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '저장' }));
+  });
+
   it('빈 감상평 저장 시 review=null', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();

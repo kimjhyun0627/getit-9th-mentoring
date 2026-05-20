@@ -113,6 +113,45 @@ describe('shelf-api books routes', () => {
       expect(res.body.error).toBe('ExternalApiUnavailable');
     });
 
+    it('target=title 토글 → 카카오 호출에 target=title 전달 (#202)', async () => {
+      let interceptedUrl = '';
+      mockKakaoPool()
+        .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+        .reply((req) => {
+          interceptedUrl = req.path;
+          return { statusCode: 200, data: { documents: [docKr], meta: { total_count: 1 } } };
+        });
+
+      const res = await request(app)
+        .get('/api/books/search')
+        .query({ q: '소년이 온다', target: 'title' });
+      expect(res.status).toBe(200);
+      expect(interceptedUrl).toMatch(/target=title/);
+    });
+
+    it('target=isbn 토글 → ISBN 소문자 x 대문자 정규화 후 호출 (#202 + #224)', async () => {
+      let interceptedUrl = '';
+      mockKakaoPool()
+        .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+        .reply((req) => {
+          interceptedUrl = req.path;
+          return { statusCode: 200, data: { documents: [], meta: { total_count: 0 } } };
+        });
+
+      const res = await request(app)
+        .get('/api/books/search')
+        .query({ q: '012345678x', target: 'isbn' });
+      expect(res.status).toBe(200);
+      expect(interceptedUrl).toMatch(/query=012345678X/);
+      expect(interceptedUrl).toMatch(/target=isbn/);
+    });
+
+    it('target=unknown → 400 ValidationError', async () => {
+      const res = await request(app).get('/api/books/search').query({ q: '책', target: 'bogus' });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
+    });
+
     it('외부 API 4xx (잘못된 키) → 503 (서버 운영 이슈로 마스킹)', async () => {
       mockKakaoPool()
         .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
@@ -205,6 +244,32 @@ describe('shelf-api books routes', () => {
       const res = await request(app).get('/api/books/9999999999999');
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('BookNotFound');
+    });
+
+    it('캐시 cachedAt 이 23h 59m 전 → 신선 판정, 외부 호출 0 (#239 TTL 경계)', async () => {
+      const justUnder = new Date(Date.now() - (24 * 60 * 60 * 1000 - 60 * 1000));
+      for (const [id, b] of memDb.books) {
+        memDb.books.set(id, { ...b, cachedAt: justUnder });
+      }
+      // 외부 mock 미등록 → fetch 호출되면 throw
+      const res = await request(app).get('/api/books/9788932917245');
+      expect(res.status).toBe(200);
+      expect(res.body.book.cached).toBe(true);
+      expect(res.body.book.stale).toBe(false);
+    });
+
+    it('캐시 cachedAt 이 24h 1m 전 → 만료 판정, 외부 재호출 발생 (#239 TTL 경계)', async () => {
+      const justOver = new Date(Date.now() - (24 * 60 * 60 * 1000 + 60 * 1000));
+      for (const [id, b] of memDb.books) {
+        memDb.books.set(id, { ...b, cachedAt: justOver });
+      }
+      mockKakaoPool()
+        .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+        .reply(200, { documents: [docKr], meta: { total_count: 1 } });
+
+      const res = await request(app).get('/api/books/9788932917245');
+      expect(res.status).toBe(200);
+      expect(res.body.book.cached).toBe(false);
     });
 
     it('캐시 만료 + 외부 실패 → stale 캐시 그대로 반환 (graceful degrade)', async () => {

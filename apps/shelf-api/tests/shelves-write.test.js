@@ -176,6 +176,55 @@ describe('PATCH /api/shelves/:bookId', () => {
     expect(res.status).toBe(400);
   });
 
+  it('status READ → READING 회귀 시 completedAt 만 null, rating/review 보존 (#218)', async () => {
+    const book = await seedBook();
+    await prisma.bookShelf.create({
+      data: {
+        userId: ALICE,
+        bookId: book.id,
+        status: 'READ',
+        rating: 4,
+        review: '인상 깊었다',
+        completedAt: new Date(),
+      },
+    });
+
+    const res = await request(app)
+      .patch(`/api/shelves/${book.id}`)
+      .set(authHeader(ALICE))
+      .send({ status: 'READING' });
+    expect(res.status).toBe(200);
+    expect(res.body.shelf).toMatchObject({
+      status: 'READING',
+      rating: 4,
+      review: '인상 깊었다',
+    });
+    expect(res.body.shelf.completedAt).toBeNull();
+  });
+
+  it('status READ → WANT 회귀 시에도 rating/review 보존', async () => {
+    const book = await seedBook({ isbn: '9788932917999' });
+    await prisma.bookShelf.create({
+      data: {
+        userId: ALICE,
+        bookId: book.id,
+        status: 'READ',
+        rating: 5,
+        review: '다시 읽고 싶다',
+        completedAt: new Date(),
+      },
+    });
+
+    const res = await request(app)
+      .patch(`/api/shelves/${book.id}`)
+      .set(authHeader(ALICE))
+      .send({ status: 'WANT' });
+    expect(res.status).toBe(200);
+    expect(res.body.shelf.rating).toBe(5);
+    expect(res.body.shelf.review).toBe('다시 읽고 싶다');
+    expect(res.body.shelf.completedAt).toBeNull();
+  });
+
   it('빈 본문 → 400 (refine 위반)', async () => {
     const book = await seedBook();
     await prisma.bookShelf.create({

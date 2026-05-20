@@ -47,4 +47,19 @@ describe('BookCard', () => {
     render(<BookCard shelf={sample} onEdit={() => {}} />);
     expect(screen.getByRole('img', { name: /별점 4점/ })).toBeInTheDocument();
   });
+
+  it('focus-visible 링 클래스가 적용되어 있다 (#248 키보드 가시성)', () => {
+    render(<BookCard shelf={sample} onEdit={() => {}} />);
+    const btn = screen.getByRole('button', { name: /읽기의 계절 자세히 보기/ });
+    expect(btn.className).toMatch(/focus-visible:ring-2/);
+  });
+
+  it('표지 없을 때 mix-blend-difference 대신 잉크 스크림 + 흰 글자 (#243)', () => {
+    const { container } = render(<BookCard shelf={sample} onEdit={() => {}} />);
+    // 회귀 가드: mix-blend-difference 클래스가 더 이상 본문에 붙지 않는다
+    expect(container.querySelector('.mix-blend-difference')).toBeNull();
+    // 잉크 스크림 (검은색 그라데이션) 이 존재
+    const scrim = container.querySelector('[aria-hidden="true"].bg-gradient-to-t');
+    expect(scrim).not.toBeNull();
+  });
 });

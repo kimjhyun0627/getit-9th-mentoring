@@ -38,7 +38,7 @@ export const SearchResultCard = ({ book, onAdd, isPending = false, isAdded = fal
 
   return (
     <article className="group flex flex-col gap-3" data-testid="search-result-card">
-      <div className="bg-paper-2 relative aspect-[2/3] overflow-hidden rounded-sm ring-1 ring-border">
+      <div className="bg-paper-2 relative aspect-[2/3] overflow-hidden rounded-sm ring-1 ring-border transition-all duration-300 group-hover:ring-2 group-hover:ring-[var(--wine,#7a1a2a)] group-focus-within:ring-2 group-focus-within:ring-ring">
         {book.coverUrl ? (
           <img
             src={book.coverUrl}

@@ -1,11 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { SearchResultCard } from '../components/SearchResultCard.jsx';
 import { Toast } from '../components/Toast.jsx';
 import { useMyShelves } from '../hooks/useShelves.js';
 import { api } from '../lib/api.js';
 import { useDebounce } from '../lib/useDebounce.js';
+
+import {
+  EmptyResults,
+  PromptEmpty,
+  ResultsGrid,
+  SearchField,
+  TargetToggle,
+} from './SearchPage.parts.jsx';
 
 /**
  * @typedef {{
@@ -20,6 +27,9 @@ import { useDebounce } from '../lib/useDebounce.js';
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY = 2;
+const PAGE_STEP = 10;
+
+/** @typedef {'all' | 'title' | 'person' | 'isbn'} TargetKey */
 
 /**
  * 추가 실패를 사용자 친화 메시지로 매핑.
@@ -62,6 +72,8 @@ const searchErrorMessage = (err) => {
  */
 export const SearchPage = () => {
   const [query, setQuery] = useState('');
+  const [target, setTarget] = useState(/** @type {TargetKey} */ ('all'));
+  const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
   const debouncedQuery = useDebounce(query, DEBOUNCE_MS);
   const [toast, setToast] = useState(
     /** @type {{ message: string, variant: 'success'|'error' } | null} */ (null),
@@ -91,13 +103,21 @@ export const SearchPage = () => {
   const isQueryable = trimmed.length >= MIN_QUERY;
 
   const search = useQuery({
-    queryKey: ['books', 'search', trimmed],
+    queryKey: ['books', 'search', trimmed, target],
     queryFn: async () => {
-      const result = await api.searchBooks(trimmed);
+      const result =
+        target === 'all'
+          ? await api.searchBooks(trimmed)
+          : await api.searchBooks(trimmed, { target });
       return result.items ?? [];
     },
     enabled: isQueryable,
   });
+
+  // 새 검색 / target 변경 시 페이지 카운터 리셋 (#205)
+  useEffect(() => {
+    setVisibleCount(PAGE_STEP);
+  }, [trimmed, target]);
 
   useEffect(() => {
     if (search.isError) {
@@ -144,7 +164,9 @@ export const SearchPage = () => {
 
   const handleDismissToast = useCallback(() => setToast(null), []);
 
-  const items = /** @type {BookItem[]} */ (search.data ?? []);
+  const items = useMemo(() => /** @type {BookItem[]} */ (search.data ?? []), [search.data]);
+  const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount]);
+  const hasMore = items.length > visibleCount;
   const showEmpty = isQueryable && !search.isLoading && !search.isError && items.length === 0;
   const showPrompt = !isQueryable;
   const pendingKey = addMutation.variables?.bookId ?? addMutation.variables?.isbn ?? null;
@@ -168,6 +190,7 @@ export const SearchPage = () => {
       </header>
 
       <SearchField value={query} onChange={setQuery} />
+      <TargetToggle value={target} onChange={setTarget} />
 
       <div aria-live="polite" className="min-h-[6rem]">
         {showPrompt ? (
@@ -177,102 +200,29 @@ export const SearchPage = () => {
         ) : showEmpty ? (
           <EmptyResults query={trimmed} />
         ) : (
-          <ResultsGrid
-            items={items}
-            onAdd={handleAdd}
-            pendingKey={addMutation.isPending ? pendingKey : null}
-            shelvedKeys={shelvedKeys}
-            optimisticKeys={optimisticKeys.current}
-          />
+          <>
+            <ResultsGrid
+              items={visibleItems}
+              onAdd={handleAdd}
+              pendingKey={addMutation.isPending ? pendingKey : null}
+              shelvedKeys={shelvedKeys}
+              optimisticKeys={optimisticKeys.current}
+            />
+            {hasMore ? (
+              <div className="mt-10 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((c) => c + PAGE_STEP)}
+                  className="inline-flex items-center gap-2 rounded-sm border border-border bg-background px-5 py-2 font-serif text-sm text-ink transition hover:border-foreground hover:text-accent-wine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  data-testid="search-load-more"
+                >
+                  더 보기 ({items.length - visibleCount}권 남음)
+                </button>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </section>
   );
 };
-
-/**
- * 검색 입력 — editorial 톤: hairline 강조, serif 폰트.
- *
- * @param {{ value: string, onChange: (v: string) => void }} props
- */
-const SearchField = ({ value, onChange }) => {
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor="search" className="smallcaps text-[11px]">
-        Search
-      </label>
-      <div className="border-rule-2 flex items-end gap-3 border-b pb-2">
-        <input
-          id="search"
-          type="search"
-          role="searchbox"
-          aria-label="책 검색"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="제목 또는 저자를 적어 보세요…"
-          className="text-body w-full bg-transparent font-serif text-xl placeholder:text-hint focus:outline-none"
-        />
-      </div>
-      <p className="font-serif text-xs text-hint">두 글자 이상 입력하면 자동으로 검색됩니다.</p>
-    </div>
-  );
-};
-
-const PromptEmpty = () => (
-  <div className="bg-paper-2 border-rule-1 rounded-sm border border-dashed px-6 py-10 text-center">
-    <p className="font-display text-ink-strong text-lg">오늘은 어떤 책을 찾고 계세요?</p>
-    <p className="mt-2 font-serif text-sm text-meta">
-      좋아하는 작가 이름이나 책 제목을 살짝 흘려 적어 보세요.
-    </p>
-  </div>
-);
-
-/** @param {{ query: string }} props */
-const EmptyResults = ({ query }) => (
-  <div className="bg-paper-2 border-rule-1 rounded-sm border border-dashed px-6 py-10 text-center">
-    <p className="font-display text-ink-strong text-lg">이 서가에는 그 책이 없습니다.</p>
-    <p className="mt-2 font-serif text-sm text-meta">
-      <span className="text-ink-strong">&ldquo;{query}&rdquo;</span>로는 찾지 못했습니다. 제목
-      일부나 저자 이름으로 다시 시도해 보세요.
-    </p>
-  </div>
-);
-
-/**
- * @param {{
- *   items: BookItem[],
- *   onAdd: (vars: { isbn?: string, bookId?: string }) => void,
- *   pendingKey: string | null,
- *   shelvedKeys: Set<string>,
- *   optimisticKeys: Set<string>,
- * }} props
- */
-const ResultsGrid = ({ items, onAdd, pendingKey, shelvedKeys, optimisticKeys }) => (
-  <ul
-    className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-    data-testid="results-grid"
-  >
-    {items.map((book, idx) => {
-      const identity = book.id ?? book.isbn ?? null;
-      // 식별자 없으면 동명 도서 충돌 막으려고 index 합성키 사용.
-      const key = identity ?? `${book.title}-${idx}`;
-      // 영속 truth 우선 (myShelves) + 낙관 보조 (옵티미스틱 직후).
-      const isAdded =
-        identity !== null &&
-        (shelvedKeys.has(identity) ||
-          (book.isbn && shelvedKeys.has(book.isbn)) ||
-          (book.id && shelvedKeys.has(book.id)) ||
-          optimisticKeys.has(identity));
-      return (
-        <li key={key}>
-          <SearchResultCard
-            book={book}
-            onAdd={onAdd}
-            isPending={identity !== null && pendingKey === identity}
-            isAdded={Boolean(isAdded)}
-          />
-        </li>
-      );
-    })}
-  </ul>
-);
