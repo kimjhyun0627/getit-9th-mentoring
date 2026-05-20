@@ -37,7 +37,7 @@ describe('SearchPage cross-reference + stale', () => {
     vi.useRealTimers();
   });
 
-  it('내 서재 cross-reference 로 isAdded 가 새로고침 후에도 유지된다 (#217)', async () => {
+  it('mount 시 내 서재 데이터로 isAdded 초기화 — 새로고침 후 영속 시나리오 (#217)', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'listMyShelves').mockResolvedValue({
       data: {

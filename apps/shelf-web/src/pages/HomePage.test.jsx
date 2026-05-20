@@ -176,10 +176,14 @@ describe('HomePage', () => {
       expect(spy).toHaveBeenCalledWith(expect.objectContaining({ sort: 'rating-desc' }));
     });
 
-    // 기본값으로 되돌리면 URL 의 ?sort=가 제거되어 default 로 호출 (회귀 가드).
+    // 기본값으로 되돌리면 URL 의 ?sort=가 제거되어 default 로 재호출 (회귀 가드).
+    // 초기 마운트 시 이미 addedAt-desc 로 호출되므로 toHaveBeenCalledWith 만으론 가짜 성공.
+    // 호출 횟수 증가 + 마지막 호출 인수까지 검증.
+    const beforeResetCalls = spy.mock.calls.length;
     await user.selectOptions(screen.getByRole('combobox', { name: /정렬/ }), 'addedAt-desc');
     await waitFor(() => {
-      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ sort: 'addedAt-desc' }));
+      expect(spy.mock.calls.length).toBeGreaterThan(beforeResetCalls);
+      expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ sort: 'addedAt-desc' }));
     });
   });
 });
