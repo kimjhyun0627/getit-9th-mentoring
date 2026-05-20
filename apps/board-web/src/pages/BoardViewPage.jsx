@@ -156,18 +156,25 @@ export const BoardViewPage = () => {
     deleteMutation.mutate({ cardId, columnId });
   };
 
-  if (projectQuery.isError) {
+  const hasCardsError = cardQueries.some((q) => q.isError);
+  if (projectQuery.isError || columnsQuery.isError || hasCardsError) {
     return (
       <BoardError
         onRetry={() => {
           projectQuery.refetch();
           columnsQuery.refetch();
+          cardQueries.forEach((q) => q.refetch?.());
         }}
       />
     );
   }
 
-  const cardsLoading = cardQueries.some((q) => q.isLoading);
+  // 컬럼별 로딩 상태 — 전역 합산 시 한 컬럼만 로딩이어도 모든 빈 컬럼이 로딩 UI로 보임
+  /** @type {Record<string, boolean>} */
+  const loadingByColumnId = {};
+  columns.forEach((col, idx) => {
+    loadingByColumnId[col.id] = Boolean(cardQueries[idx]?.isLoading);
+  });
 
   return (
     <>
@@ -187,7 +194,9 @@ export const BoardViewPage = () => {
               onMoveCard={(cardId, targetColumnId) => handleMove(cardId, col.id, targetColumnId)}
               onDeleteCard={(cardId) => handleDelete(cardId, col.id)}
               isAddingCard={addingColumnId === col.id && createMutation.isPending}
-              isLoading={cardsLoading && (cardsByColumn[col.id] ?? []).length === 0}
+              isLoading={
+                (loadingByColumnId[col.id] ?? false) && (cardsByColumn[col.id] ?? []).length === 0
+              }
             />
           ))}
         </div>

@@ -1,3 +1,4 @@
+import { CardCreateInput, CardMoveInput, CardUpdateInput } from '@getit/schemas/board';
 import axios from 'axios';
 
 /**
@@ -41,6 +42,27 @@ client.interceptors.response.use(
 );
 
 /**
+ * Zod 스키마로 페이로드를 검증해 잘못된 요청이 서버까지 가지 않게 한다.
+ * - 실패 시 reject 된 Promise 반환 → 호출부의 mutation onError 가 정상 동작
+ * - 성공 시 parsed value (trim, default 등 정규화된 값) 반환
+ *
+ * @template T
+ * @param {{ safeParse: (v: unknown) => { success: true; data: T } | { success: false; error: import('zod').ZodError } }} schema
+ * @param {unknown} body
+ * @returns {Promise<T>}
+ */
+const parseOrReject = (schema, body) => {
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    const err = new Error(`잘못된 요청 페이로드: ${result.error.message}`);
+    err.name = 'ValidationError';
+    err.issues = result.error.issues;
+    return Promise.reject(err);
+  }
+  return Promise.resolve(result.data);
+};
+
+/**
  * board-api 호출 헬퍼.
  * - 프로젝트/멤버/컬럼: `/projects/...` 하위
  * - 카드: `/cards` 평탄 (board-api 라우팅 참조)
@@ -74,18 +96,20 @@ export const api = {
    */
   listCards: (columnId) => client.get('/cards', { params: { columnId } }),
   /**
-   * 카드 생성.
+   * 카드 생성. zod 검증을 통과한 페이로드만 서버로 보낸다.
    *
    * @param {{ columnId: string; title: string; description?: string | null; assigneeId?: string | null }} body
    */
-  createCard: (body) => client.post('/cards', body),
+  createCard: (body) =>
+    parseOrReject(CardCreateInput, body).then((parsed) => client.post('/cards', parsed)),
   /**
    * 카드 수정 (title / description / assigneeId 중 1+).
    *
    * @param {string} cardId
    * @param {{ title?: string; description?: string | null; assigneeId?: string | null }} body
    */
-  updateCard: (cardId, body) => client.patch(`/cards/${cardId}`, body),
+  updateCard: (cardId, body) =>
+    parseOrReject(CardUpdateInput, body).then((parsed) => client.patch(`/cards/${cardId}`, parsed)),
   /**
    * 카드 삭제.
    *
@@ -98,5 +122,8 @@ export const api = {
    * @param {string} cardId
    * @param {{ columnId: string; order?: number }} body
    */
-  moveCard: (cardId, body) => client.patch(`/cards/${cardId}/move`, body),
+  moveCard: (cardId, body) =>
+    parseOrReject(CardMoveInput, body).then((parsed) =>
+      client.patch(`/cards/${cardId}/move`, parsed),
+    ),
 };

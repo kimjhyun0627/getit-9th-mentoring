@@ -87,8 +87,20 @@ export const KanbanCard = ({ card, columnName, otherColumns, onMove, onDelete })
  */
 const MoveMenu = ({ cardTitle, otherColumns, onMove }) => {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const rootRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const triggerRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
+  const itemRefs = useRef(/** @type {Array<HTMLButtonElement | null>} */ ([]));
 
+  // 메뉴 닫혔다 열릴 때 활성 인덱스 0으로 초기화 + ref 슬롯 정리
+  useEffect(() => {
+    if (open) {
+      setActiveIndex(0);
+      itemRefs.current = itemRefs.current.slice(0, otherColumns.length);
+    }
+  }, [open, otherColumns.length]);
+
+  // 열린 동안 outside click 닫기
   useEffect(() => {
     if (!open) return undefined;
     const handler = (e) => {
@@ -98,14 +110,72 @@ const MoveMenu = ({ cardTitle, otherColumns, onMove }) => {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  // 활성 인덱스 변경 시 해당 menuitem 으로 focus 이동 — ARIA menu 패턴
+  useEffect(() => {
+    if (!open) return;
+    itemRefs.current[activeIndex]?.focus();
+  }, [open, activeIndex]);
+
+  const closeAndRestoreFocus = () => {
+    setOpen(false);
+    // 트리거 버튼으로 포커스 복귀 — 키보드 사용성
+    queueMicrotask(() => triggerRef.current?.focus());
+  };
+
+  /** @param {import('react').KeyboardEvent<HTMLUListElement>} e */
+  const handleMenuKeyDown = (e) => {
+    const last = otherColumns.length - 1;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeAndRestoreFocus();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((i) => (i >= last ? 0 : i + 1));
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((i) => (i <= 0 ? last : i - 1));
+      return;
+    }
+    if (e.key === 'Home') {
+      e.preventDefault();
+      setActiveIndex(0);
+      return;
+    }
+    if (e.key === 'End') {
+      e.preventDefault();
+      setActiveIndex(last);
+      return;
+    }
+    if (e.key === 'Tab') {
+      // Tab 으로 메뉴 밖으로 나가면 닫기 (focus는 자연스럽게 이동)
+      setOpen(false);
+    }
+  };
+
+  /** @param {import('react').KeyboardEvent<HTMLButtonElement>} e */
+  const handleTriggerKeyDown = (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+      if (!open) {
+        e.preventDefault();
+        setOpen(true);
+      }
+    }
+  };
+
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`${cardTitle} 이동`}
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={handleTriggerKeyDown}
         className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-hairline text-muted-foreground transition hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
       >
         <svg
@@ -124,17 +194,23 @@ const MoveMenu = ({ cardTitle, otherColumns, onMove }) => {
       {open ? (
         <ul
           role="menu"
+          onKeyDown={handleMenuKeyDown}
           className="absolute right-0 z-20 mt-1 w-32 overflow-hidden rounded-md border border-hairline bg-popover py-1 text-sm shadow-md"
         >
-          {otherColumns.map((col) => (
+          {otherColumns.map((col, idx) => (
             <li key={col.id} role="none">
               <button
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                }}
                 role="menuitem"
                 type="button"
+                tabIndex={activeIndex === idx ? 0 : -1}
                 onClick={() => {
                   setOpen(false);
                   onMove(col.id);
                 }}
+                onFocus={() => setActiveIndex(idx)}
                 className="block w-full px-3 py-1.5 text-left text-xs text-foreground transition hover:bg-foreground/[0.05]"
               >
                 {col.name}
