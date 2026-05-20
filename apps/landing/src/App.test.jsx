@@ -8,7 +8,12 @@ import { PROJECTS } from './data/projects.js';
 // Header (#343 / #246) 가 mount 시 auth /api/me 를 fetch 한다.
 // 기존 App.test 는 세션 분기와 무관한 카드/Hero/Footer 가드 → 401 로 강제해
 // 항상 비로그인(sign in CTA) 경로로 안정화.
+//
+// CR feedback (#351): `global.fetch` 직접 대입은 `vi.restoreAllMocks()` 로 원복
+// 안 됨. originalFetch 캡처 + afterEach 에서 명시적 복구.
+let originalFetch;
 beforeEach(() => {
+  originalFetch = global.fetch;
   global.fetch = vi.fn().mockResolvedValue({
     ok: false,
     status: 401,
@@ -17,6 +22,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  global.fetch = originalFetch;
   vi.restoreAllMocks();
 });
 
@@ -184,29 +190,7 @@ describe('Hero (#24)', () => {
   });
 });
 
-describe('Header nav + Sign in (#24)', () => {
-  beforeEach(() => {
-    document.documentElement.classList.remove('dark');
-    window.localStorage.clear();
-  });
-
-  it('Header nav (services, about) 링크가 앵커를 가진다', () => {
-    renderApp();
-    const header = screen.getByRole('banner');
-    const services = within(header).getByRole('link', { name: /프로젝트 섹션으로 이동/ });
-    const about = within(header).getByRole('link', { name: /소개 섹션으로 이동/ });
-    expect(services).toHaveAttribute('href', '#projects');
-    expect(about).toHaveAttribute('href', '#about');
-  });
-
-  it('Header Sign in 링크가 auth.get-it.cloud 로 향한다 (비로그인 경로)', async () => {
-    // Header (#343 / #246): 비로그인 분기는 useSession 의 401 응답 이후 mount 되므로 findBy.
-    renderApp();
-    const signIn = await screen.findByTestId('session-signin');
-    expect(signIn).toHaveAttribute('href', expect.stringContaining('auth.get-it.cloud'));
-    expect(signIn).toHaveAccessibleName(/로그인/);
-  });
-});
+// Header nav + Sign in 가드는 Header.test.jsx 로 이전 (#351 CR 300-line 가이드).
 
 describe('About 섹션 (#24)', () => {
   beforeEach(() => {
@@ -232,32 +216,9 @@ describe('CardGrid 앵커 + 2×2 (#24)', () => {
   });
 });
 
-describe('Footer git log (#233)', () => {
-  it('Footer에 git log 시그니처가 노출되고 5건 라인을 렌더한다', () => {
-    renderApp();
-    const log = screen.getByTestId('footer-git-log');
-    expect(log).toBeInTheDocument();
-    const lines = within(log).getAllByTestId('footer-git-log-line');
-    expect(lines).toHaveLength(5);
-  });
+// Footer git log 가드는 Footer.test.jsx 로 이전 (#351 CR 300-line 가이드).
 
-  it('각 라인이 7자 sha + 메시지 패턴을 따른다 (빌드타임 주입 형식)', () => {
-    renderApp();
-    const log = screen.getByTestId('footer-git-log');
-    const lines = within(log).getAllByTestId('footer-git-log-line');
-    for (const line of lines) {
-      expect(line.textContent).toMatch(/^[0-9a-f]{7}\s+\S/);
-    }
-  });
-});
-
-describe('Header status + a11y (#261)', () => {
-  it('Header "all systems / nominal"에 role="status" + aria-label이 붙는다', () => {
-    renderApp();
-    const status = screen.getByRole('status', { name: /모든 시스템 정상|all systems/i });
-    expect(status).toBeInTheDocument();
-  });
-});
+// Header status + a11y 가드는 Header.test.jsx 로 이전 (#351 CR 300-line 가이드).
 
 describe('Hero CTA 모바일 stack (#256)', () => {
   it('Hero CTA 컨테이너가 모바일에서 column stack, sm+ 에서 row 로 전환된다', () => {
@@ -301,16 +262,7 @@ describe('외부 링크 시각 표시 (#284)', () => {
   });
 });
 
-describe('Footer 운영 채널 (#296)', () => {
-  it('Footer는 미운영 mailto 대신 notion(또는 contact) 외부 채널만 노출한다', () => {
-    renderApp();
-    const footer = screen.getByRole('contentinfo');
-    const mailLink = within(footer).queryByRole('link', { name: /^mail$/i });
-    expect(mailLink).toBeNull();
-    // notion 링크는 contact 채널로 유지
-    expect(within(footer).getByRole('link', { name: /notion/i })).toBeInTheDocument();
-  });
-});
+// Footer 운영 채널 가드는 Footer.test.jsx 로 이전 (#351 CR 300-line 가이드).
 
 describe('Team / Timeline 섹션 (#222)', () => {
   it('새 [02] team 섹션이 stat strip을 노출한다', () => {
@@ -333,17 +285,4 @@ describe('Team / Timeline 섹션 (#222)', () => {
   });
 });
 
-describe('ThemeToggle SVG (#24)', () => {
-  beforeEach(() => {
-    document.documentElement.classList.remove('dark');
-    window.localStorage.clear();
-  });
-
-  it('ThemeToggle은 이모지가 아닌 인라인 SVG 아이콘을 렌더한다', () => {
-    renderApp();
-    const toggle = screen.getByRole('button', { name: /다크모드로 전환|라이트모드로 전환/ });
-    const svg = toggle.querySelector('svg');
-    expect(svg).not.toBeNull();
-    expect(toggle.textContent).not.toMatch(/[☀🌙]/u);
-  });
-});
+// ThemeToggle SVG 가드는 Header.test.jsx 로 이전 (#351 CR 300-line 가이드).

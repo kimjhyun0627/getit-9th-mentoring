@@ -192,3 +192,49 @@ describe('Header SSO 세션 분기 (#343 / #246)', () => {
     await screen.findByTestId('session-logout');
   });
 });
+
+/**
+ * App.test.jsx 에서 이전됨 — Header 단위 가드는 Header.test.jsx 에 집중 (#351 CR
+ * 300-line 가이드 + single responsibility). describe 명/스펙은 그대로.
+ */
+describe('Header nav + Sign in (#24)', () => {
+  beforeEach(() => {
+    mockFetchMe(401, { error: 'Unauthorized' });
+    document.documentElement.classList.remove('dark');
+  });
+
+  it('Header nav (services, about) 링크가 앵커를 가진다', () => {
+    renderHeader();
+    const services = screen.getByRole('link', { name: /프로젝트 섹션으로 이동/ });
+    const about = screen.getByRole('link', { name: /소개 섹션으로 이동/ });
+    expect(services).toHaveAttribute('href', '#projects');
+    expect(about).toHaveAttribute('href', '#about');
+  });
+});
+
+describe('Header status + a11y (#261)', () => {
+  beforeEach(() => {
+    mockFetchMe(401, { error: 'Unauthorized' });
+  });
+
+  it('Header "all systems / nominal"에 role="status" + aria-label이 붙는다', () => {
+    renderHeader();
+    const status = screen.getByRole('status', { name: /모든 시스템 정상|all systems/i });
+    expect(status).toBeInTheDocument();
+  });
+});
+
+describe('ThemeToggle SVG (#24)', () => {
+  beforeEach(() => {
+    mockFetchMe(401, { error: 'Unauthorized' });
+    document.documentElement.classList.remove('dark');
+  });
+
+  it('ThemeToggle은 이모지가 아닌 인라인 SVG 아이콘을 렌더한다', () => {
+    renderHeader();
+    const toggle = screen.getByRole('button', { name: /다크모드로 전환|라이트모드로 전환/ });
+    const svg = toggle.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(toggle.textContent).not.toMatch(/[☀🌙]/u);
+  });
+});
