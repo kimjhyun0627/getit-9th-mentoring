@@ -31,16 +31,16 @@ export const About = () => {
 
           <div className="space-y-5 text-base leading-relaxed text-zinc-600 md:col-span-7 md:col-start-6 dark:text-zinc-300">
             <p>
-              GETIT 9기 멘토링은 한 학기 동안 네 개의 제품을 실제로 운영해요. 기획부터 디자인,
+              GETIT 9기 멘토링은 한 학기 동안 네 개의 제품을 실제로 운영합니다. 기획부터 디자인,
               풀스택 구현, 배포, 운영까지 — 학회 활동을 넘어 실제 사용자가 쓰는 제품을 만드는 것이
-              목표예요.
+              목표입니다.
             </p>
             <p>
               모든 서비스는 하나의{' '}
               <code className="font-mono text-cyan-700 dark:text-cyan-neon">auth.get-it.cloud</code>{' '}
-              SSO로 연결되고, 다크모드와 모바일을 기본으로 지원해요.{' '}
+              SSO로 연결되고, 다크모드와 모바일을 기본으로 지원합니다.{' '}
               <span className="text-zinc-900 dark:text-white">
-                코드와 디자인 모두 공개되어 있어요.
+                코드와 디자인 모두 공개되어 있습니다.
               </span>
             </p>
           </div>

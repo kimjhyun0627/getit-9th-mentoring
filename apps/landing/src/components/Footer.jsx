@@ -40,9 +40,12 @@ export const Footer = () => {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-3 text-zinc-500 dark:text-zinc-500">
             <span>
-              © GETIT 9기 멘토링 — KNU · made with{' '}
-              <span className="text-fuchsia-700 dark:text-magenta-neon">&lt;3</span> &amp;
-              semicolons;
+              © GETIT 9기 멘토링 — KNU ·{' '}
+              <span aria-hidden="true">
+                made with <span className="text-fuchsia-700 dark:text-magenta-neon">&lt;3</span>{' '}
+                &amp; semicolons;
+              </span>
+              <span className="sr-only">사랑을 담아 만들었습니다</span>
             </span>
             <span className="flex items-center gap-3">
               <a
@@ -52,6 +55,7 @@ export const Footer = () => {
                 className="hover:text-zinc-900 dark:hover:text-zinc-200"
               >
                 github
+                <span className="sr-only"> — 새 탭에서 열림</span>
               </a>
               <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
                 ·
@@ -63,6 +67,7 @@ export const Footer = () => {
                 className="hover:text-zinc-900 dark:hover:text-zinc-200"
               >
                 notion
+                <span className="sr-only"> — 새 탭에서 열림</span>
               </a>
               <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
                 ·
