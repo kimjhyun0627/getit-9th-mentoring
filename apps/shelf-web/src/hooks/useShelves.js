@@ -7,15 +7,16 @@ const SHELVES_KEY = ['shelves', 'me'];
 /**
  * 내 서재 조회 hook.
  *
- * @param {{ page?: number; pageSize?: number }} [opts]
+ * @param {{ page?: number; pageSize?: number; sort?: string }} [opts]
  */
 export const useMyShelves = (opts = {}) => {
   const page = opts.page ?? 1;
   const pageSize = opts.pageSize ?? 100;
+  const sort = opts.sort;
   return useQuery({
-    queryKey: [...SHELVES_KEY, { page, pageSize }],
+    queryKey: [...SHELVES_KEY, { page, pageSize, sort }],
     queryFn: async () => {
-      const res = await api.listMyShelves({ page, pageSize });
+      const res = await api.listMyShelves({ page, pageSize, sort });
       return /** @type {{ shelves: import('../components/BookCard.jsx').Shelf[]; pagination: { page: number; pageSize: number; total: number } }} */ (
         res.data
       );

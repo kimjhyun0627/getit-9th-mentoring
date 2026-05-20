@@ -190,6 +190,8 @@ services:
       PORT: "3003"
       DATABASE_URL: "mysql://${MYSQL_APP_USER}:${MYSQL_APP_PASSWORD}@mysql:3306/shelf"
       CORS_ORIGINS: "https://shelf.get-it.cloud"
+      # 카카오 도서 API 키 — 운영 secret. 누락 시 컨테이너 boot 실패 (validateEnv fail-fast).
+      KAKAO_BOOK_API_KEY: ${KAKAO_BOOK_API_KEY:-}
     depends_on:
       mysql: { condition: service_healthy }
     networks: [edge, internal]

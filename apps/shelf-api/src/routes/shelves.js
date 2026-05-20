@@ -15,7 +15,12 @@
  * 별점 0-5 정수 검증은 ShelfAddInput / ShelfUpdateInput 의 zod schema 가 강제.
  */
 import { requireAuth } from '@getit/auth-utils/server';
-import { ShelfAddInput, ShelfUpdateInput } from '@getit/schemas/shelf';
+import {
+  SHELF_SORT_DEFAULT,
+  ShelfAddInput,
+  ShelfSortKey,
+  ShelfUpdateInput,
+} from '@getit/schemas/shelf';
 import { Router } from 'express';
 
 import {
@@ -25,6 +30,7 @@ import {
   toBookRecord,
 } from '../lib/external/kakao.js';
 import { prisma } from '../lib/prisma.js';
+import { compareBy } from '../lib/shelf-sort.js';
 
 /**
  * Zod 에러 → 400 응답 본문.
@@ -39,6 +45,9 @@ const zodErrorBody = (err) => ({
 /**
  * 응답용 BookShelf 직렬화 (book 동봉 옵션).
  *
+ * `i_added` — 이 row 가 "내 서재에 담겨 있음" 을 명시. GET /me 응답은 항상 내 서재 row 이므로
+ * 항상 true. SearchPage (#217) 가 새로고침 후에도 cross-reference 로 추가 여부 판정 가능.
+ *
  * @param {Record<string, any>} row
  */
 const publicShelf = (row) => ({
@@ -50,6 +59,7 @@ const publicShelf = (row) => ({
   review: row.review ?? null,
   addedAt: row.addedAt,
   completedAt: row.completedAt ?? null,
+  i_added: true,
   book: row.book ? { ...row.book } : undefined,
 });
 
@@ -115,7 +125,7 @@ export const createShelvesRouter = () => {
 
   router.use(auth);
 
-  // GET /me — 내 서재 (page-based pagination: ?page=1&pageSize=20, 최대 100)
+  // GET /me — 내 서재 (page-based pagination: ?page=1&pageSize=20, 최대 100, sort=<key>)
   router.get('/me', async (req, res, next) => {
     try {
       const pageRaw = Number.parseInt(req.query.page, 10);
@@ -125,7 +135,23 @@ export const createShelvesRouter = () => {
         Number.isFinite(pageSizeRaw) && pageSizeRaw >= 1 ? Math.min(pageSizeRaw, 100) : 20;
       const skip = (page - 1) * pageSize;
 
+      // sort 미지정 → 기본값. 명시되었으면 enum 검증.
+      const sortParam = req.query.sort;
+      let sort = SHELF_SORT_DEFAULT;
+      if (typeof sortParam === 'string' && sortParam.length > 0) {
+        const parsed = ShelfSortKey.safeParse(sortParam);
+        if (!parsed.success) {
+          return res.status(400).json({
+            error: 'ValidationError',
+            issues: [{ path: 'sort', message: 'unsupported sort key' }],
+          });
+        }
+        sort = parsed.data;
+      }
+
       const where = { userId: req.user.sub };
+      // 페이지 단위로 받아온 뒤 in-memory 정렬 — pageSize ≤ 100 이라 비용 무시.
+      // Prisma orderBy 만으론 nullsLast / book.title 컬럼 정렬을 일관되게 표현하기 어려움.
       const [total, rows] = await Promise.all([
         prisma.bookShelf.count({ where }),
         prisma.bookShelf.findMany({
@@ -136,9 +162,10 @@ export const createShelvesRouter = () => {
           take: pageSize,
         }),
       ]);
+      const sorted = [...rows].sort(compareBy(sort));
       return res.status(200).json({
-        shelves: rows.map(publicShelf),
-        pagination: { page, pageSize, total },
+        shelves: sorted.map(publicShelf),
+        pagination: { page, pageSize, total, sort },
       });
     } catch (err) {
       return next(err);

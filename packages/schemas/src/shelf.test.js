@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
-import { ShelfAddInput, ShelfStatus, ShelfUpdateInput } from './shelf.js';
+import {
+  SHELF_SORT_DEFAULT,
+  ShelfAddInput,
+  ShelfSortKey,
+  ShelfStatus,
+  ShelfUpdateInput,
+} from './shelf.js';
 
 describe('ShelfStatus', () => {
   it.each(['WANT', 'READING', 'READ'])('"%s" 통과', (s) => {
@@ -78,5 +84,23 @@ describe('ShelfUpdateInput', () => {
 
   it('rating 6 → 거부', () => {
     expect(ShelfUpdateInput.safeParse({ rating: 6 }).success).toBe(false);
+  });
+});
+
+describe('ShelfSortKey', () => {
+  it.each(['addedAt-desc', 'addedAt-asc', 'completedAt-desc', 'rating-desc', 'title-asc'])(
+    '"%s" 통과',
+    (k) => {
+      expect(ShelfSortKey.safeParse(k).success).toBe(true);
+    },
+  );
+
+  it('알 수 없는 키 거부', () => {
+    expect(ShelfSortKey.safeParse('bogus').success).toBe(false);
+  });
+
+  it('기본 정렬 키는 addedAt-desc', () => {
+    expect(SHELF_SORT_DEFAULT).toBe('addedAt-desc');
+    expect(ShelfSortKey.safeParse(SHELF_SORT_DEFAULT).success).toBe(true);
   });
 });

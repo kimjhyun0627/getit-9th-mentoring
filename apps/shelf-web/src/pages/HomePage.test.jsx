@@ -160,4 +160,20 @@ describe('HomePage', () => {
     renderHome();
     expect(await screen.findByText(/지금은 서재를 펼칠 수 없습니다/)).toBeInTheDocument();
   });
+
+  it('SortControl 노출 + 변경 시 listMyShelves 가 새 sort 파라미터로 호출된다 (#196)', async () => {
+    const user = userEvent.setup();
+    const spy = vi.spyOn(api, 'listMyShelves').mockResolvedValue({
+      data: { shelves, pagination: { page: 1, pageSize: 100, total: 3 } },
+    });
+    renderHome();
+    await screen.findByRole('heading', { name: '읽기의 계절' });
+
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ sort: 'addedAt-desc' }));
+
+    await user.selectOptions(screen.getByRole('combobox', { name: /정렬/ }), 'rating-desc');
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ sort: 'rating-desc' }));
+    });
+  });
 });
