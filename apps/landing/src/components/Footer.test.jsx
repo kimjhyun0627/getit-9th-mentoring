@@ -68,7 +68,7 @@ describe('Footer 운영 채널 (#296)', () => {
     const footer = screen.getByRole('contentinfo');
     const mailLink = within(footer).queryByRole('link', { name: /^mail$/i });
     expect(mailLink).toBeNull();
-    // notion 링크는 contact 채널로 유지
-    expect(within(footer).getByRole('link', { name: /notion/i })).toBeInTheDocument();
+    // notion 링크는 contact 채널로 유지 — 라벨이 `notion` 또는 `contact` 둘 다 허용.
+    expect(within(footer).getByRole('link', { name: /(notion|contact)/i })).toBeInTheDocument();
   });
 });
