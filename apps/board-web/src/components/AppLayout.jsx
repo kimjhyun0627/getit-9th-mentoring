@@ -1,5 +1,6 @@
-import { ThemeToggle } from '@getit/theme';
 import { Link } from 'react-router-dom';
+
+import { ThemeSegmented } from './ThemeSegmented.jsx';
 
 /**
  * board-web 공통 App 레이아웃.
@@ -26,7 +27,7 @@ export const AppLayout = ({ children }) => {
             <span className="text-sm text-muted-foreground">GETIT 9기</span>
           </Link>
 
-          <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-base transition hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" />
+          <ThemeSegmented />
         </div>
       </header>
 
