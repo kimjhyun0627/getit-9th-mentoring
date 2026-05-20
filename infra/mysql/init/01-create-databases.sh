@@ -2,9 +2,30 @@
 # Bootstrap script — runs once on first MySQL container start (volume empty).
 # Creates one database per API service and grants the app user
 # (from $MYSQL_USER, taken from the official entrypoint env).
+#
+# NOTE: docker-entrypoint.sh sets up `root@localhost` with $MYSQL_ROOT_PASSWORD
+# before running /docker-entrypoint-initdb.d/*. We must authenticate as root
+# explicitly, otherwise `mysql -uroot` (no password) fails with:
+#   ERROR 1045 (28000): Access denied for user 'root'@'localhost' (using password: NO)
+#
+# We use --defaults-extra-file with a temp my.cnf instead of `-p"$PASS"` on the
+# command line — that avoids the "password on the command line" warning and
+# keeps the secret out of `ps`.
 set -euo pipefail
 
 : "${MYSQL_USER:?MYSQL_USER must be set by docker-entrypoint}"
+: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set by docker-entrypoint}"
+
+# Temp credential file readable only by current user; cleaned up on exit.
+CNF="$(mktemp)"
+chmod 600 "$CNF"
+trap 'rm -f "$CNF"' EXIT
+
+cat >"$CNF" <<EOF
+[client]
+user=root
+password=${MYSQL_ROOT_PASSWORD}
+EOF
 
 # All 5 service-specific DBs. Adding a new app: append here.
 DATABASES=(auth hobby shelf board letter)
@@ -18,4 +39,4 @@ DATABASES=(auth hobby shelf board letter)
     echo "GRANT ALL PRIVILEGES ON \`${db}\`.* TO '${MYSQL_USER}'@'%';"
   done
   echo "FLUSH PRIVILEGES;"
-} | mysql --protocol=socket -uroot
+} | mysql --defaults-extra-file="$CNF" --protocol=socket
