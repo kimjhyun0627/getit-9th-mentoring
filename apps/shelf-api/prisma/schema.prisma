@@ -1,0 +1,65 @@
+// shelf-api Prisma schema
+// 외부 도서 API 응답 캐시(Book) + 사용자 서재(BookShelf).
+// userId는 통합 SSO User.id(cuid 문자열) FK이지만, auth-api와 DB 분리 가정하에
+// FK 제약은 두지 않고 애플리케이션 레벨에서 검증한다.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// 외부 도서 API(카카오/알라딘/네이버 등) 응답 캐시.
+/// - isbn: 식별자. unique. ISBN-10/13 둘 다 허용(외부 API 따라 다름).
+/// - source: 어느 외부 API에서 가져왔는지 ('kakao' | 'aladin' | 'naver' | 'manual')
+/// - cachedAt: @updatedAt — refresh 시 자동 갱신. TTL 만료 쿼리용 index.
+/// - description/publishedAt: optional (외부 API가 누락하는 경우 많음).
+model Book {
+  id          String   @id @default(cuid())
+  isbn        String   @unique
+  title       String
+  author      String
+  publisher   String
+  publishedAt DateTime?
+  coverUrl    String
+  description String?  @db.Text
+  source      String
+  cachedAt    DateTime @updatedAt
+  shelves     BookShelf[]
+
+  @@index([cachedAt])
+}
+
+/// 사용자별 책 보관 상태.
+/// - userId: 통합 SSO User.id(cuid). cross-DB FK 미사용, 앱 레벨 검증.
+/// - status: WANT(읽고 싶음) | READING(읽는 중) | READ(완독)
+/// - rating: 1~5 별점 (애플리케이션 레벨 검증). 완독 전엔 null 권장.
+/// - review: 감상평 본문 (긴 글 대응 Text).
+/// - addedAt: 서재에 담은 시각.
+/// - completedAt: status=READ 전환 시각. 미완독이면 null.
+/// - @@unique([userId, bookId]): 같은 책을 한 유저가 중복 저장 X.
+///   composite unique가 userId 선행 인덱스 역할 자동 수행 → 단일 @@index([userId]) 불필요.
+/// - @@index([bookId]): bookId 단독 조회용(역방향 lookup).
+model BookShelf {
+  id          String    @id @default(cuid())
+  userId      String
+  bookId      String
+  status      BookStatus
+  rating      Int?
+  review      String?   @db.Text
+  addedAt     DateTime  @default(now())
+  completedAt DateTime?
+  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([bookId])
+}
+
+enum BookStatus {
+  WANT
+  READING
+  READ
+}
