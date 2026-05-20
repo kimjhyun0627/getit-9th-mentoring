@@ -85,14 +85,13 @@ export const createMembersRouter = () => {
         return res.status(403).json({ error: 'OwnerOnly' });
       }
 
-      const target = await prisma.projectMember.findUnique({
-        where: { projectId_userId: { projectId, userId: targetUserId } },
+      // deleteMany 한 번으로 조회 + 삭제를 동시에 처리 (count로 존재 여부 확인)
+      const result = await prisma.projectMember.deleteMany({
+        where: { projectId, userId: targetUserId },
       });
-      if (!target) {
+      if (result.count === 0) {
         return res.status(404).json({ error: 'MemberNotFound' });
       }
-
-      await prisma.projectMember.delete({ where: { id: target.id } });
       return res.status(204).send();
     } catch (err) {
       return next(err);

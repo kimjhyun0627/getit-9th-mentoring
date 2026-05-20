@@ -37,13 +37,18 @@ const main = async () => {
 
   const shutdown = (signal) => {
     log.info({ signal }, 'shutting down');
-    server.close(() => {
-      process.exitCode = 0;
-    });
-    setTimeout(() => {
+    let forced = false;
+    const timer = setTimeout(() => {
+      forced = true;
       process.exitCode = 1;
       server.closeAllConnections?.();
-    }, 5000).unref();
+    }, 5000);
+    timer.unref();
+    server.close(() => {
+      clearTimeout(timer);
+      // 타임아웃으로 강제 종료된 경우엔 exitCode를 0으로 덮어쓰지 않음
+      if (!forced) process.exitCode = 0;
+    });
   };
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));

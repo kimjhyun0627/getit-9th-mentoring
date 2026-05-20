@@ -57,6 +57,13 @@ const matchWhere = (row, where) => {
     if (k === 'projectId_userId' && v && typeof v === 'object') {
       return row.projectId === v.projectId && row.userId === v.userId;
     }
+    // 관계 필터 (Project.members.some) — 메모리 컬렉션을 순회해서 매칭
+    if (k === 'members' && v && typeof v === 'object' && v.some) {
+      for (const m of memDb.projectMembers.values()) {
+        if (m.projectId === row.id && matchWhere(m, v.some)) return true;
+      }
+      return false;
+    }
     if (v !== null && typeof v === 'object' && !(v instanceof Date)) {
       if ('equals' in v) return row[k] === v.equals;
       if ('gt' in v) return row[k] > v.gt;

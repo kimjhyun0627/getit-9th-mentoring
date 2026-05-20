@@ -56,14 +56,15 @@ const publicProject = (p) => ({
 export const createProjectsRouter = () => {
   const router = Router();
 
-  // GET /projects — 본인 멤버인 프로젝트만
+  // GET /projects — 본인 멤버인 프로젝트만 (DB 레벨 필터링 — 전체 스캔 방지)
   router.get('/', async (req, res, next) => {
     try {
       const userId = req.user.sub;
-      const memberships = await prisma.projectMember.findMany({ where: { userId } });
-      const ids = new Set(memberships.map((m) => m.projectId));
-      const all = await prisma.project.findMany({ orderBy: { createdAt: 'desc' } });
-      const projects = all.filter((p) => ids.has(p.id)).map(publicProject);
+      const rows = await prisma.project.findMany({
+        where: { members: { some: { userId } } },
+        orderBy: { createdAt: 'desc' },
+      });
+      const projects = rows.map(publicProject);
       return res.status(200).json({ projects });
     } catch (err) {
       return next(err);
@@ -109,13 +110,10 @@ export const createProjectsRouter = () => {
       const parsed = ProjectUpdateInput.safeParse(req.body);
       if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
 
-      const data = {};
-      if (parsed.data.name !== undefined) data.name = parsed.data.name;
-      if (parsed.data.description !== undefined) data.description = parsed.data.description;
-
+      // Zod optional() 미입력 필드는 undefined — Prisma update에서 무시되므로 그대로 전달
       const updated = await prisma.project.update({
         where: { id: req.params.id },
-        data,
+        data: parsed.data,
       });
       return res.status(200).json({ project: publicProject(updated) });
     } catch (err) {
