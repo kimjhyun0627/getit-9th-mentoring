@@ -5,6 +5,7 @@
  *   helmet → cors (fail-closed) → cookieParser → json (64kb)
  *   → pino-http (test 제외)
  *   → /api/health (public)
+ *   → /api/me (JWT 필요, FE BoardPage mount 시 호출)
  *   → /api/messages/* (JWT 필요, mutation 은 rate-limit)
  */
 import cookieParser from 'cookie-parser';
@@ -14,6 +15,7 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 
+import { createMeRouter } from './routes/me.js';
 import { createMessagesRouter } from './routes/messages.js';
 
 /**
@@ -92,6 +94,9 @@ export const createApp = (opts = {}) => {
   });
 
   const jwtSecret = readJwtSecret();
+  // /api/me — FE BoardPage 가 mount 시 호출. 미등록이면 404 → FE 의 401 핸들러
+  // 발화 안 함 → SSO redirect 누락 → "롤링페이퍼 못 불러옴" UX 회귀. 반드시 등록.
+  app.use('/api', createMeRouter({ jwtSecret }));
   app.use('/api', createMessagesRouter({ jwtSecret, mutationLimiter }));
 
   // 마지막 fallback 에러 핸들러 (4-인자 시그니처 유지).
