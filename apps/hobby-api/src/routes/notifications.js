@@ -1,17 +1,18 @@
 /**
- * hobby-api 알림 라우터 — 본인 알림 조회 (#36).
+ * hobby-api 알림 라우터 — 본인 알림 조회 + 읽음 처리 (#36/#229).
  *
  * 엔드포인트:
- *  - GET /api/notifications — 본인(JWT sub) 알림만 최신순 + cursor 페이지네이션
+ *  - GET   /api/notifications              — 본인 알림 최신순 + cursor 페이지네이션
+ *  - PATCH /api/notifications/:id/read     — 단건 읽음 처리 (readAt 채움)
+ *  - POST  /api/notifications/read-all     — 본인 unread 전체 읽음
  *
  * 정책:
- *  - 필터링은 항상 server-side 강제 (where.userId = req.user.sub). 클라가 userId
- *    쿼리 파라미터 박아도 무시 — 권한 우회 차단.
+ *  - 필터링은 항상 server-side 강제 (where.userId = req.user.sub). 권한 우회 차단.
  *  - 정렬: createdAt desc, id desc (tie-break).
  *  - unreadOnly=true 면 readAt IS NULL 만.
- *  - cursor: 이전 페이지 마지막 id.
+ *  - cursor: 이전 페이지 마지막 id (본인 소유 검증).
  *
- * 알림 생성은 applications.js 의 FULL 전이 훅에서 수행 — 여기선 read-only.
+ * 알림 생성은 applications.js 의 FULL 전이 훅에서 수행.
  */
 import { requireAuth } from '@getit/auth-utils/server';
 import { NotificationListQuery } from '@getit/schemas/hobby';
@@ -24,14 +25,16 @@ const zodErrorBody = (err) => ({
   issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
 });
 
+const toIso = (d) => (d instanceof Date ? d.toISOString() : (d ?? null));
+
 const serializeNotification = (n) => ({
   id: n.id,
   userId: n.userId,
   postId: n.postId ?? null,
   kind: n.kind,
   message: n.message,
-  createdAt: n.createdAt instanceof Date ? n.createdAt.toISOString() : n.createdAt,
-  readAt: n.readAt instanceof Date ? n.readAt.toISOString() : (n.readAt ?? null),
+  createdAt: toIso(n.createdAt),
+  readAt: toIso(n.readAt),
 });
 
 /**
@@ -52,12 +55,9 @@ export const createNotificationsRouter = ({ jwtSecret }) => {
       const userId = req.user.sub;
       const onlyUnread = unreadOnly === 'true' || unreadOnly === '1';
 
-      // server-side userId 강제. 클라가 query 로 보내도 무시.
       const where = { userId };
       if (onlyUnread) where.readAt = null;
 
-      // cursor 선검증: 존재 + 본인 소유 여야 함. 안 그러면 Prisma 가 500 으로 흘러.
-      // 잘못된 cursor 는 400 ValidationError 로 명확히 거부.
       if (cursor) {
         const ownsCursor = await prisma.notification.findUnique({
           where: { id: cursor },
@@ -81,10 +81,56 @@ export const createNotificationsRouter = ({ jwtSecret }) => {
       const page = hasMore ? rows.slice(0, limit) : rows;
       const nextCursor = hasMore ? page[page.length - 1].id : null;
 
+      // unread count (badge 용) — 별도 쿼리. 작은 cost 라 매번 계산해 보여줘.
+      const unreadCount = await prisma.notification.count({
+        where: { userId, readAt: null },
+      });
+
       return res.status(200).json({
         items: page.map(serializeNotification),
         nextCursor,
+        unreadCount,
       });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // PATCH /api/notifications/:id/read — 단건 읽음 처리. 본인 소유 검증.
+  // updateMany + where: { id, userId } 로 권한 + 존재 체크 한 번에 처리.
+  router.patch('/notifications/:id/read', auth, async (req, res, next) => {
+    try {
+      const id = String(req.params.id);
+      if (!id || id.length > 64) {
+        return res.status(400).json({ error: 'ValidationError' });
+      }
+      const userId = req.user.sub;
+      const updated = await prisma.notification.updateMany({
+        where: { id, userId, readAt: null },
+        data: { readAt: new Date() },
+      });
+      if (updated.count === 0) {
+        // 본인 소유 + unread 가 아니면 — 이미 읽었거나 없음. 정확한 분기는 follow-up read 로.
+        const owns = await prisma.notification.findUnique({ where: { id } });
+        if (!owns || owns.userId !== userId) {
+          return res.status(404).json({ error: 'NotificationNotFound' });
+        }
+      }
+      return res.status(204).send();
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // POST /api/notifications/read-all — 본인의 unread 전체를 읽음 처리.
+  router.post('/notifications/read-all', auth, async (req, res, next) => {
+    try {
+      const userId = req.user.sub;
+      const updated = await prisma.notification.updateMany({
+        where: { userId, readAt: null },
+        data: { readAt: new Date() },
+      });
+      return res.status(200).json({ updated: updated.count });
     } catch (err) {
       return next(err);
     }

@@ -15,6 +15,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import { buildOpenApiDoc } from './openapi.js';
 import { createApplicationsRouter } from './routes/applications.js';
+import { createMeRouter } from './routes/me.js';
 import { createNotificationsRouter } from './routes/notifications.js';
 import { createPostsRouter } from './routes/posts.js';
 
@@ -70,6 +71,7 @@ export const createApp = (opts = {}) => {
   app.use('/api', createPostsRouter({ jwtSecret }));
   app.use('/api', createApplicationsRouter({ jwtSecret }));
   app.use('/api', createNotificationsRouter({ jwtSecret }));
+  app.use('/api', createMeRouter({ jwtSecret }));
 
   const openapi = buildOpenApiDoc();
   app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi));

@@ -22,6 +22,7 @@ const samplePost = (over = {}) => ({
   updatedAt: '2026-05-19T08:00:00+09:00',
   tags: over.tags ?? [{ id: 't1', name: '마라탕' }],
   ...(over.openChatUrl !== undefined ? { openChatUrl: over.openChatUrl } : {}),
+  ...(over.myApplication !== undefined ? { myApplication: over.myApplication } : {}),
 });
 
 const renderAt = (postId = 'p1') => {
@@ -183,6 +184,21 @@ describe('PostDetailPage', () => {
       );
     });
     expect(await screen.findByRole('button', { name: /^신청하기$/ })).toBeInTheDocument();
+  });
+
+  it('reload 후에도 myApplication 응답이 있으면 "신청 취소" 버튼 노출 (#212)', async () => {
+    // reload 시뮬레이션: 처음부터 GET /api/posts/:id 응답에 myApplication 포함.
+    vi.spyOn(api, 'getPost').mockResolvedValue({
+      post: samplePost({
+        capacity: 4,
+        currentCapacity: 3,
+        // @ts-expect-error 응답 shape 확장
+        myApplication: { id: 'app-existing', createdAt: '2026-05-19T08:00:00.000Z' },
+      }),
+    });
+    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    renderAt();
+    expect(await screen.findByRole('button', { name: /신청 취소/ })).toBeInTheDocument();
   });
 
   it('404 — 게시글이 없으면 안내 메시지', async () => {

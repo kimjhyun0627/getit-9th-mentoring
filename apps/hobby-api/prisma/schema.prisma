@@ -24,6 +24,10 @@ datasource db {
 model Post {
   id              String         @id @default(cuid())
   ownerId         String
+  /// 방장 표시 이름 스냅샷 — auth-api JWT 의 `name` claim 을 작성 시점에 저장.
+  /// 다른 BE 와 DB 가 분리돼 있어 FK join 불가 → 작성 시점 캡처가 가장 단순/저렴 (#212).
+  /// 닉네임 변경 시 stale 일 수 있으나, 모집글은 단기성이라 허용. null → FE 가 '익명' fallback.
+  ownerName       String?
   title           String
   body            String         @db.Text
   meetAt          DateTime

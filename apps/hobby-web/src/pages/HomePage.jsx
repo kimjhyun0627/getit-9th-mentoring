@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { EmptyCard } from '../components/EmptyCard.jsx';
@@ -8,30 +8,39 @@ import { Header } from '../components/Header.jsx';
 import { MeetupCard } from '../components/MeetupCard.jsx';
 import { api } from '../lib/api.js';
 
-import { filterPosts } from './HomePage.logic.js';
-
 /**
  * 홈 — 모집 카드 리스트. 시안 (docs/design/hobby/playful.html) 1:1.
  *
  * 데이터 흐름:
  *  - useInfiniteQuery 로 GET /api/posts cursor 페이지네이션.
- *  - 검색어 / 시간 필터는 클라이언트에서 (서버 query 미지원).
- *  - 태그 필터는 서버 query 의 `tag` 로 직접 전달 (지원됨).
+ *  - 검색(q) / 시간(timeWindow) / 태그(tag) 전부 서버 사이드 필터 (#229).
+ *  - 검색 입력은 250ms debounce 후 q 쿼리에 박힘.
  *
  * 빈 상태:
  *  - 카드 0개일 때만 EmptyCard placeholder 표시 (시안 카드 7 슬롯).
  *  - 카드가 있어도 그리드 마지막에 항상 EmptyCard 를 보여줘 "새 모임" CTA 유도.
  */
 export const HomePage = () => {
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [timeKey, setTimeKey] = useState(/** @type {'all'|'today'|'week'} */ ('all'));
   const [tagKey, setTagKey] = useState(/** @type {string|null} */ (null));
 
+  // #229: 검색 입력은 250ms debounce. 빈 문자열은 서버 q 미전송.
+  useEffect(() => {
+    const handle = setTimeout(() => setSearch(searchInput.trim()), 250);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
+  // #229: tag / timeWindow / q 전부 서버 사이드 필터로 BE 에 위임.
+  // queryKey 에 모든 필터를 포함해 변경 시 자동 refetch.
   const query = useInfiniteQuery({
-    queryKey: ['posts', { tag: tagKey }],
+    queryKey: ['posts', { tag: tagKey, timeWindow: timeKey, q: search }],
     queryFn: ({ pageParam }) =>
       api.listPosts({
         ...(tagKey ? { tag: tagKey } : {}),
+        ...(timeKey !== 'all' ? { timeWindow: timeKey } : {}),
+        ...(search ? { q: search } : {}),
         ...(pageParam ? { cursor: pageParam } : {}),
         limit: 12,
       }),
@@ -39,10 +48,7 @@ export const HomePage = () => {
     getNextPageParam: (last) => last?.nextCursor ?? undefined,
   });
 
-  const posts = useMemo(() => {
-    const all = query.data?.pages.flatMap((p) => p.items) ?? [];
-    return filterPosts(all, { search, timeKey });
-  }, [query.data, search, timeKey]);
+  const posts = useMemo(() => query.data?.pages.flatMap((p) => p.items) ?? [], [query.data]);
 
   const isLoading = query.isLoading;
   const isError = query.isError;
@@ -97,7 +103,7 @@ export const HomePage = () => {
 
       <div aria-hidden="true" className="absolute inset-0 bg-dotted pointer-events-none" />
 
-      <Header search={search} onSearchChange={setSearch} />
+      <Header search={searchInput} onSearchChange={setSearchInput} />
 
       <main className="relative z-10 max-w-[1280px] mx-auto px-5 lg:px-10 pt-10 lg:pt-14 pb-14">
         <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8">

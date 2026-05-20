@@ -68,16 +68,30 @@ export const PostCreateInput = z.object({
 });
 
 /**
+ * 시간 윈도우 필터 — 'today' / 'week' / 'all'.
+ *
+ * BE 에서 `meetAt` 범위로 환산해 필터링. 생략(또는 'all') 시 미적용.
+ */
+export const TimeWindow = z.enum(['all', 'today', 'week']);
+
+/**
  * 리스트 조회 query.
  *
  * - status: 단일 PostStatus (생략 시 RECRUITING + FULL).
  * - tag: 태그 이름 (단일). 매칭 게시글만 필터.
+ * - q: 자유 텍스트 검색 (title/body 부분 일치, case-insensitive, 1~80자).
+ * - timeWindow: 'today'|'week'|'all' (#229 — 클라이언트 필터를 서버로 이전).
  * - cursor: 이전 page 의 마지막 id (생략 시 첫 페이지).
  * - limit: 1~50, 기본 20.
+ *
+ * `q` 와 `timeWindow` 는 서버에서 처리해야 cursor 페이지네이션 결과가 정확하다.
+ * 클라이언트 후처리 + cursor 조합은 페이지 경계마다 결과 누락이 발생함 (#229).
  */
 export const PostListQuery = z.object({
   status: PostStatus.optional(),
   tag: TagName.optional(),
+  q: z.string().trim().min(1).max(80).optional(),
+  timeWindow: TimeWindow.optional().default('all'),
   cursor: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
@@ -120,10 +134,32 @@ export const NotificationListQuery = z.object({
 });
 
 /**
+ * 마이페이지 내 게시글 조회 query.
+ * - status 미지정 시 전체 (RECRUITING/FULL/CLOSED 포함). `/api/me/posts` 는
+ *   본인 게시글이므로 closed 도 노출이 정상.
+ */
+export const MyPostListQuery = z.object({
+  status: PostStatus.optional(),
+  cursor: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+/**
+ * 마이페이지 내 신청 조회 query.
+ */
+export const MyApplicationListQuery = z.object({
+  cursor: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+/**
  * @typedef {z.infer<typeof PostCreateInput>} PostCreateInputT
  * @typedef {z.infer<typeof PostListQuery>} PostListQueryT
  * @typedef {z.infer<typeof PostStatus>} PostStatusT
+ * @typedef {z.infer<typeof TimeWindow>} TimeWindowT
  * @typedef {z.infer<typeof ApplicationCreateInput>} ApplicationCreateInputT
  * @typedef {z.infer<typeof NotificationListQuery>} NotificationListQueryT
  * @typedef {z.infer<typeof NotificationKind>} NotificationKindT
+ * @typedef {z.infer<typeof MyPostListQuery>} MyPostListQueryT
+ * @typedef {z.infer<typeof MyApplicationListQuery>} MyApplicationListQueryT
  */

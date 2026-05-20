@@ -41,6 +41,8 @@ const renderPage = () => {
 describe('HomePage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // Header 가 useQuery(api.getMe) 를 호출 — 테스트에서는 비로그인 default.
+    vi.spyOn(api, 'getMe').mockRejectedValue({ response: { status: 401 } });
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -87,18 +89,31 @@ describe('HomePage', () => {
     });
   });
 
-  it('검색어로 클라이언트 필터링이 동작한다', async () => {
+  it('검색어가 서버로 전달되고 결과만 표시된다 (#229)', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'listPosts').mockResolvedValue({
-      items: [
-        samplePost({ id: 'mara', title: '북문 마라탕' }),
-        samplePost({ id: 'futsal', title: '풋살 한판', tags: [{ id: 't', name: '풋살' }] }),
-      ],
-      nextCursor: null,
+    // listPosts mock — q 파라미터에 따라 결과 분기 (서버 필터를 mock 으로 흉내).
+    const spy = vi.spyOn(api, 'listPosts').mockImplementation(async (params = {}) => {
+      if (params.q === '풋살') {
+        return {
+          items: [samplePost({ id: 'futsal', title: '풋살 한판' })],
+          nextCursor: null,
+        };
+      }
+      return {
+        items: [
+          samplePost({ id: 'mara', title: '북문 마라탕' }),
+          samplePost({ id: 'futsal', title: '풋살 한판' }),
+        ],
+        nextCursor: null,
+      };
     });
     renderPage();
     await screen.findByText('북문 마라탕');
     await user.type(screen.getByLabelText('태그 또는 장소로 검색'), '풋살');
+    // debounce 250ms — q 가 서버로 전달됐는지 확인.
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ q: '풋살' }));
+    });
     await waitFor(() => {
       expect(screen.queryByText('북문 마라탕')).not.toBeInTheDocument();
     });

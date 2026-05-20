@@ -1,17 +1,31 @@
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
+import { api } from '../lib/api.js';
+
+import { NotificationBell } from './NotificationBell.jsx';
 import { PlayfulThemeToggle } from './PlayfulThemeToggle.jsx';
 
 /**
- * Playful 페르소나 헤더 — 로고 + 검색 + 다크 토글 + Sign in.
- * 시안 (docs/design/hobby/playful.html) 의 <header> 1:1 변환.
+ * Playful 페르소나 헤더 — 로고 + 검색 + 다크 토글 + 알림 + 마이 + Sign in.
  *
- * 내부 라우팅은 react-router 의 `Link` 사용 — `<a href>` 는 전체 페이지 새로고침 +
- * QueryClient 캐시/테마 상태 초기화를 유발해서 SPA 체감 깨짐.
+ * #229: 알림 벨 추가 (로그인 시만 노출).
+ * #228: 마이페이지 진입점 (로그인 시 "내 모임" 아이콘 노출).
+ *
+ * 내부 라우팅은 react-router 의 `Link` — `<a href>` 는 전체 페이지 새로고침을 유발.
  *
  * @param {{ search: string; onSearchChange: (v: string) => void }} props
  */
 export const Header = ({ search, onSearchChange }) => {
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: api.getMe,
+    retry: false,
+    staleTime: 60_000,
+  });
+  const isLoggedIn = Boolean(meQuery.data);
+  const userId = meQuery.data?.id ?? null;
+
   return (
     <header className="relative z-10 max-w-[1280px] mx-auto px-5 lg:px-10 pt-6 flex items-center gap-3 sm:gap-5">
       <Link
@@ -50,12 +64,25 @@ export const Header = ({ search, onSearchChange }) => {
 
       <div className="ml-auto flex items-center gap-2.5">
         <PlayfulThemeToggle />
-        <a
-          href="https://auth.get-it.cloud/login?redirect=https%3A%2F%2Fhobby.get-it.cloud"
-          className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 sm:px-5 py-2.5 font-display font-bold text-sm shadow-md hover:scale-[1.04] hover:-rotate-1 transition"
-        >
-          Sign in <span aria-hidden="true">→</span>
-        </a>
+        <NotificationBell enabled={isLoggedIn} userId={userId} />
+        {isLoggedIn ? (
+          <Link
+            to="/me"
+            aria-label="내 모임"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 text-slate-700 dark:text-slate-200 shadow-sm hover:scale-[1.05] transition"
+          >
+            <span aria-hidden="true" className="text-lg">
+              👤
+            </span>
+          </Link>
+        ) : (
+          <a
+            href="https://auth.get-it.cloud/login?redirect=https%3A%2F%2Fhobby.get-it.cloud"
+            className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 sm:px-5 py-2.5 font-display font-bold text-sm shadow-md hover:scale-[1.04] hover:-rotate-1 transition"
+          >
+            Sign in <span aria-hidden="true">→</span>
+          </a>
+        )}
       </div>
     </header>
   );

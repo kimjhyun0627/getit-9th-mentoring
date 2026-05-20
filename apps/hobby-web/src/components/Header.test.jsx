@@ -1,21 +1,35 @@
 import { ThemeProvider } from '@getit/theme';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { api } from '../lib/api.js';
 
 import { Header } from './Header.jsx';
 
 const renderHeader = (props = {}) => {
   const onSearchChange = props.onSearchChange ?? vi.fn();
+  // 각 테스트 별로 fresh QueryClient — useQuery 캐시 격리.
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <ThemeProvider>
-      <MemoryRouter>
-        <Header search={props.search ?? ''} onSearchChange={onSearchChange} />
-      </MemoryRouter>
-    </ThemeProvider>,
+    <QueryClientProvider client={qc}>
+      <ThemeProvider>
+        <MemoryRouter>
+          <Header search={props.search ?? ''} onSearchChange={onSearchChange} />
+        </MemoryRouter>
+      </ThemeProvider>
+    </QueryClientProvider>,
   );
 };
+
+beforeEach(() => {
+  // 기본 동작: 비로그인 (NotificationBell / 마이 진입점 hidden).
+  vi.spyOn(api, 'getMe').mockRejectedValue({ response: { status: 401 } });
+});
 
 describe('Header', () => {
   it('로고와 Sign in 링크를 렌더한다', () => {

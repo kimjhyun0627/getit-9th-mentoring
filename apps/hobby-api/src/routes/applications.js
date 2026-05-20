@@ -76,12 +76,23 @@ export const createApplicationsRouter = ({ jwtSecret }) => {
         result = await prisma.$transaction(async (tx) => {
           const post = await tx.post.findUnique({
             where: { id: postId },
-            select: { id: true, ownerId: true, capacity: true, status: true },
+            select: {
+              id: true,
+              ownerId: true,
+              capacity: true,
+              status: true,
+              meetAt: true,
+            },
           });
           if (!post) throw new BizReject('NotFound');
           if (post.ownerId === userId) throw new BizReject('OwnerCannotApply');
           if (post.status !== 'RECRUITING') {
             throw new BizReject('PostNotOpen', { status: post.status });
+          }
+          // #211: 과거 시각 모임은 신청 차단. list 에서 이미 가렸지만
+          // 다이렉트 URL/캐시로 들어와도 가드.
+          if (post.meetAt && new Date(post.meetAt) <= new Date()) {
+            throw new BizReject('PostExpired');
           }
 
           // 중복 신청 사전 체크 — 좋은 UX (409 즉시 응답) + 헛 increment 회피.
@@ -174,6 +185,8 @@ export const createApplicationsRouter = ({ jwtSecret }) => {
           return res.status(422).json({ error: 'PostNotOpen', status: result.status });
         case 'PostFull':
           return res.status(422).json({ error: 'PostFull' });
+        case 'PostExpired':
+          return res.status(422).json({ error: 'PostExpired' });
         case 'AlreadyApplied':
           return res.status(409).json({ error: 'AlreadyApplied' });
         case 'Ok':
