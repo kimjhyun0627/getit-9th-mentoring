@@ -67,7 +67,7 @@ export const LoginPage = () => {
             [01]
           </span>
           <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-            LOGIN
+            SIGN IN
           </span>
         </div>
         <h1 className="font-mono text-3xl font-semibold tracking-tightest text-ink-950 dark:text-white">
@@ -78,7 +78,7 @@ export const LoginPage = () => {
           />
         </h1>
         <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-          한 번 로그인으로 네 개 프로젝트 모두 사용.
+          한 계정으로 네 개 프로젝트를 모두 이용하세요.
         </p>
       </header>
 
