@@ -30,14 +30,15 @@ export const ProjectCard = ({
   hostLabel,
   accent,
 }) => {
-  const tokens = ACCENT_CLASSES[accent] ?? ACCENT_CLASSES.cyan;
+  const safeAccent = ACCENT_CLASSES[accent] ? accent : 'cyan';
+  const tokens = ACCENT_CLASSES[safeAccent];
   return (
     <li>
       <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        data-accent={accent}
+        data-accent={safeAccent}
         className="card-tech group relative flex flex-col rounded-xl border border-hairline bg-white/70 p-7 backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-ink-900/60"
       >
         <div className="flex items-start justify-between">

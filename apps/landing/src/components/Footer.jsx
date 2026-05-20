@@ -47,6 +47,8 @@ export const Footer = () => {
             <span className="flex items-center gap-3">
               <a
                 href="https://github.com/kimjhyun0627/getit-9th-mentoring"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hover:text-zinc-900 dark:hover:text-zinc-200"
               >
                 github
@@ -56,6 +58,8 @@ export const Footer = () => {
               </span>
               <a
                 href="https://knu-getit.notion.site/363694c484f780ca9ef2d0feeb53503b"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hover:text-zinc-900 dark:hover:text-zinc-200"
               >
                 notion
