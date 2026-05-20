@@ -158,7 +158,9 @@ describe('letter-api messages — security regression (#53)', () => {
       expect(res.status).toBe(200);
       expect(res.body.items).toHaveLength(1);
 
-      const item = res.body.items[0];
+      const createdId = created.body.message.id;
+      const item = res.body.items.find((m) => m.id === createdId);
+      expect(item).toBeDefined();
       expect(item.is_mine).toBe(false);
       // 어떤 형태로든 작성자 sub 가 응답에 새면 안 됨
       const serialized = JSON.stringify(item);
@@ -181,8 +183,11 @@ describe('letter-api messages — security regression (#53)', () => {
       expect(meRes.status).toBe(200);
       expect(otherRes.status).toBe(200);
 
-      const mine = meRes.body.items[0];
-      const other = otherRes.body.items[0];
+      const createdId = created.body.message.id;
+      const mine = meRes.body.items.find((m) => m.id === createdId);
+      const other = otherRes.body.items.find((m) => m.id === createdId);
+      expect(mine).toBeDefined();
+      expect(other).toBeDefined();
 
       expect(mine.is_mine).toBe(true);
       expect(other.is_mine).toBe(false);
@@ -211,6 +216,7 @@ describe('letter-api messages — security regression (#53)', () => {
       expect(raw).not.toContain('carol_uid_ccc');
 
       // 응답 wrapper 도 author 흔적 없는지
+      expect(raw).not.toMatch(/"sub"\s*:/);
       expect(raw).not.toMatch(/"author(Id|_id)?"\s*:/);
       expect(raw).not.toMatch(/"user(Id|_id)?"\s*:/);
     });
@@ -221,7 +227,9 @@ describe('letter-api messages — security regression (#53)', () => {
 
       const raw = JSON.stringify(res.body);
       expect(raw).not.toContain('unique_sub_xyz');
+      expect(raw).not.toMatch(/"sub"\s*:/);
       expect(raw).not.toMatch(/"author(Id|_id)?"\s*:/);
+      expect(raw).not.toMatch(/"user(Id|_id)?"\s*:/);
     });
 
     it('PATCH 응답 raw JSON 에 작성자 sub substring 없음', async () => {
@@ -234,7 +242,9 @@ describe('letter-api messages — security regression (#53)', () => {
 
       const raw = JSON.stringify(res.body);
       expect(raw).not.toContain('patch_sub_qqq');
+      expect(raw).not.toMatch(/"sub"\s*:/);
       expect(raw).not.toMatch(/"author(Id|_id)?"\s*:/);
+      expect(raw).not.toMatch(/"user(Id|_id)?"\s*:/);
     });
   });
 });
