@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.turbo/
+
+# env (모든 .env 파일 무시, .env.example 만 추적)
+.env*
+!.env.example
+
+# prisma
+prisma/*.db
+prisma/*.db-journal
+
+# logs
+*.log
