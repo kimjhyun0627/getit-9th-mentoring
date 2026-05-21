@@ -92,16 +92,17 @@ export const CodeTerminalToggle = ({ className }) => {
         theme
       </span>
       {/*
-        값 텍스트 (#371 fix):
+        값 텍스트 (#377 fix):
         - 라이트: zinc-900 (#18181b) on white/90 → 17.4:1 (AAA)
-        - 다크:   cyan-300 (#67e8f9) on ink-900/92 → 12.3:1 (AAA)
-          + zinc-100 fallback hover 상태에서도 cyan 유지 (현재 텍스트가 안 보이던
-            원인은 hover/transition 시 색 전이 + 알파 배경의 blend 문제였음).
+        - 다크:   white (#ffffff) on ink-900/92 → 18.5:1 (AAA, 최대 contrast)
+          이전 cyan-300 은 (1) Tailwind purge 가 packages/theme src 를 scan 안 해서
+          landing/auth 빌드 CSS 에서 클래스 자체가 삭제됨 + (2) cyan caret 과 색이
+          겹쳐 시선 분리도 약했음. white 로 단순화 + 캐럿/keyword cyan 과 색 분리.
         whitespace-pre + tabular-nums 로 폭 jitter 방지 유지.
       */}
       <span
         aria-hidden="true"
-        className="whitespace-pre tabular-nums text-zinc-900 dark:text-cyan-300"
+        className="whitespace-pre tabular-nums text-zinc-900 dark:text-white"
       >
         {valueText}
       </span>

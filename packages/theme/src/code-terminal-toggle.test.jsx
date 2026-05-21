@@ -129,7 +129,7 @@ describe('CodeTerminalToggle', () => {
     expect(sw.className).toContain('border-hairline');
   });
 
-  it('값 텍스트는 다크에서 cyan-300 (#371 contrast fix) — 배경과 명확히 분리', () => {
+  it('값 텍스트는 다크에서 white (#377 contrast fix) — 배경과 최대 분리 + cyan caret 과 색 분리', () => {
     renderToggle();
     fireEvent.click(screen.getByRole('switch'));
     const sw = screen.getByRole('switch');
@@ -137,7 +137,8 @@ describe('CodeTerminalToggle', () => {
       s.textContent?.includes('[ dark'),
     );
     expect(valueSpan).toBeTruthy();
-    // dark:text-cyan-300 → 다크 모드일 때 cyan-300 적용
-    expect(valueSpan.className).toContain('dark:text-cyan-300');
+    // dark:text-white → 다크 모드일 때 white 적용 (cyan-300 → white 로 변경, #377)
+    expect(valueSpan.className).toContain('dark:text-white');
+    expect(valueSpan.className).not.toContain('dark:text-cyan-300');
   });
 });
