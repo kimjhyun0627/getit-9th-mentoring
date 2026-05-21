@@ -1,11 +1,16 @@
 import axios from 'axios';
 
+import { makeOnError, refreshAccessToken } from './api.refresh.js';
+
 /**
  * hobby-web 전용 axios 인스턴스.
  * - baseURL: VITE_API_URL 우선, 없으면 '/api' (prod 동일 origin 가정)
  * - withCredentials: true — JWT는 HttpOnly 쿠키. .get-it.cloud 도메인 공유.
  */
 const baseURL = import.meta.env?.VITE_API_URL ?? '/api';
+
+// re-export — 호출자가 api.js 한 곳만 import 하도록 유지 (test/HOC 호환).
+export { refreshAccessToken };
 
 export const client = axios.create({
   baseURL,
@@ -77,21 +82,7 @@ const onSuccess = (res) => {
   return res;
 };
 
-/**
- * @param {unknown} err
- * @returns {Promise<never>}
- */
-const onError = (err) => {
-  if (
-    /** @type {{ response?: { status?: number } }} */ (err)?.response?.status === 401 &&
-    handlers.onUnauthorized
-  ) {
-    handlers.onUnauthorized();
-  }
-  return Promise.reject(err);
-};
-
-client.interceptors.response.use(onSuccess, onError);
+client.interceptors.response.use(onSuccess, makeOnError(client, handlers));
 
 /**
  * GET /api/posts query string 빌더.
@@ -191,8 +182,9 @@ const authClient = axios.create({
   timeout: 10000,
 });
 
-// `client` 와 동일 interceptor 적용 — getMe 등 auth 요청도 BE-down 시 fail-soft.
-authClient.interceptors.response.use(onSuccess, onError);
+// `client` 와 동일 interceptor 적용 — getMe 등 auth 요청도 BE-down 시 fail-soft
+// + 401 시 refresh + 재시도. 단 instance 가 다르므로 makeOnError 로 새로 만든다.
+authClient.interceptors.response.use(onSuccess, makeOnError(authClient, handlers));
 
 /**
  * 페이지에서 axios 를 직접 다루지 않고 이 헬퍼만 import 한다.

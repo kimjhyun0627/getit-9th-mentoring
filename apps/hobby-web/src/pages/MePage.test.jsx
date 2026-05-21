@@ -74,6 +74,26 @@ describe('MePage', () => {
     expect(await screen.findByText('내 모임 A')).toBeInTheDocument();
   });
 
+  it('탭 데이터 쿼리가 401 이면 SSO 로그인 페이지로 보낸다 (#402)', async () => {
+    // meQuery 는 200 (auth 쿠키 살아있음) 인데 탭 데이터는 401 — 사용자가 "데이터
+    // 안 보임" 상태에 갇히지 않도록 useEffect 안에서 location.href 갱신.
+    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'me-id', name: 'Alice', email: 'a@x.com' });
+    vi.spyOn(api, 'listMyPosts').mockRejectedValue({ response: { status: 401 } });
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        ...window.location,
+        href: 'about:blank',
+        origin: 'https://hobby.get-it.cloud',
+      },
+    });
+    renderPage();
+    expect(await screen.findByText(/로그인 페이지로 이동 중/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(String(window.location.href)).toMatch(/auth\.get-it\.cloud\/login\?redirect=/);
+    });
+  });
+
   it('"내가 신청한 모임" 탭 클릭 → listMyApplications 호출 + 취소 동작', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'me-id', name: 'Alice', email: 'a@x.com' });
