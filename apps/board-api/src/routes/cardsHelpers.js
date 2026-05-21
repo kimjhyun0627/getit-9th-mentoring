@@ -106,12 +106,15 @@ export const isValidAssignee = async (assigneeId, projectId) => {
 export const applyCardPatch = async (cardId, parsedData, access) => {
   const { expectedUpdatedAt, ...data } = parsedData;
   if (!expectedUpdatedAt) {
+    // CR #499: access.card 는 요청 초반 스냅샷 — 최신 row 재조회로 클라이언트 재시도에 정확한 ts 전달.
+    const latest = await prisma.card.findUnique({ where: { id: cardId } });
+    if (!latest) return { status: 404, body: { error: 'CardNotFound' } };
     return {
       status: 400,
       body: {
         error: 'MissingExpectedUpdatedAt',
         message: 'expectedUpdatedAt is required (last-write-wins guard).',
-        card: publicCard(access.card),
+        card: publicCard(latest),
       },
     };
   }
@@ -128,5 +131,7 @@ export const applyCardPatch = async (cardId, parsedData, access) => {
     return { status: 409, body: { error: 'Conflict', card: publicCard(latest) } };
   }
   const saved = await prisma.card.findUnique({ where: { id: cardId } });
+  // CR #499: 수정 직후 race 로 다른 요청이 삭제해 saved=null 가능 — publicCard(null) 500 차단.
+  if (!saved) return { status: 404, body: { error: 'CardNotFound' } };
   return { status: 200, body: { card: publicCard(saved) } };
 };

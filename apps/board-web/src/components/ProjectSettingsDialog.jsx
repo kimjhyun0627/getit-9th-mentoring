@@ -56,8 +56,10 @@ export const ProjectSettingsDialog = ({
     if (!project) return false;
     const name = watchedName?.trim() ?? '';
     const desc = watchedDesc?.trim() ?? '';
-    const currentDesc = project.description ?? '';
-    if (name && name !== project.name) return true;
+    // CR #499: 현재값에도 앞뒤 공백이 있을 수 있어 양쪽 trim 비교로 false positive 차단.
+    const currentName = (project.name ?? '').trim();
+    const currentDesc = (project.description ?? '').trim();
+    if (name && name !== currentName) return true;
     if (desc !== currentDesc) return true;
     return false;
   })();
@@ -87,8 +89,10 @@ export const ProjectSettingsDialog = ({
     const next = {};
     const name = values.name?.trim();
     const desc = values.description?.trim() ?? '';
-    if (name && name !== project.name) next.name = name;
-    const currentDesc = project.description ?? '';
+    // CR #499: hasRealChange 와 동일하게 양쪽 trim 비교로 일관성 유지.
+    const currentName = (project.name ?? '').trim();
+    const currentDesc = (project.description ?? '').trim();
+    if (name && name !== currentName) next.name = name;
     if (desc !== currentDesc) next.description = desc.length === 0 ? null : desc;
     if (Object.keys(next).length === 0) {
       onClose();
