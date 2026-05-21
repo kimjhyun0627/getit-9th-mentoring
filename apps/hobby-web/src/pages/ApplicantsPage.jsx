@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
 import { api } from '../lib/api.js';
 import { useRequireAuth } from '../lib/auth.js';
 import { cn } from '../lib/cn.js';
@@ -26,6 +27,7 @@ export const ApplicantsPage = () => {
   const queryClient = useQueryClient();
   const { isLoading: meLoading, isLoggedIn, is401 } = useRequireAuth();
   const [selected, setSelected] = useState(/** @type {Set<string>} */ (new Set()));
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const query = useQuery({
     queryKey: ['post', id, 'applicants'],
@@ -116,12 +118,10 @@ export const ApplicantsPage = () => {
 
   const onReport = () => {
     if (selected.size === 0) return;
-    if (
-      typeof window !== 'undefined' &&
-      !window.confirm(`${selected.size}명을 노쇼로 신고할까? 되돌릴 수 없어.`)
-    ) {
-      return;
-    }
+    setConfirmOpen(true);
+  };
+  const onConfirmReport = () => {
+    setConfirmOpen(false);
     noShow.mutate([...selected]);
   };
 
@@ -177,6 +177,17 @@ export const ApplicantsPage = () => {
           </div>
         ) : null}
       </main>
+      <ConfirmDialog
+        open={confirmOpen}
+        title={`${selected.size}명을 노쇼로 신고할까?`}
+        description="되돌릴 수 없어. 누적 신고는 다른 방장에게도 매너 지표로 보여."
+        confirmLabel="신고하기"
+        cancelLabel="취소"
+        destructive
+        busy={noShow.isPending}
+        onConfirm={onConfirmReport}
+        onClose={() => setConfirmOpen(false)}
+      />
     </PageShell>
   );
 };

@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+
+import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
 
 /**
  * PostDetailPage 의 방장 패널 — 신청자 보기 + 수정 + 모집 종료 (#244/#245/#333).
  *
  * PostDetailPage.jsx 가 300줄 cap 을 넘지 않도록 분리.
+ *
+ * #433: window.confirm → 커스텀 ConfirmDialog (Playful 톤 + 다크 + a11y).
  *
  * @param {{
  *   postId: string;
@@ -15,6 +20,7 @@ import { Link } from 'react-router-dom';
  */
 export const OwnerPanel = ({ postId, status, onClose, closing, closeError }) => {
   const isClosed = status === 'CLOSED';
+  const [confirmOpen, setConfirmOpen] = useState(false);
   return (
     <div className="rounded-2xl bg-white dark:bg-white/10 ring-1 ring-slate-900/5 dark:ring-white/10 p-5 font-round">
       <p className="text-slate-700 dark:text-slate-200">
@@ -38,15 +44,7 @@ export const OwnerPanel = ({ postId, status, onClose, closing, closeError }) => 
         {!isClosed ? (
           <button
             type="button"
-            onClick={() => {
-              if (
-                typeof window !== 'undefined' &&
-                !window.confirm('모집을 종료할까? 신청자를 더 받지 못해.')
-              ) {
-                return;
-              }
-              onClose();
-            }}
+            onClick={() => setConfirmOpen(true)}
             disabled={closing}
             className="inline-flex items-center gap-1.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 text-sm font-display font-bold shadow disabled:opacity-50"
           >
@@ -64,6 +62,20 @@ export const OwnerPanel = ({ postId, status, onClose, closing, closeError }) => 
           모집 종료에 실패했어. 잠시 후 다시 시도해줘.
         </p>
       ) : null}
+      <ConfirmDialog
+        open={confirmOpen}
+        title="모집을 종료할까?"
+        description="신청자를 더 받지 못해. 되돌릴 수 없어."
+        confirmLabel="모집 종료"
+        cancelLabel="취소"
+        destructive
+        busy={closing}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          onClose();
+        }}
+        onClose={() => setConfirmOpen(false)}
+      />
     </div>
   );
 };
