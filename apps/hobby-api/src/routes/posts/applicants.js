@@ -31,7 +31,12 @@ export const listApplicants = async (req, res, next) => {
     const noShowCountByUser = await loadNoShowCounts(apps);
 
     const items = apps
-      .sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
+      // CR #518: 동등 시 0 반환 — 동일 createdAt 입력에 대해 안정적 정렬.
+      .sort((a, b) => {
+        if (a.createdAt < b.createdAt) return -1;
+        if (a.createdAt > b.createdAt) return 1;
+        return 0;
+      })
       .map((a) => ({
         id: a.id,
         userId: a.userId,
