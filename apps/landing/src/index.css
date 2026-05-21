@@ -297,8 +297,9 @@
 
 /**
  * Sticky 헤더 anchor jump 보정 (#451).
- * Header 는 `sticky top-0 ... h-16` (4rem). `#projects`, `#team`, `#about` 등
- * 앵커 점프 시 섹션 헤딩이 헤더 뒤로 숨는 문제 회피.
+ * Header 는 `sticky top-0 ... h-16` (4rem).
+ * 5rem = 헤더 높이(4rem) + 시각적 여유(1rem) — `[NN]` 마커가 헤더 하단에 딱 붙지 않도록.
+ * `#projects`, `#team`, `#about` 앵커 점프 시 섹션 헤딩이 헤더 뒤로 숨는 문제 회피.
  * `:where()` 는 specificity 0 — 컴포넌트 측 override 자유.
  */
 @layer base {

@@ -81,13 +81,17 @@ describe('섹션 마커 번호 체계 (#458)', () => {
     expect(footer.textContent).toMatch(/\[04\]/);
   });
 
-  it('번호가 중복되지 않는다 (각 마커 정확히 1회 등장)', () => {
+  it('번호가 중복되지 않는다 (각 섹션 마커 정확히 1회 등장)', () => {
+    // CR (#493): .toMatch() 는 존재 확인만 — 2회 이상 등장해도 pass.
+    //   각 섹션 마커가 정확히 1회 등장하도록 전역 매치 count 검증.
+    //   주의: ProjectCard eyebrow `[01]`~`[04]` 도 같은 문자열을 쓰므로
+    //   `[NN] <label>` 형태 (services/team/about/git log) 로 한정해 카운팅.
     renderApp();
     const html = document.body.textContent;
-    expect(html).toMatch(/\[01\]/);
-    expect(html).toMatch(/\[02\]/);
-    expect(html).toMatch(/\[03\]/);
-    expect(html).toMatch(/\[04\]/);
+    expect((html.match(/\[01\]\s*services/g) || []).length).toBe(1);
+    expect((html.match(/\[02\]\s*team/g) || []).length).toBe(1);
+    expect((html.match(/\[03\]\s*about/g) || []).length).toBe(1);
+    expect((html.match(/\[04\]\s*git log/g) || []).length).toBe(1);
   });
 });
 

@@ -7,7 +7,9 @@ import { z } from 'zod';
 const ProjectSchema = z.object({
   eyebrow: z.string(),
   idLabel: z.string(),
-  slug: z.string(),
+  // CR (#493): slug 는 ProjectIcons 매핑 키. z.enum 으로 계약을 schema 에 고정 →
+  //   오타/미등록 값이 들어오면 parse fail (런타임 아이콘 누락 회피).
+  slug: z.enum(['HOBBY', 'SHELF', 'BOARD', 'LETTER']),
   subtitle: z.string(),
   title: z.string(),
   href: z.string().url(),
