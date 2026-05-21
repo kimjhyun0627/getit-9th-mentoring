@@ -88,7 +88,7 @@ export const NotificationBell = ({ enabled, userId = null }) => {
         <div
           role="dialog"
           aria-label="알림 목록"
-          className="absolute right-0 mt-2 w-80 max-h-[420px] overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-slate-900/10 dark:ring-white/10 shadow-xl z-30"
+          className="absolute right-0 mt-2 w-80 max-h-[420px] overflow-y-auto rounded-2xl bg-popover text-popover-foreground ring-1 ring-slate-900/10 dark:ring-white/10 shadow-xl z-30"
         >
           <NotificationList
             items={items}
