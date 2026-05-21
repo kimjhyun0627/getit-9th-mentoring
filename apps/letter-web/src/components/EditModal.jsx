@@ -169,6 +169,8 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
           // #280 — 모바일 viewport 넘침 가드 (vh + dvh 듀얼).
           'max-h-[calc(100vh-3rem)] max-h-[calc(100dvh-3rem)] overflow-y-auto',
           'sm:p-8 dark:bg-mocha2 dark:ring-beige/10',
+          // motion-safe: prefix 는 prefers-reduced-motion: no-preference 일 때만
+          // 적용 → 사용자가 모션 감소를 선호하면 애니메이션 자동 비활성화.
           'motion-safe:animate-[popin_180ms_cubic-bezier(0.2,0.7,0.2,1)]',
         )}
       >

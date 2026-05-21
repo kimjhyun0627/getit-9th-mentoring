@@ -171,7 +171,8 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
           'max-h-[calc(100vh-3rem)] max-h-[calc(100dvh-3rem)] overflow-y-auto',
           'sm:p-8 dark:bg-mocha2 dark:ring-beige/10',
           // 팝업 등장 애니메이션 — bottom-sheet 슬라이드가 아니라 중앙 fade+zoom.
-          //   prefers-reduced-motion 은 글로벌 reset 으로 자동 무시.
+          //   motion-safe: prefix 는 prefers-reduced-motion: no-preference 일 때만
+          //   적용 → 사용자가 모션 감소를 선호하면 애니메이션 자동 비활성화.
           'motion-safe:animate-[popin_180ms_cubic-bezier(0.2,0.7,0.2,1)]',
         )}
       >
