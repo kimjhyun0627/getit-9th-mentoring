@@ -39,8 +39,14 @@ export const lookupUserNames = async (userIds) => {
         }
       }
     }
-  } catch {
-    // 권한 / schema 미존재 / 네트워크 — 모두 graceful degrade.
+  } catch (err) {
+    // 권한 / schema 미존재 / 네트워크 — graceful degrade 하되 운영 추적 가능하도록
+    // 최소 한 줄 warn 로그는 남긴다 (PII 회피 위해 userId 는 count 만).
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('[board-api] lookupUserNames failed', {
+      count: unique.length,
+      error: msg,
+    });
   }
   return out;
 };
