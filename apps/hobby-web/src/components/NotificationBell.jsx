@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
+import { useDocumentVisible } from '../lib/useDocumentVisible.js';
 
 /**
  * 헤더의 알림 벨 + 드롭다운 (#229).
@@ -28,11 +29,16 @@ export const NotificationBell = ({ enabled, userId = null }) => {
   const queryClient = useQueryClient();
 
   const queryKey = ['notifications', userId ?? 'anon'];
+  const visible = useDocumentVisible();
+  // #436: 백그라운드 탭이면 폴링 일시정지 (false 반환).
+  // 활성 탭이면 90s 간격 (60s → 90s 로 1.5x 완화. BE 비용 33% 감소).
+  // 한 사용자가 5탭 열어두고 백그라운드 시 5탭 모두 폴링 정지 → 트래픽 0.
   const notifQuery = useQuery({
     queryKey,
     queryFn: () => api.listNotifications({ limit: 20 }),
     enabled: Boolean(enabled && userId),
-    refetchInterval: 60_000,
+    refetchInterval: visible ? 90_000 : false,
+    refetchIntervalInBackground: false,
     staleTime: 30_000,
   });
 

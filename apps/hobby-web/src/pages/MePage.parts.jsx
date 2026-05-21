@@ -88,6 +88,18 @@ export const TabButton = ({ active, onClick, children, count }) => (
 );
 
 /**
+ * 401 → SSO 리다이렉트 안내 placeholder — #406.
+ *
+ * MePage 본체 + 탭(MyCreatedTab/MyAppliedTab) 셋이 동일 카피를 썼어서 추출.
+ * `role="status"` 로 스크린리더가 polite 하게 읽도록.
+ */
+export const RedirectingNotice = () => (
+  <p role="status" className="mt-20 text-center text-slate-500 dark:text-slate-400 font-round">
+    로그인 페이지로 이동 중…
+  </p>
+);
+
+/**
  * 빈 상태 placeholder.
  *
  * @param {{ emoji: string; title: string; body: string }} props

@@ -150,7 +150,9 @@ export const emojiFor = (post) => {
  * `tone` 은 카드 자체에 추가로 적용할 클래스:
  *  - 'active' = 변형 없음
  *  - 'full' = ribbon 노출, 카드 채도 유지
- *  - 'closed' = grayscale + opacity-60 + line-through
+ *  - 'closed' = grayscale + opacity-80 + 회색 pill (line-through 제거, #447)
+ *    line-through + grayscale + opacity 가 겹쳐 본문 가독성 떨어졌음. 다크모드에서 특히.
+ *    회색 톤 + pill 만으로도 종료 식별 충분 — 본문은 읽기 쉽게 둠.
  *
  * @param {{ status: string }} post
  * @returns {{
@@ -181,7 +183,8 @@ export const statusBadgeFor = (post) => {
       inactive: true,
       label: '모집 종료',
       ribbon: null,
-      bodyCls: 'line-through decoration-slate-500/40',
+      // #447 — line-through 제거. tone-closed (grayscale) + opacity-80 + 회색 pill 로 충분.
+      bodyCls: '',
     };
   }
   return { tone: 'active', inactive: false, label: null, ribbon: null, bodyCls: '' };

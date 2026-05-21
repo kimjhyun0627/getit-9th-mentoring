@@ -240,6 +240,32 @@ describe('ApplicantsPage', () => {
     });
   });
 
+  // #445 — 전체선택/해제. 이미 노쇼로 신고된 사람(carol)은 선택 대상에서 제외.
+  it('전체선택 체크박스: 신고 가능한 (!noShow) 만 일괄 선택', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'listApplicants').mockResolvedValue({
+      items: sampleApplicants,
+      total: 3,
+    });
+    renderPage();
+    const selectAll = await screen.findByLabelText(/전체선택\/해제/);
+    await user.click(selectAll);
+    // alice + bob 만 선택 (carol 은 noShow=true 라 제외)
+    expect(screen.getByRole('button', { name: /노쇼 신고 \(2명\)/ })).toBeInTheDocument();
+    // 다시 클릭 → 전체해제
+    await user.click(selectAll);
+    expect(screen.getByRole('button', { name: /노쇼 신고 \(0명\)/ })).toBeInTheDocument();
+  });
+
+  it('전체선택 카운트 라벨 — "0 / 2명 선택됨" 형식', async () => {
+    vi.spyOn(api, 'listApplicants').mockResolvedValue({
+      items: sampleApplicants,
+      total: 3,
+    });
+    renderPage();
+    expect(await screen.findByText(/0 \/ 2명 선택됨/)).toBeInTheDocument();
+  });
+
   it('신고 취소 (cancel) 시 mutation 호출 안 됨', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'listApplicants').mockResolvedValue({

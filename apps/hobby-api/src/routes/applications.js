@@ -25,6 +25,7 @@ import { requireAuth } from '@getit/auth-utils/server';
 import { ApplicationCreateInput, ApplicationIdParam } from '@getit/schemas/hobby';
 import { Router } from 'express';
 
+import { matchFullMessage } from '../lib/notificationMessages.js';
 import { prisma } from '../lib/prisma.js';
 
 const zodErrorBody = (err) => ({
@@ -153,10 +154,7 @@ export const createApplicationsRouter = ({ jwtSecret, mutationLimiter }) => {
             ]);
             const recipientSet = new Set(apps.map((a) => a.userId));
             if (ownerRow?.ownerId) recipientSet.add(ownerRow.ownerId);
-            const title = ownerRow?.title ?? '';
-            const message = title
-              ? `「${title}」 모집이 마감됐어요. 오픈채팅으로 들어가 보세요.`
-              : '모집이 마감됐어요. 오픈채팅으로 들어가 보세요.';
+            const message = matchFullMessage(ownerRow?.title);
             await tx.notification.createMany({
               data: [...recipientSet].map((userId) => ({
                 userId,

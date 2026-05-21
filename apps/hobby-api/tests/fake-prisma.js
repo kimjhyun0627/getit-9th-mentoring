@@ -100,4 +100,10 @@ export class FakePrismaClient {
 
   // eslint-disable-next-line class-methods-use-this
   async $disconnect() {}
+
+  // /api/healthz 용 — 실 Prisma 의 $queryRaw 시그니처 흉내. 인자는 무시.
+  // eslint-disable-next-line class-methods-use-this
+  async $queryRaw() {
+    return [{ 1: 1 }];
+  }
 }

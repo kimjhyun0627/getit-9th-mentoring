@@ -183,10 +183,17 @@ describe('hobby-api P1 새 동작', () => {
       // 시간대 안정성: now+1h 는 23시대에 다음날 롤오버되어 flaky.
       // meetAtRangeFor() 가 보는 "오늘"은 KST 자정 boundary 라서
       // 아무 보장된 미래 시각을 KST 자정 보다 안쪽에 두는 게 까다롭다.
-      // → 가장 단순한 방법: meetAtRangeFor 를 직접 호출해 그 구간 중간값으로 박는다.
+      // → range 의 중간값이 과거가 될 수 있음 (KST 23시 등). #211 가드 (meetAt > now) 도 통과해야
+      //   하므로 [max(range.gte, now+1m), range.lt) 안에서 안전한 시각을 잡는다.
       const now = new Date();
       const range = meetAtRangeForToday(now);
-      const todayLater = new Date((range.gte.getTime() + range.lt.getTime()) / 2);
+      const safeStart = Math.max(range.gte.getTime(), now.getTime() + 60_000);
+      // 안전 시각이 range.lt 를 넘어가면 (KST 자정 직전 케이스) 테스트 자체가 의미 없어지므로 skip.
+      if (safeStart >= range.lt.getTime()) {
+        // KST 자정 직전 — today 윈도우가 거의 끝남. flaky 회피.
+        return;
+      }
+      const todayLater = new Date((safeStart + range.lt.getTime()) / 2);
       const nextWeek = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000);
 
       memDb.posts.set('t1', {
