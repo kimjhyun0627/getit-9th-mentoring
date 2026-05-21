@@ -56,7 +56,7 @@ const CornerMarks = () => (
  * Hero 섹션 (Tech-Dark).
  * - 배경: scene-dark (cyan/magenta 라디얼 + 48px 그리드) + scanlines + corner '+'
  * - meta strip: `~/getit/9 · region: knu · build: 2026.05 · stage live`
- * - eyebrow: cyan dot + "경북대학교 IT 학회 · 9th"
+ * - eyebrow: cyan dot + "GET IT · 9th"
  * - H1: mono + tracking-tightest, `프로젝트.deploy()` + cyan blink caret
  * - CTA 2개: `./explore --all` (cyan 인버스 버튼) + `git remote` (외부 GitHub)
  * - 4-up metaline: projects(04) / subdomains(05) / sso(unified, cyan) / source(100% open, lime)
@@ -89,7 +89,7 @@ export const Hero = () => {
               className="h-1.5 w-1.5 rounded-full bg-cyan-700 dark:bg-cyan-neon"
               aria-hidden="true"
             />
-            경북대학교 IT 학회 · 9th
+            GET IT · 9th
           </span>
         </div>
 
