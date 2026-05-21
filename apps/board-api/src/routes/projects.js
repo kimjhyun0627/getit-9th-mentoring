@@ -14,6 +14,7 @@ import { ProjectCreateInput, ProjectUpdateInput } from '@getit/schemas/board';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
+import { lookupUserNames } from '../lib/userLookup.js';
 import { requireProjectMember } from '../middleware/requireProjectMember.js';
 
 /** 기본 컬럼 정의 — between-keys 알고리즘 위해 order 간격 1000. */
@@ -57,11 +58,12 @@ const publicProject = (p, extra = {}) => ({
 
 /**
  * 주어진 프로젝트들에 대해 (현재 user role, 전체 멤버 목록) 을 한 번에 조회한다.
- * SSO User 테이블은 다른 DB라서 name 은 일단 null 로 둔다 — 추후 user lookup 연동 지점.
+ * `auth.User` cross-schema lookup 으로 name 을 채운다 (#398). 실패 시 null.
  *
  * 단계:
  *   1. 한 쿼리로 해당 프로젝트들의 모든 ProjectMember 조회 (N+1 회피)
- *   2. projectId 별로 그룹핑 + 현재 user role 추출
+ *   2. 모든 userId 모아 auth.User 한 번에 lookup
+ *   3. projectId 별로 그룹핑 + 현재 user role 추출
  *
  * @param {Array<{ id: string }>} projects
  * @param {string} userId
@@ -76,11 +78,16 @@ const fetchRoleAndMembers = async (projects, userId) => {
     where: { projectId: { in: ids } },
     orderBy: { userId: 'asc' },
   });
+  const nameByUserId = await lookupUserNames(memberships.map((m) => m.userId));
   for (const id of ids) out.set(id, { role: null, members: [] });
   for (const m of memberships) {
     const bucket = out.get(m.projectId);
     if (!bucket) continue;
-    bucket.members.push({ userId: m.userId, role: m.role, name: null });
+    bucket.members.push({
+      userId: m.userId,
+      role: m.role,
+      name: nameByUserId.get(m.userId) ?? null,
+    });
     if (m.userId === userId) bucket.role = m.role;
   }
   return out;
