@@ -1,16 +1,18 @@
 /**
- * Kakao thumbnail URL 을 hi-res 로 클라이언트 측에서 방어적으로 업스케일.
+ * Kakao thumbnail URL → 원본 daumcdn URL 클라이언트 측 방어적 추출.
  *
- * #474 — BE 의 `upscaleKakaoThumbnail` 은 신규 fetch 시점에만 적용되므로
- * #366 머지 전 캐시된 row 는 24h TTL 만료까지 저화질을 응답한다.
- * 일회성 백필 스크립트로 DB 를 갱신하지만, FE 에서도 동일 로직으로 한 번 더
- * 변환하면 (a) 백필 누락분 (b) 머지 직후 짧은 윈도우 동안 stale row 에 대해
- * 즉시 hi-res 로 보이게 된다 — 무비용 이중 안전.
+ * #507 — Kakao thumb 서버 (`openresty`) 가 임의 사이즈 변환을 거부 (403,
+ * `op not allowed, Please check on type & size & option`).
+ * PR #366 의 R480x696 upscale 이 라이브에서 깨졌다.
  *
- * 정책은 shelf-api `upscaleKakaoThumbnail` 과 동일:
- * - kakaocdn.net (또는 그 서브도메인) 호스트만 손댐
- * - `/thumb/[A-Z]\d+x\d+` 토큰을 `R480x696` 으로 치환
- * - 그 외는 입력 그대로 반환 (외부 이미지/테스트 자산 보호)
+ * 정책 (shelf-api `extractKakaoOriginUrl` 와 동일):
+ * - kakaocdn.net (또는 그 서브도메인) `/thumb/...?fname=<URL>` 형태면
+ *   fname 쿼리의 원본 URL 을 추출해서 반환 (daumcdn 직접 사용).
+ * - 외부 호스트 / fname 누락 / fname 이 URL 아님 / 위험 스킴 → 입력 그대로.
+ *
+ * BE 가 신규 응답을 원본 URL 로 박는 동안 (백필 머지/실행 사이의 짧은 윈도우),
+ * FE 가 동일 로직으로 한 번 더 변환하면 stale kakaocdn URL 도 즉시 원본으로 풀린다 —
+ * 무비용 이중 안전.
  *
  * @param {string | null | undefined} url
  * @returns {string} 빈/null 입력은 빈 문자열로 정규화
@@ -27,8 +29,16 @@ export const upscaleCoverUrl = (url) => {
   const isKakaoCdn = host === 'kakaocdn.net' || host.endsWith('.kakaocdn.net');
   if (!isKakaoCdn) return url;
   if (!parsed.pathname.startsWith('/thumb/')) return url;
-  const next = parsed.pathname.replace(/^\/thumb\/[A-Z]\d+x\d+/i, '/thumb/R480x696');
-  if (next === parsed.pathname) return url;
-  parsed.pathname = next;
-  return parsed.toString();
+
+  const fname = parsed.searchParams.get('fname');
+  if (!fname) return url;
+
+  let originUrl;
+  try {
+    originUrl = new URL(fname);
+  } catch {
+    return url;
+  }
+  if (originUrl.protocol !== 'http:' && originUrl.protocol !== 'https:') return url;
+  return originUrl.toString();
 };

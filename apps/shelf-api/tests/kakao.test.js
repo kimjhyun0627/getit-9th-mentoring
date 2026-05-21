@@ -86,32 +86,33 @@ describe('toBookRecord — 카카오 응답을 Book 도메인으로 매핑', () 
     expect(book.description).toBe('');
   });
 
-  // #359 — Kakao thumbnail 기본은 R120x174 저화질. CDN URL 의 사이즈 토큰을
-  // R480x696 로 갈아끼우면 같은 자산의 고해상도가 즉시 떨어진다.
-  it('coverUrl: kakaocdn R120x174 → R480x696 로 업스케일', () => {
+  // #507 — Kakao thumb 서버는 임의 사이즈 변환을 거부 (403, op not allowed).
+  // PR #366 의 R480x696 upscale 도 라이브에서 깨졌다. fname 쿼리의 원본 URL 을
+  // 추출해서 daumcdn 원본을 직접 쓰면 thumb 서버 의존성 제거 + 화질 유지.
+  it('coverUrl: kakaocdn thumb → fname 의 원본 URL 추출 (daumcdn)', () => {
     const book = toBookRecord({
       ...sampleKakaoDoc,
       thumbnail:
         'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F123.jpg',
     });
-    expect(book.coverUrl).toBe(
-      'https://search1.kakaocdn.net/thumb/R480x696.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F123.jpg',
-    );
+    expect(book.coverUrl).toBe('https://t1.daumcdn.net/lbook/image/123.jpg');
   });
 
-  it('coverUrl: 다른 사이즈 토큰 (R98x140, C120x174 등) 도 모두 R480x696 로', () => {
+  it('coverUrl: 사이즈 토큰 (R480x696, C120x174 등) 무관하게 fname 원본 사용', () => {
     expect(
       toBookRecord({
         ...sampleKakaoDoc,
-        thumbnail: 'https://search1.kakaocdn.net/thumb/R98x140.q85/?fname=x',
+        thumbnail:
+          'https://search1.kakaocdn.net/thumb/R480x696.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2Fhi.jpg',
       }).coverUrl,
-    ).toBe('https://search1.kakaocdn.net/thumb/R480x696.q85/?fname=x');
+    ).toBe('https://t1.daumcdn.net/lbook/image/hi.jpg');
     expect(
       toBookRecord({
         ...sampleKakaoDoc,
-        thumbnail: 'https://search1.kakaocdn.net/thumb/C120x174.q85/?fname=x',
+        thumbnail:
+          'https://search1.kakaocdn.net/thumb/C120x174.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2Fc.jpg',
       }).coverUrl,
-    ).toBe('https://search1.kakaocdn.net/thumb/R480x696.q85/?fname=x');
+    ).toBe('https://t1.daumcdn.net/lbook/image/c.jpg');
   });
 
   it('coverUrl: kakaocdn 아닌 URL 은 그대로 유지', () => {
@@ -132,6 +133,35 @@ describe('toBookRecord — 카카오 응답을 Book 도메인으로 매핑', () 
     const decoy = 'https://evil.example.com/thumb/R120x174.q85/fake';
     const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: decoy });
     expect(book.coverUrl).toBe(decoy);
+  });
+
+  // #507 edge: fname 이 없거나 형식이 깨졌으면 원본 thumb URL 유지 (fallback).
+  it('coverUrl: kakaocdn 이지만 fname 쿼리 없으면 원본 유지', () => {
+    const noFname = 'https://search1.kakaocdn.net/thumb/R120x174.q85/';
+    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: noFname });
+    expect(book.coverUrl).toBe(noFname);
+  });
+
+  it('coverUrl: fname 이 URL 형식이 아니면 원본 thumb URL 유지', () => {
+    const broken = 'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=not-a-url';
+    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: broken });
+    expect(book.coverUrl).toBe(broken);
+  });
+
+  it('coverUrl: fname 이 javascript:/data: 같은 위험 스킴이면 원본 thumb URL 유지', () => {
+    const evil = 'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=javascript%3Aalert(1)';
+    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: evil });
+    expect(book.coverUrl).toBe(evil);
+  });
+
+  it('coverUrl: fname 에 query string 이 붙어있어도 그대로 살린다', () => {
+    // 일부 응답은 fname=https://...?ext=jpg 처럼 원본 URL 에도 쿼리가 붙는다.
+    const book = toBookRecord({
+      ...sampleKakaoDoc,
+      thumbnail:
+        'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F1.jpg%3Fv%3D2',
+    });
+    expect(book.coverUrl).toBe('https://t1.daumcdn.net/lbook/image/1.jpg?v=2');
   });
 });
 

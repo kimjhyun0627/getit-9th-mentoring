@@ -51,7 +51,7 @@ export const SearchResultCard = ({ book, onAdd, isPending = false, isAdded = fal
     }
   };
 
-  // #474 — 캐시된 stale row 가 R120x174 저화질로 흘러와도 클라이언트에서 hi-res 로 방어 변환.
+  // #507 — Kakao thumb 403 회피. 캐시 stale row 도 fname 원본 URL 로 클라 측에서 방어 변환.
   const cover = upscaleCoverUrl(book.coverUrl);
 
   return (

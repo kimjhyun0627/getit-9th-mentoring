@@ -65,19 +65,30 @@ const pickIsbn = (raw) => {
 };
 
 /**
- * 카카오 thumbnail URL → 고해상도 변환 (#359).
+ * 카카오 thumbnail URL → 원본 URL 추출 (#507).
  *
- * 카카오 검색이 돌려주는 thumbnail 은 기본 `R120x174` (가로 ~120px) 라
- * retina / 큰 카드에서 흐릿하다. kakaocdn 의 사이즈 토큰
- * (`R120x174` / `C98x140` 등 영문1자 + WxH) 만 `R480x696` 으로 바꾸면
- * 같은 자산의 고해상도가 즉시 떨어진다 — 새 endpoint 없음.
+ * 배경:
+ * - 카카오 검색은 `https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=<원본URL>`
+ *   형태의 썸네일을 돌려준다. fname 은 daumcdn 의 원본 이미지 URL.
+ * - PR #366 (#359) 는 사이즈 토큰을 `R480x696` 으로 갈아끼워 화질 개선을 시도.
+ *   하지만 Kakao thumb 서버 (`openresty`) 는 임의 사이즈 변환을 거부 (403):
+ *     `x-reason: op not allowed, Please check on type & size & option`
+ *   → 라이브에서 책 표지 깨짐.
  *
- * kakaocdn 호스트가 아닌 URL (테스트/우회 자산) 은 손대지 않는다.
+ * 해결:
+ * - fname 쿼리 파라미터의 URL 을 추출 + decode 해서 원본 이미지를 직접 사용.
+ * - Kakao thumb 서버를 거치지 않으므로 사이즈 제약/403 회피.
+ * - daumcdn 의 원본 이미지는 보통 충분히 큰 사이즈 (수백~수천 px) 라
+ *   retina/큰 카드에서도 선명. PR #366 의 화질 개선 의도도 충족.
+ *
+ * 안전장치:
+ * - kakaocdn 호스트가 아니거나 fname 이 없으면 입력 그대로 반환 (테스트/외부 URL 보호).
+ * - fname 이 URL 형태가 아니면 (decoded 후 `new URL` 실패) 원래 thumb URL 유지.
  *
  * @param {string} url
  * @returns {string}
  */
-const upscaleKakaoThumbnail = (url) => {
+const extractKakaoOriginUrl = (url) => {
   if (!url) return '';
   let parsed;
   try {
@@ -91,8 +102,20 @@ const upscaleKakaoThumbnail = (url) => {
   const isKakaoCdn = host === 'kakaocdn.net' || host.endsWith('.kakaocdn.net');
   if (!isKakaoCdn) return url;
   if (!parsed.pathname.startsWith('/thumb/')) return url;
-  parsed.pathname = parsed.pathname.replace(/^\/thumb\/[A-Z]\d+x\d+/i, '/thumb/R480x696');
-  return parsed.toString();
+
+  const fname = parsed.searchParams.get('fname');
+  if (!fname) return url;
+
+  // searchParams.get 은 이미 decode 됨. 다시 decode 하지 않는다 (이중 decode 함정).
+  let originUrl;
+  try {
+    originUrl = new URL(fname);
+  } catch {
+    return url;
+  }
+  // 원본 URL 은 http/https 만 허용 (data:/javascript: 등 차단).
+  if (originUrl.protocol !== 'http:' && originUrl.protocol !== 'https:') return url;
+  return originUrl.toString();
 };
 
 /**
@@ -125,7 +148,7 @@ export const toBookRecord = (doc) => {
     author: authors.join(', '),
     publisher: String(doc?.publisher ?? '').trim(),
     publishedAt,
-    coverUrl: upscaleKakaoThumbnail(String(doc?.thumbnail ?? '')),
+    coverUrl: extractKakaoOriginUrl(String(doc?.thumbnail ?? '')),
     description: String(doc?.contents ?? ''),
     source: 'kakao',
   };
