@@ -45,6 +45,31 @@ describe('toBookRecord — 카카오 응답을 Book 도메인으로 매핑', () 
     expect(toBookRecord({ ...sampleKakaoDoc, isbn: undefined })).toBeNull();
   });
 
+  // #472 — 카카오가 EAN-13 같은 비-ISBN 13자리 코드를 isbn 필드에 섞어 보낼 때
+  // 그대로 DB 에 박히던 회귀. 978/979 prefix 검증 + 임의 fallback 제거.
+  it('isbn: 978/979 prefix 없는 13자리 (EAN) 는 거른다 → null', () => {
+    // 라이브에서 잡힌 케이스 `4808982063008` (박경리 검색 응답).
+    expect(toBookRecord({ ...sampleKakaoDoc, isbn: '4808982063008' })).toBeNull();
+    // 977 (정기간행물 EAN) 도 ISBN 아님.
+    expect(toBookRecord({ ...sampleKakaoDoc, isbn: '9771234567890' })).toBeNull();
+  });
+
+  it('isbn: 978/979 prefix ISBN-13 은 통과', () => {
+    expect(toBookRecord({ ...sampleKakaoDoc, isbn: '9788932917245' }).isbn).toBe('9788932917245');
+    expect(toBookRecord({ ...sampleKakaoDoc, isbn: '9791234567890' }).isbn).toBe('9791234567890');
+  });
+
+  it('isbn: 비-ISBN 13자리 + 유효 ISBN-10 섞이면 ISBN-10 선택', () => {
+    const book = toBookRecord({ ...sampleKakaoDoc, isbn: '4808982063008 8932917248' });
+    expect(book.isbn).toBe('8932917248');
+  });
+
+  it('isbn: 임의 fallback 제거 — 11자리/12자리 등 형식 미스는 null', () => {
+    expect(toBookRecord({ ...sampleKakaoDoc, isbn: '12345' })).toBeNull();
+    expect(toBookRecord({ ...sampleKakaoDoc, isbn: 'abc' })).toBeNull();
+    expect(toBookRecord({ ...sampleKakaoDoc, isbn: '12345678901' })).toBeNull();
+  });
+
   it('authors 다인 → 콤마 결합', () => {
     const book = toBookRecord({ ...sampleKakaoDoc, authors: ['홍길동', '이몽룡'] });
     expect(book.author).toBe('홍길동, 이몽룡');

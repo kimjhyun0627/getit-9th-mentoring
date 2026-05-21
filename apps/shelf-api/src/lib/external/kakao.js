@@ -35,7 +35,18 @@ export class KakaoApiError extends Error {
 }
 
 /**
- * 카카오 isbn 필드("8932917248 9788932917245") 에서 13자리 우선 추출.
+ * 카카오 isbn 필드("8932917248 9788932917245") 에서 ISBN-13 우선 추출.
+ *
+ * #472 — 카카오는 EAN-13 (예: `4808982063008`) 처럼 ISBN 이 아닌 13자리 식별자도
+ * isbn 필드에 섞어 돌려준다. 단순 `/^\d{13}$/` 통과시키면 DB 에 비-ISBN 코드가
+ * 누적되고, `/book/:isbn` 으로 접근 시 캐시가 영구 stale 로 박힘.
+ *
+ * 규칙:
+ * - ISBN-13: `/^97[89]\d{10}$/` (978/979 prefix 필수)
+ * - ISBN-10: `/^\d{9}[\dXx]$/`
+ * - 둘 다 미스 → null (toBookRecord 가 row drop)
+ *
+ * 임의 `tokens[0]` fallback 은 제거 — 검증 안 된 식별자가 DB 로 새는 경로 차단.
  *
  * @param {string | undefined} raw
  * @returns {string | null}
@@ -46,11 +57,11 @@ const pickIsbn = (raw) => {
     .split(/\s+/)
     .map((t) => t.trim())
     .filter(Boolean);
-  const isbn13 = tokens.find((t) => /^\d{13}$/.test(t));
+  const isbn13 = tokens.find((t) => /^97[89]\d{10}$/.test(t));
   if (isbn13) return isbn13;
   const isbn10 = tokens.find((t) => /^\d{9}[\dXx]$/.test(t));
   if (isbn10) return isbn10;
-  return tokens[0] ?? null;
+  return null;
 };
 
 /**

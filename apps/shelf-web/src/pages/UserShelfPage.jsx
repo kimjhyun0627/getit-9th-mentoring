@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { BookCardSkeleton } from '../components/BookCard.jsx';
 import { StarRating } from '../components/StarRating.jsx';
 import { api } from '../lib/api.js';
+import { upscaleCoverUrl } from '../lib/coverUrl.js';
 
 /**
  * 다른 유저 서재 공개 보기 — /u/:userId (#292).
@@ -88,16 +89,18 @@ export const UserShelfPage = () => {
 const PublicBookCard = ({ shelf }) => {
   const { book, status, rating, review } = shelf;
   if (!book) return null;
+  // #474 — Kakao R120x174 캐시 stale 대비 클라이언트 hi-res 변환.
+  const cover = upscaleCoverUrl(book.coverUrl);
   return (
     <Link
       to={`/book/${encodeURIComponent(book.isbn)}`}
       className="book-card block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wine)]"
     >
       <div className="cover relative w-full">
-        {book.coverUrl ? (
+        {cover ? (
           <div
             className="cover-inner"
-            style={{ backgroundImage: `url("${book.coverUrl}")` }}
+            style={{ backgroundImage: `url("${cover}")` }}
             aria-hidden="true"
           />
         ) : (
