@@ -1,18 +1,20 @@
-import { act, screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
-import { renderSearch } from './SearchPage.testkit.jsx';
+import { renderSearch, searchPage } from './SearchPage.testkit.jsx';
 
 /**
- * SearchPage 무한 스크롤 가드 (#525) — `SearchPage.test.jsx` 가 300 줄 상한을 넘지 않도록
+ * SearchPage 무한 스크롤 가드 (#527) — `SearchPage.test.jsx` 가 300 줄 상한을 넘지 않도록
  * 무한 스크롤 시나리오만 분리.
  *
- * 가드 시나리오:
- *  - sentinel intersect 시 visibleCount 가 PAGE_STEP 만큼 자동 증분된다
+ * 가드 시나리오 (#527 부터 진짜 페이지네이션):
+ *  - sentinel intersect 시 BE `fetchNextPage` 가 호출되고 누적 items 가 늘어난다
+ *  - 마지막 페이지(isEnd=true) 도달 시 sentinel intersect 가 발사되지 않는다
  *  - 기존 "더 보기" 버튼이 더 이상 렌더되지 않는다 (회귀 가드)
+ *  - getNextPageParam: lastPage.isEnd ? undefined : page+1
  */
 
 const setupObserverMock = () => {
@@ -47,10 +49,9 @@ const makeItem = (i) => ({
   coverUrl: null,
 });
 
-describe('SearchPage — 무한 스크롤 (#525)', () => {
+describe('SearchPage — 무한 스크롤 (#527)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // SearchPage cross-reference 용 myShelves 기본 stub.
     vi.spyOn(api, 'listMyShelves').mockResolvedValue({
       data: { shelves: [], pagination: { page: 1, pageSize: 100, total: 0 } },
     });
@@ -62,31 +63,82 @@ describe('SearchPage — 무한 스크롤 (#525)', () => {
     vi.useRealTimers();
   });
 
-  it('검색 결과 10건 초과 시 sentinel intersect → 추가 카드가 노출된다', async () => {
-    const items = Array.from({ length: 25 }, (_, i) => makeItem(i + 1));
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items });
+  it('sentinel intersect → 다음 페이지 BE fetch + 누적 노출', async () => {
+    // 1페이지: 30건 isEnd=false, 2페이지: 5건 isEnd=true
+    const page1 = Array.from({ length: 30 }, (_, i) => makeItem(i + 1));
+    const page2 = Array.from({ length: 5 }, (_, i) => makeItem(i + 31));
+    const spy = vi.spyOn(api, 'searchBooks').mockImplementation(async (_q, opts = {}) => {
+      if (opts.page === 2) return searchPage(page2, { page: 2, size: 30, isEnd: true });
+      return searchPage(page1, { page: 1, size: 30, isEnd: false, totalCount: 35 });
+    });
     const observerInstances = setupObserverMock();
 
     const user = userEvent.setup();
     renderSearch();
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
 
-    // 1페이지 (10건) 렌더 대기.
+    // 1페이지 (30건) 렌더 대기.
     await screen.findByRole('heading', { name: '검색결과 1' });
-    expect(screen.queryByRole('heading', { name: '검색결과 11' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '검색결과 31' })).not.toBeInTheDocument();
     expect(screen.getByTestId('search-sentinel')).toBeInTheDocument();
 
-    // sentinel 진입 → visibleCount += 10.
+    // sentinel intersect → page=2 fetch.
     await act(async () => {
       observerInstances[observerInstances.length - 1]?.trigger();
     });
-    expect(await screen.findByRole('heading', { name: '검색결과 20' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '검색결과 31' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '검색결과 35' })).toBeInTheDocument();
+
+    // BE 가 page=2 옵션과 함께 호출되었는지 확인.
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith('데미안', expect.objectContaining({ page: 2, size: 30 }));
+    });
+  });
+
+  it('마지막 페이지 도달 (isEnd=true) → "모두 보여드렸어요" 노출', async () => {
+    setupObserverMock();
+    const items = Array.from({ length: 5 }, (_, i) => makeItem(i + 1));
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(
+      searchPage(items, { page: 1, size: 30, isEnd: true, totalCount: 5 }),
+    );
+    const user = userEvent.setup();
+    renderSearch();
+    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
+
+    await screen.findByRole('heading', { name: '검색결과 1' });
+    expect(await screen.findByText(/모두 보여드렸어요/)).toBeInTheDocument();
+  });
+
+  // Gemini #528: 카카오 cap=50. 51 페이지 요청을 미리 잠궈서 BE 400 노출을 차단.
+  // 단순 sleep 으론 cap guard 가 진짜 작동하는지 검증 못 함 — sentinel 을 실제로
+  // intersect 시켜도 page=51 fetch 가 발생하지 않아야 진짜 가드.
+  it('50 페이지 도달하면 isEnd=false 라도 sentinel intersect 가 다음 페이지를 안 요청한다', async () => {
+    const observerInstances = setupObserverMock();
+    const items = Array.from({ length: 30 }, (_, i) => makeItem(i + 1));
+    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue(
+      // page=50 + isEnd=false 흉내 — FE 가드가 page=51 요청을 막아야 함.
+      searchPage(items, { page: 50, size: 30, isEnd: false, totalCount: 9999 }),
+    );
+    const user = userEvent.setup();
+    renderSearch();
+    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
+    await screen.findByRole('heading', { name: '검색결과 1' });
+
+    // sentinel 을 실제로 intersect 시켜도 추가 fetch 가 발생하지 않아야 함.
+    await act(async () => {
+      observerInstances[observerInstances.length - 1]?.trigger();
+    });
+    // 종료 안내 노출 (cap 도달 → "모두 보여드렸어요").
+    expect(await screen.findByText(/모두 보여드렸어요/)).toBeInTheDocument();
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('"더 보기" 버튼이 더 이상 렌더되지 않는다 (회귀 가드)', async () => {
     setupObserverMock();
     const items = Array.from({ length: 25 }, (_, i) => makeItem(i + 1));
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items });
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(
+      searchPage(items, { page: 1, size: 30, isEnd: true, totalCount: 25 }),
+    );
     const user = userEvent.setup();
     renderSearch();
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');

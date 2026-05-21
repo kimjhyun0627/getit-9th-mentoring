@@ -155,24 +155,72 @@ export const toBookRecord = (doc) => {
 };
 
 /**
+ * 카카오 검색 응답의 meta 객체 정규화.
+ *
+ * 카카오는 다음 필드를 내려준다 (필드 자체가 누락되는 경우는 거의 없지만 방어적으로):
+ *  - `is_end`: 현재 페이지가 마지막인지 (boolean)
+ *  - `pageable_count`: 페이지네이션 가능한 결과 수 (카카오 기준 보통 ≤ size*50)
+ *  - `total_count`: 전체 매칭 수
+ *
+ * 무한 스크롤 종료 판정은 `is_end` 가 source of truth. FE 가 보너스로 totalCount 도 노출.
+ *
+ * @param {Record<string, any> | undefined} raw
+ * @param {{ documentsLen: number, requestedSize: number }} fallbackHints
+ * @returns {{ is_end: boolean, pageable_count: number, total_count: number }}
+ */
+const normalizeMeta = (raw, { documentsLen, requestedSize }) => {
+  const isEndRaw = raw?.is_end;
+  // CR #528: total_count 가 누락된 경우 0 으로 박으면 documents 가 실제로 있을 때
+  // `totalCount: 0` 이 내려가 응답 모순이 생긴다. 최소한 documentsLen 을 하한으로.
+  const totalCount =
+    typeof raw?.total_count === 'number' && Number.isFinite(raw.total_count)
+      ? raw.total_count
+      : documentsLen;
+  const pageableCount =
+    typeof raw?.pageable_count === 'number' && Number.isFinite(raw.pageable_count)
+      ? raw.pageable_count
+      : totalCount;
+  // is_end 가 누락되면 documents 길이가 size 미만일 때 마지막 페이지로 추론.
+  const isEnd =
+    typeof isEndRaw === 'boolean' ? isEndRaw : documentsLen < Math.max(1, requestedSize);
+  return { is_end: isEnd, pageable_count: pageableCount, total_count: totalCount };
+};
+
+/**
  * 카카오 도서 검색 호출.
+ *
+ * #527: page/size 노출 + meta 동봉. 이전 시그니처는 documents 배열만 반환했지만
+ * 무한 스크롤이 추가 fetch 를 알려면 `is_end` 가 필요. 응답 shape 을
+ * `{ documents, meta }` 객체로 바꾸고, meta 누락 시에는 documents 길이 기반으로 추론.
  *
  * @param {{
  *   query: string,
  *   apiKey: string,
  *   target?: 'title' | 'isbn' | 'publisher' | 'person',
+ *   page?: number,
  *   size?: number,
  *   timeoutMs?: number,
  * }} params
- * @returns {Promise<Array<Record<string, any>>>}
+ * @returns {Promise<{
+ *   documents: Array<Record<string, any>>,
+ *   meta: { is_end: boolean, pageable_count: number, total_count: number },
+ * }>}
  * @throws {KakaoConfigError | KakaoApiError}
  */
-export const searchKakaoBooks = async ({ query, apiKey, target, size = 10, timeoutMs = 5000 }) => {
+export const searchKakaoBooks = async ({
+  query,
+  apiKey,
+  target,
+  page = 1,
+  size = 10,
+  timeoutMs = 5000,
+}) => {
   if (!apiKey) throw new KakaoConfigError();
 
   const url = new URL(KAKAO_SEARCH_PATH, KAKAO_BASE_URL);
   url.searchParams.set('query', query);
   if (target) url.searchParams.set('target', target);
+  url.searchParams.set('page', String(page));
   url.searchParams.set('size', String(size));
 
   const controller = new AbortController();
@@ -201,5 +249,7 @@ export const searchKakaoBooks = async ({ query, apiKey, target, size = 10, timeo
   } catch {
     throw new KakaoApiError('kakao response not JSON', 502);
   }
-  return Array.isArray(body?.documents) ? body.documents : [];
+  const documents = Array.isArray(body?.documents) ? body.documents : [];
+  const meta = normalizeMeta(body?.meta, { documentsLen: documents.length, requestedSize: size });
+  return { documents, meta };
 };

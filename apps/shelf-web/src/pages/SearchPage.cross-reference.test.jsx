@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
-import { DEMIAN, renderSearch } from './SearchPage.testkit.jsx';
+import { DEMIAN, renderSearch, searchPage } from './SearchPage.testkit.jsx';
 
 const shelfRow = (overrides) => ({
   id: 's1',
@@ -45,7 +45,7 @@ describe('SearchPage cross-reference + stale', () => {
         pagination: { page: 1, pageSize: 100, total: 1 },
       },
     });
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [DEMIAN] });
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(searchPage([DEMIAN]));
 
     renderSearch();
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
@@ -56,7 +56,7 @@ describe('SearchPage cross-reference + stale', () => {
 
   it('422 응답(이미 존재) 직후 isAdded 가 즉시 true 가 된다 (#217 race fix)', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [DEMIAN] });
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(searchPage([DEMIAN]));
     vi.spyOn(api, 'addToShelf').mockRejectedValue({
       isAxiosError: true,
       response: { status: 422, data: { error: 'ShelfAlreadyExists' } },
@@ -73,9 +73,7 @@ describe('SearchPage cross-reference + stale', () => {
 
   it('book.stale=true 면 "캐시된 정보" 라벨이 노출된다 (#236)', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [{ ...DEMIAN, stale: true }],
-    });
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(searchPage([{ ...DEMIAN, stale: true }]));
     renderSearch();
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
     expect(await screen.findByTestId('stale-label')).toHaveTextContent(/캐시된 정보/);
