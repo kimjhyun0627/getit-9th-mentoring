@@ -15,8 +15,11 @@ const DEFAULT_TTL_HOURS = 24;
  */
 export const BOOK_CACHE_TTL_MS = (() => {
   const raw = process.env.BOOK_CACHE_TTL_HOURS;
-  const n = Number.parseInt(raw ?? '', 10);
-  const hours = Number.isFinite(n) && n > 0 ? n : DEFAULT_TTL_HOURS;
+  // 순수 양의 정수 문자열만 허용. "24h", "1e2", "24.5" 등 운영 오타는 조용히
+  // 잘못된 값으로 통과되지 않도록 정규식으로 strict 검증 후 fallback.
+  const isPureInt = typeof raw === 'string' && /^\d+$/.test(raw);
+  const n = isPureInt ? Number(raw) : Number.NaN;
+  const hours = Number.isInteger(n) && n > 0 ? n : DEFAULT_TTL_HOURS;
   return hours * 60 * 60 * 1000;
 })();
 
