@@ -1,7 +1,7 @@
 /**
  * About 섹션 (Tech-Dark).
  * - id="about" 앵커 + 12-col grid (md+): col-span-4 (H2) + col-span-7 col-start-6 (본문)
- * - 마커: `[01] about` mono · cyan prefix
+ * - 마커: `[03] about` mono · cyan prefix (#458 — services=[01] · team=[02] · about=[03] · footer=[04])
  * - H2: mono · "작지만, / 진짜 프로덕션."
  * - 본문: `auth.get-it.cloud` 인라인 code (cyan 액센트)
  */
@@ -17,7 +17,7 @@ export const About = () => {
         <div className="grid gap-10 md:grid-cols-12">
           <div className="md:col-span-4">
             <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
-              <span className="text-cyan-700 dark:text-cyan-neon">[01]</span> about
+              <span className="text-cyan-700 dark:text-cyan-neon">[03]</span> about
             </p>
             <h2
               id="about-heading"

@@ -33,7 +33,11 @@ describe('OnboardingBubble (#361)', () => {
     renderBubble();
     const dialog = screen.getByTestId('onboarding-bubble');
     expect(dialog).toBeInTheDocument();
-    expect(dialog).toHaveAttribute('role', 'dialog');
+    // #446 — non-modal toast 시맨틱: role='status' + aria-live='polite'.
+    //   role='dialog' + aria-modal='false' 조합은 WAI-ARIA 위반 (focus trap/Esc 미보유).
+    expect(dialog).toHaveAttribute('role', 'status');
+    expect(dialog).toHaveAttribute('aria-live', 'polite');
+    expect(dialog).not.toHaveAttribute('aria-modal');
     expect(dialog.textContent).toMatch(/안녕! 처음이지\?/);
     expect(dialog.textContent).toMatch(/다크\/라이트 토글은 우상단에 있어/);
     expect(dialog.textContent).toMatch(/한 번 눌러봐/);

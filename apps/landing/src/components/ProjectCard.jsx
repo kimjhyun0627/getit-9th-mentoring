@@ -23,7 +23,7 @@ const PROJECT_ICONS = {
  * Tech-Dark 카드 (data-accent별 hover 네온 outline + glow).
  * - 좌상단: `[NN]` badge (액센트 색) + slug (zinc-400)
  * - 우상단: `ID: XXX-NN` trace 라벨 (mono, 작게)
- * - 메인: 이모지 아이콘 + 한국어 title + 영문 subtitle (mono)
+ * - 메인: mono SVG glyph (#434) + 한국어 title + 영문 subtitle (mono)
  * - 본문: 한 줄 설명 (zinc-600/400)
  * - 푸터: host (액센트 색) + `open ↗` 외부 링크 인디케이터 (group-hover 시 액센트)
  *
@@ -32,6 +32,7 @@ const PROJECT_ICONS = {
  * #360 — 클라이언트 요청으로 새 탭 오픈 복원 (PR #344 #225 same-tab → new-tab).
  *   - target="_blank" + rel="noopener noreferrer"
  *   - sr-only "새 탭에서 열림" + ExternalLinkIcon 시각 표시
+ * #434 — 이모지 폐기, slug → ProjectIcons (mono SVG, currentColor 상속).
  *
  * @param {Project} props
  */
@@ -42,7 +43,6 @@ export const ProjectCard = ({
   subtitle,
   title,
   href,
-  emoji,
   description,
   hostLabel,
   accent,
@@ -73,7 +73,7 @@ export const ProjectCard = ({
             aria-hidden="true"
             className={`grid size-12 place-items-center rounded-lg border border-hairline bg-zinc-50 dark:bg-ink-850 ${tokens.text}`}
           >
-            {Icon ? <Icon className="size-6" /> : <span className="text-2xl">{emoji}</span>}
+            {Icon ? <Icon className="size-6" /> : null}
           </span>
           <div>
             <h3 className="text-xl font-semibold tracking-tight text-ink-950 dark:text-white">

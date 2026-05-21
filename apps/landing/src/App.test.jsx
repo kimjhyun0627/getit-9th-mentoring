@@ -301,4 +301,4 @@ describe('Team / Timeline 섹션 (#222)', () => {
   });
 });
 
-// ThemeToggle SVG 가드는 Header.test.jsx 로 이전 (#351 CR 300-line 가이드).
+// ThemeToggle SVG · #412 deep dive 2차 가드 → Header.test.jsx · App.deepdive2.test.jsx 로 분리.

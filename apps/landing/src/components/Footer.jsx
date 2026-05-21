@@ -8,7 +8,7 @@ import { ExternalLinkIcon } from './ExternalLinkIcon.jsx';
 /**
  * Footer 푸터 (Tech-Dark).
  * - 1px hairline 상단 보더
- * - 박스: `[03] git log --oneline -n 5  main ↑` 헤더 + git log 5줄 + 메타 라인
+ * - 박스: `[04] git log --oneline -n 5  main ↑` 헤더 + git log 5줄 + 메타 라인 (#458 — services=[01] · team=[02] · about=[03] · footer=[04])
  * - 메타 라인: copyright + github/notion 외부 링크 (mailto 제거, #296)
  *
  * #233: 초기 렌더는 빌드타임 주입된 git log 5건 (즉시 노출, CLS 없음).
@@ -39,7 +39,7 @@ export const Footer = () => {
       <div className="mx-auto max-w-7xl px-6 py-12 md:py-16 lg:px-10">
         <div className="rounded-lg border border-hairline bg-zinc-50/70 p-5 font-mono text-[11.5px] leading-relaxed text-zinc-600 dark:bg-ink-900/50 dark:text-zinc-400">
           <div className="flex items-center justify-between border-b border-hairline pb-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-500">
-            <span className="text-cyan-700 dark:text-cyan-neon">[03]</span>
+            <span className="text-cyan-700 dark:text-cyan-neon">[04]</span>
             <span>git log --oneline -n 5</span>
             <span>main ↑</span>
           </div>
