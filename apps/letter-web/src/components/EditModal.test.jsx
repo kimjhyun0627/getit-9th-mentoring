@@ -65,7 +65,7 @@ describe('EditModal', () => {
     const patchSpy = vi.spyOn(api, 'updateMessage').mockResolvedValue({
       data: { message: { id: 'msg1', content: '다듬음', color: 'PINK', is_mine: true } },
     });
-    renderEdit();
+    const { onSuccess } = renderEdit();
     const ta = screen.getByLabelText('내용');
     await user.clear(ta);
     await user.type(ta, '다듬음');
@@ -76,6 +76,8 @@ describe('EditModal', () => {
     expect(id).toBe('msg1');
     expect(body).toEqual({ content: '다듬음' });
     expect(body.color).toBeUndefined();
+    // CR (#494) — onSuccess 호출도 가드해서 mutation success 경로가 죽지 않게.
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
 
   // #487 — color 만 바꿨으면 patch body 에 color 만.
@@ -84,7 +86,7 @@ describe('EditModal', () => {
     const patchSpy = vi.spyOn(api, 'updateMessage').mockResolvedValue({
       data: { message: { id: 'msg1', content: '원본', color: 'MINT', is_mine: true } },
     });
-    renderEdit();
+    const { onSuccess } = renderEdit();
     await user.click(screen.getByRole('radio', { name: /MINT/i }));
     await user.click(screen.getByRole('button', { name: /고치기/ }));
 
@@ -92,5 +94,7 @@ describe('EditModal', () => {
     const [, body] = patchSpy.mock.calls[0];
     expect(body).toEqual({ color: 'MINT' });
     expect(body.content).toBeUndefined();
+    // CR (#494) — onSuccess 가드.
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
   });
 });
