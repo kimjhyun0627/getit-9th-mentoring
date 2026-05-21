@@ -19,6 +19,7 @@ import { requireAuth } from '@getit/auth-utils/server';
 import { NoShowReportInput, PostIdParam, PostUpdateInput } from '@getit/schemas/hobby';
 import { Router } from 'express';
 
+import { noShowReportedMessage, postClosedMessage } from '../lib/notificationMessages.js';
 import { prisma } from '../lib/prisma.js';
 
 import { serializePost } from './posts.serialize.js';
@@ -168,7 +169,7 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
                 userId,
                 postId: post.id,
                 kind: 'POST_CLOSED',
-                message: `「${post.title}」 모집이 종료됐어.`,
+                message: postClosedMessage(post.title),
               })),
             });
           }
@@ -265,7 +266,7 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
                 userId: a.userId,
                 postId: post.id,
                 kind: 'NO_SHOW_REPORTED',
-                message: `「${post.title}」 모임에서 방장이 노쇼로 신고했어요.`,
+                message: noShowReportedMessage(post.title),
               },
             });
           }

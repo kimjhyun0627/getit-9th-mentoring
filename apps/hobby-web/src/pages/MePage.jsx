@@ -6,7 +6,13 @@ import { MeetupCard } from '../components/MeetupCard.jsx';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 
-import { MePageEmpty, MyApplicationCard, MyPageShell, TabButton } from './MePage.parts.jsx';
+import {
+  MePageEmpty,
+  MyApplicationCard,
+  MyPageShell,
+  RedirectingNotice,
+  TabButton,
+} from './MePage.parts.jsx';
 
 /**
  * 마이페이지 — `/me` (#228).
@@ -70,12 +76,7 @@ export const MePage = () => {
     if (is401) {
       return (
         <MyPageShell>
-          <p
-            role="status"
-            className="mt-20 text-center text-slate-500 dark:text-slate-400 font-round"
-          >
-            로그인 페이지로 이동 중…
-          </p>
+          <RedirectingNotice />
         </MyPageShell>
       );
     }
@@ -166,11 +167,7 @@ const MyCreatedTab = () => {
     );
   }
   if (is401) {
-    return (
-      <p role="status" className="text-slate-500 dark:text-slate-400 font-round">
-        로그인 페이지로 이동 중…
-      </p>
-    );
+    return <RedirectingNotice />;
   }
   if (query.isError) {
     return (
@@ -226,11 +223,7 @@ const MyAppliedTab = () => {
     );
   }
   if (is401) {
-    return (
-      <p role="status" className="text-slate-500 dark:text-slate-400 font-round">
-        로그인 페이지로 이동 중…
-      </p>
-    );
+    return <RedirectingNotice />;
   }
   if (query.isError) {
     return (

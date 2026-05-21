@@ -5,8 +5,8 @@ import { Link, useParams } from 'react-router-dom';
 import { ConfirmDialog } from '../components/ConfirmDialog.jsx';
 import { api } from '../lib/api.js';
 import { useRequireAuth } from '../lib/auth.js';
-import { cn } from '../lib/cn.js';
 
+import { ApplicantList } from './ApplicantsPage.list.jsx';
 import { PageShell } from './PostDetailPage.shell.jsx';
 
 /**
@@ -107,6 +107,7 @@ export const ApplicantsPage = () => {
   }
 
   const items = query.data?.items ?? [];
+  const reportableUids = items.filter((a) => !a.noShow).map((a) => a.userId);
   const toggleSelected = (uid) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -114,6 +115,12 @@ export const ApplicantsPage = () => {
       else next.add(uid);
       return next;
     });
+  };
+  // #445 — 전체선택/해제. 이미 신고된 (noShow=true) 는 제외.
+  const toggleSelectAll = () => {
+    setSelected((prev) =>
+      prev.size === reportableUids.length ? new Set() : new Set(reportableUids),
+    );
   };
 
   const onReport = () => {
@@ -139,8 +146,7 @@ export const ApplicantsPage = () => {
           신청자 ({query.data?.total ?? items.length}명)
         </h1>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 font-round">
-          모임이 끝나면 노쇼한 사람을 골라 신고할 수 있어. 누적 신고 카운트는 다른 방장에게도 보여서
-          매너 지표로 쓰여.
+          모임 끝나고 나타나지 않은 사람 있으면 골라서 신고해줘. 다른 방장들에게도 매너 지표로 보여.
         </p>
 
         {items.length === 0 ? (
@@ -152,6 +158,7 @@ export const ApplicantsPage = () => {
             items={items}
             selected={selected}
             onToggle={toggleSelected}
+            onToggleAll={toggleSelectAll}
             disabled={noShow.isPending}
           />
         )}
@@ -180,7 +187,7 @@ export const ApplicantsPage = () => {
       <ConfirmDialog
         open={confirmOpen}
         title={`${selected.size}명을 노쇼로 신고할까?`}
-        description="되돌릴 수 없어. 누적 신고는 다른 방장에게도 매너 지표로 보여."
+        description="되돌리기 어려우니 한 번 더 확인해줘. 다른 방장에게도 매너 지표로 보여."
         confirmLabel="신고하기"
         cancelLabel="취소"
         destructive
@@ -212,41 +219,4 @@ const ErrorState = ({ title, body, postId }) => (
       {postId ? '← 모임 상세' : '← 홈으로'}
     </Link>
   </main>
-);
-
-const ApplicantList = ({ items, selected, onToggle, disabled }) => (
-  <ul className="mt-6 flex flex-col gap-2" aria-label="신청자 목록">
-    {items.map((a) => (
-      <li
-        key={a.id}
-        className={cn(
-          'flex items-center gap-3 rounded-2xl bg-white dark:bg-white/5 ring-1 ring-slate-900/5 dark:ring-white/10 px-4 py-3 shadow-sm',
-          a.noShow && 'opacity-70',
-        )}
-      >
-        <input
-          type="checkbox"
-          className="h-5 w-5"
-          checked={selected.has(a.userId)}
-          onChange={() => onToggle(a.userId)}
-          disabled={disabled || a.noShow}
-          aria-label={`${a.userId} 선택`}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="font-display font-extrabold text-sm text-slate-900 dark:text-white truncate">
-            {a.userId}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-round">
-            신청 {new Date(a.createdAt).toLocaleString('ko-KR')}
-            {a.noShowCount > 0 ? ` · 누적 노쇼 ${a.noShowCount}회` : ''}
-          </p>
-        </div>
-        {a.noShow ? (
-          <span className="rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-200 px-2 py-0.5 text-[11px] font-display font-bold">
-            노쇼
-          </span>
-        ) : null}
-      </li>
-    ))}
-  </ul>
 );

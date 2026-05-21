@@ -205,13 +205,15 @@
       0 0 40px -10px rgba(255, 255, 255, 0.12);
   }
   /* #309 — CLOSED 만 회색 처리. FULL 은 컬러 유지 (긍정적 종료 + 잔치 분위기). */
+  /* #447 — opacity 완화 (0.6 → 0.8 light, 0.55 → 0.75 dark). grayscale + 회색 pill 만으로
+     CLOSED 식별은 충분하고, 본문 텍스트 가독성을 다크모드에서도 확보. */
   .card.tone-closed {
-    filter: grayscale(0.75) brightness(0.95);
-    opacity: 0.6;
+    filter: grayscale(0.6) brightness(0.97);
+    opacity: 0.8;
   }
   .dark .card.tone-closed {
-    filter: grayscale(0.7) brightness(0.7);
-    opacity: 0.55;
+    filter: grayscale(0.55) brightness(0.8);
+    opacity: 0.75;
   }
   /* Backward compat: is-closed (legacy) 도 같은 처리. */
   .card.is-closed {

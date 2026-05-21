@@ -15,14 +15,14 @@ import { api } from '../lib/api.js';
 
 import { MePage } from './MePage.jsx';
 
-const renderPage = () => {
+const renderPage = ({ initialUrl = '/me' } = {}) => {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={qc}>
       <ThemeProvider>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[initialUrl]}>
           <MePage />
         </MemoryRouter>
       </ThemeProvider>
@@ -119,5 +119,24 @@ describe('MePage', () => {
 
     await user.click(screen.getByRole('button', { name: /신청 취소/ }));
     await waitFor(() => expect(cancelSpy).toHaveBeenCalledWith('app1'));
+  });
+
+  // #406 — applied 탭 진입 시점에 listMyApplications 가 401 → SSO redirect.
+  it('applied 탭 401 → SSO 로그인 페이지로 보낸다 (#406)', async () => {
+    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'me-id', name: 'Alice', email: 'a@x.com' });
+    vi.spyOn(api, 'listMyApplications').mockRejectedValue({ response: { status: 401 } });
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        ...window.location,
+        href: 'about:blank',
+        origin: 'https://hobby.get-it.cloud',
+      },
+    });
+    renderPage({ initialUrl: '/me?tab=applied' });
+    expect(await screen.findByText(/로그인 페이지로 이동 중/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(String(window.location.href)).toMatch(/auth\.get-it\.cloud\/login\?redirect=/);
+    });
   });
 });

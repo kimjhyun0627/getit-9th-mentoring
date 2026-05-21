@@ -16,6 +16,7 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
 
+import { prisma } from './lib/prisma.js';
 import { buildOpenApiDoc } from './openapi.js';
 import { createApplicationsRouter } from './routes/applications.js';
 import { createMeRouter } from './routes/me.js';
@@ -91,6 +92,17 @@ export const createApp = (opts = {}) => {
   }
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'hobby-api' }));
+
+  // #441: 표준 /healthz endpoint — DB ping 포함. canary/monitoring 친화.
+  // rate-limit 면제 (이 path 는 mutationLimiter 가 GET 이라 본디 제외, 별도 limiter 도 안 붙임).
+  app.get('/api/healthz', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return res.status(200).json({ status: 'ok', db: 'reachable', service: 'hobby-api' });
+    } catch {
+      return res.status(503).json({ status: 'error', db: 'unreachable', service: 'hobby-api' });
+    }
+  });
 
   // #290: POST/PATCH/DELETE 만 burst 차단. GET 은 free (목록/상세 조회 부하 적음).
   // letter-api 와 동일 패턴: 단일 IP 1분 30회. 환경변수로 운영 중 조절.
