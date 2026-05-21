@@ -1,4 +1,4 @@
-import { ThemeToggle } from '@getit/theme';
+import { CodeTerminalToggle } from '@getit/theme';
 
 import { buildLoginUrl } from '../lib/auth-redirect.js';
 import { performLogout } from '../lib/logout.js';
@@ -7,7 +7,7 @@ import { useSession } from '../lib/useSession.js';
 /**
  * Sticky 상단 헤더 (Tech-Dark).
  * - 좌: G9 cyan 모노그램 + `GETIT/9` mono 로고 + mono nav (services, about)
- * - 우: "all systems / nominal" pulse 도트 + ThemeToggle + (로그인 분기)
+ * - 우: "all systems / nominal" pulse 도트 + CodeTerminalToggle + (로그인 분기)
  *   - 비로그인: `$ sign in` CTA
  *   - 로그인 (#343 / #246): 사용자 이름 + 로그아웃 폼 — PRD "통합 SSO" 가치 시각 증명
  * - hairline 하단 보더 + backdrop-blur (라이트=white/80, 다크=ink-950/80)
@@ -81,9 +81,7 @@ export const Header = () => {
             <span aria-hidden="true">all systems / nominal</span>
           </div>
 
-          <ThemeToggle
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-hairline text-zinc-700 transition hover:border-cyan-700 hover:text-cyan-700 dark:text-zinc-200 dark:hover:border-cyan-neon dark:hover:text-cyan-neon ${focusMono}`}
-          />
+          <CodeTerminalToggle />
 
           <SessionCta user={user} loading={loading} focusMono={focusMono} />
         </div>

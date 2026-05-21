@@ -1,4 +1,4 @@
-import { ThemeToggle } from '@getit/theme';
+import { CodeTerminalToggle } from '@getit/theme';
 
 /**
  * Auth 페이지 공통 레이아웃 — Tech-Dark 페르소나 (Issue #172).
@@ -65,7 +65,7 @@ export const AuthLayout = ({ children }) => {
               />
               <span>auth / nominal</span>
             </div>
-            <ThemeToggle className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-hairline bg-white/70 text-base transition hover:border-cyan-700 hover:text-cyan-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background dark:bg-ink-900/70 dark:hover:border-cyan-neon dark:hover:text-cyan-neon" />
+            <CodeTerminalToggle />
           </div>
         </div>
       </header>

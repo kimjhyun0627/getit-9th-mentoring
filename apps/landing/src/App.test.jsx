@@ -80,9 +80,9 @@ describe('App (landing · Tech-Dark)', () => {
     }
   });
 
-  it('ThemeToggle 버튼이 aria-label과 함께 존재한다', () => {
+  it('CodeTerminalToggle 토글이 role=switch + aria-label과 함께 존재한다 (#363)', () => {
     renderApp();
-    const toggle = screen.getByRole('button', { name: /다크모드로 전환|라이트모드로 전환/ });
+    const toggle = screen.getByRole('switch', { name: /다크 모드 토글 \(terminal\)/ });
     expect(toggle).toBeInTheDocument();
   });
 
@@ -137,7 +137,7 @@ describe('App (landing · Tech-Dark)', () => {
   it('테마 토글 클릭 시 documentElement에 .dark 클래스가 적용된다', async () => {
     renderApp();
     expect(document.documentElement.classList.contains('dark')).toBe(false);
-    const toggle = screen.getByRole('button', { name: /다크모드로 전환/ });
+    const toggle = screen.getByRole('switch', { name: /다크 모드 토글 \(terminal\)/ });
     fireEvent.click(toggle);
     await waitFor(() => {
       expect(document.documentElement.classList.contains('dark')).toBe(true);
