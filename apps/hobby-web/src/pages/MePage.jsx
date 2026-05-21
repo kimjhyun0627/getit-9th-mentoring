@@ -128,6 +128,25 @@ export const MePage = () => {
 };
 
 /**
+ * 401 → SSO 로그인 redirect (useEffect 안에서만).
+ *
+ * `meQuery` 가 200 캐시로 살아있어도 (staleTime 60s), 탭 데이터 쿼리는
+ * access token 만료로 401 을 받을 수 있다. interceptor 가 `/api/refresh`
+ * 한 번을 시도한 뒤에도 401 이 떨어지면 진짜 expired — SSO 페이지로 보내야
+ * 사용자가 "데이터 안 보임" 상태에 갇히지 않는다.
+ *
+ * @param {boolean} is401
+ */
+const useSsoRedirectOn401 = (is401) => {
+  useEffect(() => {
+    if (!is401) return;
+    if (typeof window === 'undefined') return;
+    const here = encodeURIComponent(`${window.location.origin}/me`);
+    window.location.href = `https://auth.get-it.cloud/login?redirect=${here}`;
+  }, [is401]);
+};
+
+/**
  * "내가 만든 모임" 탭 — MeetupCard 재사용. CLOSED 포함.
  * 페이지네이션은 cursor; "더 둘러보기" 버튼.
  */
@@ -137,10 +156,19 @@ const MyCreatedTab = () => {
     queryFn: () => api.listMyPosts({ limit: 24 }),
     staleTime: 30_000,
   });
+  const is401 = query.error?.response?.status === 401;
+  useSsoRedirectOn401(is401);
   if (query.isLoading) {
     return (
       <p role="status" className="text-slate-500 dark:text-slate-400 font-round">
         내가 만든 모임 가져오는 중…
+      </p>
+    );
+  }
+  if (is401) {
+    return (
+      <p role="status" className="text-slate-500 dark:text-slate-400 font-round">
+        로그인 페이지로 이동 중…
       </p>
     );
   }
@@ -187,11 +215,20 @@ const MyAppliedTab = () => {
       queryClient.invalidateQueries({ queryKey: ['me', 'applications'] });
     },
   });
+  const is401 = query.error?.response?.status === 401;
+  useSsoRedirectOn401(is401);
 
   if (query.isLoading) {
     return (
       <p role="status" className="text-slate-500 dark:text-slate-400 font-round">
         신청한 모임 가져오는 중…
+      </p>
+    );
+  }
+  if (is401) {
+    return (
+      <p role="status" className="text-slate-500 dark:text-slate-400 font-round">
+        로그인 페이지로 이동 중…
       </p>
     );
   }

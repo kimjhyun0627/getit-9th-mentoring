@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api, assertJsonObject, assertListShape, client } from './api.js';
+import { api, assertJsonObject, assertListShape, client, refreshAccessToken } from './api.js';
 
 /**
  * BE-down 회복력 검증.
@@ -74,5 +74,36 @@ describe('api.listPosts — 응답 처리', () => {
       headers: { 'content-type': 'application/json' },
     });
     await expect(api.listPosts()).rejects.toThrow(/items must be an array/i);
+  });
+});
+
+/**
+ * #402 — access token 만료 후 refresh + 재시도.
+ *
+ * `refreshAccessToken()` 가 in-flight promise 를 공유해 동시 401 들이 single-fire
+ * 인지 검증. 실제 `/api/refresh` 호출 자체는 axios adapter 까지 가지 못하게
+ * vi.spyOn 으로 가로채 환경 독립으로 만든다.
+ */
+describe('refreshAccessToken — 단일 비행 + 동시 401 흡수', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('동시에 호출되어도 동일 in-flight promise 를 공유한다 (single-fire)', async () => {
+    // refreshAccessToken 은 내부 refreshClient.post 가 settle 될 때까지 같은
+    // promise 를 반환해야 한다. 첫 호출이 완료되기 전에 두 번째 호출이 같은
+    // promise 객체를 받는지를 micro-task 순서로 검증.
+    const p1 = refreshAccessToken();
+    const p2 = refreshAccessToken();
+    // settle 되기 직전 (await yield 없이) 두 핸들이 동일 promise.
+    expect(p2).toBe(p1);
+    // 첫 호출 settle 이후엔 새 호출은 새 promise 가 된다.
+    await Promise.allSettled([p1]);
+    const p3 = refreshAccessToken();
+    expect(p3).not.toBe(p1);
+    await Promise.allSettled([p3]);
   });
 });
