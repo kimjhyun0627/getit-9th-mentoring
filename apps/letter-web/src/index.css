@@ -10,23 +10,28 @@
  */
 @layer base {
   :root {
-    --background: 36 50% 96%; /* cream #FAF6F0 */
+    /**
+     * Phase 6e tone audit (#372):
+     * - 라이트가 "너무 밝다" → cream #FAF6F0 (L96) → #F0E4D2 (L88, beige) 로 톤다운.
+     *   채도는 살짝 올려 베이지 깊이감 보강. 눈부심 ↓, 종이 질감 ↑.
+     */
+    --background: 33 45% 88%; /* beige #F0E4D2 (was cream #FAF6F0) */
     --foreground: 22 19% 19%; /* ink #3A2E27 */
 
-    --card: 0 0% 100%;
+    --card: 36 50% 96%; /* 카드는 기존 cream 유지 — 배경과 대비 확보 */
     --card-foreground: 22 19% 19%;
 
-    --popover: 0 0% 100%;
+    --popover: 36 50% 96%;
     --popover-foreground: 22 19% 19%;
 
     /* Warm primary: peachDk #E8B89F */
     --primary: 21 64% 77%;
     --primary-foreground: 22 19% 19%;
 
-    --secondary: 36 36% 91%; /* cream2 */
+    --secondary: 33 38% 84%; /* cream2 살짝 톤다운 + 새 배경 대비 */
     --secondary-foreground: 22 19% 19%;
 
-    --muted: 36 36% 91%;
+    --muted: 33 38% 84%;
     --muted-foreground: 25 19% 31%; /* ink2 */
 
     --accent: 21 64% 87%; /* peach */
@@ -35,41 +40,46 @@
     --destructive: 0 64% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 36 24% 86%;
-    --input: 36 24% 86%;
+    --border: 30 24% 80%;
+    --input: 30 24% 80%;
     --ring: 21 64% 77%;
 
     --radius: 1rem;
   }
 
   .dark {
-    --background: 22 17% 14%; /* mocha #2C2420 */
+    /**
+     * Phase 6e tone audit (#372):
+     * - 다크가 "너무 어둡다" → mocha #2C2420 (L14) → #3A2F29 (L19, mocha2) 로 lift.
+     *   카드/secondary 도 한 단계 올려 layering 유지. 글자 contrast WCAG AA 유지.
+     */
+    --background: 22 14% 19%; /* mocha2 #3A2F29 (was mocha #2C2420) */
     --foreground: 36 36% 84%; /* beige #E8D6C4 */
 
-    --card: 22 14% 19%; /* mocha2 */
+    --card: 22 17% 25%; /* mocha3 #4A3D34 — 새 배경과 대비 */
     --card-foreground: 36 36% 84%;
 
-    --popover: 22 14% 19%;
+    --popover: 22 17% 25%;
     --popover-foreground: 36 36% 84%;
 
     /* 다크에선 rose #D9A892 */
     --primary: 18 47% 73%;
     --primary-foreground: 22 17% 14%;
 
-    --secondary: 22 17% 25%; /* mocha3 */
+    --secondary: 22 17% 30%; /* mocha3 lift — bg 와 layering */
     --secondary-foreground: 36 36% 84%;
 
-    --muted: 22 17% 25%;
+    --muted: 22 17% 30%;
     --muted-foreground: 33 23% 70%; /* beige2 */
 
-    --accent: 22 17% 25%;
+    --accent: 22 17% 30%;
     --accent-foreground: 36 36% 84%;
 
-    --destructive: 0 50% 50%;
+    --destructive: 0 50% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 22 17% 25%;
-    --input: 22 17% 25%;
+    --border: 22 14% 32%;
+    --input: 22 14% 32%;
     --ring: 18 47% 73%;
   }
 
@@ -81,18 +91,19 @@
 }
 
 @layer utilities {
-  /* Warm wall background — 부원실 벽지 톤 (warm.html .wall-bg). */
+  /* Warm wall background — 부원실 벽지 톤 (warm.html .wall-bg).
+     #372 tone audit: 라이트는 베이지 깊이감 ↑ (덜 눈부심), 다크는 mocha lift ↑ (덜 깜깜). */
   .wall-bg {
     background:
       radial-gradient(1200px 600px at 10% -10%, rgba(244, 215, 200, 0.55), transparent 60%),
       radial-gradient(900px 500px at 110% 10%, rgba(147, 164, 135, 0.25), transparent 60%),
-      linear-gradient(180deg, #f4eadc 0%, #efe2cc 100%);
+      linear-gradient(180deg, #ece0c9 0%, #e5d7bd 100%);
   }
   .dark .wall-bg {
     background:
-      radial-gradient(1200px 600px at 10% -10%, rgba(217, 168, 146, 0.18), transparent 60%),
-      radial-gradient(900px 500px at 110% 10%, rgba(168, 184, 154, 0.14), transparent 60%),
-      linear-gradient(180deg, #2c2420 0%, #261e1a 100%);
+      radial-gradient(1200px 600px at 10% -10%, rgba(217, 168, 146, 0.22), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(168, 184, 154, 0.16), transparent 60%),
+      linear-gradient(180deg, #3a2f29 0%, #332821 100%);
   }
 
   /* ─────────────────────────────────────────────────────────
