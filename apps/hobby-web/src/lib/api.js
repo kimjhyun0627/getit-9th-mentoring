@@ -373,7 +373,10 @@ export const api = {
    * @returns {Promise<MeResponse>}
    */
   getMe: async () => {
-    const res = await authClient.get('/me');
+    // Cache-Control: no-cache — 라이브 버그 대응 (auth-api 가 304 보내면 axios 응답
+    // 의 data 가 undefined/이전 캐시로 흘러 invalid /me response throw). BE 도
+    // Cache-Control: no-store 보내지만 클라이언트도 명시해 conditional GET 차단.
+    const res = await authClient.get('/me', { headers: { 'Cache-Control': 'no-cache' } });
     const user = res.data?.user ?? res.data ?? null;
     if (!user || typeof user !== 'object') throw new Error('invalid /me response');
     const rawId = user.id ?? user.sub;

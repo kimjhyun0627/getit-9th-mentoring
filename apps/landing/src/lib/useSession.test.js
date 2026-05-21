@@ -42,6 +42,23 @@ describe('useSession (#343 / #246)', () => {
     expect(init).toMatchObject({ credentials: 'include' });
   });
 
+  it("cache: 'no-store' 로 호출한다 — 304 body 손실 차단 (라이브 버그 회귀 방지)", async () => {
+    // 라이브 사고: BE 가 304 (body 없음) 응답 → res.ok 통과 후 res.json() throw
+    // → catch → user=null → 헤더에 Sign In 잘못 표시. cache:'no-store' 로 conditional GET 차단.
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ user: { sub: 'u1' } }),
+    });
+    global.fetch = fetchMock;
+
+    renderHook(() => useSession());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.cache).toBe('no-store');
+  });
+
   it('200 응답에서 user 를 노출하고 loading=false 로 떨어진다', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
