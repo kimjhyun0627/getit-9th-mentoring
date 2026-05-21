@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { cn } from '../lib/cn.js';
 
+import { DeleteButton, DragHandle, ReorderButtons } from './KanbanCardParts.jsx';
 import { MemberAvatar } from './MemberAvatar.jsx';
 import { MoveMenu } from './MoveMenu.jsx';
 
@@ -50,11 +51,38 @@ export const KanbanCard = ({
   // #274: sortable wiring. temp- 카드 (optimistic) 는 drag disabled —
   // 서버 id 없는 상태에서 drop 하면 mutation 가 잘못된 id 로 호출됨.
   const isTemp = typeof card.id === 'string' && card.id.startsWith('temp-');
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver,
+    over,
+    active,
+  } = useSortable({
     id: card.id,
     data: { type: 'card', columnId: card.columnId },
     disabled: isTemp,
   });
+
+  // #422: drop indicator — 이 카드가 over 대상일 때 active 의 원래 위치에 따라
+  // 위/아래 어느 쪽에 라인을 그릴지 결정한다. dnd-kit 의 SortableContext rect 인덱스 비교.
+  // active.data.current.sortable.index < over.data.current.sortable.index 이면 active 가 위에서 내려옴 → 라인은 카드 아래.
+  // 반대면 라인은 카드 위.
+  const showDropAbove =
+    isOver &&
+    !isDragging &&
+    active?.data?.current?.sortable?.index !== undefined &&
+    over?.data?.current?.sortable?.index !== undefined &&
+    active.data.current.sortable.index > over.data.current.sortable.index;
+  const showDropBelow =
+    isOver &&
+    !isDragging &&
+    active?.data?.current?.sortable?.index !== undefined &&
+    over?.data?.current?.sortable?.index !== undefined &&
+    active.data.current.sortable.index < over.data.current.sortable.index;
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -71,6 +99,20 @@ export const KanbanCard = ({
         isDragging && 'z-10',
       )}
     >
+      {showDropAbove ? (
+        <span
+          aria-hidden="true"
+          data-testid="drop-indicator-above"
+          className="pointer-events-none absolute left-3 right-3 top-0 h-0.5 -translate-y-0.5 rounded-full bg-indigo-accent"
+        />
+      ) : null}
+      {showDropBelow ? (
+        <span
+          aria-hidden="true"
+          data-testid="drop-indicator-below"
+          className="pointer-events-none absolute bottom-0 left-3 right-3 h-0.5 translate-y-0.5 rounded-full bg-indigo-accent"
+        />
+      ) : null}
       {isDoing ? (
         <span
           aria-hidden="true"
@@ -137,121 +179,3 @@ export const KanbanCard = ({
     </li>
   );
 };
-
-/**
- * 드래그 핸들 — 카드 좌측의 작은 그립. listeners/attributes 만 부착해
- * 카드 본문 클릭 (편집 모달) 과 드래그를 분리한다 (#274).
- *
- * @param {{
- *   attributes: import('react').HTMLAttributes<HTMLButtonElement>;
- *   listeners: import('react').HTMLAttributes<HTMLButtonElement> | undefined;
- *   cardTitle: string;
- *   disabled?: boolean;
- * }} props
- */
-const DragHandle = ({ attributes, listeners, cardTitle, disabled = false }) => (
-  <button
-    type="button"
-    {...attributes}
-    {...(disabled ? {} : listeners)}
-    aria-label={`${cardTitle} 드래그하여 이동`}
-    disabled={disabled}
-    title={disabled ? '저장 중…' : '드래그해 이동'}
-    className={cn(
-      'flex h-5 w-3 shrink-0 cursor-grab items-center justify-center text-muted-foreground/60 transition hover:text-foreground active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-      disabled && 'cursor-not-allowed opacity-30',
-    )}
-  >
-    <svg aria-hidden="true" className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="9" cy="6" r="1.2" />
-      <circle cx="15" cy="6" r="1.2" />
-      <circle cx="9" cy="12" r="1.2" />
-      <circle cx="15" cy="12" r="1.2" />
-      <circle cx="9" cy="18" r="1.2" />
-      <circle cx="15" cy="18" r="1.2" />
-    </svg>
-  </button>
-);
-
-/**
- * 같은 컬럼 안에서 위/아래로 1칸 이동하는 버튼 쌍 (#214).
- * 양 끝이면 disabled.
- *
- * @param {{
- *   cardTitle: string;
- *   onReorder: (direction: 'up' | 'down') => void;
- *   canUp: boolean;
- *   canDown: boolean;
- * }} props
- */
-const ReorderButtons = ({ cardTitle, onReorder, canUp, canDown }) => (
-  <div className="flex flex-col gap-px" role="group" aria-label={`${cardTitle} 순서 변경`}>
-    <button
-      type="button"
-      onClick={() => onReorder('up')}
-      disabled={!canUp}
-      aria-label={`${cardTitle} 위로 이동`}
-      className="inline-flex h-3 w-6 items-center justify-center rounded-sm border border-hairline text-[10px] text-muted-foreground transition hover:bg-foreground/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <svg
-        aria-hidden="true"
-        className="h-2.5 w-2.5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="18 15 12 9 6 15" />
-      </svg>
-    </button>
-    <button
-      type="button"
-      onClick={() => onReorder('down')}
-      disabled={!canDown}
-      aria-label={`${cardTitle} 아래로 이동`}
-      className="inline-flex h-3 w-6 items-center justify-center rounded-sm border border-hairline text-[10px] text-muted-foreground transition hover:bg-foreground/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <svg
-        aria-hidden="true"
-        className="h-2.5 w-2.5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
-    </button>
-  </div>
-);
-
-/**
- * 카드 삭제 버튼 — 확인 없이 즉시 호출 (optimistic remove).
- *
- * @param {{ cardTitle: string; onDelete: () => void }} props
- */
-const DeleteButton = ({ cardTitle, onDelete }) => (
-  <button
-    type="button"
-    aria-label={`${cardTitle} 삭제`}
-    onClick={onDelete}
-    className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-hairline text-muted-foreground transition hover:bg-foreground/[0.04] hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-  >
-    <svg
-      aria-hidden="true"
-      className="h-3 w-3"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-    </svg>
-  </button>
-);

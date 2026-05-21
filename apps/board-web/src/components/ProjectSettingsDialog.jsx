@@ -40,12 +40,27 @@ export const ProjectSettingsDialog = ({
     register,
     handleSubmit,
     reset,
-    formState: { errors, isDirty },
+    watch,
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(ProjectUpdateInput),
     mode: 'onSubmit',
     defaultValues: { name: '', description: '' },
   });
+
+  // #452: react-hook-form isDirty 는 공백 한 칸도 dirty 로 마킹 → 저장 누르면 trim
+  // 결과 동일이라 silent close. 실질 변경 여부를 trim 비교로 판단해 저장 버튼을 게이트.
+  const watchedName = watch('name');
+  const watchedDesc = watch('description');
+  const hasRealChange = (() => {
+    if (!project) return false;
+    const name = watchedName?.trim() ?? '';
+    const desc = watchedDesc?.trim() ?? '';
+    const currentDesc = project.description ?? '';
+    if (name && name !== project.name) return true;
+    if (desc !== currentDesc) return true;
+    return false;
+  })();
 
   useEffect(() => {
     const node = dialogRef.current;
@@ -170,7 +185,7 @@ export const ProjectSettingsDialog = ({
               </button>
               <button
                 type="submit"
-                disabled={saving || deleting || !isDirty}
+                disabled={saving || deleting || !hasRealChange}
                 className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? '저장 중…' : '저장'}

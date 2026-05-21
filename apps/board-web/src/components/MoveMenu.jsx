@@ -96,8 +96,8 @@ export const MoveMenu = ({ cardTitle, otherColumns, onMove }) => {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`${cardTitle} 이동할 컬럼 선택`}
-        title="다른 컬럼으로 이동"
+        aria-label={`${cardTitle} 다른 컬럼으로 이동`}
+        title="다른 컬럼으로 이동 (드래그 대신 키보드로도 가능)"
         onClick={() => setOpen((v) => !v)}
         onKeyDown={handleTriggerKeyDown}
         className="inline-flex h-6 items-center justify-center gap-0.5 rounded-md border border-hairline px-1.5 text-[10px] font-medium text-muted-foreground transition hover:bg-foreground/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"

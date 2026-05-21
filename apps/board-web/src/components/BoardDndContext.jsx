@@ -43,6 +43,10 @@ export const BoardDndContext = ({ columns, cardsByColumn, onMoveCard, children }
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (!over) return;
+    // #428: 카드 자기 자신 위에 드롭 → no-op. early-return 없으면
+    // computeDropOrder 가 targetCards 에서 자기 자신을 빼버려 "끝에 append" 로
+    // 흘러서 시각적으로 변화 없는 잘못된 위치로 이동.
+    if (active.id === over.id) return;
 
     const activeData = active.data.current ?? {};
     if (activeData.type !== 'card') return;

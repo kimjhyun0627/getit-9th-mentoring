@@ -67,11 +67,11 @@ export const CardEditModal = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!trimmedTitle) {
-      setTitleErr('카드 제목이 필요합니다');
+      setTitleErr('카드 제목을 적어줘');
       return;
     }
     if (trimmedTitle.length > 200) {
-      setTitleErr('카드 제목은 200자 이내');
+      setTitleErr('카드 제목은 200자 이내로 적어줘');
       return;
     }
     /** @type {{ title?: string; description?: string | null; assigneeId?: string | null }} */
@@ -175,6 +175,7 @@ export const CardEditModal = ({
               members={members}
               value={assigneeId}
               onChange={setAssigneeId}
+              disabled={submitting}
             />
           </div>
         </div>

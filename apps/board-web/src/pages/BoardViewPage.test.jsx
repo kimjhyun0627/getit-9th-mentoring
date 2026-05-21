@@ -210,7 +210,7 @@ describe('BoardViewPage', () => {
     const todoRegion = await screen.findByRole('region', { name: /Todo 컬럼/ });
     // 카드의 이동 버튼 (드롭다운)
     const moveBtn = within(todoRegion).getByRole('button', {
-      name: /SSO 토큰 만료 정책 정리 이동/,
+      name: /SSO 토큰 만료 정책 정리 다른 컬럼으로 이동/,
     });
     await user.click(moveBtn);
     // 메뉴에서 Doing 선택
@@ -242,7 +242,7 @@ describe('BoardViewPage', () => {
     renderPage();
     const todoRegion = await screen.findByRole('region', { name: /Todo 컬럼/ });
     const moveBtn = within(todoRegion).getByRole('button', {
-      name: /SSO 토큰 만료 정책 정리 이동/,
+      name: /SSO 토큰 만료 정책 정리 다른 컬럼으로 이동/,
     });
     await user.click(moveBtn);
     await user.click(screen.getByRole('menuitem', { name: /Done/ }));
@@ -304,7 +304,7 @@ describe('BoardViewPage', () => {
     vi.spyOn(api, 'listCards').mockResolvedValue({ data: { cards: [] } });
     renderPage();
     expect(
-      await screen.findByText(/보드를 불러오지 못했어요/, undefined, { timeout: 5000 }),
+      await screen.findByText(/보드를 불러오지 못했어/, undefined, { timeout: 5000 }),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument();
   });
@@ -318,7 +318,7 @@ describe('BoardViewPage', () => {
     vi.spyOn(api, 'listCardsBatch').mockResolvedValue({ data: { cardsByColumn: {} } });
     renderPage();
     expect(
-      await screen.findByText(/보드를 불러오지 못했어요/, undefined, { timeout: 5000 }),
+      await screen.findByText(/보드를 불러오지 못했어/, undefined, { timeout: 5000 }),
     ).toBeInTheDocument();
     columnsSpy.mockClear();
     await user.click(screen.getByRole('button', { name: '다시 시도' }));
@@ -336,7 +336,7 @@ describe('BoardViewPage', () => {
       .mockRejectedValue({ isAxiosError: true, response: { status: 500 } });
     renderPage();
     expect(
-      await screen.findByText(/보드를 불러오지 못했어요/, undefined, { timeout: 5000 }),
+      await screen.findByText(/보드를 불러오지 못했어/, undefined, { timeout: 5000 }),
     ).toBeInTheDocument();
     cardsSpy.mockClear();
     await user.click(screen.getByRole('button', { name: '다시 시도' }));
@@ -353,7 +353,7 @@ describe('BoardViewPage', () => {
     vi.spyOn(api, 'listColumns').mockResolvedValue({ data: { columns: [] } });
     vi.spyOn(api, 'listCardsBatch').mockResolvedValue({ data: { cardsByColumn: {} } });
     renderPage();
-    expect(await screen.findByText(/접근할 권한이 없어요/)).toBeInTheDocument();
+    expect(await screen.findByText(/이 보드는 멤버만 볼 수 있어/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '프로젝트 목록으로' })).toBeInTheDocument();
   });
 });

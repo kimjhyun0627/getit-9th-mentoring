@@ -107,7 +107,7 @@ const SubHeader = ({ onNewProject }) => (
           내 프로젝트
         </h1>
         <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-          내가 만들었거나 멤버로 속한 프로젝트. 프로젝트 카드를 눌러 보드를 엽니다.
+          내가 만들었거나 멤버로 들어가 있는 프로젝트. 카드를 눌러 보드로 들어가.
         </p>
       </div>
       <button
@@ -162,9 +162,9 @@ const ErrorState = ({ onRetry }) => (
     role="alert"
     className="flex flex-col items-center justify-center gap-3 rounded-lg border border-hairline px-6 py-16 text-center"
   >
-    <p className="text-sm font-medium text-foreground">프로젝트를 불러오지 못했어요</p>
+    <p className="text-sm font-medium text-foreground">프로젝트를 불러오지 못했어</p>
     <p className="text-xs leading-relaxed text-muted-foreground">
-      네트워크 상태를 확인한 뒤 다시 시도해 주세요.
+      네트워크 상태 확인하고 다시 시도해줘.
     </p>
     <button
       type="button"
@@ -182,10 +182,10 @@ const ErrorState = ({ onRetry }) => (
  */
 const toFriendlyError = (err) => {
   const status = /** @type {{ response?: { status?: number } }} */ (err)?.response?.status;
-  if (status === 400) return '입력을 확인해 주세요. 이름이 비어있거나 너무 깁니다.';
-  if (status === 401) return '로그인이 필요합니다. 잠시 후 로그인 페이지로 이동합니다.';
-  if (status === 429) return '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.';
+  if (status === 400) return '입력을 다시 확인해줘. 이름이 비어있거나 너무 길어.';
+  if (status === 401) return '로그인이 필요해. 잠시 후 로그인 페이지로 이동할게.';
+  if (status === 429) return '요청이 너무 많아. 잠시 후 다시 시도해줘.';
   if (typeof status === 'number' && status >= 500)
-    return '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
-  return '프로젝트를 만들지 못했습니다. 입력을 확인한 뒤 다시 시도해 주세요.';
+    return '서버 오류가 났어. 잠시 후 다시 시도해줘.';
+  return '프로젝트를 만들지 못했어. 입력을 확인하고 다시 시도해줘.';
 };
