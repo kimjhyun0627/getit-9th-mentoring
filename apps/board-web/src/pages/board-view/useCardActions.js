@@ -34,10 +34,14 @@ export const useCardActions = ({ projectId, cardsByColumn }) => {
     },
   });
 
-  const findCard = (cardId) =>
-    Object.values(cardsByColumn)
-      .flat()
-      .find((c) => c.id === cardId);
+  // 매 렌더링마다 flat() 으로 큰 배열을 만들지 않게 컬럼별 순회 + early return.
+  const findCard = (cardId) => {
+    for (const columnCards of Object.values(cardsByColumn)) {
+      const found = columnCards.find((c) => c.id === cardId);
+      if (found) return found;
+    }
+    return null;
+  };
 
   const handleAdd = (columnId, title) => {
     setAddingColumnId(columnId);

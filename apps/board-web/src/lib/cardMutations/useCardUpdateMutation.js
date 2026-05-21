@@ -31,7 +31,12 @@ const buildUpdatePayload = async (queryClient, cardId, columnId, changes) => {
     }
   }
   if (ts) {
-    payload.expectedUpdatedAt = ts instanceof Date ? ts.toISOString() : new Date(ts).toISOString();
+    // invalid date 가드 — new Date('garbage').toISOString() 은 RangeError 로 터져
+    // graceful fallback 경로를 깨뜨림. 파싱 실패 시 그냥 ts 없이 보낸다 (BE 가 400 으로 사유 안내).
+    const parsed = ts instanceof Date ? ts : new Date(ts);
+    if (!Number.isNaN(parsed.getTime())) {
+      payload.expectedUpdatedAt = parsed.toISOString();
+    }
   }
   return payload;
 };

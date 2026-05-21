@@ -27,17 +27,19 @@ export const BoardMembersDialogContainer = ({
   memberMut,
   serverError,
 }) => {
-  const fallbackMembers = projectMembers.map((m) => ({
-    userId: m.userId,
-    role:
-      m.role === 'OWNER' || m.role === 'MEMBER'
-        ? m.role
-        : m.userId === project?.ownerId
-          ? 'OWNER'
-          : 'MEMBER',
-    name: m.name ?? null,
-  }));
-  const members = membersQuery.isSuccess ? membersQuery.data : fallbackMembers;
+  // fallback 변환은 membersQuery 가 아직 성공하지 않은 경우에만 수행 — 성공 시엔 불필요한 map 회피.
+  const members = membersQuery.isSuccess
+    ? membersQuery.data
+    : projectMembers.map((m) => ({
+        userId: m.userId,
+        role:
+          m.role === 'OWNER' || m.role === 'MEMBER'
+            ? m.role
+            : m.userId === project?.ownerId
+              ? 'OWNER'
+              : 'MEMBER',
+        name: m.name ?? null,
+      }));
 
   return (
     <MembersDialog
