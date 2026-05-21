@@ -37,6 +37,7 @@ const loadPendingApplication = async (tx, id, ownerId) => {
       capacity: true,
       currentCapacity: true,
       status: true,
+      meetAt: true,
       applicationPolicy: true,
     },
   });
@@ -61,7 +62,21 @@ export const approveApplication = async (prisma, id, ownerId) => {
   try {
     return await prisma.$transaction(async (tx) => {
       const { application, post } = await loadPendingApplication(tx, id, ownerId);
+      // CR PR #510: meetAt 지난 모임은 approve 금지 (apply 도 PostExpired 거부함).
+      if (post.meetAt && new Date(post.meetAt) <= new Date()) {
+        throw new BizReject('PostExpired');
+      }
+      // CR PR #510: 상태 전이를 조건부 update (status='PENDING') 로 원자화.
+      // 같은 신청에 approve/reject 동시 요청이 들어와도 한쪽만 통과.
+      const transition = await tx.application.updateMany({
+        where: { id: application.id, status: 'PENDING' },
+        data: { status: 'APPROVED' },
+      });
+      if (transition.count === 0) {
+        throw new BizReject('NotPending');
+      }
       // 좌석 확보 — capacity 가 이미 도달했으면 거부 (다른 동시 approve 가 채웠을 수 있음).
+      // 실패 시 트랜잭션 rollback 으로 status 도 PENDING 으로 복원.
       const seat = await tx.post.updateMany({
         where: {
           id: post.id,
@@ -72,10 +87,6 @@ export const approveApplication = async (prisma, id, ownerId) => {
       });
       if (seat.count === 0) throw new BizReject('PostFull');
 
-      await tx.application.update({
-        where: { id: application.id },
-        data: { status: 'APPROVED' },
-      });
       // 신청자에게 APPROVED 알림.
       await tx.notification.create({
         data: {
@@ -127,10 +138,14 @@ export const rejectApplication = async (prisma, id, ownerId) => {
   try {
     return await prisma.$transaction(async (tx) => {
       const { application, post } = await loadPendingApplication(tx, id, ownerId);
-      await tx.application.update({
-        where: { id: application.id },
+      // CR PR #510: 상태 전이 원자화. approve/reject 동시 요청 시 한쪽만 통과.
+      const transition = await tx.application.updateMany({
+        where: { id: application.id, status: 'PENDING' },
         data: { status: 'REJECTED' },
       });
+      if (transition.count === 0) {
+        throw new BizReject('NotPending');
+      }
       await tx.notification.create({
         data: {
           userId: application.userId,
@@ -165,6 +180,8 @@ export const respondDecision = (res, result) => {
       return res.status(422).json({ error: 'NotPending', status: result.status });
     case 'PostClosed':
       return res.status(422).json({ error: 'PostClosed' });
+    case 'PostExpired':
+      return res.status(422).json({ error: 'PostExpired' });
     case 'PostFull':
       return res.status(422).json({ error: 'PostFull' });
     case 'Ok':

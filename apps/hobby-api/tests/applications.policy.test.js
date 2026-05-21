@@ -200,6 +200,41 @@ describe('hobby-api application policy (#500)', () => {
     });
   });
 
+  describe('PATCH /api/applications/:id/approve — race safety (CR PR #510)', () => {
+    it('동시 approve x N → 정확히 1번만 통과, 나머지 NotPending', async () => {
+      const c = await createPostAs(app, 'alice', {
+        capacity: 5,
+        applicationPolicy: 'APPROVAL',
+      });
+      const a = await applyAs(app, 'bob', c.body.post.id);
+      const results = await Promise.all([
+        approveAs(app, 'alice', a.body.application.id),
+        approveAs(app, 'alice', a.body.application.id),
+        approveAs(app, 'alice', a.body.application.id),
+      ]);
+      const ok = results.filter((r) => r.status === 200);
+      const notPending = results.filter((r) => r.status === 422 && r.body.error === 'NotPending');
+      expect(ok).toHaveLength(1);
+      expect(notPending).toHaveLength(2);
+      // capacity 정확히 1만 증가 (2번 증가하면 race 깨진 것).
+      expect(memDb.posts.get(c.body.post.id).currentCapacity).toBe(1);
+    });
+
+    it('approve 와 reject 동시 → 한쪽만 통과', async () => {
+      const c = await createPostAs(app, 'alice', {
+        capacity: 5,
+        applicationPolicy: 'APPROVAL',
+      });
+      const a = await applyAs(app, 'bob', c.body.post.id);
+      const [r1, r2] = await Promise.all([
+        approveAs(app, 'alice', a.body.application.id),
+        rejectAs(app, 'alice', a.body.application.id),
+      ]);
+      const okCount = [r1, r2].filter((r) => r.status === 200).length;
+      expect(okCount).toBe(1);
+    });
+  });
+
   describe('PATCH /api/applications/:id/reject', () => {
     it('타인 → 403', async () => {
       const c = await createPostAs(app, 'alice', { applicationPolicy: 'APPROVAL' });

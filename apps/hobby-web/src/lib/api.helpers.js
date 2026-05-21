@@ -69,6 +69,10 @@ export const buildListParams = (params) => {
  * @param {unknown} data
  */
 export const assertListShape = (data) => {
+  // CR PR #510: data 가 null/원시값일 때 TypeError 대신 명시적 에러.
+  if (data === null || typeof data !== 'object') {
+    throw new Error('invalid response: expected JSON object');
+  }
   const d = /** @type {{ items?: unknown }} */ (data);
   if (!Array.isArray(d.items)) {
     throw new Error('invalid response: items must be an array');

@@ -64,7 +64,8 @@ const STATUS_BADGE = {
 const STATUS_LABEL = { PENDING: '대기', APPROVED: '확정', REJECTED: '거절' };
 
 const StatusBadge = ({ status }) => {
-  if (!status || status === 'APPROVED') return null;
+  // CR PR #510: APPROVED 도 명시적으로 노출 — PENDING/APPROVED/REJECTED 셋 다 표시.
+  if (!status) return null;
   return (
     <span
       className={cn(

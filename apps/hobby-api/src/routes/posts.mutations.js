@@ -87,16 +87,18 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
           currentCapacity: post.currentCapacity,
         });
       }
-      // #500: 정책 변경은 신청자 있으면 거부 (PENDING 처리/openChatUrl 노출 충돌 방지).
-      // Gemini PR #510: 신청자 수 가져오지 말고 count 로 존재 여부만 체크.
+      // #500: 정책 변경은 신청자 있으면 거부. CR PR #510: count + update 를 같은 트랜잭션 안.
       const policyChange =
         applicationPolicy && applicationPolicy !== (post.applicationPolicy ?? 'FIRST_COME');
-      if (policyChange) {
-        const appCount = await prisma.application.count({ where: { postId: post.id } });
-        if (appCount > 0) return res.status(422).json({ error: 'PolicyChangeNotAllowed' });
-      }
 
-      const updated = await prisma.$transaction(async (tx) => {
+      const txResult = await prisma.$transaction(async (tx) => {
+        if (policyChange) {
+          // 같은 트랜잭션 안에서 count 후 update — 사이에 새 신청이 commit 되면
+          // unique 제약 + isolation 으로 SnapShot 일관성 (READ COMMITTED 환경에서도
+          // count 와 update 가 같은 tx 안에 있으면 commit-not-visible).
+          const appCount = await tx.application.count({ where: { postId: post.id } });
+          if (appCount > 0) return { error: 'PolicyChangeNotAllowed' };
+        }
         const data = { ...rest };
         if (typeof capacity === 'number') data.capacity = capacity;
         if (applicationPolicy) data.applicationPolicy = applicationPolicy;
@@ -135,8 +137,11 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
         });
       });
 
+      if (txResult && typeof txResult === 'object' && 'error' in txResult) {
+        return res.status(422).json({ error: txResult.error });
+      }
       return res.status(200).json({
-        post: serializePost(updated, { exposeOpenChat: true, myApplication: null }),
+        post: serializePost(txResult, { exposeOpenChat: true, myApplication: null }),
       });
     } catch (err) {
       return next(err);
