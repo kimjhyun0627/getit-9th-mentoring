@@ -255,13 +255,20 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter, refreshLimiter }
   // GET /api/me — 현재 사용자 정보.
   // #308: JWT 만 검증하면 revoke/삭제된 user 도 access TTL 동안 통과.
   // → JWT 통과 후 DB 재조회로 deletedAt 검사. (성능 영향 있음 → Redis 캐시는 follow-up).
+  //
+  // Cache-Control: no-store — 인증 응답은 캐시 금지. 라이브 버그(landing 304):
+  // express 의 default ETag 매칭으로 동일 응답 시 304(body 없음) 반환 → fetch 클라이언트
+  // (useSession) 가 res.json() 에서 throw → catch 로 user=null → 로그인 상태 손실.
+  // no-store 헤더로 ETag 매칭/조건부 요청 자체를 차단.
   router.get('/me', requireAuth({ secret: cfg.jwtSecret }), async (req, res, next) => {
     try {
       const existing = await prisma.user.findUnique({ where: { id: req.user.sub } });
       if (!existing || existing.deletedAt) {
         clearAuthCookies(res, cfg);
+        res.set('Cache-Control', 'no-store');
         return res.status(401).json({ error: 'UserRevokedOrDeleted' });
       }
+      res.set('Cache-Control', 'no-store');
       return res.status(200).json({
         user: {
           sub: existing.id,

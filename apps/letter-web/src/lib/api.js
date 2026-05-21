@@ -110,7 +110,9 @@ export const api = {
    * @returns {Promise<MeResponse>}
    */
   getMe: async () => {
-    const res = await authClient.get('/me');
+    // Cache-Control: no-cache — 라이브 버그 대응. BE 304 시 응답 body 비어 user
+    // 판정 실패 (landing 사고와 동일 root cause). conditional GET 자체를 차단.
+    const res = await authClient.get('/me', { headers: { 'Cache-Control': 'no-cache' } });
     return res.data;
   },
 };

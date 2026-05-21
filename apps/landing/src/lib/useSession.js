@@ -45,8 +45,11 @@ export const useSession = () => {
 
     const probe = async () => {
       try {
+        // cache: 'no-store' — 라이브 버그(304 body 비어 useSession 실패) 대응.
+        // BE 도 Cache-Control: no-store 보내지만 클라이언트도 명시해 conditional GET 차단.
         const res = await fetch(`${AUTH_ORIGIN}/api/me`, {
           credentials: 'include',
+          cache: 'no-store',
           headers: { Accept: 'application/json' },
           signal: controller.signal,
         });

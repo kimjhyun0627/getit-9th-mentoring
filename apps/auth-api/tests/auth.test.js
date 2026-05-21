@@ -205,6 +205,25 @@ describe('auth-api', () => {
       expect(res.body.user).toMatchObject({ email: VALID_SIGNUP.email, name: VALID_SIGNUP.name });
       expect(res.body.user.sub).toBeTruthy();
     });
+
+    it('Cache-Control: no-store 헤더 응답 — 304 매칭으로 body 손실 차단', async () => {
+      // 라이브 버그: express default ETag 매칭으로 동일 요청 시 304 (body 없음)
+      // → fetch 기반 클라이언트(landing useSession) 가 res.json() throw → 비로그인 처리.
+      // /api/me 는 인증 응답이라 캐시 자체 금지가 원칙.
+      const signup = await signupOk(app);
+      const accessToken = readCookie(signup.headers['set-cookie'], 'getit_jwt');
+      const res = await request(app).get('/api/me').set('Cookie', `getit_jwt=${accessToken}`);
+      expect(res.status).toBe(200);
+      expect(res.headers['cache-control']).toBe('no-store');
+    });
+
+    it('미인증이면 401', async () => {
+      const res = await request(app).get('/api/me');
+      expect(res.status).toBe(401);
+      // 참고: requireAuth 미들웨어가 먼저 가로채는 401 은 핸들러 진입 전이라
+      // Cache-Control 헤더가 없을 수 있음. 핸들러까지 도달하는 401
+      // (유효 JWT but UserRevokedOrDeleted) 검증은 별도 fixture 필요 — 본 PR 범위 외.
+    });
   });
 
   describe('POST /api/refresh', () => {

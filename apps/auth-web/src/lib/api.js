@@ -85,7 +85,9 @@ client.interceptors.response.use(
 export const api = {
   login: (body) => client.post('/login', body),
   signup: (body) => client.post('/signup', body),
-  me: () => client.get('/me'),
+  // Cache-Control: no-cache — 라이브 버그 대응 (landing 304 사고). BE 도 no-store
+  // 보내지만 클라이언트도 명시해 conditional GET 차단 → 항상 200 + body.
+  me: () => client.get('/me', { headers: { 'Cache-Control': 'no-cache' } }),
   logout: () => client.post('/logout'),
   forgotPassword: (body) => client.post('/password/forgot', body),
   resetPassword: (body) => client.post('/password/reset', body),
