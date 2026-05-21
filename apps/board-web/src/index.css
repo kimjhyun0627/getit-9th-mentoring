@@ -4,14 +4,15 @@
 
 /**
  * Minimalist 시안 (board.get-it.cloud) — zinc 베이스 + 인디고 단일 액센트.
- * - 라이트: white / zinc 뉴트럴
- * - 다크: zinc-950 베이스 (pure black 회피) + rgba(255,255,255,0.08) hairline
+ * - 라이트: off-white #fafafa 베이스 + pure white card (surface 위계)
+ * - 다크: #0d0d10 neutral dark gray (pure black 회피) + #16161a card surface
  * - primary 인디고 #4f46e5 는 본문에 안 씀 (eyebrow 도트 + 포커스 링 전용)
  * shadcn 호환 CSS variable 시스템 유지 (auth-web/landing과 동일 토큰).
+ * 톤 audit (#372): 라이트 너무 밝음 / 다크 너무 어두움 → neutral gray 쪽으로 완화.
  */
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 0 0% 98%;
     --foreground: 240 6% 10%;
 
     --card: 0 0% 100%;
@@ -43,33 +44,35 @@
   }
 
   .dark {
-    --background: 240 10% 4%;
+    /* #0d0d10 neutral dark gray — pure black 회피, 눈 부담 완화 */
+    --background: 240 8% 6%;
     --foreground: 0 0% 98%;
 
-    --card: 240 10% 4%;
+    /* #16161a — background 위에 살짝 떠있는 surface 위계 */
+    --card: 240 7% 10%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 240 10% 4%;
+    --popover: 240 7% 10%;
     --popover-foreground: 0 0% 98%;
 
     /* CTA 인버스 — 흰 버튼 + 검은 글씨 */
     --primary: 0 0% 100%;
-    --primary-foreground: 240 10% 4%;
+    --primary-foreground: 240 8% 6%;
 
-    --secondary: 240 6% 10%;
+    --secondary: 240 6% 14%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 6% 10%;
+    --muted: 240 6% 14%;
     --muted-foreground: 240 5% 65%;
 
-    --accent: 240 6% 10%;
+    --accent: 240 6% 14%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 240 4% 16%;
-    --input: 240 4% 16%;
+    --border: 240 5% 20%;
+    --input: 240 5% 20%;
     --ring: 0 0% 100%;
   }
 
