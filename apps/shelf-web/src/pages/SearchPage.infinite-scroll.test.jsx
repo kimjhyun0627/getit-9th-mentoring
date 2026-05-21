@@ -110,8 +110,10 @@ describe('SearchPage — 무한 스크롤 (#527)', () => {
   });
 
   // Gemini #528: 카카오 cap=50. 51 페이지 요청을 미리 잠궈서 BE 400 노출을 차단.
-  it('50 페이지 도달하면 isEnd=false 라도 다음 페이지를 요청하지 않는다', async () => {
-    setupObserverMock();
+  // 단순 sleep 으론 cap guard 가 진짜 작동하는지 검증 못 함 — sentinel 을 실제로
+  // intersect 시켜도 page=51 fetch 가 발생하지 않아야 진짜 가드.
+  it('50 페이지 도달하면 isEnd=false 라도 sentinel intersect 가 다음 페이지를 안 요청한다', async () => {
+    const observerInstances = setupObserverMock();
     const items = Array.from({ length: 30 }, (_, i) => makeItem(i + 1));
     const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue(
       // page=50 + isEnd=false 흉내 — FE 가드가 page=51 요청을 막아야 함.
@@ -121,11 +123,14 @@ describe('SearchPage — 무한 스크롤 (#527)', () => {
     renderSearch();
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
     await screen.findByRole('heading', { name: '검색결과 1' });
-    // 첫 호출만 발생. 추가 호출이 없는지 잠깐 대기 후 검증.
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(spy).toHaveBeenCalledTimes(1);
+
+    // sentinel 을 실제로 intersect 시켜도 추가 fetch 가 발생하지 않아야 함.
+    await act(async () => {
+      observerInstances[observerInstances.length - 1]?.trigger();
+    });
     // 종료 안내 노출 (cap 도달 → "모두 보여드렸어요").
     expect(await screen.findByText(/모두 보여드렸어요/)).toBeInTheDocument();
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('"더 보기" 버튼이 더 이상 렌더되지 않는다 (회귀 가드)', async () => {
