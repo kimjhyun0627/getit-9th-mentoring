@@ -1,9 +1,11 @@
 /**
- * 비밀번호 재설정 라우터 (Issue #221).
+ * 비밀번호 재설정 라우터 (Issue #221, UX 분기 Issue #394).
  *
  * 흐름:
  *   1. POST /api/password/forgot { email } → 1회용 토큰 발급 (15분 TTL).
- *      - enumeration 차단: 미등록 이메일이어도 항상 200.
+ *      - 사용자 명시 요청 (#394): 미등록 이메일은 404 + EmailNotFound 로 분기.
+ *      - 보안 trade-off: enumeration 가능. 운영 환경에선 rate-limit/captcha 로 보완.
+ *      - timing parity: 미존재 분기도 동일한 no-op DB 라운드트립 수행 (응답시간 측면 부분 보완).
  *      - dev 모드 (`RESET_TOKEN_DEV_RETURN=true`) 면 응답 본문에 token 노출.
  *      - 운영에선 console.log 만 (이메일 발송은 후속 issue).
  *   2. POST /api/password/reset { token, password, passwordConfirm }
@@ -12,7 +14,7 @@
  *
  * 보안:
  *   - 토큰은 평문으로 절대 저장 X. SHA-256 해시만 DB.
- *   - 토큰 발급/소비 모두 동일 응답시간/메시지로 enumeration 방지.
+ *   - 토큰 발급/소비 모두 토큰 자체는 동일 응답시간/메시지 유지.
  */
 import crypto from 'node:crypto';
 
@@ -89,20 +91,18 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
       const tokenHash = hashResetToken(token);
       const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MIN * 60 * 1000);
 
-      // 응답시간 enumeration 방어 (Gemini #3):
-      // 미존재 사용자의 경우에도 동일한 DB 작업 (updateMany no-op) 을 수행해
-      // 존재/미존재 분기의 시간 차이를 최소화한다. token 생성도 양쪽 모두 실행.
-      // 실제 row 생성은 user 가 있을 때만 (가짜 row 를 만들면 DB 가 쓰레기로 차서 거부).
+      // 사용자 명시 요청 (#394): 미존재 이메일은 분기 응답.
+      // 응답시간 partial parity: no-op DB 라운드트립으로 일부 타이밍 차이 흡수.
+      // 보안 trade-off: enumeration 가능 → 운영에선 rate-limit/captcha 강화.
       if (!user) {
-        // 무 효과 updateMany — userId 가 빈 문자열이라 항상 0건 matching.
-        // 실제 DB 라운드트립은 발생 → 시간 일정화.
         await prisma.passwordResetToken
           .updateMany({
             where: { userId: '__nonexistent__', usedAt: null },
             data: { usedAt: new Date() },
           })
           .catch(() => null);
-        return res.status(200).json({ ok: true });
+        // ErrorResponse 스키마 준수 (CR #401): { error } 만, ok 필드 없음.
+        return res.status(404).json({ error: 'EmailNotFound' });
       }
 
       // 이전 미사용 토큰은 무효화 (한 사용자당 활성 토큰 1개만 의미 있게).
@@ -129,9 +129,15 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
         );
       }
       if (shouldReturnTokenInResponse()) {
-        return res.status(200).json({ ok: true, token, expiresAt: expiresAt.toISOString() });
+        return res.status(200).json({
+          ok: true,
+          sent: true,
+          email: user.email,
+          token,
+          expiresAt: expiresAt.toISOString(),
+        });
       }
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, sent: true, email: user.email });
     } catch (err) {
       return next(err);
     }

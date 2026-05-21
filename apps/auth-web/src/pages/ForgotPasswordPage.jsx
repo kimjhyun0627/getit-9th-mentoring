@@ -13,13 +13,16 @@ import { api } from '../lib/api.js';
  */
 
 /**
- * 비밀번호 찾기 페이지 — Tech-Dark 페르소나 (Issue #221).
+ * 비밀번호 찾기 페이지 — Tech-Dark 페르소나 (Issue #221, UX 분기 Issue #394).
  * - Zod (ForgotPasswordInput) 검증
  * - POST /api/password/forgot
- * - 응답이 항상 200 (enumeration 차단) → 성공/실패 분기 X, 무조건 "이메일 확인" 안내
+ * - 존재 이메일 → "메일 보냈다" 안내 (이메일 표시)
+ * - 미존재 이메일 (404 EmailNotFound) → "등록되지 않은 이메일" + 가입 페이지 링크
+ * - 보안 trade-off: enumeration 가능 (사용자 명시 요청 #394)
  */
 export const ForgotPasswordPage = () => {
-  const [submitted, setSubmitted] = useState(false);
+  const [sentEmail, setSentEmail] = useState(/** @type {string|null} */ (null));
+  const [notFound, setNotFound] = useState(false);
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
   /** dev 모드에서 BE 가 토큰을 응답에 노출할 때 보여주기 위한 보조 정보. */
   const [devToken, setDevToken] = useState(/** @type {string|null} */ (null));
@@ -38,16 +41,27 @@ export const ForgotPasswordPage = () => {
   const onSubmit = async (values) => {
     setServerError(null);
     setDevToken(null);
+    setNotFound(false);
+    setSentEmail(null);
     try {
       const res = await api.forgotPassword(values);
-      setSubmitted(true);
+      const email = res?.data?.email ?? values.email;
+      setSentEmail(email);
       if (res?.data?.token) setDevToken(res.data.token);
     } catch (err) {
+      const status = /** @type {{response?: {status?: number, data?: {error?: string}}}} */ (err)
+        ?.response?.status;
+      const code = /** @type {{response?: {data?: {error?: string}}}} */ (err)?.response?.data
+        ?.error;
+      if (status === 404 && code === 'EmailNotFound') {
+        setNotFound(true);
+        return;
+      }
       setServerError(toFriendlyError(err));
     }
   };
 
-  if (submitted) {
+  if (sentEmail) {
     return (
       <div className="flex flex-col gap-6" data-testid="forgot-success">
         <Header />
@@ -55,7 +69,9 @@ export const ForgotPasswordPage = () => {
           role="status"
           className="rounded-md border border-cyan-700/30 bg-cyan-50/60 px-4 py-3 font-mono text-[12px] text-cyan-800 dark:border-cyan-neon/30 dark:bg-cyan-neon/5 dark:text-cyan-neon"
         >
-          입력하신 이메일이 등록되어 있다면, 재설정 링크를 보냈습니다.
+          <span aria-hidden="true">✉ </span>
+          <span className="font-semibold">{sentEmail}</span>
+          {' '}로 재설정 링크를 보냈습니다. 메일을 확인해주세요.
         </p>
         {devToken ? (
           <p
@@ -94,6 +110,28 @@ export const ForgotPasswordPage = () => {
           error={errors.email?.message}
           {...register('email')}
         />
+
+        {notFound ? (
+          <div
+            role="alert"
+            data-testid="forgot-not-found"
+            className="flex flex-col gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 font-mono text-[12px] text-destructive"
+          >
+            <p>
+              <span aria-hidden="true">! </span>
+              등록되지 않은 이메일입니다.
+            </p>
+            <p className="text-zinc-600 dark:text-zinc-400">
+              아직 계정이 없으신가요?{' '}
+              <Link
+                to="/signup"
+                className="font-semibold text-cyan-700 underline-offset-4 hover:underline dark:text-cyan-neon"
+              >
+                회원가입 <span aria-hidden="true">./signup</span>
+              </Link>
+            </p>
+          </div>
+        ) : null}
 
         {serverError ? (
           <p
