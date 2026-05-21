@@ -204,7 +204,8 @@ const TitleStrip = ({ count, sortMode, onSortToggle }) => (
           우리들의 한 줄
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight leading-tight sm:text-5xl">
-          <span className="font-pen">GETIT 9기</span> <span className="scribble">롤링페이퍼</span>
+          <span className="[font-family:Inter,system-ui,-apple-system,sans-serif]">GETIT</span> 9기{' '}
+          <span className="scribble">롤링페이퍼</span>
         </h1>
         <p className="mt-3 max-w-xl text-sm text-ink2 sm:text-base dark:text-beige2">
           이름은 숨기고, 마음은 전하고. 부원실 벽에 살며시 붙여둔 한 줄이에요.
