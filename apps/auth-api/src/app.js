@@ -156,10 +156,17 @@ export const createApp = (opts = {}) => {
   app.use('/api', createVerifyEmailRouter({ verifyLimiter }));
   app.use('/api', createMeRouter());
 
-  // /api/docs — swagger UI
-  const openapi = buildOpenApiDoc();
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi));
-  app.get('/api/openapi.json', (_req, res) => res.json(openapi));
+  // /api/docs — swagger UI + /api/openapi.json (Issue #415).
+  // 운영 환경에선 recon 표적이 되므로 disable. AUTH_DOCS_PUBLIC=true 일 때만 노출.
+  // - production + AUTH_DOCS_PUBLIC≠true → 404 (express 기본 not-found)
+  // - non-production (dev/staging/test) → 그대로 노출
+  const docsPublic =
+    process.env.NODE_ENV !== 'production' || process.env.AUTH_DOCS_PUBLIC === 'true';
+  if (docsPublic) {
+    const openapi = buildOpenApiDoc();
+    app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapi));
+    app.get('/api/openapi.json', (_req, res) => res.json(openapi));
+  }
 
   app.use((err, req, res, _next) => {
     const status = err.status ?? 500;

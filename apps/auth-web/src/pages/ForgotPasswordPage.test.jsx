@@ -73,20 +73,22 @@ describe('ForgotPasswordPage', () => {
     expect(success.textContent).toMatch(/재설정 링크를 보냈습니다/);
   });
 
-  it('미등록 이메일 (404 EmailNotFound) → 분기 안내 + 가입 링크 표시 (#394)', async () => {
+  it('미등록 이메일 (200 sent:false) → 통합 success 화면 + 가입 CTA (#413/#417)', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'forgotPassword').mockRejectedValue({
-      isAxiosError: true,
-      response: { status: 404, data: { error: 'EmailNotFound' } },
+    vi.spyOn(api, 'forgotPassword').mockResolvedValue({
+      data: { ok: true, sent: false, email: 'nobody@example.com' },
     });
     renderForgot();
     await user.type(screen.getByLabelText('이메일'), 'nobody@example.com');
     await user.click(screen.getByRole('button', { name: '재설정 링크 보내기' }));
-    const banner = await screen.findByTestId('forgot-not-found');
-    expect(banner.textContent).toMatch(/등록되지 않은 이메일입니다/);
-    expect(screen.getByRole('link', { name: /회원가입/ })).toHaveAttribute('href', '/signup');
-    // 성공 화면으로 넘어가지 않음
-    expect(screen.queryByTestId('forgot-success')).not.toBeInTheDocument();
+    // success 화면 안에 not-sent 안내 노출 — 외부 관측자는 등록 여부 식별 불가.
+    const success = await screen.findByTestId('forgot-success');
+    expect(success).toBeInTheDocument();
+    const notSent = await screen.findByTestId('forgot-not-sent');
+    expect(notSent.textContent).toMatch(/가입된 계정이 있다면/);
+    expect(notSent.textContent).toMatch(/nobody@example\.com/);
+    // dead-end 방지 CTA — 가입 페이지 링크 노출.
+    expect(screen.getByRole('link', { name: /가입/ })).toHaveAttribute('href', '/signup');
   });
 
   it('dev 모드 응답에 token 이 있으면 보조 노출한다 (개발 디버그)', async () => {
