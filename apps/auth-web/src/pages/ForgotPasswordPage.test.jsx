@@ -60,6 +60,19 @@ describe('ForgotPasswordPage', () => {
     expect(success.textContent).toMatch(/메일을 확인해주세요/);
   });
 
+  it('성공 응답에 email 이 없어도 입력값으로 fallback 안내 (CR 회귀 가드)', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'forgotPassword').mockResolvedValue({
+      data: { ok: true, sent: true },
+    });
+    renderForgot();
+    await user.type(screen.getByLabelText('이메일'), 'fallback@example.com');
+    await user.click(screen.getByRole('button', { name: '재설정 링크 보내기' }));
+    const success = await screen.findByTestId('forgot-success');
+    expect(success.textContent).toMatch(/fallback@example\.com/);
+    expect(success.textContent).toMatch(/재설정 링크를 보냈습니다/);
+  });
+
   it('미등록 이메일 (404 EmailNotFound) → 분기 안내 + 가입 링크 표시 (#394)', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'forgotPassword').mockRejectedValue({

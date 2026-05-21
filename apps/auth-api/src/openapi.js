@@ -119,8 +119,8 @@ export const buildOpenApiDoc = () =>
             200: ok(
               z.object({
                 ok: z.boolean(),
-                sent: z.boolean().optional(),
-                email: z.string().email().optional(),
+                sent: z.boolean(),
+                email: z.string().email(),
                 token: z.string().optional(),
                 expiresAt: z.string().optional(),
               }),
