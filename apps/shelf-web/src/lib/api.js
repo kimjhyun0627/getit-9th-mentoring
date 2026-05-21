@@ -171,4 +171,21 @@ export const api = {
     });
     return { ...res, data: userShelvesResponseSchema.parse(res.data ?? {}) };
   },
+
+  /**
+   * 내가 특정 책을 보유 중인지 lightweight lookup — #477.
+   * 100건 myShelves 페이지 한계를 우회 (heavy-user 케이스).
+   *
+   * @param {{ bookId?: string; isbn?: string; bookIds?: string[]; isbns?: string[] }} q
+   * @returns {Promise<{ data: { contains: boolean | Record<string, boolean>, shelf?: Record<string, unknown> } }>}
+   */
+  containsInShelf: async (q) => {
+    const params = {};
+    if (q.bookId) params.bookId = q.bookId;
+    if (q.isbn) params.isbn = q.isbn;
+    if (q.bookIds?.length) params.bookIds = q.bookIds.join(',');
+    if (q.isbns?.length) params.isbns = q.isbns.join(',');
+    const res = await client.get('/shelves/me/contains', { params });
+    return res;
+  },
 };

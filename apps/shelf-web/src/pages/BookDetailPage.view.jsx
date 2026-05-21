@@ -32,8 +32,9 @@ export const BookDetailView = ({
   const cover = upscaleCoverUrl(book.coverUrl);
   return (
     <>
-      <section className="grid grid-cols-1 gap-10 md:grid-cols-3">
-        <div className="cover relative md:col-span-1">
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-10">
+        {/* 모바일 표지 점유 완화 (#479) — 좌측 60% 폭, 우측에 제목/저자 inline. 데스크탑은 3-col 유지 */}
+        <div className="cover relative max-w-[60%] md:col-span-1 md:max-w-none">
           {cover ? (
             <div
               className="cover-inner"
@@ -57,7 +58,8 @@ export const BookDetailView = ({
             <p className="text-body essay-kr mt-3 text-[15px]">{book.author}</p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap items-center gap-3">
+          {/* #479 — 액션 (담기/공유) 한 묶음, 메타 (보유 N명) 별행. 모바일 wrap 일관성 */}
+          <div className="mt-6 flex flex-wrap items-center gap-2 md:gap-3">
             {myEntry ? (
               <span
                 aria-label="이미 서재에 담김"
@@ -83,10 +85,10 @@ export const BookDetailView = ({
             >
               {copyState === 'ok' ? '복사 완료' : '공유'}
             </button>
-            <span className="smallcaps text-meta text-[11px]" aria-live="polite">
-              같은 책을 담은 사람 {ownersCount}명
-            </span>
           </div>
+          <p className="smallcaps text-meta mt-3 text-[11px]" aria-live="polite">
+            같은 책을 담은 사람 {ownersCount}명
+          </p>
 
           {myEntry ? (
             <div className="mt-6">

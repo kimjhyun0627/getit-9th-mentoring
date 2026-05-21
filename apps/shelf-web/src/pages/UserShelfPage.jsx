@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { BookCardSkeleton } from '../components/BookCard.jsx';
 import { StarRating } from '../components/StarRating.jsx';
 import { api } from '../lib/api.js';
 import { upscaleCoverUrl } from '../lib/coverUrl.js';
+import { userShelfError } from '../lib/error-messages.js';
 
 /**
  * 다른 유저 서재 공개 보기 — /u/:userId (#292).
@@ -17,6 +19,19 @@ import { upscaleCoverUrl } from '../lib/coverUrl.js';
  */
 export const UserShelfPage = () => {
   const { userId = '' } = useParams();
+
+  // #475 — 공개 서재 페이지는 검색엔진 인덱싱 차단.
+  // SPA index.html 에 전역으로 두면 다른 라우트까지 noindex 되므로 라우트별 동적 주입.
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const meta = document.createElement('meta');
+    meta.name = 'robots';
+    meta.content = 'noindex,nofollow';
+    document.head.appendChild(meta);
+    return () => {
+      meta.parentNode?.removeChild(meta);
+    };
+  }, []);
 
   const shelvesQuery = useQuery({
     queryKey: ['user-shelves', userId],
@@ -46,9 +61,9 @@ export const UserShelfPage = () => {
           <span className="text-wine">.</span>
         </h1>
         <p className="essay-kr text-body mt-4 max-w-[40ch] text-[14px]">
-          공개로 열려 있는 서재예요. 마음에 드는 책을 클릭하면 내 서재에도 담을 수 있어요.
+          누구에게나 열려 있는 서가입니다. 마음에 닿는 책을 누르면, 그 책의 상세로 이어집니다.
         </p>
-        <p className="smallcaps text-meta mt-3 text-[11px]">총 {total}권</p>
+        <p className="smallcaps text-meta mt-3 text-[11px]">총 {total}권 · 공개 서가</p>
       </section>
 
       {shelvesQuery.isLoading ? (
@@ -64,10 +79,10 @@ export const UserShelfPage = () => {
         </div>
       ) : shelvesQuery.isError ? (
         <p role="alert" className="text-destructive font-serif">
-          {toFriendlyError(shelvesQuery.error)}
+          {userShelfError(shelvesQuery.error)}
         </p>
       ) : shelves.length === 0 ? (
-        <p className="text-meta essay-kr text-[14px]">아직 담긴 책이 없어요.</p>
+        <p className="text-meta essay-kr text-[14px]">아직 첫 책이 꽂히지 않았습니다.</p>
       ) : (
         <ul className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 md:gap-x-10 md:gap-y-14 lg:grid-cols-4">
           {shelves.map((s) => (
@@ -129,11 +144,3 @@ const PublicBookCard = ({ shelf }) => {
 };
 
 const statusLabel = (s) => (s === 'READ' ? '읽은 책' : s === 'READING' ? '읽는 중' : '읽고 싶은');
-
-const toFriendlyError = (err) => {
-  const status = err?.response?.status;
-  if (status === 400) return '잘못된 사용자 주소예요.';
-  if (typeof status === 'number' && status >= 500)
-    return '지금은 서재를 불러올 수 없어요. 잠시 후 다시 시도해 주세요.';
-  return '서재를 불러오지 못했어요.';
-};

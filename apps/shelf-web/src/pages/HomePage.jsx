@@ -10,6 +10,7 @@ import { Pagination } from '../components/Pagination.jsx';
 import { RatingFilter } from '../components/RatingFilter.jsx';
 import { SortControl } from '../components/SortControl.jsx';
 import { useMyShelves, useRemoveShelf, useUpdateShelf } from '../hooks/useShelves.js';
+import { shelfError } from '../lib/error-messages.js';
 
 const PAGE_SIZE = 50;
 
@@ -116,7 +117,7 @@ export const HomePage = () => {
     setSearchParams(params, { replace: false });
   };
 
-  const pageError = isError ? toFriendlyError(error) : null;
+  const pageError = isError ? shelfError(error) : null;
 
   const closeModal = () => {
     setEditing(null);
@@ -242,9 +243,9 @@ export const HomePage = () => {
         deleting={remove.isPending}
         errorMessage={
           update.isError
-            ? toFriendlyError(update.error)
+            ? shelfError(update.error)
             : remove.isError
-              ? toFriendlyError(remove.error)
+              ? shelfError(remove.error)
               : null
         }
         onClose={closeModal}
@@ -273,19 +274,4 @@ const countByStatus = (shelves) => {
     if (s.status in base) base[s.status] += 1;
   }
   return base;
-};
-
-/**
- * 서버 에러 → 친절한 한국어 메시지.
- *
- * @param {unknown} err
- */
-const toFriendlyError = (err) => {
-  const status = /** @type {{response?: {status?: number}}} */ (err)?.response?.status;
-  if (status === 401) return '로그인이 필요합니다.';
-  if (status === 404) return '서재에서 그 책을 찾을 수 없습니다.';
-  if (status === 422) return '이미 서재에 꽂혀 있는 책입니다.';
-  if (typeof status === 'number' && status >= 500)
-    return '지금은 서재를 펼칠 수 없습니다. 잠시 후 다시 시도해 주세요.';
-  return '서재를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
 };

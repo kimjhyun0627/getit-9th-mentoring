@@ -5,6 +5,7 @@ import { ToastStack } from '../components/Toast.jsx';
 import { useToastQueue } from '../components/useToastQueue.js';
 import { useMyShelves } from '../hooks/useShelves.js';
 import { api } from '../lib/api.js';
+import { addBookError, searchError } from '../lib/error-messages.js';
 import { useDebounce } from '../lib/useDebounce.js';
 
 import {
@@ -31,35 +32,6 @@ const MIN_QUERY = 2;
 const PAGE_STEP = 10;
 
 /** @typedef {import('./SearchPage.constants.js').TargetKey} TargetKey */
-
-/**
- * 추가 실패를 사용자 친화 메시지로 매핑.
- *
- * @param {unknown} err
- * @returns {string}
- */
-const addErrorMessage = (err) => {
-  const status = err?.response?.status;
-  if (status === 422) return '이미 서재에 꽂혀 있는 책입니다.';
-  if (status === 401) return '로그인이 필요합니다.';
-  if (status === 404) return '그 책의 정보를 찾지 못했습니다.';
-  if (typeof status === 'number' && status >= 500) return '잠시 후 다시 담아 주세요.';
-  return '책을 서재에 담는 데 실패했습니다. 잠시 후 다시 시도해 주세요.';
-};
-
-/**
- * 검색 실패를 사용자 친화 메시지로 매핑.
- *
- * @param {unknown} err
- * @returns {string}
- */
-const searchErrorMessage = (err) => {
-  const status = err?.response?.status;
-  if (status === 401) return '로그인이 필요합니다.';
-  if (status === 503) return '도서 정보를 잠시 불러올 수 없습니다. 잠시 후 다시 펼쳐 주세요.';
-  if (status === 400) return '검색어를 다시 살펴봐 주세요.';
-  return '검색 중 문제가 생겼습니다. 잠시 후 다시 시도해 주세요.';
-};
 
 /**
  * SearchPage — 책 검색 + 서재 추가 (Issue #43).
@@ -121,7 +93,7 @@ export const SearchPage = () => {
 
   useEffect(() => {
     if (search.isError) {
-      toastQueue.push({ message: searchErrorMessage(search.error), variant: 'error' });
+      toastQueue.push({ message: searchError(search.error), variant: 'error' });
     }
     // toastQueue 는 객체라 매 렌더 동일성이 깨지지만 push 는 setState 호출이라 stable.
     // 안전을 위해 의존성에 메서드만 포함.
@@ -155,7 +127,7 @@ export const SearchPage = () => {
         }
         queryClient.invalidateQueries({ queryKey: ['shelves', 'me'] });
       }
-      toastQueue.push({ message: addErrorMessage(err), variant: 'error' });
+      toastQueue.push({ message: addBookError(err), variant: 'error' });
     },
   });
 

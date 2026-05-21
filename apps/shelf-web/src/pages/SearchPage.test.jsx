@@ -275,6 +275,6 @@ describe('SearchPage', () => {
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
     await user.click(await screen.findByRole('button', { name: /데미안 서재에 추가/ }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(/이미 서재에 꽂혀 있는 책/);
+    expect(await screen.findByRole('status')).toHaveTextContent(/이미 서가에 꽂혀 있는 책/);
   });
 });

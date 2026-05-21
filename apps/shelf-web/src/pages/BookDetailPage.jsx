@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { BookCardSkeleton } from '../components/BookCard.jsx';
 import { ToastStack } from '../components/Toast.jsx';
 import { useToastQueue } from '../components/useToastQueue.js';
-import { useMyShelves } from '../hooks/useShelves.js';
 import { api } from '../lib/api.js';
+import { addBookError, bookError } from '../lib/error-messages.js';
 
 import { BookDetailView } from './BookDetailPage.view.jsx';
 
@@ -53,15 +53,15 @@ export const BookDetailPage = () => {
     retry: false,
   });
 
-  // 내 서재 cross-reference (#217 100권 한계 동일)
-  const myShelves = useMyShelves({ pageSize: 100 });
-  const myEntry = useMemo(
-    () =>
-      myShelves.data?.shelves?.find(
-        (s) => s.book?.isbn === normalized || s.bookId === bookQuery.data?.id,
-      ),
-    [myShelves.data, normalized, bookQuery.data],
-  );
+  // 내 서재 보유 lookup — #477 lightweight contains 엔드포인트 (O(1)).
+  // 100건 myShelves 페이지 한계 우회. shelf 본문 (별점/리뷰) 도 같이 받아 옴.
+  const containsQuery = useQuery({
+    queryKey: ['shelf-contains', normalized],
+    queryFn: async () => (await api.containsInShelf({ isbn: normalized })).data,
+    enabled: normalized.length > 0,
+    retry: false,
+  });
+  const myEntry = containsQuery.data?.contains ? containsQuery.data.shelf : null;
 
   const addMutation = useMutation({
     mutationFn: async () => {
@@ -71,19 +71,18 @@ export const BookDetailPage = () => {
     onSuccess: () => {
       toastQueue.push({ message: '서재에 담았습니다.', variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['shelves', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['shelf-contains', normalized] });
     },
     onError: (err) => {
       const status = err?.response?.status;
+      // 422 는 결과적으로 "이미 담겨 있음" 이 진실 → success 톤으로 안내하고 refetch.
       if (status === 422) {
-        toastQueue.push({ message: '이미 서재에 담긴 책이에요.', variant: 'success' });
+        toastQueue.push({ message: '이미 서가에 꽂혀 있는 책입니다.', variant: 'success' });
         queryClient.invalidateQueries({ queryKey: ['shelves', 'me'] });
+        queryClient.invalidateQueries({ queryKey: ['shelf-contains', normalized] });
         return;
       }
-      if (status === 401) {
-        toastQueue.push({ message: '로그인이 필요합니다.', variant: 'error' });
-        return;
-      }
-      toastQueue.push({ message: '담기를 실패했어요. 잠시 후 다시.', variant: 'error' });
+      toastQueue.push({ message: addBookError(err), variant: 'error' });
     },
   });
 
@@ -96,32 +95,41 @@ export const BookDetailPage = () => {
 
   const handleShare = async () => {
     const url = `${window.location.origin}/book/${encodeURIComponent(normalized)}`;
-    const text = myEntry?.review
-      ? `『${bookQuery.data?.title}』 — ${myEntry.review}\n${url}`
-      : `『${bookQuery.data?.title}』\n${url}`;
+    const title = bookQuery.data?.title ?? '책';
+    // #485 — 80자 + 시그니처 + Editorial 톤. 200자 review 가 share UI 에서 잘리던 문제 해소.
+    const trimmedReview = trimReview(myEntry?.review, 80);
+    // #476 — Web Share 의 text 에는 url 을 끼워넣지 않는다 (iOS Safari url 중복 노출 방지).
+    const shareText = trimmedReview
+      ? `『${title}』\n"${trimmedReview}"\n— 스마트 서재 · GETIT`
+      : `『${title}』\n— 스마트 서재 · GETIT`;
+    // 클립보드 fallback 시에는 url 까지 한 덩어리로 복사 (받는 사람이 링크 못 따라가면 의미 X).
+    const clipboardText = `${shareText}\n${url}`;
     try {
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-        await navigator.share({ title: bookQuery.data?.title ?? '책', text, url });
+        await navigator.share({ title, text: shareText, url });
         setCopyState('ok');
         return;
       }
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(clipboardText);
       setCopyState('ok');
-      toastQueue.push({ message: '링크를 복사했어요.', variant: 'success' });
+      toastQueue.push({ message: '링크를 복사했습니다.', variant: 'success' });
     } catch (err) {
+      // AbortError — 사용자가 share 시트를 직접 닫음. 정상 흐름.
       if (err?.name === 'AbortError') return;
       setCopyState('err');
-      toastQueue.push({
-        message: '공유가 막혔어요. 직접 주소를 복사해 주세요.',
-        variant: 'error',
-      });
+      // NotAllowedError — non-https / non-user-gesture. 브라우저 제약 명시 분기.
+      const message =
+        err?.name === 'NotAllowedError'
+          ? '브라우저가 공유를 차단했습니다. 직접 주소를 복사해 주세요.'
+          : '공유에 실패했습니다. 직접 주소를 복사해 주세요.';
+      toastQueue.push({ message, variant: 'error' });
     }
   };
 
   if (!normalized) {
     return (
       <section className="mx-auto max-w-3xl px-6 py-16">
-        <p className="text-meta">잘못된 주소예요.</p>
+        <p className="text-meta">잘못된 주소입니다.</p>
       </section>
     );
   }
@@ -150,7 +158,7 @@ export const BookDetailPage = () => {
         </div>
       ) : bookQuery.isError ? (
         <p role="alert" className="text-destructive font-serif">
-          {toFriendlyError(bookQuery.error)}
+          {bookError(bookQuery.error)}
         </p>
       ) : bookQuery.data ? (
         <BookDetailView
@@ -168,11 +176,17 @@ export const BookDetailPage = () => {
   );
 };
 
-const toFriendlyError = (err) => {
-  const status = err?.response?.status;
-  if (status === 404) return '책을 찾을 수 없어요.';
-  if (status === 400) return '잘못된 ISBN 이에요.';
-  if (typeof status === 'number' && status >= 500)
-    return '지금은 책 정보를 가져올 수 없어요. 잠시 후 다시 시도해 주세요.';
-  return '책 정보를 불러오지 못했어요.';
+/**
+ * 한 줄 평 share trim — 80자 + 1자 ellipsis (#485).
+ * 줄바꿈은 한 칸 공백으로 정리해 share UI 의 한 줄 노출 보장.
+ *
+ * @param {string | null | undefined} review
+ * @param {number} max
+ * @returns {string}
+ */
+export const trimReview = (review, max = 80) => {
+  if (!review) return '';
+  const oneLine = review.replace(/\s+/g, ' ').trim();
+  if (oneLine.length <= max) return oneLine;
+  return `${oneLine.slice(0, max).trimEnd()}…`;
 };

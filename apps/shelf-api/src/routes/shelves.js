@@ -23,6 +23,7 @@ import { compareBy } from '../lib/shelf-sort.js';
 
 import {
   findOrFetchBookByIsbn,
+  handleContainsLookup,
   isUniqueViolation,
   parseListQuery,
   publicReadOnlyShelf,
@@ -103,6 +104,18 @@ export const createShelvesRouter = () => {
           sort: parsed.sort,
         },
       });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // GET /me/contains — lightweight ownership lookup (#477).
+  // 100건 myShelves 페이지 대신 O(1)/배치 호출.
+  // 핸들러 본문은 shelves.helpers.js#handleContainsLookup.
+  router.get('/me/contains', async (req, res, next) => {
+    try {
+      const result = await handleContainsLookup(req.user.sub, req.query);
+      return res.status(result.status).json(result.body);
     } catch (err) {
       return next(err);
     }

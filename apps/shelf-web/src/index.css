@@ -351,36 +351,51 @@
   }
 
   /* Editorial 다크 토글 — 책 페이지 3D flip (A안). */
+  /* #481 — iOS Safari 일부 버전에서 backface 가 안 가려지는 회귀 가드:
+   *   - -webkit-perspective / -webkit-transform-style / -webkit-backface-visibility 동반.
+   *   - 카드와 두 면 모두 GPU 레이어로 승격(translateZ(0))해 backface culling 강제.
+   *   - 색 전환은 light↔dark 깜빡임을 피해 0.18s 짧은 ease 로 통일. */
   .book-flip-toggle {
     perspective: 600px;
+    -webkit-perspective: 600px;
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease;
   }
   .book-flip-card {
     transform-style: preserve-3d;
-    transform: rotateY(0deg);
+    -webkit-transform-style: preserve-3d;
+    transform: rotateY(0deg) translateZ(0);
   }
   .book-flip-card.is-dark {
-    transform: rotateY(180deg);
+    transform: rotateY(180deg) translateZ(0);
   }
   .book-flip-toggle:hover .book-flip-card {
     /* 미세 들썩임 — 책 모서리에 손이 닿는 느낌. */
-    transform: translateY(-1px) rotateY(0deg);
+    transform: translateY(-1px) rotateY(0deg) translateZ(0);
   }
   .book-flip-toggle:hover .book-flip-card.is-dark {
-    transform: translateY(-1px) rotateY(180deg);
+    transform: translateY(-1px) rotateY(180deg) translateZ(0);
   }
 
   .book-flip-face {
     position: absolute;
     inset: 0;
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /* paper-grain 사전 캐시 — dark↔light 전환 시 깜빡임 방지 */
+    transition:
+      background-color 0.18s ease,
+      color 0.18s ease;
   }
   .book-flip-face--front {
     background: var(--paper-2);
     color: var(--ink-1);
     border-right: 1px solid var(--rule-1);
+    transform: translateZ(0);
   }
   .book-flip-face--back {
-    transform: rotateY(180deg);
+    transform: rotateY(180deg) translateZ(0);
     background: var(--ink-1);
     color: var(--paper-1);
     border-left: 1px solid var(--rule-2);
@@ -397,6 +412,7 @@
     }
     .book-flip-face {
       backface-visibility: visible !important;
+      -webkit-backface-visibility: visible !important;
     }
     /* reduced-motion 일 때는 활성 면만 보이고 반대 면은 숨김. */
     .book-flip-card:not(.is-dark) .book-flip-face--back {

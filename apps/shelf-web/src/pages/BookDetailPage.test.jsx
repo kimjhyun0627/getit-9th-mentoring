@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
-import { BookDetailPage } from './BookDetailPage.jsx';
+import { BookDetailPage, trimReview } from './BookDetailPage.jsx';
 
 const sampleBook = {
   id: 'b_1',
@@ -53,6 +53,10 @@ describe('BookDetailPage (/book/:isbn) — #201', () => {
     vi.spyOn(api, 'listMyShelves').mockResolvedValue({
       data: { shelves: [], pagination: { page: 1, pageSize: 100, total: 0 } },
     });
+    // #477 — BookDetailPage 는 myShelves 대신 contains 엔드포인트로 cross-reference.
+    vi.spyOn(api, 'containsInShelf').mockResolvedValue({
+      data: { isbn: '9788932917245', contains: false },
+    });
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -78,20 +82,19 @@ describe('BookDetailPage (/book/:isbn) — #201', () => {
   });
 
   it('내 서재에 이미 있으면 "서재에 담김" 라벨로 노출', async () => {
-    vi.spyOn(api, 'listMyShelves').mockResolvedValue({
+    vi.spyOn(api, 'containsInShelf').mockResolvedValue({
       data: {
-        shelves: [
-          {
-            id: 's1',
-            bookId: 'b_1',
-            status: 'READ',
-            rating: 5,
-            review: '한 줄 평',
-            addedAt: '2026-05-01',
-            book: sampleBook,
-          },
-        ],
-        pagination: { page: 1, pageSize: 100, total: 1 },
+        isbn: '9788932917245',
+        contains: true,
+        shelf: {
+          id: 's1',
+          bookId: 'b_1',
+          status: 'READ',
+          rating: 5,
+          review: '한 줄 평',
+          addedAt: '2026-05-01',
+          book: sampleBook,
+        },
       },
     });
     renderAt('/book/9788932917245');
@@ -104,7 +107,7 @@ describe('BookDetailPage (/book/:isbn) — #201', () => {
     err.response = { status: 404 };
     vi.spyOn(api, 'getBook').mockRejectedValueOnce(err);
     renderAt('/book/9788932917245');
-    expect(await screen.findByText('책을 찾을 수 없어요.')).toBeInTheDocument();
+    expect(await screen.findByText('그 책은 이 서가에 없습니다.')).toBeInTheDocument();
   });
 
   /**
@@ -113,6 +116,41 @@ describe('BookDetailPage (/book/:isbn) — #201', () => {
    *  - navigator.share 없음 → clipboard.writeText 호출
    *  - share AbortError → 에러 토스트 노출 X
    */
+  it('share text 는 url 을 포함하지 않는다 (#476 iOS 중복 노출 방지)', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    const shareSpy = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', { value: shareSpy, configurable: true });
+    try {
+      renderAt('/book/9788932917245');
+      const btn = await screen.findByRole('button', { name: '이 책 공유' });
+      await user.click(btn);
+      const call = shareSpy.mock.calls[0]?.[0];
+      expect(call.url).toMatch(/\/book\/9788932917245$/);
+      expect(call.text).not.toContain('http');
+      expect(call.text).toContain('스마트 서재 · GETIT');
+    } finally {
+      delete navigator.share;
+    }
+  });
+
+  it('NotAllowedError 면 명시적 차단 메시지로 분기 (#476)', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    const err = new Error('blocked');
+    err.name = 'NotAllowedError';
+    const shareSpy = vi.fn().mockRejectedValue(err);
+    Object.defineProperty(navigator, 'share', { value: shareSpy, configurable: true });
+    try {
+      renderAt('/book/9788932917245');
+      const btn = await screen.findByRole('button', { name: '이 책 공유' });
+      await user.click(btn);
+      expect(await screen.findByText(/브라우저가 공유를 차단했습니다/)).toBeInTheDocument();
+    } finally {
+      delete navigator.share;
+    }
+  });
+
   it('navigator.share 가 있으면 share 가 호출되고 클립보드 fallback 은 미사용', async () => {
     const { default: userEvent } = await import('@testing-library/user-event');
     const user = userEvent.setup();
@@ -161,9 +199,26 @@ describe('BookDetailPage (/book/:isbn) — #201', () => {
       const btn = await screen.findByRole('button', { name: '이 책 공유' });
       await user.click(btn);
       // 에러 토스트가 노출되지 않아야 함
-      expect(screen.queryByText(/공유가 막혔어요/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/공유에 실패했습니다/)).not.toBeInTheDocument();
     } finally {
       delete navigator.share;
     }
+  });
+});
+
+describe('trimReview (#485)', () => {
+  it('80자 이내는 원본 + 줄바꿈만 공백으로 정리', () => {
+    expect(trimReview('한 줄 평\n다음 줄', 80)).toBe('한 줄 평 다음 줄');
+  });
+  it('80자 초과 시 ellipsis 부착', () => {
+    const long = '가'.repeat(120);
+    const out = trimReview(long, 80);
+    expect(out).toHaveLength(81); // 80 + …
+    expect(out.endsWith('…')).toBe(true);
+  });
+  it('빈/null 입력은 빈 문자열', () => {
+    expect(trimReview(null)).toBe('');
+    expect(trimReview('')).toBe('');
+    expect(trimReview(undefined)).toBe('');
   });
 });
