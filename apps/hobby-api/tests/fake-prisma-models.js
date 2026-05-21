@@ -96,6 +96,8 @@ export const buildPostModel = (memDb, nextId) => ({
       id,
       status: 'RECRUITING',
       currentCapacity: 0,
+      // #500: schema.prisma 의 default(FIRST_COME) 와 동일.
+      applicationPolicy: 'FIRST_COME',
       createdAt: now,
       updatedAt: now,
       ...postFields,
@@ -204,7 +206,8 @@ export const buildApplicationModel = (memDb, nextId) => ({
     }
     const id = data.id ?? nextId('app');
     // schema.prisma 의 default(false) 와 동일하게 noShow 초기값 보장.
-    const row = { id, createdAt: new Date(), noShow: false, ...data };
+    // #500: status 도 schema default 와 동일하게 APPROVED 로 초기화 (data.status 가 우선).
+    const row = { id, createdAt: new Date(), noShow: false, status: 'APPROVED', ...data };
     memDb.applications.set(id, row);
     return { ...row };
   },
@@ -255,6 +258,29 @@ export const buildApplicationModel = (memDb, nextId) => ({
       }
     }
     return { count };
+  },
+
+  // #500: approve/reject 결정 — 단건 update.
+  update: async ({ where, data }) => {
+    for (const [id, a] of memDb.applications) {
+      if (matchWhere(a, where)) {
+        const next = { ...a, ...data };
+        memDb.applications.set(id, next);
+        return { ...next };
+      }
+    }
+    const err = new Error('Record to update not found');
+    err.code = 'P2025';
+    throw err;
+  },
+
+  // #500/Gemini PR #510: count — Post detail 의 applicationCount 채우는데 사용.
+  count: async ({ where } = {}) => {
+    let n = 0;
+    for (const a of memDb.applications.values()) {
+      if (matchWhere(a, where ?? {})) n += 1;
+    }
+    return n;
   },
 });
 

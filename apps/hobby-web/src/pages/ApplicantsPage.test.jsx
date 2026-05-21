@@ -266,6 +266,101 @@ describe('ApplicantsPage', () => {
     expect(await screen.findByText(/0 \/ 2명 선택됨/)).toBeInTheDocument();
   });
 
+  // #500 — APPROVAL 정책: PENDING 신청자에 승인/거절 버튼 + 상태 뱃지.
+  describe('정책 분기 (#500)', () => {
+    const pendingApplicants = [
+      {
+        id: 'app-1',
+        userId: 'alice',
+        status: 'PENDING',
+        createdAt: '2026-05-01T03:00:00.000Z',
+        noShow: false,
+        noShowCount: 0,
+      },
+      {
+        id: 'app-2',
+        userId: 'bob',
+        status: 'APPROVED',
+        createdAt: '2026-05-02T03:00:00.000Z',
+        noShow: false,
+        noShowCount: 0,
+      },
+      {
+        id: 'app-3',
+        userId: 'carol',
+        status: 'REJECTED',
+        createdAt: '2026-05-03T03:00:00.000Z',
+        noShow: false,
+        noShowCount: 0,
+      },
+    ];
+
+    it('APPROVAL 정책: PENDING 신청자에 승인/거절 버튼 노출', async () => {
+      vi.spyOn(api, 'listApplicants').mockResolvedValue({
+        items: pendingApplicants,
+        total: 3,
+        applicationPolicy: 'APPROVAL',
+      });
+      renderPage();
+      // 안내 카피
+      expect(await screen.findByText(/승인 게이트 모임이야/)).toBeInTheDocument();
+      // PENDING 인 alice 옆에만 승인/거절 버튼
+      const approveBtns = screen.getAllByRole('button', { name: '승인' });
+      const rejectBtns = screen.getAllByRole('button', { name: '거절' });
+      expect(approveBtns).toHaveLength(1);
+      expect(rejectBtns).toHaveLength(1);
+    });
+
+    it('APPROVAL 정책: 승인 클릭 → api.approveApplication 호출', async () => {
+      const user = userEvent.setup();
+      vi.spyOn(api, 'listApplicants').mockResolvedValue({
+        items: pendingApplicants,
+        total: 3,
+        applicationPolicy: 'APPROVAL',
+      });
+      const approveSpy = vi.spyOn(api, 'approveApplication').mockResolvedValue({ ok: true });
+      renderPage();
+      await user.click(await screen.findByRole('button', { name: '승인' }));
+      await waitFor(() => expect(approveSpy).toHaveBeenCalledWith('app-1'));
+    });
+
+    it('APPROVAL 정책: 거절 클릭 → api.rejectApplication 호출', async () => {
+      const user = userEvent.setup();
+      vi.spyOn(api, 'listApplicants').mockResolvedValue({
+        items: pendingApplicants,
+        total: 3,
+        applicationPolicy: 'APPROVAL',
+      });
+      const rejectSpy = vi.spyOn(api, 'rejectApplication').mockResolvedValue({ ok: true });
+      renderPage();
+      await user.click(await screen.findByRole('button', { name: '거절' }));
+      await waitFor(() => expect(rejectSpy).toHaveBeenCalledWith('app-1'));
+    });
+
+    it('FIRST_COME 정책: 승인/거절 버튼 노출 X', async () => {
+      vi.spyOn(api, 'listApplicants').mockResolvedValue({
+        items: pendingApplicants,
+        total: 3,
+        applicationPolicy: 'FIRST_COME',
+      });
+      renderPage();
+      await screen.findByLabelText('alice 선택');
+      expect(screen.queryByRole('button', { name: '승인' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '거절' })).not.toBeInTheDocument();
+    });
+
+    it('REJECTED 신청자는 노쇼 신고 대상 아님 (체크박스 비활성)', async () => {
+      vi.spyOn(api, 'listApplicants').mockResolvedValue({
+        items: pendingApplicants,
+        total: 3,
+        applicationPolicy: 'APPROVAL',
+      });
+      renderPage();
+      const carol = await screen.findByLabelText('carol 선택');
+      expect(carol).toBeDisabled();
+    });
+  });
+
   it('신고 취소 (cancel) 시 mutation 호출 안 됨', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'listApplicants').mockResolvedValue({

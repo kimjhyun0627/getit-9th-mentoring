@@ -17,6 +17,7 @@
  *   capacity: number;
  *   openChatUrl: string;
  *   tags: string[];
+ *   applicationPolicy?: 'FIRST_COME' | 'APPROVAL';
  * }} values
  * @param {{
  *   title: string;
@@ -25,10 +26,11 @@
  *   capacity: number;
  *   openChatUrl: string | null;
  *   tags: Array<{ name: string }>;
+ *   applicationPolicy?: 'FIRST_COME' | 'APPROVAL';
  * } | null} initial
  * @returns {Partial<{
  *   title: string; body: string; meetAt: string; capacity: number;
- *   openChatUrl: string; tags: string[];
+ *   openChatUrl: string; tags: string[]; applicationPolicy: 'FIRST_COME' | 'APPROVAL';
  * }>}
  */
 export const computePatchDiff = (values, initial) => {
@@ -52,5 +54,8 @@ export const computePatchDiff = (values, initial) => {
     initialTagNames.length === values.tags.length &&
     initialTagNames.every((n, i) => n === values.tags[i]);
   if (!sameTags) patch.tags = values.tags;
+  const initialPolicy = initial.applicationPolicy ?? 'FIRST_COME';
+  const nextPolicy = values.applicationPolicy ?? 'FIRST_COME';
+  if (nextPolicy !== initialPolicy) patch.applicationPolicy = nextPolicy;
   return patch;
 };

@@ -184,13 +184,32 @@ export const createPostsRouter = ({ jwtSecret, mutationLimiter }) => {
         const applied = await prisma.application.findUnique({
           where: { postId_userId: { postId: post.id, userId } },
         });
-        if (applied) myApplication = { id: applied.id, createdAt: toIso(applied.createdAt) };
+        if (applied) {
+          myApplication = {
+            id: applied.id,
+            status: applied.status ?? 'APPROVED',
+            createdAt: toIso(applied.createdAt),
+          };
+        }
       }
-      const isApplicantOnFull = Boolean(myApplication) && post.status === 'FULL';
-      const exposeOpenChat = isOwner || isApplicantOnFull;
-      return res.status(200).json({
-        post: serializePost(post, { exposeOpenChat, myApplication }),
-      });
+      // openChatUrl 노출 정책 (#500):
+      //  - 방장: 항상 노출.
+      //  - APPROVAL 정책: 본인 신청이 APPROVED 상태일 때만 노출 (PENDING/REJECTED 는 X).
+      //  - FIRST_COME 정책: status=FULL 일 때 본인이 신청자면 노출 (기존 동작).
+      const isApproved = myApplication?.status === 'APPROVED';
+      const isApprovalPolicy = (post.applicationPolicy ?? 'FIRST_COME') === 'APPROVAL';
+      const isApplicantOnFull = Boolean(myApplication) && post.status === 'FULL' && isApproved;
+      const isApprovedApplicant = isApprovalPolicy && isApproved;
+      const exposeOpenChat = isOwner || isApplicantOnFull || isApprovedApplicant;
+      // #500/Gemini PR #510: 방장에게는 신청자 존재 여부도 함께 — FE 가 EditPostPage 의
+      // 정책 토글 disable 여부를 정확히 판단할 수 있게 (PENDING 도 카운트에 포함).
+      let applicationCount;
+      if (isOwner) {
+        applicationCount = await prisma.application.count({ where: { postId: post.id } });
+      }
+      const serialized = serializePost(post, { exposeOpenChat, myApplication });
+      if (typeof applicationCount === 'number') serialized.applicationCount = applicationCount;
+      return res.status(200).json({ post: serialized });
     } catch (err) {
       return next(err);
     }
@@ -201,7 +220,7 @@ export const createPostsRouter = ({ jwtSecret, mutationLimiter }) => {
     try {
       const parsed = PostCreateInput.safeParse(req.body);
       if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
-      const { title, body, meetAt, capacity, openChatUrl, tags } = parsed.data;
+      const { title, body, meetAt, capacity, openChatUrl, tags, applicationPolicy } = parsed.data;
 
       const tagNames = normalizeTagNames(tags);
       const tagBlock = tagNames.length
@@ -221,6 +240,7 @@ export const createPostsRouter = ({ jwtSecret, mutationLimiter }) => {
           meetAt,
           capacity,
           openChatUrl,
+          applicationPolicy: applicationPolicy ?? 'FIRST_COME',
           ...(tagBlock ? { tags: tagBlock } : {}),
         },
         include: { tags: { include: { tag: true } } },
@@ -273,8 +293,14 @@ const loadMyApplicationsByPost = async (postIds, userId) => {
   if (!postIds.length) return map;
   const rows = await prisma.application.findMany({
     where: { userId, postId: { in: postIds } },
-    select: { id: true, postId: true, createdAt: true },
+    select: { id: true, postId: true, status: true, createdAt: true },
   });
-  for (const r of rows) map.set(r.postId, { id: r.id, createdAt: toIso(r.createdAt) });
+  for (const r of rows) {
+    map.set(r.postId, {
+      id: r.id,
+      status: r.status ?? 'APPROVED',
+      createdAt: toIso(r.createdAt),
+    });
+  }
   return map;
 };

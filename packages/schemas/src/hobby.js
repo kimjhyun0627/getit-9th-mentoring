@@ -12,6 +12,12 @@ import { z } from 'zod';
 /** 게시글 상태. Prisma enum `PostStatus` 와 동일. */
 export const PostStatus = z.enum(['RECRUITING', 'FULL', 'CLOSED']);
 
+/** 신청 정책 (#500). Prisma enum `ApplicationPolicy` 와 동일. */
+export const ApplicationPolicy = z.enum(['FIRST_COME', 'APPROVAL']);
+
+/** 신청 상태 (#500). Prisma enum `ApplicationStatus` 와 동일. */
+export const ApplicationStatus = z.enum(['PENDING', 'APPROVED', 'REJECTED']);
+
 /**
  * 태그 이름.
  * - 1~24자, 한/영/숫자만. trim. 소문자화는 BE 책임 (대소문자 구분 없이 unique).
@@ -65,6 +71,8 @@ export const PostCreateInput = z.object({
       { message: '카카오 오픈채팅 URL (https://open.kakao.com/o/...) 만 허용됩니다' },
     ),
   tags: z.array(TagName).max(5, '태그는 최대 5개').default([]),
+  // #500: 정책. 미지정 시 기본 FIRST_COME (backward-compat).
+  applicationPolicy: ApplicationPolicy.default('FIRST_COME'),
 });
 
 /**
@@ -149,6 +157,8 @@ export const PostUpdateInput = z
       )
       .optional(),
     tags: z.array(TagName).max(5, '태그는 최대 5개').optional(),
+    // #500: 정책 변경. 미지정이면 유지. 정책 변경은 BE 가 신청자 존재 시 422 거부.
+    applicationPolicy: ApplicationPolicy.optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: '수정할 필드를 1개 이상 보내야 합니다',
@@ -194,6 +204,10 @@ export const NotificationKind = z.enum([
   'APPLICATION_CANCELED',
   'NO_SHOW_REPORTED',
   'POST_CLOSED',
+  // #500: 신청 정책 알림.
+  'APPLICATION_PENDING', // 방장 수신 — 새 PENDING 신청 도착.
+  'APPLICATION_APPROVED', // 신청자 수신 — 방장 승인.
+  'APPLICATION_REJECTED', // 신청자 수신 — 방장 거절.
 ]);
 
 /**

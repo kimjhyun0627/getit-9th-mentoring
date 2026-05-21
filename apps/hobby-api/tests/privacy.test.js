@@ -127,6 +127,7 @@ describe('hobby-api openChatUrl 프라이버시 정책 (#36)', () => {
       expect(keys).not.toContain('openChatUrl');
       expect(keys).toMatchInlineSnapshot(`
         [
+          "applicationPolicy",
           "body",
           "capacity",
           "createdAt",

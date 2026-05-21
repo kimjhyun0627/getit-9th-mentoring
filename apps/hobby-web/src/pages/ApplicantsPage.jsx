@@ -44,6 +44,17 @@ export const ApplicantsPage = () => {
     },
   });
 
+  // #500: APPROVAL 정책의 승인/거절 mutation. decidingId 로 row-level 로딩 상태.
+  const decide = useMutation({
+    mutationFn: ({ appId, action }) =>
+      action === 'approve' ? api.approveApplication(appId) : api.rejectApplication(appId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['post', id, 'applicants'] });
+      // 모임 상세 캐시도 stale — capacity/status 가 변했을 수 있음.
+      queryClient.invalidateQueries({ queryKey: ['post', id] });
+    },
+  });
+
   if (meLoading || (!isLoggedIn && is401)) {
     return (
       <PageShell>
@@ -107,7 +118,12 @@ export const ApplicantsPage = () => {
   }
 
   const items = query.data?.items ?? [];
-  const reportableUids = items.filter((a) => !a.noShow).map((a) => a.userId);
+  const policy = query.data?.applicationPolicy ?? 'FIRST_COME';
+  // 노쇼 신고 대상은 APPROVED + noShow=false 만. PENDING/REJECTED 는 제외.
+  const reportableUids = items
+    .filter((a) => !a.noShow && (a.status ?? 'APPROVED') === 'APPROVED')
+    .map((a) => a.userId);
+  const decidingId = decide.isPending ? decide.variables?.appId : null;
   const toggleSelected = (uid) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -149,6 +165,13 @@ export const ApplicantsPage = () => {
           모임 끝나고 나타나지 않은 사람 있으면 골라서 신고해줘. 다른 방장들에게도 매너 지표로 보여.
         </p>
 
+        {policy === 'APPROVAL' ? (
+          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400 font-round">
+            <span aria-hidden="true">✋</span> 승인 게이트 모임이야. PENDING 신청자에게 승인/거절을
+            결정해줘.
+          </p>
+        ) : null}
+
         {items.length === 0 ? (
           <p className="mt-10 rounded-3xl bg-white/80 dark:bg-white/5 ring-1 ring-slate-900/5 dark:ring-white/10 px-6 py-12 text-center font-round text-slate-500 dark:text-slate-400">
             아직 신청한 사람이 없어.
@@ -156,12 +179,24 @@ export const ApplicantsPage = () => {
         ) : (
           <ApplicantList
             items={items}
+            policy={policy}
             selected={selected}
             onToggle={toggleSelected}
             onToggleAll={toggleSelectAll}
-            disabled={noShow.isPending}
+            onApprove={(appId) => decide.mutate({ appId, action: 'approve' })}
+            onReject={(appId) => decide.mutate({ appId, action: 'reject' })}
+            disabled={noShow.isPending || decide.isPending}
+            decidingId={decidingId}
           />
         )}
+        {decide.error ? (
+          <p
+            role="alert"
+            className="mt-3 text-sm font-round font-bold text-rose-600 dark:text-rose-300"
+          >
+            {decideErrorMessage(decide.error)}
+          </p>
+        ) : null}
 
         {items.length > 0 ? (
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -206,6 +241,18 @@ const reportErrorMessage = (err) => {
   if (status === 403) return '방장만 신고할 수 있어.';
   if (status === 429) return '요청이 너무 많아. 잠시 후 다시 시도해줘.';
   return '신고에 실패했어. 잠시 후 다시 시도해줘.';
+};
+
+const decideErrorMessage = (err) => {
+  const status = err?.response?.status;
+  const code = err?.response?.data?.error;
+  if (status === 422 && code === 'PostFull') return '정원이 이미 차서 승인할 수 없어.';
+  if (status === 422 && code === 'NotPending') return '이미 결정된 신청이야.';
+  if (status === 422 && code === 'PolicyMismatch') return '선착순 모임은 결정 게이트가 없어.';
+  if (status === 422 && code === 'PostClosed') return '종료된 모임이야.';
+  if (status === 403) return '방장만 결정할 수 있어.';
+  if (status === 429) return '요청이 너무 많아. 잠시 후 다시 시도해줘.';
+  return '결정에 실패했어. 잠시 후 다시 시도해줘.';
 };
 
 const ErrorState = ({ title, body, postId }) => (

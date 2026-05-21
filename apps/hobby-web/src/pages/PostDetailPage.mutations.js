@@ -23,20 +23,24 @@ export const usePostDetailMutations = (id, postKey, myApplication) => {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: postKey });
       const prev = queryClient.getQueryData(postKey);
-      queryClient.setQueryData(postKey, (old) =>
-        old
-          ? {
-              post: {
-                ...old.post,
-                currentCapacity: old.post.currentCapacity + 1,
-                myApplication: old.post.myApplication ?? {
-                  id: PENDING_APPLICATION_ID,
-                  createdAt: '',
-                },
-              },
-            }
-          : old,
-      );
+      // #500: APPROVAL 정책이면 capacity 증가 안 함 (PENDING 은 좌석 점유 X).
+      queryClient.setQueryData(postKey, (old) => {
+        if (!old) return old;
+        const isApproval = old.post.applicationPolicy === 'APPROVAL';
+        const nextCapacity = isApproval ? old.post.currentCapacity : old.post.currentCapacity + 1;
+        const pendingStatus = isApproval ? 'PENDING' : 'APPROVED';
+        return {
+          post: {
+            ...old.post,
+            currentCapacity: nextCapacity,
+            myApplication: old.post.myApplication ?? {
+              id: PENDING_APPLICATION_ID,
+              status: pendingStatus,
+              createdAt: '',
+            },
+          },
+        };
+      });
       return { prev };
     },
     onError: (_err, _vars, ctx) => {
@@ -48,7 +52,11 @@ export const usePostDetailMutations = (id, postKey, myApplication) => {
           ? {
               post: {
                 ...old.post,
-                myApplication: { id: data.application.id, createdAt: data.application.createdAt },
+                myApplication: {
+                  id: data.application.id,
+                  status: data.application.status ?? 'APPROVED',
+                  createdAt: data.application.createdAt,
+                },
               },
             }
           : old,
@@ -66,17 +74,20 @@ export const usePostDetailMutations = (id, postKey, myApplication) => {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: postKey });
       const prev = queryClient.getQueryData(postKey);
-      queryClient.setQueryData(postKey, (old) =>
-        old
-          ? {
-              post: {
-                ...old.post,
-                currentCapacity: Math.max(0, old.post.currentCapacity - 1),
-                myApplication: null,
-              },
-            }
-          : old,
-      );
+      // #500: APPROVED 상태만 capacity 점유. PENDING/REJECTED 는 점유 X → optimistic decrement 안 함.
+      queryClient.setQueryData(postKey, (old) => {
+        if (!old) return old;
+        const wasApproved = (old.post.myApplication?.status ?? 'APPROVED') === 'APPROVED';
+        return {
+          post: {
+            ...old.post,
+            currentCapacity: wasApproved
+              ? Math.max(0, old.post.currentCapacity - 1)
+              : old.post.currentCapacity,
+            myApplication: null,
+          },
+        };
+      });
       return { prev };
     },
     onError: (_err, _vars, ctx) => {

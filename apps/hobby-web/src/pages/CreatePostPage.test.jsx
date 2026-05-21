@@ -207,6 +207,46 @@ describe('CreatePostPage', () => {
     expect(await screen.findByText(/로그인이 필요|로그인이 만료/)).toBeInTheDocument();
   });
 
+  // #500 — 정책 토글.
+  it('정책 토글 — 기본 FIRST_COME 으로 createPost 호출', async () => {
+    const user = userEvent.setup();
+    const createSpy = vi
+      .spyOn(api, 'createPost')
+      .mockResolvedValue({ data: { post: { id: 'abc' } } });
+    renderPage();
+    await user.type(screen.getByLabelText('제목'), '북문 마라탕');
+    await user.type(screen.getByLabelText('본문'), '본문');
+    await user.type(screen.getByLabelText(/모임 일시/i), futureLocal());
+    await user.type(screen.getByLabelText('장소'), '북문');
+    await user.clear(screen.getByLabelText('정원'));
+    await user.type(screen.getByLabelText('정원'), '3');
+    await user.type(screen.getByLabelText(/오픈채팅/), 'https://open.kakao.com/o/x');
+    await user.click(screen.getByRole('button', { name: /모임 만들기/ }));
+    await waitFor(() => expect(createSpy).toHaveBeenCalled());
+    expect(createSpy.mock.calls[0][0].applicationPolicy).toBe('FIRST_COME');
+  });
+
+  it('정책 토글 — APPROVAL 선택 시 그대로 전달', async () => {
+    const user = userEvent.setup();
+    const createSpy = vi
+      .spyOn(api, 'createPost')
+      .mockResolvedValue({ data: { post: { id: 'abc' } } });
+    renderPage();
+    // APPROVAL 라디오 클릭
+    const approval = screen.getByRole('radio', { name: /승인 게이트/ });
+    await user.click(approval);
+    await user.type(screen.getByLabelText('제목'), '북문 마라탕');
+    await user.type(screen.getByLabelText('본문'), '본문');
+    await user.type(screen.getByLabelText(/모임 일시/i), futureLocal());
+    await user.type(screen.getByLabelText('장소'), '북문');
+    await user.clear(screen.getByLabelText('정원'));
+    await user.type(screen.getByLabelText('정원'), '3');
+    await user.type(screen.getByLabelText(/오픈채팅/), 'https://open.kakao.com/o/x');
+    await user.click(screen.getByRole('button', { name: /모임 만들기/ }));
+    await waitFor(() => expect(createSpy).toHaveBeenCalled());
+    expect(createSpy.mock.calls[0][0].applicationPolicy).toBe('APPROVAL');
+  });
+
   it('429 응답이면 잠시 후 재시도 안내를 보여준다', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'createPost').mockRejectedValue({

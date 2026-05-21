@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
 import { FormField, inputBaseClass } from '../components/FormField.jsx';
+import { PolicyToggle } from '../components/PolicyToggle.jsx';
 import { SubmitButton } from '../components/SubmitButton.jsx';
 import { TagInput } from '../components/TagInput.jsx';
 import { api } from '../lib/api.js';
@@ -63,6 +64,8 @@ const CreatePostFormSchema = z.object({
       { message: '카카오 오픈채팅 링크만 돼 (https://open.kakao.com/o/...)' },
     ),
   tags: z.array(z.string()).max(5, '태그는 5개까지').default([]),
+  // #500: 신청 정책. 기본 FIRST_COME (선착순).
+  applicationPolicy: z.enum(['FIRST_COME', 'APPROVAL']).default('FIRST_COME'),
 });
 
 /** @typedef {z.infer<typeof CreatePostFormSchema>} CreatePostFormValues */
@@ -97,6 +100,7 @@ export const CreatePostPage = () => {
       capacity: 4,
       openChatUrl: '',
       tags: [],
+      applicationPolicy: 'FIRST_COME',
     },
   });
 
@@ -113,6 +117,7 @@ export const CreatePostPage = () => {
         capacity: values.capacity,
         openChatUrl: values.openChatUrl,
         tags: values.tags,
+        applicationPolicy: values.applicationPolicy,
       });
       const postId = res?.data?.post?.id;
       if (postId) {
@@ -240,6 +245,12 @@ export const CreatePostPage = () => {
               error={fieldState.error?.message}
             />
           )}
+        />
+
+        <Controller
+          control={control}
+          name="applicationPolicy"
+          render={({ field }) => <PolicyToggle value={field.value} onChange={field.onChange} />}
         />
 
         {serverError ? (

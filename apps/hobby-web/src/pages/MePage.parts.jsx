@@ -117,14 +117,42 @@ export const MePageEmpty = ({ emoji, title, body }) => (
 );
 
 /**
+ * 신청 상태 뱃지 (#500/#506).
+ *
+ * @param {{ status?: string }} props
+ */
+const APP_STATUS_LABEL = {
+  PENDING: { label: '방장 승인 대기', cls: 'bg-amber-100 text-amber-800' },
+  APPROVED: { label: '입장 확정', cls: 'bg-emerald-100 text-emerald-800' },
+  REJECTED: { label: '신청 거절', cls: 'bg-slate-200 text-slate-700' },
+};
+const ApplicationStatusBadge = ({ status }) => {
+  const entry = APP_STATUS_LABEL[status];
+  if (!entry) return null;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-display font-extrabold',
+        entry.cls,
+      )}
+    >
+      {entry.label}
+    </span>
+  );
+};
+
+/**
  * 신청 카드 — 작은 카드 + "취소" CTA.
  *
  * 풀 모집 카드(MeetupCard) 보다 정보 밀도 높게.
  * 모집글 status 가 CLOSED 면 취소 CTA 숨김 (이미 끝난 모임).
  *
+ * #500/#506: status 뱃지 (PENDING/APPROVED/REJECTED) + openChatUrl 노출 분기.
+ *
  * @param {{
  *   item: {
  *     id: string;
+ *     status?: 'PENDING' | 'APPROVED' | 'REJECTED';
  *     createdAt: string;
  *     post: {
  *       id: string;
@@ -133,6 +161,8 @@ export const MePageEmpty = ({ emoji, title, body }) => (
  *       status: string;
  *       capacity: number;
  *       currentCapacity: number;
+ *       openChatUrl?: string;
+ *       applicationPolicy?: 'FIRST_COME' | 'APPROVAL';
  *       tags?: { id: string; name: string }[];
  *     };
  *   };
@@ -143,6 +173,8 @@ export const MePageEmpty = ({ emoji, title, body }) => (
 export const MyApplicationCard = ({ item, onCancel, isPending }) => {
   const post = item.post;
   const palette = paletteFor(post);
+  const myStatus = item.status ?? 'APPROVED';
+  // Gemini PR #510: REJECTED 도 사용자가 목록 정리할 수 있게 취소 허용. BE 가 capacity 영향 X.
   const canCancel = post.status !== 'CLOSED';
   return (
     <li
@@ -177,6 +209,26 @@ export const MyApplicationCard = ({ item, onCancel, isPending }) => {
         </span>
         <h3 className="font-display font-extrabold text-lg leading-tight">{post.title}</h3>
       </div>
+      {/* #500/#506 — 정책이 APPROVAL 이거나 status 가 APPROVED 가 아니면 상태 뱃지 노출. */}
+      {myStatus !== 'APPROVED' || (post.applicationPolicy ?? 'FIRST_COME') === 'APPROVAL' ? (
+        <div className="mt-2">
+          <ApplicationStatusBadge status={myStatus} />
+        </div>
+      ) : null}
+      {/* APPROVED + openChatUrl 노출 — 정책 무관. BE 가 노출 여부 결정. */}
+      {myStatus === 'APPROVED' && post.openChatUrl ? (
+        <a
+          href={post.openChatUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'mt-3 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-display font-extrabold whitespace-nowrap',
+            palette.chip,
+          )}
+        >
+          💬 오픈채팅 열기 <span aria-hidden="true">↗</span>
+        </a>
+      ) : null}
       {/* #332 — 좁은 모바일에서도 두 액션이 깨지지 않게 wrap 허용 */}
       <div className="mt-4 flex items-center justify-between gap-2 flex-wrap">
         <Link

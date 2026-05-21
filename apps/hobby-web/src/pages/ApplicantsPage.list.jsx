@@ -3,23 +3,18 @@ import { useEffect, useRef } from 'react';
 import { cn } from '../lib/cn.js';
 
 /**
- * ApplicantsPage 신청자 리스트 + 전체선택/해제 헤더 — #443/#445.
+ * ApplicantsPage 신청자 리스트 — #443/#445/#500.
  *
- * Touch target 44px (Apple HIG): 체크박스 h-11 w-11 (변경 전 h-5 w-5 너무 작았음).
- * 선택 대상은 `!a.noShow` (이미 신고된 신청자는 disabled). select-all 도 동일.
+ * 변경 (#500):
+ *  - APPROVAL 정책 모임은 PENDING 신청자에 승인/거절 버튼.
+ *  - 상태 뱃지 (PENDING/APPROVED/REJECTED) — 정책 무관 표시.
+ *  - 노쇼 신고 체크박스는 APPROVED 만 대상 (PENDING/REJECTED 는 모임에 못 옴).
  *
- * 카피 (Playful):
- *  - "노쇼 N번" (변경 전 "누적 노쇼 N회" — 차가운 BE 톤)
- *  - 누적 1회 이상이면 ⚠ 이모지로 가볍게.
+ * Touch target 44px (Apple HIG): 체크박스 h-11 w-11.
  */
 
 /**
- * 전체선택/해제 + 카운트 헤더 — #445.
- *
- * indeterminate state:
- *  - 선택 0 → unchecked.
- *  - 선택 == reportable.length → checked.
- *  - 0 < 선택 < reportable.length → indeterminate (네이티브 brwoser API).
+ * 전체선택/해제 + 카운트 헤더.
  *
  * @param {{
  *   reportableCount: number;
@@ -61,21 +56,144 @@ const SelectAllHeader = ({ reportableCount, selectedCount, onToggleAll, disabled
   );
 };
 
+const STATUS_BADGE = {
+  PENDING: 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200',
+  APPROVED: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200',
+  REJECTED: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200',
+};
+const STATUS_LABEL = { PENDING: '대기', APPROVED: '확정', REJECTED: '거절' };
+
+const StatusBadge = ({ status }) => {
+  // CR PR #510: APPROVED 도 명시적으로 노출 — PENDING/APPROVED/REJECTED 셋 다 표시.
+  if (!status) return null;
+  return (
+    <span
+      className={cn(
+        'rounded-full px-2 py-0.5 text-[11px] font-display font-bold',
+        STATUS_BADGE[status] ?? STATUS_BADGE.PENDING,
+      )}
+    >
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  );
+};
+
 /**
- * 신청자 리스트 + 전체선택 헤더.
+ * 한 신청자 row.
+ *
+ * @param {{
+ *   item: {
+ *     id: string; userId: string; status?: string; createdAt: string;
+ *     noShow: boolean; noShowCount: number;
+ *   };
+ *   policy: 'FIRST_COME' | 'APPROVAL';
+ *   selected: boolean;
+ *   onToggle: () => void;
+ *   onApprove: () => void;
+ *   onReject: () => void;
+ *   disabled: boolean;
+ *   deciding: boolean;
+ * }} props
+ */
+const ApplicantRow = ({
+  item,
+  policy,
+  selected,
+  onToggle,
+  onApprove,
+  onReject,
+  disabled,
+  deciding,
+}) => {
+  const status = item.status ?? 'APPROVED';
+  const isPending = status === 'PENDING';
+  const canReport = !item.noShow && status === 'APPROVED';
+  return (
+    <li
+      className={cn(
+        'flex items-center gap-3 rounded-2xl bg-white dark:bg-white/5 ring-1 ring-slate-900/5 dark:ring-white/10 px-4 py-3 shadow-sm',
+        (item.noShow || status === 'REJECTED') && 'opacity-70',
+      )}
+    >
+      <label className="inline-flex items-center justify-center h-11 w-11 cursor-pointer">
+        <input
+          type="checkbox"
+          className="h-5 w-5 cursor-pointer accent-rose-500"
+          checked={selected}
+          onChange={onToggle}
+          disabled={disabled || !canReport}
+          aria-label={`${item.userId} 선택`}
+        />
+      </label>
+      <div className="min-w-0 flex-1">
+        <p className="font-display font-extrabold text-sm text-slate-900 dark:text-white truncate flex items-center gap-2">
+          {item.userId}
+          <StatusBadge status={status} />
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 font-round">
+          신청 {new Date(item.createdAt).toLocaleString('ko-KR')}
+          {item.noShowCount > 0 ? ` · 노쇼 ${item.noShowCount}번 ⚠` : ''}
+        </p>
+      </div>
+      {policy === 'APPROVAL' && isPending ? (
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={onApprove}
+            disabled={deciding}
+            className="inline-flex items-center gap-1 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 text-xs font-display font-bold disabled:opacity-50"
+          >
+            승인
+          </button>
+          <button
+            type="button"
+            onClick={onReject}
+            disabled={deciding}
+            className="inline-flex items-center gap-1 rounded-full bg-white dark:bg-white/15 ring-1 ring-slate-900/10 dark:ring-white/15 text-slate-700 dark:text-slate-100 px-3 py-1 text-xs font-display font-bold disabled:opacity-50"
+          >
+            거절
+          </button>
+        </div>
+      ) : item.noShow ? (
+        <span className="rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-200 px-2 py-0.5 text-[11px] font-display font-bold">
+          노쇼
+        </span>
+      ) : null}
+    </li>
+  );
+};
+
+/**
+ * 신청자 리스트.
  *
  * @param {{
  *   items: Array<{
- *     id: string; userId: string; createdAt: string; noShow: boolean; noShowCount: number;
+ *     id: string; userId: string; status?: string; createdAt: string;
+ *     noShow: boolean; noShowCount: number;
  *   }>;
+ *   policy: 'FIRST_COME' | 'APPROVAL';
  *   selected: Set<string>;
  *   onToggle: (uid: string) => void;
  *   onToggleAll: () => void;
+ *   onApprove: (appId: string) => void;
+ *   onReject: (appId: string) => void;
  *   disabled: boolean;
+ *   decidingId: string | null;
  * }} props
  */
-export const ApplicantList = ({ items, selected, onToggle, onToggleAll, disabled }) => {
-  const reportable = items.filter((a) => !a.noShow);
+export const ApplicantList = ({
+  items,
+  policy,
+  selected,
+  onToggle,
+  onToggleAll,
+  onApprove,
+  onReject,
+  disabled,
+  decidingId,
+}) => {
+  // 노쇼 신고 대상 = APPROVED + noShow 아님. PENDING/REJECTED 는 제외.
+  const reportable = items.filter((a) => !a.noShow && (a.status ?? 'APPROVED') === 'APPROVED');
   return (
     <>
       <SelectAllHeader
@@ -86,39 +204,17 @@ export const ApplicantList = ({ items, selected, onToggle, onToggleAll, disabled
       />
       <ul id="applicant-list" className="mt-3 flex flex-col gap-2" aria-label="신청자 목록">
         {items.map((a) => (
-          <li
+          <ApplicantRow
             key={a.id}
-            className={cn(
-              'flex items-center gap-3 rounded-2xl bg-white dark:bg-white/5 ring-1 ring-slate-900/5 dark:ring-white/10 px-4 py-3 shadow-sm',
-              a.noShow && 'opacity-70',
-            )}
-          >
-            {/* #445 — touch target 44px (label h-11 w-11 클릭 영역 확장). 본디 h-5 w-5 만 있어 모바일 탭 어려움. */}
-            <label className="inline-flex items-center justify-center h-11 w-11 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5 cursor-pointer accent-rose-500"
-                checked={selected.has(a.userId)}
-                onChange={() => onToggle(a.userId)}
-                disabled={disabled || a.noShow}
-                aria-label={`${a.userId} 선택`}
-              />
-            </label>
-            <div className="min-w-0 flex-1">
-              <p className="font-display font-extrabold text-sm text-slate-900 dark:text-white truncate">
-                {a.userId}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-round">
-                신청 {new Date(a.createdAt).toLocaleString('ko-KR')}
-                {a.noShowCount > 0 ? ` · 노쇼 ${a.noShowCount}번 ⚠` : ''}
-              </p>
-            </div>
-            {a.noShow ? (
-              <span className="rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-200 px-2 py-0.5 text-[11px] font-display font-bold">
-                노쇼
-              </span>
-            ) : null}
-          </li>
+            item={a}
+            policy={policy}
+            selected={selected.has(a.userId)}
+            onToggle={() => onToggle(a.userId)}
+            onApprove={() => onApprove(a.id)}
+            onReject={() => onReject(a.id)}
+            disabled={disabled}
+            deciding={decidingId === a.id}
+          />
         ))}
       </ul>
     </>
