@@ -20,17 +20,22 @@ export default {
       },
       colors: {
         // warm.html 시안에서 그대로 가져온 팔레트.
-        cream: '#FAF6F0',
-        cream2: '#F3ECE0',
+        // #372 tone audit (Phase 6e):
+        //   라이트 "너무 밝다" → cream 톤다운 (#FAF6F0 → #F5EEDF), cream2 도 동조.
+        //   다크 "너무 어둡다" → mocha lift (#2C2420 → #3A2F29 = 기존 mocha2 값).
+        //                       mocha2/mocha3 도 한 단계씩 lift 해서 layering 유지.
+        //   직접 bg-cream / bg-mocha2 / bg-mocha3 쓰는 컴포넌트가 새 배경 대비 충돌 없도록.
+        cream: '#F5EEDF',
+        cream2: '#EAE0CB',
         peach: '#F4D7C8',
         peachDk: '#E8B89F',
         sage: '#93A487',
         sageDk: '#6F8366',
         ink: '#3A2E27',
         ink2: '#5A4A3F',
-        mocha: '#2C2420',
-        mocha2: '#3A2F29',
-        mocha3: '#4A3D34',
+        mocha: '#3A2F29',
+        mocha2: '#473A33',
+        mocha3: '#564840',
         beige: '#E8D6C4',
         beige2: '#C9B49E',
         rose: '#D9A892',
