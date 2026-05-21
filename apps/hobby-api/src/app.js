@@ -21,8 +21,7 @@ import { buildOpenApiDoc } from './openapi.js';
 import { createApplicationsRouter } from './routes/applications.js';
 import { createMeRouter } from './routes/me.js';
 import { createNotificationsRouter } from './routes/notifications.js';
-import { createPostsRouter } from './routes/posts.js';
-import { createPostMutationsRouter } from './routes/posts.mutations.js';
+import { createPostsRouter } from './routes/posts/index.js';
 
 const parseOrigins = (raw) =>
   (raw ?? '')
@@ -116,7 +115,6 @@ export const createApp = (opts = {}) => {
 
   const jwtSecret = readJwtSecret();
   app.use('/api', createPostsRouter({ jwtSecret, mutationLimiter }));
-  app.use('/api', createPostMutationsRouter({ jwtSecret, mutationLimiter }));
   app.use('/api', createApplicationsRouter({ jwtSecret, mutationLimiter }));
   app.use('/api', createNotificationsRouter({ jwtSecret, mutationLimiter }));
   app.use('/api', createMeRouter({ jwtSecret }));
