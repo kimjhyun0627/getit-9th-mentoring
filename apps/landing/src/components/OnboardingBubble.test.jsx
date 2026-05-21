@@ -64,4 +64,22 @@ describe('OnboardingBubble (#361)', () => {
     // aria-hidden 으로 들어간 `>` 도 textContent 에는 포함됨.
     expect(dialog.textContent).toMatch(/>/);
   });
+
+  it('모바일 (#418): bottom-4 + inset-x-4 floating, md+ 에선 top-20 right-4', () => {
+    renderBubble();
+    const dialog = screen.getByTestId('onboarding-bubble');
+    // 모바일: 하단 floating — sticky 헤더 sign-in 위 겹침 회피
+    expect(dialog.className).toMatch(/\bbottom-4\b/);
+    expect(dialog.className).toMatch(/\binset-x-4\b/);
+    // md+: 데스크탑은 기존 위치 유지
+    expect(dialog.className).toMatch(/\bmd:top-20\b/);
+    expect(dialog.className).toMatch(/\bmd:right-4\b/);
+  });
+
+  it('모바일 (#418): hint arrow 는 md 미만에서 hidden (자기 가리킴 회피)', () => {
+    renderBubble();
+    const arrow = screen.getByTestId('onboarding-hint-arrow');
+    expect(arrow.className).toMatch(/\bhidden\b/);
+    expect(arrow.className).toMatch(/\bmd:block\b/);
+  });
 });

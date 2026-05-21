@@ -71,20 +71,42 @@
     <title>GETIT 9기 멘토링</title>
 
     <!--
-      No-flash 다크 부트스트랩.
-      Tech-Dark는 다크가 기본. localStorage 저장값이 'light'가 아니면 다크 클래스 미리 적용
-      → React/ThemeProvider hydration 전에 .dark가 박혀 색 깜빡임 없음.
+      No-flash 부트스트랩 (#414).
+      Tech-Dark 는 다크가 기본이지만 `system` / 미설정 사용자의 OS 선호도를 존중.
+        - saved === 'dark'  → dark
+        - saved === 'light' → light
+        - saved === 'system' || !saved → matchMedia('(prefers-color-scheme: dark)')
+        - matchMedia 미지원 / 예외 → dark fallback
+      React/ThemeProvider hydrate 전에 정답을 박아 라이트 OS 첫 방문자의
+      다크→라이트 깜빡임을 제거.
+      로직 spec: src/lib/theme-bootstrap.js (vitest 테스트는 거기로).
       packages/theme의 STORAGE_KEY('getit:theme')와 동일 키 사용.
     -->
     <script>
       (function () {
+        var resolved = 'dark';
         try {
           var saved = window.localStorage.getItem('getit:theme');
-          var isLight = saved === 'light';
-          if (!isLight) {
-            document.documentElement.classList.add('dark');
+          if (saved === 'light') {
+            resolved = 'light';
+          } else if (saved === 'dark') {
+            resolved = 'dark';
+          } else {
+            // 'system' 또는 null/undefined → OS 선호도 따름.
+            var mq =
+              typeof window.matchMedia === 'function'
+                ? window.matchMedia('(prefers-color-scheme: dark)')
+                : null;
+            if (mq && typeof mq.matches === 'boolean') {
+              resolved = mq.matches ? 'dark' : 'light';
+            } else {
+              resolved = 'dark';
+            }
           }
         } catch (_) {
+          resolved = 'dark';
+        }
+        if (resolved === 'dark') {
           document.documentElement.classList.add('dark');
         }
       })();
