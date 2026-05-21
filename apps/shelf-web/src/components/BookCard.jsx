@@ -58,7 +58,7 @@ export const BookCard = ({ shelf, onEdit, className }) => {
   const { book, status, rating, review, addedAt } = shelf;
   const dateLabel = formatYearMonth(addedAt);
   const meta = status === 'READING' ? statusLabel(status) : `${statusLabel(status)} · ${dateLabel}`;
-  // #474 — Kakao R120x174 저화질 URL 이 캐시에서 흘러오는 경우 클라이언트에서도 hi-res 로 방어 변환.
+  // #507 — Kakao thumb 403 회피. 캐시 stale row 도 fname 원본 URL 로 클라 측에서 방어 변환.
   const cover = upscaleCoverUrl(book.coverUrl);
   const coverStyle = cover
     ? { backgroundImage: `url("${cover}")` }

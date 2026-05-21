@@ -104,7 +104,7 @@ export const UserShelfPage = () => {
 const PublicBookCard = ({ shelf }) => {
   const { book, status, rating, review } = shelf;
   if (!book) return null;
-  // #474 — Kakao R120x174 캐시 stale 대비 클라이언트 hi-res 변환.
+  // #507 — Kakao thumb 403 회피. 캐시 stale row 도 fname 원본 URL 로 클라 측에서 방어 변환.
   const cover = upscaleCoverUrl(book.coverUrl);
   return (
     <Link
