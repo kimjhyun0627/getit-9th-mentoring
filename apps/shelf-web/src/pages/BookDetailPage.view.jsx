@@ -32,9 +32,9 @@ export const BookDetailView = ({
   const cover = upscaleCoverUrl(book.coverUrl);
   return (
     <>
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-10">
+      <section className="grid grid-cols-[minmax(0,60%)_1fr] items-start gap-4 md:grid-cols-3 md:gap-10">
         {/* 모바일 표지 점유 완화 (#479) — 좌측 60% 폭, 우측에 제목/저자 inline. 데스크탑은 3-col 유지 */}
-        <div className="cover relative max-w-[60%] md:col-span-1 md:max-w-none">
+        <div className="cover relative md:col-span-1">
           {cover ? (
             <div
               className="cover-inner"

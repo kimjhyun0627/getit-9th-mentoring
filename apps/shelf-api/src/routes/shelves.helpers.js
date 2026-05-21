@@ -173,7 +173,6 @@ export const handleContainsLookup = async (userId, query) => {
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean)
-          .slice(0, BATCH_MAX)
       : [];
 
   if (typeof bookId === 'string' && bookId) {
@@ -206,6 +205,12 @@ export const handleContainsLookup = async (userId, query) => {
   }
 
   const ids = splitCsv(bookIds);
+  if (ids.length > BATCH_MAX) {
+    return {
+      status: 400,
+      body: { error: 'ValidationError', message: `bookIds exceeds ${BATCH_MAX}` },
+    };
+  }
   if (ids.length > 0) {
     const rows = await prisma.bookShelf.findMany({
       where: { userId, bookId: { in: ids } },
@@ -219,6 +224,12 @@ export const handleContainsLookup = async (userId, query) => {
   }
 
   const isbnList = splitCsv(isbns).map((s) => s.toUpperCase());
+  if (isbnList.length > BATCH_MAX) {
+    return {
+      status: 400,
+      body: { error: 'ValidationError', message: `isbns exceeds ${BATCH_MAX}` },
+    };
+  }
   if (isbnList.length > 0) {
     const books = await prisma.book.findMany({ where: { isbn: { in: isbnList } } });
     const isbnToId = new Map(books.map((b) => [b.isbn, b.id]));
