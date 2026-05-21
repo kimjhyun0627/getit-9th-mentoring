@@ -294,3 +294,30 @@
     }
   }
 }
+
+/**
+ * 한국어 단어 중간 끊김 방지 (#389).
+ * `word-break: keep-all` 은 CJK 에만 작용 — 영문/숫자 영향 없음.
+ * `overflow-wrap: break-word` 는 긴 영문/URL fallback.
+ * 코드 블록(`pre`, `code`) 은 의도적으로 제외.
+ */
+@layer base {
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  span,
+  li,
+  a,
+  button,
+  label,
+  dd,
+  dt {
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+}
