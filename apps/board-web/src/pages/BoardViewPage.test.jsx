@@ -158,7 +158,8 @@ describe('BoardViewPage', () => {
     expect(grid.className).toMatch(/gap-px/);
     expect(grid.className).toMatch(/bg-hairline/);
     // #356: 모든 breakpoint 가로 스크롤로 통일. flex-nowrap 으로 wrap 차단.
-    expect(grid.className).toMatch(/overflow-x-auto/);
+    // #381: board-grid-scroll 커스텀 클래스 — 스크롤바 항상 표시 + Minimalist 톤.
+    expect(grid.className).toMatch(/board-grid-scroll/);
     expect(grid.className).toMatch(/flex-nowrap/);
     expect(grid.className).not.toMatch(/md:grid/);
   });

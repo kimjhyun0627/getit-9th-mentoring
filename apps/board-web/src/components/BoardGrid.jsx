@@ -7,6 +7,8 @@ import { NewColumnComposer } from './NewColumnComposer.jsx';
  *
  * #223: 모바일 가로 스크롤 (snap).
  * #356: 데스크탑도 가로 스크롤로 통일 (칸반 표준). 컬럼이 늘어나도 wrap 안 됨.
+ * #381: 가로 스크롤바 항상 표시 + Minimalist 톤 (neutral gray thumb, hover 강조).
+ *        모바일은 .board-grid-scroll 매체 쿼리로 native swipe 유지 (스크롤바 숨김).
  *
  * @param {{
  *   columns: Array<{ id: string; name: string; order: number }>;
@@ -53,7 +55,7 @@ export const BoardGrid = ({
     >
       <div
         data-testid="board-grid"
-        className="flex w-full flex-nowrap snap-x snap-mandatory gap-px overflow-x-auto rounded-lg border border-hairline bg-hairline md:snap-none"
+        className="board-grid-scroll flex w-full flex-nowrap snap-x snap-mandatory gap-px rounded-lg border border-hairline bg-hairline md:snap-none"
       >
         {columns.map((col) => (
           <div
