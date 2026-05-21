@@ -89,7 +89,11 @@ export const SearchPage = () => {
     },
     getNextPageParam: (lastPage) => {
       if (!lastPage || lastPage.isEnd) return undefined;
-      return (lastPage.page ?? 0) + 1;
+      // Gemini #528: 카카오 cap=50. 51 페이지를 추가 요청하면 BE 가 400 으로 거절 →
+      // 사용자에게 에러 토스트가 노출됨. FE 에서 미리 잠그고 "모두 보여드렸어요" 로 종료.
+      const next = (lastPage.page ?? 0) + 1;
+      if (next > 50) return undefined;
+      return next;
     },
     enabled: isQueryable,
   });
@@ -157,11 +161,15 @@ export const SearchPage = () => {
 
   // 무한 스크롤 sentinel (#527) — sentinel intersect 시 BE 에 다음 page fetch.
   // 카카오 API 가 페이지 종료를 알려주므로 (`isEnd`) hasNextPage 가 source of truth.
+  // CR #528: 실패 상태에서는 sentinel 자동 fetch 를 멈춰야 요청 루프 방지. 재시도는
+  // 버튼으로만 허용.
   const setSentinel = useInfiniteScroll({
     onIntersect: () => {
-      if (search.hasNextPage && !search.isFetchingNextPage) search.fetchNextPage();
+      if (search.hasNextPage && !search.isFetchingNextPage && !search.isFetchNextPageError) {
+        search.fetchNextPage();
+      }
     },
-    enabled: search.hasNextPage && !search.isFetchingNextPage,
+    enabled: search.hasNextPage && !search.isFetchingNextPage && !search.isFetchNextPageError,
   });
 
   return (

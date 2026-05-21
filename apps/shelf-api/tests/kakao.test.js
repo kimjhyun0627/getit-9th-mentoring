@@ -246,14 +246,15 @@ describe('searchKakaoBooks — HTTP 호출', () => {
 
   // #527: 카카오가 meta 를 누락하거나 일부만 줄 때도 안전한 기본값을 보장해야 한다.
   // is_end 누락 + documents.length < size → 마지막 페이지로 추론.
-  it('meta 누락 + documents 가 size 미만이면 is_end=true 로 추론', async () => {
+  // CR #528: total_count 누락 시 documentsLen 을 하한으로 보정해 응답 모순 방지.
+  it('meta 누락 + documents 가 size 미만이면 is_end=true + total_count=documentsLen', async () => {
     mockKakaoPool()
       .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
       .reply(200, { documents: [sampleKakaoDoc] });
 
     const { meta } = await searchKakaoBooks({ query: '책', apiKey: 'k', size: 30 });
     expect(meta.is_end).toBe(true);
-    expect(meta.total_count).toBe(0);
+    expect(meta.total_count).toBe(1);
   });
 
   it('meta 누락 + documents 가 size 만큼 가득 차면 is_end=false 로 추론', async () => {

@@ -100,10 +100,19 @@ export const createBooksRouter = () => {
       }
 
       // 순차 upsert — 페이지당 최대 50건이라 병렬 race 회피용으로 순차가 안전.
+      // Gemini #528: 개별 항목 실패가 전체 응답 500 으로 번지지 않게 try/catch 로 격리.
+      // recommendations 경로의 best-effort 패턴과 일치.
       const items = [];
       for (const record of records) {
-        const saved = await upsertBook(record);
-        items.push(serializeBook(saved, { cached: false }));
+        try {
+          const saved = await upsertBook(record);
+          items.push(serializeBook(saved, { cached: false }));
+        } catch (upsertErr) {
+          req.log?.warn(
+            { err: upsertErr, isbn: record?.isbn },
+            'book upsert failed; continuing with remaining records',
+          );
+        }
       }
       // #527: 무한 스크롤이 다음 페이지 존재를 판단하도록 page/size + meta 노출.
       return res.status(200).json({

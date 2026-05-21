@@ -137,8 +137,10 @@ export const api = {
     /** @type {Record<string, string | number>} */
     const params = { q };
     if (opts.target) params.target = opts.target;
-    if (opts.page) params.page = opts.page;
-    if (opts.size) params.size = opts.size;
+    // CR #528: 0/NaN 같은 비정상 입력이 falsy 로 조용히 누락되면 BE 검증을 우회한다.
+    // 전달 여부 기준(`!== undefined`)으로 검사해 BE 가 400 으로 명시적 거절.
+    if (opts.page !== undefined) params.page = opts.page;
+    if (opts.size !== undefined) params.size = opts.size;
     const res = await client.get('/books/search', { params });
     return searchResponseSchema.parse(res.data ?? {});
   },

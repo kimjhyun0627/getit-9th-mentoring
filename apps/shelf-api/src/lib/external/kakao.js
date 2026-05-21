@@ -170,8 +170,12 @@ export const toBookRecord = (doc) => {
  */
 const normalizeMeta = (raw, { documentsLen, requestedSize }) => {
   const isEndRaw = raw?.is_end;
+  // CR #528: total_count 가 누락된 경우 0 으로 박으면 documents 가 실제로 있을 때
+  // `totalCount: 0` 이 내려가 응답 모순이 생긴다. 최소한 documentsLen 을 하한으로.
   const totalCount =
-    typeof raw?.total_count === 'number' && Number.isFinite(raw.total_count) ? raw.total_count : 0;
+    typeof raw?.total_count === 'number' && Number.isFinite(raw.total_count)
+      ? raw.total_count
+      : documentsLen;
   const pageableCount =
     typeof raw?.pageable_count === 'number' && Number.isFinite(raw.pageable_count)
       ? raw.pageable_count
