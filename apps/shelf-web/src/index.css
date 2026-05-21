@@ -40,15 +40,18 @@
 
     --radius: 0.125rem;
 
-    /* Editorial-only tokens */
-    --paper-1: #fafafa;
-    --paper-2: #f3f1ec;
-    --paper-3: #ebe8e1;
+    /* Editorial-only tokens.
+     * #372 라이트 톤 audit: 기존 #fafafa(거의 pure white) → #f9f4ec warm paper cream.
+     *   ivory-cream 으로 살짝 따뜻하게, 눈 피로 감소. paper-2/3 도 grade 맞춰 cream tier 로.
+     *   ink-2 (#1f1f1f) on paper-1 (#f9f4ec) → ~14.6:1 (AAA). */
+    --paper-1: #f9f4ec;
+    --paper-2: #f1ebe0;
+    --paper-3: #e7e0d3;
     --ink-1: #0a0a0a;
     --ink-2: #1f1f1f;
     --ink-3: #525252;
     --ink-hint: #a3a3a3;
-    --rule-1: #d4d0c7;
+    --rule-1: #d4cdbf;
     --rule-2: #0a0a0a;
     --wine: #7c1d1d;
     --wine-soft: #a13a3a;
@@ -83,18 +86,22 @@
     --input: 0 0% 22%;
     --ring: 39 53% 53%;
 
-    --paper-1: #141414;
-    --paper-2: #1c1c1c;
-    --paper-3: #242424;
+    /* #372 다크 톤 audit: 기존 #141414(neutral charcoal) → #15110a warm dark paper.
+     *   warm brown undertone 으로 Editorial paper 느낌 유지, pure black 의 강한
+     *   contrast 피로 회피. paper-2/3 도 같은 warm shift 로 grade.
+     *   ink-2 (#ededed) on paper-1 (#15110a) → ~16.7:1 (AAA). */
+    --paper-1: #15110a;
+    --paper-2: #1d1810;
+    --paper-3: #25201a;
     --ink-1: #f5f1e8;
     --ink-2: #ededed;
     --ink-3: #a3a3a3;
     --ink-hint: #6b6b6b;
-    --rule-1: #2a2a2a;
-    --rule-2: #3a3a3a;
-    /* #264 다크 mustard accent: WCAG AA 보장.
-     *   #d4a651 on paper-1 (#141414) → ~9.0:1 (AAA large, AA normal text 통과).
-     *   이전 #c79a48 (≈7.55:1) 도 AA pass 였지만, hero 의 짧은 strain (".") 와
+    --rule-1: #2c261c;
+    --rule-2: #3c352a;
+    /* #264/#372 다크 mustard accent: WCAG AA 보장.
+     *   #d4a651 on paper-1 (#15110a warm dark paper) → ~8.9:1 (AA normal text 통과).
+     *   이전 #c79a48 (≈7.55:1 on neutral) 도 AA pass 였지만, hero 의 짧은 strain (".") 와
      *   smallcaps tracking 으로 인해 시각적 weight 가 낮아 가독성 강화 차원에서 +0.05L. */
     --wine: #d4a651;
     --wine-soft: #e1bc7a;
@@ -195,7 +202,7 @@
   }
   .dark .paper-grain {
     /* #264 다크 paper texture: 라이트 톤(0.022/0.015) 과 동등한 perceived density.
-     * 다크 배경(#141414) 에 흰 점은 contrast 격차로 흐려 보여 약간 더 강하게. */
+     * 다크 배경(#15110a warm dark paper, #372) 에 흰 점은 contrast 격차로 흐려 보여 약간 더 강하게. */
     background-image:
       radial-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
       radial-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px);
