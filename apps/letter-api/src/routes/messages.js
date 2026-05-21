@@ -25,51 +25,7 @@ import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
 
-/**
- * createdAt 을 분(minute) 단위로 라운딩한 ISO 문자열로 변환.
- *
- * 익명성 위협 (#250): ms 정밀도 timestamp 는 timing oracle.
- * 어떤 메시지가 "정확히 14:23:47.328Z 에 작성됐다" 는 시그널이 Slack/Discord
- * 활동 로그와 cross-reference 되면 30~50명 동아리에서 작성자 추측 가능.
- * 분 단위로 자르면 FE 의 `formatRelative` ("방금 전" / "N분 전") 표시는 그대로.
- *
- * @param {Date | string | null | undefined} v
- * @returns {string | null}
- */
-const truncateToMinuteISO = (v) => {
-  if (v == null) return null;
-  const src = v instanceof Date ? v : new Date(v);
-  if (Number.isNaN(src.getTime())) return null;
-  // ⚠️ src 가 호출자의 row.createdAt 참조일 수 있어 절대 mutate 금지.
-  // 새 Date 만들어 초/ms 만 0 처리. UTC 기준이라 tz drift 없음.
-  const out = new Date(src.getTime());
-  out.setUTCSeconds(0, 0);
-  return out.toISOString();
-};
-
-/**
- * Message DB row → API 응답 직렬화.
- *
- * 익명성 invariant (Spec 핵심 — `.claude/projects/letter.md`):
- *  - ⚠️ authorId 는 명시적으로 제거. 응답에 절대 포함되면 안 됨.
- *  - ⚠️ updatedAt 미노출 (#251): updatedAt !== createdAt 자체가 "편집됨" 시그널 →
- *    deanonymize 표면. DB 에는 유지 (admin/audit 용도).
- *  - ⚠️ createdAt 분 단위 truncate (#250): ms 정밀도 timing oracle 차단.
- *
- * @param {object} row - prisma Message row
- * @param {string} viewerSub - JWT sub (본인 식별용)
- * @returns {object} 응답에 안전한 객체
- */
-const serializeMessage = (row, viewerSub) => {
-  const isMine = row.authorId === viewerSub;
-  return {
-    id: row.id,
-    content: row.content,
-    color: row.color,
-    createdAt: truncateToMinuteISO(row.createdAt),
-    is_mine: isMine,
-  };
-};
+import { serializeMessage } from './messages.serialize.js';
 
 /**
  * 메시지 라우터 생성.
