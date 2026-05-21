@@ -69,4 +69,27 @@ describe('upscaleCoverUrl — Kakao thumb URL → fname 원본 URL 추출', () =
     const direct = 'https://t1.daumcdn.net/lbook/image/123.jpg';
     expect(upscaleCoverUrl(direct)).toBe(direct);
   });
+
+  // #529 — 라이브 Mixed Content 회귀. 카카오는 fname 을 http:// daumcdn 으로 박는다.
+  // shelf-web 은 HTTPS 페이지 → 브라우저 콘솔에 Mixed Content 경고. FE 도 BE 와 동일하게
+  // http → https 업그레이드. stale DB row (http://) 노출 윈도우도 같이 닫는다.
+  it('kakaocdn thumb + fname=http daumcdn → https 로 업그레이드 (#529)', () => {
+    expect(
+      upscaleCoverUrl(
+        'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F529.jpg',
+      ),
+    ).toBe('https://t1.daumcdn.net/lbook/image/529.jpg');
+  });
+
+  it('이미 직접 박힌 http:// daumcdn URL 도 https 로 업그레이드 (stale DB row 방어)', () => {
+    expect(upscaleCoverUrl('http://t1.daumcdn.net/lbook/image/stale.jpg')).toBe(
+      'https://t1.daumcdn.net/lbook/image/stale.jpg',
+    );
+  });
+
+  it('이미 https 면 그대로 (idempotent)', () => {
+    expect(upscaleCoverUrl('https://t1.daumcdn.net/lbook/image/idem.jpg')).toBe(
+      'https://t1.daumcdn.net/lbook/image/idem.jpg',
+    );
+  });
 });

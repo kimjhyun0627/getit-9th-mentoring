@@ -86,85 +86,8 @@ describe('toBookRecord — 카카오 응답을 Book 도메인으로 매핑', () 
     expect(book.description).toBe('');
   });
 
-  // #507 — Kakao thumb 서버는 임의 사이즈 변환을 거부 (403, op not allowed).
-  // PR #366 의 R480x696 upscale 도 라이브에서 깨졌다. fname 쿼리의 원본 URL 을
-  // 추출해서 daumcdn 원본을 직접 쓰면 thumb 서버 의존성 제거 + 화질 유지.
-  it('coverUrl: kakaocdn thumb → fname 의 원본 URL 추출 (daumcdn)', () => {
-    const book = toBookRecord({
-      ...sampleKakaoDoc,
-      thumbnail:
-        'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F123.jpg',
-    });
-    expect(book.coverUrl).toBe('https://t1.daumcdn.net/lbook/image/123.jpg');
-  });
-
-  it('coverUrl: 사이즈 토큰 (R480x696, C120x174 등) 무관하게 fname 원본 사용', () => {
-    expect(
-      toBookRecord({
-        ...sampleKakaoDoc,
-        thumbnail:
-          'https://search1.kakaocdn.net/thumb/R480x696.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2Fhi.jpg',
-      }).coverUrl,
-    ).toBe('https://t1.daumcdn.net/lbook/image/hi.jpg');
-    expect(
-      toBookRecord({
-        ...sampleKakaoDoc,
-        thumbnail:
-          'https://search1.kakaocdn.net/thumb/C120x174.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2Fc.jpg',
-      }).coverUrl,
-    ).toBe('https://t1.daumcdn.net/lbook/image/c.jpg');
-  });
-
-  it('coverUrl: kakaocdn 아닌 URL 은 그대로 유지', () => {
-    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: 'https://example.com/cover.jpg' });
-    expect(book.coverUrl).toBe('https://example.com/cover.jpg');
-  });
-
-  // CR #366: 호스트 검증이 substring 매칭이면 외부 호스트의 쿼리/경로에
-  // `kakaocdn.net/thumb/` 가 포함될 때 오치환 발생. URL hostname 으로 정확 매칭하는지 잠근다.
-  it('coverUrl: 외부 호스트가 쿼리에 kakaocdn 문자열 포함해도 그대로 유지', () => {
-    const proxied =
-      'https://proxy.example.com/image?src=https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=x';
-    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: proxied });
-    expect(book.coverUrl).toBe(proxied);
-  });
-
-  it('coverUrl: 외부 호스트 패스에 /thumb/ 가 있어도 그대로 유지', () => {
-    const decoy = 'https://evil.example.com/thumb/R120x174.q85/fake';
-    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: decoy });
-    expect(book.coverUrl).toBe(decoy);
-  });
-
-  // #507 edge: fname 이 없거나 형식이 깨졌으면 원본 thumb URL 유지 (fallback).
-  it('coverUrl: kakaocdn 이지만 fname 쿼리 없으면 원본 유지', () => {
-    const noFname = 'https://search1.kakaocdn.net/thumb/R120x174.q85/';
-    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: noFname });
-    expect(book.coverUrl).toBe(noFname);
-  });
-
-  it('coverUrl: fname 이 URL 형식이 아니면 원본 thumb URL 유지', () => {
-    const broken = 'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=not-a-url';
-    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: broken });
-    expect(book.coverUrl).toBe(broken);
-  });
-
-  it('coverUrl: fname 이 javascript:/data: 같은 위험 스킴이면 원본 thumb URL 유지', () => {
-    const evil = 'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=javascript%3Aalert(1)';
-    expect(toBookRecord({ ...sampleKakaoDoc, thumbnail: evil }).coverUrl).toBe(evil);
-    const dataUri =
-      'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=data%3Atext%2Fhtml%2C%3Cscript%3Ealert(1)%3C%2Fscript%3E';
-    expect(toBookRecord({ ...sampleKakaoDoc, thumbnail: dataUri }).coverUrl).toBe(dataUri);
-  });
-
-  it('coverUrl: fname 에 query string 이 붙어있어도 그대로 살린다', () => {
-    // 일부 응답은 fname=https://...?ext=jpg 처럼 원본 URL 에도 쿼리가 붙는다.
-    const book = toBookRecord({
-      ...sampleKakaoDoc,
-      thumbnail:
-        'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F1.jpg%3Fv%3D2',
-    });
-    expect(book.coverUrl).toBe('https://t1.daumcdn.net/lbook/image/1.jpg?v=2');
-  });
+  // coverUrl (Kakao thumb → fname 원본 URL 추출) 케이스는 kakao.cover-url.test.js 로 분리됨
+  // (#530 CR — 300줄 제한 준수). #507/#366/#529 정책 잠금은 거기서.
 });
 
 describe('searchKakaoBooks — HTTP 호출', () => {

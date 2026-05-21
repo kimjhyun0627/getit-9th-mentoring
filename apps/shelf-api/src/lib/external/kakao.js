@@ -85,6 +85,10 @@ const pickIsbn = (raw) => {
  * - kakaocdn 호스트가 아니거나 fname 이 없으면 입력 그대로 반환 (테스트/외부 URL 보호).
  * - fname 이 URL 형태가 아니면 (decoded 후 `new URL` 실패) 원래 thumb URL 유지.
  *
+ * #529 — Mixed Content 회귀: 카카오가 fname 을 `http://t1.daumcdn.net/...` (HTTP) 로 박아서
+ * 응답한다. shelf-web 은 HTTPS 페이지라 브라우저 콘솔에 Mixed Content 경고가 뜬다.
+ * daumcdn 은 https 정상 지원 → 추출 단계에서 protocol 을 `https:` 로 강제 업그레이드.
+ *
  * @param {string} url
  * @returns {string}
  */
@@ -115,6 +119,9 @@ const extractKakaoOriginUrl = (url) => {
   }
   // 원본 URL 은 http/https 만 허용 (data:/javascript: 등 차단).
   if (originUrl.protocol !== 'http:' && originUrl.protocol !== 'https:') return url;
+  // #529 — http → https 강제 업그레이드. daumcdn 등 외부 호스트가 http 로 응답해도
+  // shelf-web (HTTPS) 콘솔에 Mixed Content 경고가 뜨지 않도록 BE 응답 단계에서 잠금.
+  if (originUrl.protocol === 'http:') originUrl.protocol = 'https:';
   return originUrl.toString();
 };
 
