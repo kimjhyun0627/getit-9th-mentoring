@@ -11,7 +11,14 @@ import preset from '@getit/config-tailwind/preset';
  */
 export default {
   presets: [preset],
-  content: ['./index.html', './src/**/*.{js,jsx}'],
+  content: [
+    './index.html',
+    './src/**/*.{js,jsx}',
+    // packages/theme 의 컴포넌트 (CodeTerminalToggle 등) 클래스도
+    // purge 보존되도록 scan. 미포함 시 dark:text-cyan-300 류가 빌드 CSS에서
+    // 삭제돼 라이브에서 텍스트 색이 안 먹는 사고 발생 (#377).
+    '../../packages/theme/src/**/*.{js,jsx}',
+  ],
   theme: {
     extend: {
       colors: {
