@@ -227,17 +227,24 @@ describe('Header status + a11y (#261)', () => {
   });
 });
 
-describe('ThemeToggle SVG (#24)', () => {
+describe('CodeTerminalToggle (#363)', () => {
   beforeEach(() => {
     mockFetchMe(401, { error: 'Unauthorized' });
     document.documentElement.classList.remove('dark');
   });
 
-  it('ThemeToggle은 이모지가 아닌 인라인 SVG 아이콘을 렌더한다', () => {
+  it('헤더는 code terminal 메타포 토글을 렌더한다 (role=switch + > theme [ light ])', () => {
     renderHeader();
-    const toggle = screen.getByRole('button', { name: /다크모드로 전환|라이트모드로 전환/ });
-    const svg = toggle.querySelector('svg');
-    expect(svg).not.toBeNull();
+    const toggle = screen.getByRole('switch', { name: /다크 모드 토글 \(terminal\)/ });
+    expect(toggle).toBeInTheDocument();
+    expect(toggle.textContent).toContain('theme');
+    expect(toggle.textContent).toContain('[ light ]');
+  });
+
+  it('토글은 이모지 또는 SVG 아이콘 대신 monospaced 텍스트만 사용한다', () => {
+    renderHeader();
+    const toggle = screen.getByRole('switch', { name: /다크 모드 토글 \(terminal\)/ });
+    expect(toggle.querySelector('svg')).toBeNull();
     expect(toggle.textContent).not.toMatch(/[☀🌙]/u);
   });
 });

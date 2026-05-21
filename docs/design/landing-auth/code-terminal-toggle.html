@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>landing+auth — Code Terminal Toggle (Issue #363)</title>
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink-950: #08090b;
+        --ink-900: #0f1115;
+        --hairline-light: rgba(0, 0, 0, 0.1);
+        --hairline-dark: rgba(255, 255, 255, 0.08);
+        --cyan-700: #0e7490;
+        --cyan-neon: #22d3ee;
+        --zinc-100: #f4f4f5;
+        --zinc-200: #e4e4e7;
+        --zinc-400: #a1a1aa;
+        --zinc-500: #71717a;
+        --zinc-600: #52525b;
+        --zinc-700: #3f3f46;
+        --zinc-800: #27272a;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #fafafa;
+        color: var(--zinc-800);
+        padding: 40px 24px 80px;
+      }
+      h1 {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: var(--cyan-700);
+        margin: 0 0 4px;
+      }
+      h1::before { content: '> '; color: var(--zinc-400); }
+      p.lede {
+        font-size: 13px;
+        color: var(--zinc-600);
+        margin: 0 0 36px;
+        max-width: 640px;
+        line-height: 1.5;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+      .panel {
+        border: 1px solid var(--hairline-light);
+        border-radius: 12px;
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+      }
+      .panel.light {
+        background: #ffffff;
+        color: var(--zinc-800);
+      }
+      .panel.dark {
+        background: var(--ink-950);
+        color: var(--zinc-200);
+        border-color: var(--hairline-dark);
+        background-image:
+          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 24px 24px;
+      }
+      .panel h2 {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--zinc-500);
+        margin: 0 0 24px;
+      }
+      .panel.dark h2 { color: var(--zinc-400); }
+      .panel-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      /* === CodeTerminalToggle === */
+      .ct-toggle {
+        font-family: 'JetBrains Mono', monospace;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 36px;
+        padding: 0 10px;
+        border-radius: 6px;
+        border: 1px solid var(--hairline-light);
+        background: rgba(255, 255, 255, 0.7);
+        color: var(--zinc-700);
+        font-size: 11px;
+        line-height: 1;
+        cursor: pointer;
+        transition: border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+        outline: none;
+      }
+      .ct-toggle:hover {
+        border-color: var(--cyan-700);
+        color: var(--cyan-700);
+      }
+      .ct-toggle:focus-visible {
+        outline: 2px solid var(--cyan-700);
+        outline-offset: 1px;
+      }
+      .panel.dark .ct-toggle {
+        background: rgba(15, 17, 21, 0.7);
+        border-color: var(--hairline-dark);
+        color: var(--zinc-200);
+      }
+      .panel.dark .ct-toggle:hover {
+        border-color: var(--cyan-neon);
+        color: var(--cyan-neon);
+        box-shadow: 0 0 24px -8px rgba(34, 211, 238, 0.45);
+      }
+      .panel.dark .ct-toggle:focus-visible {
+        outline-color: var(--cyan-neon);
+      }
+      .ct-prompt { color: var(--zinc-400); }
+      .panel.dark .ct-prompt { color: var(--zinc-500); }
+      .ct-keyword { color: var(--cyan-700); }
+      .panel.dark .ct-keyword { color: var(--cyan-neon); }
+      .ct-value {
+        white-space: pre;
+        font-variant-numeric: tabular-nums;
+        color: var(--zinc-800);
+      }
+      .panel.dark .ct-value { color: var(--zinc-100); }
+      .ct-caret {
+        display: inline-block;
+        width: 0.55ch;
+        height: 1em;
+        background: var(--cyan-700);
+        margin-left: 0.12em;
+        vertical-align: -0.12em;
+        animation: ct-blink 1.05s steps(1) infinite;
+      }
+      .panel.dark .ct-caret { background: var(--cyan-neon); }
+      @keyframes ct-blink {
+        0%, 49% { opacity: 1; }
+        50%, 100% { opacity: 0; }
+      }
+
+      /* "in context" mock — sticky header */
+      .ctx-header {
+        margin-top: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px dashed var(--hairline-light);
+        border-radius: 8px;
+        padding: 12px 14px;
+      }
+      .panel.dark .ctx-header { border-color: var(--hairline-dark); }
+      .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .logo .g9 {
+        display: inline-grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+        background: var(--ink-950);
+        color: var(--cyan-neon);
+        font-size: 10px;
+        border: 1px solid var(--hairline-light);
+      }
+      .panel.dark .logo .g9 {
+        background: var(--cyan-neon);
+        color: var(--ink-950);
+      }
+      .logo .brand .cyan { color: var(--cyan-700); }
+      .panel.dark .logo .brand .cyan { color: var(--cyan-neon); }
+      .logo .brand .slash { color: var(--zinc-400); }
+      .right-cluster { display: inline-flex; align-items: center; gap: 8px; }
+      .status {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: var(--zinc-600);
+        padding: 6px 8px;
+        border: 1px solid var(--hairline-light);
+        border-radius: 6px;
+        background: rgba(255,255,255,0.6);
+      }
+      .panel.dark .status {
+        color: var(--zinc-400);
+        background: rgba(15,17,21,0.6);
+        border-color: var(--hairline-dark);
+      }
+      .status .dot { width: 6px; height: 6px; border-radius: 50%; background: #84cc16; }
+      .panel.dark .status .dot { background: #a3e635; }
+
+      .notes {
+        margin-top: 32px;
+        max-width: 1080px;
+        margin-left: auto; margin-right: auto;
+      }
+      .notes h3 {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: var(--zinc-600);
+        margin: 24px 0 8px;
+      }
+      .notes ul {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--zinc-700);
+        padding-left: 20px;
+        margin: 0;
+      }
+      .notes code {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        background: rgba(0,0,0,0.06);
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ct-caret { animation: none; opacity: 1; }
+        .ct-toggle { transition: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>landing+auth — code terminal toggle</h1>
+    <p class="lede">
+      Tech-Dark 페르소나 (landing.get-it.cloud + auth.get-it.cloud) 전용 다크 토글.
+      터미널 프롬프트 메타포 — <code>&gt; theme [ light ]</code> ↔ <code>&gt; theme [ dark  ]</code>,
+      JetBrains Mono 폰트, cyan caret 깜빡임. 코드 에디터에서 테마를 바꾸는 듯한 감각.
+    </p>
+
+    <div class="grid">
+      <section class="panel light">
+        <h2>light</h2>
+        <div class="panel-row">
+          <button class="ct-toggle" type="button" role="switch" aria-checked="false" aria-label="다크 모드 토글 (terminal)">
+            <span class="ct-prompt" aria-hidden="true">&gt;</span>
+            <span class="ct-keyword" aria-hidden="true">theme</span>
+            <span class="ct-value" aria-hidden="true">[ light ]</span>
+            <span class="ct-caret" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <div class="ctx-header">
+          <div class="logo">
+            <span class="g9">G9</span>
+            <span class="brand"><span class="cyan">GETIT</span><span class="slash">/</span>9</span>
+          </div>
+          <div class="right-cluster">
+            <div class="status"><span class="dot"></span><span>all systems / nominal</span></div>
+            <button class="ct-toggle" type="button" role="switch" aria-checked="false" aria-label="다크 모드 토글 (terminal)">
+              <span class="ct-prompt" aria-hidden="true">&gt;</span>
+              <span class="ct-keyword" aria-hidden="true">theme</span>
+              <span class="ct-value" aria-hidden="true">[ light ]</span>
+              <span class="ct-caret" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel dark">
+        <h2>dark</h2>
+        <div class="panel-row">
+          <button class="ct-toggle" type="button" role="switch" aria-checked="true" aria-label="다크 모드 토글 (terminal)">
+            <span class="ct-prompt" aria-hidden="true">&gt;</span>
+            <span class="ct-keyword" aria-hidden="true">theme</span>
+            <span class="ct-value" aria-hidden="true">[ dark  ]</span>
+            <span class="ct-caret" aria-hidden="true"></span>
+          </button>
+        </div>
+
+        <div class="ctx-header">
+          <div class="logo">
+            <span class="g9">G9</span>
+            <span class="brand"><span class="cyan">GETIT</span><span class="slash">/</span>9</span>
+          </div>
+          <div class="right-cluster">
+            <div class="status"><span class="dot"></span><span>all systems / nominal</span></div>
+            <button class="ct-toggle" type="button" role="switch" aria-checked="true" aria-label="다크 모드 토글 (terminal)">
+              <span class="ct-prompt" aria-hidden="true">&gt;</span>
+              <span class="ct-keyword" aria-hidden="true">theme</span>
+              <span class="ct-value" aria-hidden="true">[ dark  ]</span>
+              <span class="ct-caret" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="notes">
+      <h3>&gt; design notes</h3>
+      <ul>
+        <li><strong>메타포</strong>: VSCode/터미널의 settings prompt. 다른 4 프로젝트 메타포 (햇님↔달 / 양초 / 책 flip / 미니멀)와 격을 맞춘 Tech-Dark 전용.</li>
+        <li><strong>폭 jitter 0</strong>: 값은 항상 9 char (<code>[ light ]</code> vs <code>[ dark  ]</code>). 토글해도 옆 요소 안 밀린다.</li>
+        <li><strong>WCAG AA</strong>: light는 zinc-700/흰 7:1, dark는 zinc-100/ink-950 15:1. cyan 액센트는 라이트 cyan-700, 다크 cyan-neon (#22d3ee) 4.5:1↑.</li>
+        <li><strong>caret</strong>: 단 하나만 (헤더의 hero caret 과 충돌 안 함 — 토글 안쪽 한정). reduced-motion 시 정적.</li>
+        <li><strong>키보드</strong>: <code>role=switch</code> + <code>button</code> 기본 동작 (Space/Enter). focus-visible 시 cyan 외곽선 + offset-1.</li>
+        <li><strong>호환</strong>: <code>@getit/theme</code> store (<code>useTheme</code>) 그대로 사용 — 다른 4 앱과 상태 sync.</li>
+      </ul>
+    </div>
+  </body>
+</html>
