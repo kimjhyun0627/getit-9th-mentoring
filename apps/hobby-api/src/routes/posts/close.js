@@ -61,6 +61,8 @@ export const closePost = async (req, res, next) => {
         include: { tags: { include: { tag: true } } },
       });
     });
+    // CR #518: 트랜잭션 내 동시 삭제 경쟁 방어 — findUnique 가 null 이면 404.
+    if (!fresh) return res.status(404).json({ error: 'PostNotFound' });
     return res.status(200).json({
       post: serializePost(fresh, { exposeOpenChat: true, myApplication: null }),
     });
