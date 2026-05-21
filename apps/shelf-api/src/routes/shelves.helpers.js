@@ -14,16 +14,6 @@ import {
 import { prisma } from '../lib/prisma.js';
 
 /**
- * Zod 에러 → 400 응답 본문.
- *
- * @param {import('zod').ZodError} err
- */
-export const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
-
-/**
  * 응답용 BookShelf 직렬화 (book 동봉 옵션).
  *
  * `i_added` — 이 row 가 "내 서재에 담겨 있음" 을 명시. GET /me 응답은 항상 내 서재 row 이므로

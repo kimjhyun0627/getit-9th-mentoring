@@ -18,6 +18,7 @@ import crypto from 'node:crypto';
 
 import { requireAuth } from '@getit/auth-utils/server';
 import { DeleteAccountInput, UpdateProfileInput } from '@getit/schemas/auth';
+import { zodErrorBody } from '@getit/schemas/errors';
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
@@ -35,11 +36,6 @@ import {
 
 const BCRYPT_COST = Number.parseInt(process.env.BCRYPT_COST ?? '12', 10);
 const PRISMA_UNIQUE_VIOLATION = 'P2002';
-
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 const publicUser = (u) => ({
   sub: u.id,

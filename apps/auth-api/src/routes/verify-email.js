@@ -14,6 +14,7 @@ import crypto from 'node:crypto';
 
 import { requireAuth } from '@getit/auth-utils/server';
 import { VerifyEmailInput } from '@getit/schemas/auth';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { Router } from 'express';
 
 import { sendVerifyEmail } from '../lib/mailer.js';
@@ -23,11 +24,6 @@ import { generateRefreshToken, readAuthEnv } from '../lib/tokens.js';
 const VERIFY_TTL_HOURS = 24;
 
 const hashVerifyToken = (t) => crypto.createHash('sha256').update(t).digest('hex');
-
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 /**
  * 이메일 인증 라우터.

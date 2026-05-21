@@ -13,22 +13,13 @@
  * 다른 프로젝트의 컬럼 ID 가 들어오면 404 (스코프 leak 방지).
  */
 import { BoardColumnCreateInput, BoardColumnUpdateInput } from '@getit/schemas/board';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
 
 /** 신규 컬럼 자동 배치 시 마지막 order 에 더할 간격 (between-keys). */
 const ORDER_GAP = 1000;
-
-/**
- * Zod 에러를 400 응답 본문으로 변환.
- *
- * @param {import('zod').ZodError} err
- */
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 /**
  * 응답에 노출할 안전한 컬럼 필드.

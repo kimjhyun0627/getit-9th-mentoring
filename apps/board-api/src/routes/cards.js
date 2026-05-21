@@ -19,6 +19,7 @@
  * 이 파일은 300 LoC 제한 안에서 라우팅에만 집중.
  */
 import { CardCreateInput, CardMoveInput, CardUpdateInput } from '@getit/schemas/board';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
@@ -30,7 +31,6 @@ import {
   lookupColumnAccess,
   ORDER_GAP,
   publicCard,
-  zodErrorBody,
 } from './cardsHelpers.js';
 
 /**

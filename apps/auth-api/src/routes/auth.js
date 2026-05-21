@@ -16,6 +16,7 @@ import crypto from 'node:crypto';
 
 import { requireAuth } from '@getit/auth-utils/server';
 import { LoginInput, SignupInput } from '@getit/schemas/auth';
+import { zodErrorBody } from '@getit/schemas/errors';
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
@@ -45,17 +46,6 @@ const BCRYPT_COST = Number.parseInt(process.env.BCRYPT_COST ?? '12', 10);
  * (cost=12 기준) 추가되지만 1회뿐이라 허용.
  */
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), BCRYPT_COST);
-
-/**
- * Zod 에러를 400 응답 본문으로 변환.
- *
- * @param {import('zod').ZodError} err
- * @returns {{ error: string, issues: Array<{ path: string, message: string }> }}
- */
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 /**
  * User 객체에서 응답에 안전한 필드만 추려서 반환 (passwordHash 절대 노출 X).

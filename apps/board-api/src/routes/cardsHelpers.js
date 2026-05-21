@@ -10,16 +10,6 @@ import { prisma } from '../lib/prisma.js';
 export const ORDER_GAP = 1000;
 
 /**
- * Zod 에러를 400 응답 본문으로 변환.
- *
- * @param {import('zod').ZodError} err
- */
-export const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
-
-/**
  * 응답에 노출할 안전한 Card 필드.
  *
  * @param {{

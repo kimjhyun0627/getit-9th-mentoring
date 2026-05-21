@@ -14,17 +14,13 @@
  *  - applications: { items: { id, createdAt, post: Post }[], nextCursor }
  */
 import { requireAuth } from '@getit/auth-utils/server';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { MyApplicationListQuery, MyPostListQuery } from '@getit/schemas/hobby';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
 
 import { serializePost } from './posts.serialize.js';
-
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 const toIso = (d) => (d instanceof Date ? d.toISOString() : d);
 
