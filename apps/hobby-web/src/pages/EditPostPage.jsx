@@ -13,6 +13,8 @@ import { api } from '../lib/api.js';
 import { useRequireAuth } from '../lib/auth.js';
 import { cn } from '../lib/cn.js';
 
+import { computePatchDiff } from './EditPostPage.diff.js';
+
 /**
  * 게시글 수정 페이지 — #333.
  *
@@ -67,6 +69,8 @@ export const EditPostPage = () => {
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
   // CR review #348: prefill 은 최초 1회만. refetch 시 사용자 입력 덮어쓰지 않도록 가드.
   const didPrefillRef = useRef(false);
+  // PATCH diff (#431) — 원본 post snapshot 을 보존해서 변경된 필드만 PATCH.
+  const initialRef = useRef(/** @type {any} */ (null));
 
   const postQuery = useQuery({
     queryKey: ['post', id],
@@ -106,6 +110,7 @@ export const EditPostPage = () => {
       openChatUrl: post.openChatUrl ?? '',
       tags: (post.tags ?? []).map((t) => t.name),
     });
+    initialRef.current = post;
     didPrefillRef.current = true;
   }, [postQuery.data, reset]);
 
@@ -174,15 +179,14 @@ export const EditPostPage = () => {
 
   const onSubmit = async (values) => {
     setServerError(null);
+    const patch = computePatchDiff(values, initialRef.current);
+    // 변경 없음 → 그대로 redirect (불필요한 PATCH 안 보냄)
+    if (Object.keys(patch).length === 0) {
+      navigate(`/posts/${id}`, { replace: true });
+      return;
+    }
     try {
-      await api.updatePost(id, {
-        title: values.title,
-        body: values.body,
-        meetAt: new Date(values.meetAtLocal).toISOString(),
-        capacity: values.capacity,
-        openChatUrl: values.openChatUrl,
-        tags: values.tags,
-      });
+      await api.updatePost(id, patch);
       navigate(`/posts/${id}`, { replace: true });
     } catch (err) {
       setServerError(toFriendlyError(err));
