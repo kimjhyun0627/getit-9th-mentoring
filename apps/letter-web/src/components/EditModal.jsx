@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -126,13 +127,21 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
+  // Gemini(#512) — open=true 인데 message=null 인 짧은 race 윈도우에서
+  //   하위 if (!open || !message) return null 로 컴포넌트는 안 보이지만
+  //   useDialogFocus / useBodyScrollLock 가 side effect 를 미리 발화하는 케이스.
+  //   실제 모달이 화면에 떠 있을 때만 hook 작동하도록 isVisible 로 묶음.
+  const isVisible = open && !!message;
+
   // 포커스 관리 — useDialogFocus 가 초기 포커스(textarea) + Tab 트랩 + 복원.
-  useDialogFocus({ open, ref: dialogRef, initialSelector: '#edit-content' });
+  useDialogFocus({ open: isVisible, ref: dialogRef, initialSelector: '#edit-content' });
 
   // #464 — body scroll lock + dialog ancestor 형제만 inert.
-  useBodyScrollLock(open, dialogRef);
+  useBodyScrollLock(isVisible, dialogRef);
 
-  if (!open || !message) return null;
+  if (!isVisible) return null;
+  // SSR / 테스트 가드 — document 없는 환경에서는 portal mount 불가, null.
+  if (typeof document === 'undefined') return null;
 
   /** @param {{ content: string; color: string }} values */
   const onSubmit = (values) => {
@@ -157,7 +166,9 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
     mutation.mutate(patch);
   };
 
-  return (
+  // #511 — createPortal 로 document.body 직접 마운트. ancestor CSS containing-block
+  //   swap (transform/filter/contain 등) 영향 없이 viewport fixed 보장.
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-center justify-center px-4 py-6 sm:py-8">
       <button
         type="button"
@@ -295,6 +306,7 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
