@@ -61,15 +61,23 @@ export const ApplySection = ({
     );
   }
   if (isRejected) {
+    // Gemini PR #510: REJECTED 도 사용자가 기록 정리 + 재신청 가능하도록 취소 버튼 노출.
     return (
-      <div
-        data-testid="apply-section-rejected"
-        className="rounded-2xl bg-slate-100 dark:bg-white/10 px-5 py-4 font-round"
-      >
-        <p className="font-display font-extrabold text-slate-700 dark:text-slate-200">
-          신청이 거절되었어 🥲
-        </p>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">다른 모임도 찾아보자.</p>
+      <div data-testid="apply-section-rejected" className="flex flex-wrap items-center gap-3">
+        <div className="rounded-2xl bg-slate-100 dark:bg-white/10 px-5 py-3 font-round">
+          <p className="font-display font-extrabold text-sm text-slate-700 dark:text-slate-200">
+            신청이 거절되었어 🥲
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">다른 모임도 찾아보자.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => cancelMutation.mutate()}
+          disabled={cancelDisabled}
+          className="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/10 dark:ring-white/15 text-slate-700 dark:text-slate-200 px-5 py-3 font-display font-extrabold text-sm shadow-sm disabled:opacity-50"
+        >
+          {cancelMutation.isPending ? '취소 중…' : '기록 삭제'}
+        </button>
       </div>
     );
   }

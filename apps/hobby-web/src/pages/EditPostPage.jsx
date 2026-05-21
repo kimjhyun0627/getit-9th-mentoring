@@ -238,7 +238,13 @@ export const EditPostPage = () => {
               <PolicyToggle
                 value={field.value}
                 onChange={field.onChange}
-                disabled={post.currentCapacity > 0}
+                // Gemini PR #510: PENDING 신청자도 정책 변경 불가. BE 응답의 applicationCount
+                // (방장만 노출) 가 있으면 그 값을, 없으면 currentCapacity 로 fallback.
+                disabled={
+                  typeof post.applicationCount === 'number'
+                    ? post.applicationCount > 0
+                    : post.currentCapacity > 0
+                }
               />
             )}
           />

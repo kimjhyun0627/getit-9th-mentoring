@@ -273,6 +273,15 @@ export const buildApplicationModel = (memDb, nextId) => ({
     err.code = 'P2025';
     throw err;
   },
+
+  // #500/Gemini PR #510: count — Post detail 의 applicationCount 채우는데 사용.
+  count: async ({ where } = {}) => {
+    let n = 0;
+    for (const a of memDb.applications.values()) {
+      if (matchWhere(a, where ?? {})) n += 1;
+    }
+    return n;
+  },
 });
 
 export const buildNotificationModel = (memDb, nextId) => ({

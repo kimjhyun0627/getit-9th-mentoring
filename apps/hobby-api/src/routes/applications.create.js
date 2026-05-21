@@ -57,24 +57,19 @@ const handleFirstCome = async (tx, post, userId) => {
   });
   if (fresh && fresh.status === 'RECRUITING' && fresh.currentCapacity >= fresh.capacity) {
     await tx.post.update({ where: { id: post.id }, data: { status: 'FULL' } });
-    const [ownerRow, apps] = await Promise.all([
-      tx.post.findUnique({
-        where: { id: post.id },
-        select: { ownerId: true, title: true },
-      }),
-      tx.application.findMany({
-        where: { postId: post.id, status: 'APPROVED' },
-        select: { userId: true },
-      }),
-    ]);
+    // Gemini PR #510: 이미 상위 스코프에 post.title / post.ownerId 가 있으므로 재조회 불필요.
+    const apps = await tx.application.findMany({
+      where: { postId: post.id, status: 'APPROVED' },
+      select: { userId: true },
+    });
     const recipientSet = new Set(apps.map((a) => a.userId));
-    if (ownerRow?.ownerId) recipientSet.add(ownerRow.ownerId);
+    if (post.ownerId) recipientSet.add(post.ownerId);
     await tx.notification.createMany({
       data: [...recipientSet].map((uid) => ({
         userId: uid,
         postId: post.id,
         kind: 'MATCH_FULL',
-        message: matchFullMessage(ownerRow?.title),
+        message: matchFullMessage(post.title),
       })),
     });
   }

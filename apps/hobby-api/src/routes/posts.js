@@ -201,9 +201,15 @@ export const createPostsRouter = ({ jwtSecret, mutationLimiter }) => {
       const isApplicantOnFull = Boolean(myApplication) && post.status === 'FULL' && isApproved;
       const isApprovedApplicant = isApprovalPolicy && isApproved;
       const exposeOpenChat = isOwner || isApplicantOnFull || isApprovedApplicant;
-      return res.status(200).json({
-        post: serializePost(post, { exposeOpenChat, myApplication }),
-      });
+      // #500/Gemini PR #510: 방장에게는 신청자 존재 여부도 함께 — FE 가 EditPostPage 의
+      // 정책 토글 disable 여부를 정확히 판단할 수 있게 (PENDING 도 카운트에 포함).
+      let applicationCount;
+      if (isOwner) {
+        applicationCount = await prisma.application.count({ where: { postId: post.id } });
+      }
+      const serialized = serializePost(post, { exposeOpenChat, myApplication });
+      if (typeof applicationCount === 'number') serialized.applicationCount = applicationCount;
+      return res.status(200).json({ post: serialized });
     } catch (err) {
       return next(err);
     }

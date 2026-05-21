@@ -88,11 +88,12 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
         });
       }
       // #500: 정책 변경은 신청자 있으면 거부 (PENDING 처리/openChatUrl 노출 충돌 방지).
+      // Gemini PR #510: 신청자 수 가져오지 말고 count 로 존재 여부만 체크.
       const policyChange =
         applicationPolicy && applicationPolicy !== (post.applicationPolicy ?? 'FIRST_COME');
       if (policyChange) {
-        const apps = await prisma.application.findMany({ where: { postId: post.id } });
-        if (apps.length > 0) return res.status(422).json({ error: 'PolicyChangeNotAllowed' });
+        const appCount = await prisma.application.count({ where: { postId: post.id } });
+        if (appCount > 0) return res.status(422).json({ error: 'PolicyChangeNotAllowed' });
       }
 
       const updated = await prisma.$transaction(async (tx) => {

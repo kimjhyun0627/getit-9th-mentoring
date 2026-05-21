@@ -174,8 +174,8 @@ export const MyApplicationCard = ({ item, onCancel, isPending }) => {
   const post = item.post;
   const palette = paletteFor(post);
   const myStatus = item.status ?? 'APPROVED';
-  // 거절된 신청은 취소 의미 없음. 종료된 모임도 동일.
-  const canCancel = post.status !== 'CLOSED' && myStatus !== 'REJECTED';
+  // Gemini PR #510: REJECTED 도 사용자가 목록 정리할 수 있게 취소 허용. BE 가 capacity 영향 X.
+  const canCancel = post.status !== 'CLOSED';
   return (
     <li
       data-testid={`my-application-${item.id}`}
