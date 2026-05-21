@@ -55,4 +55,13 @@ describe('zodErrorBody', () => {
     const body = zodErrorBody(r.error);
     expect(body.issues[0].path).toBe('tags.1');
   });
+
+  it('err 가 null/undefined 여도 안전하게 빈 issues 반환', () => {
+    expect(zodErrorBody(null)).toEqual({ error: 'ValidationError', issues: [] });
+    expect(zodErrorBody(undefined)).toEqual({ error: 'ValidationError', issues: [] });
+  });
+
+  it('err.issues 가 없어도 안전하게 빈 issues 반환', () => {
+    expect(zodErrorBody({})).toEqual({ error: 'ValidationError', issues: [] });
+  });
 });

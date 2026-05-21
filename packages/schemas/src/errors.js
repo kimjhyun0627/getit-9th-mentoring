@@ -15,5 +15,5 @@
  */
 export const zodErrorBody = (err) => ({
   error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+  issues: err?.issues?.map((i) => ({ path: i.path.join('.'), message: i.message })) ?? [],
 });
