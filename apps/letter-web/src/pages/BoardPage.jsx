@@ -6,6 +6,7 @@ import {
   EmptyBoard,
   ErrorState,
   LoadingGrid,
+  RedirectingNotice,
 } from '../components/BoardStates.jsx';
 import { ComposeModal } from '../components/ComposeModal.jsx';
 import { EditModal } from '../components/EditModal.jsx';
@@ -15,15 +16,8 @@ import { readSortMode, sortMessages, writeSortMode } from '../lib/sort.js';
 
 /**
  * `/` — 익명 롤링페이퍼 메인 화이트보드.
- *
- * Phase 6c P2/P3 통합:
- *  - #279: 30초 polling + window focus refetch
- *  - #305: 작성 성공 시 aria-live 토스트 ("✓ 한 줄 살며시 붙였어요")
- *  - #304: 카운트 변화 aria-live=polite (SR 안내)
- *  - #303: grid bottom padding (FAB 마지막 카드 가림 방지)
- *  - #306: meQuery 401 → SSO redirect, 그 전엔 보드 비노출
- *  - #324: role=list 제거, Postit article 에 listitem 으로 부여
- *  - #307: 정렬 토글 (최신 / 무작위) + localStorage persist
+ * 30s polling (#279) + 401 SSO 게이트 (#306, #448) + sr-only 토스트 (#305).
+ * 정렬 토글 (#307/#482) + 빈 보드 단일 카피 (#473) + 429 backoff (#486).
  */
 export const BoardPage = () => {
   const [composeOpen, setComposeOpen] = useState(false);
@@ -52,6 +46,8 @@ export const BoardPage = () => {
   const isAuthed = meQuery.isSuccess;
 
   // #279 — 30초 polling + window focus refetch. 부원 ~50명 + GET limit 60/min 안전.
+  // #486 — 429 자동 backoff. 정당 사용자가 다중 탭 + focus refetch 누적으로 429 받으면
+  //   ErrorState 깜빡임 없이 조용히 잠시 후 재시도. 401/4xx 그 외는 retry X.
   const messagesQuery = useQuery({
     queryKey: ['messages'],
     queryFn: async () => {
@@ -61,6 +57,12 @@ export const BoardPage = () => {
     enabled: isAuthed,
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
+    retry: (failureCount, error) => {
+      const status = /** @type {{response?:{status?:number}}} */ (error)?.response?.status;
+      // 429 만 1회까지 retry. 다른 에러는 즉시 ErrorState (또는 401 redirect placeholder).
+      return status === 429 && failureCount < 1;
+    },
+    retryDelay: 2000,
   });
 
   const deleteMutation = useMutation({
@@ -76,7 +78,10 @@ export const BoardPage = () => {
     onError: (_err, _id, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(['messages'], ctx.prev);
     },
-    onSuccess: () => announceStatus('쪽지를 떼어냈어요'),
+    // #471 — 성공 토스트에 ✓ prefix (스펙 일치). visible 토스트는 BoardStatusLive
+    // 의 sr-only 안내 + 모달 닫힘으로 갈음. 시각 사용자는 즉시 invalidate 후 카드 사라짐
+    // / 새 카드 등장으로 결과를 확인.
+    onSuccess: () => announceStatus('✓ 쪽지를 떼어냈어요'),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['messages'] }),
   });
 
@@ -106,21 +111,14 @@ export const BoardPage = () => {
   }
   if (meQuery.isError) {
     const meStatus = /** @type {{response?:{status?:number}}} */ (meQuery.error)?.response?.status;
-    if (meStatus === 401) {
-      return (
-        <section className="paper relative">
-          <div className="relative z-10 mx-auto max-w-md py-16 text-center">
-            <p className="font-hand text-base text-ink2 dark:text-beige2">
-              로그인 페이지로 이동 중이에요…
-            </p>
-          </div>
-        </section>
-      );
-    }
     return (
       <section className="paper relative">
         <div className="relative z-10">
-          <ErrorState onRetry={() => meQuery.refetch()} />
+          {meStatus === 401 ? (
+            <RedirectingNotice />
+          ) : (
+            <ErrorState onRetry={() => meQuery.refetch()} />
+          )}
         </div>
       </section>
     );
@@ -143,19 +141,25 @@ export const BoardPage = () => {
           </div>
         ) : null}
 
-        {messagesQuery.isLoading ? (
-          <LoadingGrid />
-        ) : messagesQuery.isError ? (
-          <ErrorState onRetry={() => messagesQuery.refetch()} />
-        ) : count === 0 ? (
-          <EmptyBoard />
-        ) : (
-          <MessageGrid
-            items={items}
-            onEdit={(m) => setEditTarget(m)}
-            onDelete={(m) => deleteMutation.mutate(m.id)}
-          />
-        )}
+        {(() => {
+          if (messagesQuery.isLoading) return <LoadingGrid />;
+          if (messagesQuery.isError) {
+            // #448 — listMessages 401 ErrorState 플래시 회피. SSO redirect 발화 직전
+            //   한 tick 동안 "쪽지를 불러오지 못했어요" 깜빡임 차단. meQuery 401 과 톤 통일.
+            const status = /** @type {{response?:{status?:number}}} */ (messagesQuery.error)
+              ?.response?.status;
+            if (status === 401) return <RedirectingNotice />;
+            return <ErrorState onRetry={() => messagesQuery.refetch()} />;
+          }
+          if (count === 0) return <EmptyBoard />;
+          return (
+            <MessageGrid
+              items={items}
+              onEdit={(m) => setEditTarget(m)}
+              onDelete={(m) => deleteMutation.mutate(m.id)}
+            />
+          );
+        })()}
       </div>
 
       <button
@@ -176,7 +180,8 @@ export const BoardPage = () => {
         onClose={() => setComposeOpen(false)}
         onSuccess={() => {
           setComposeOpen(false);
-          announceStatus('한 줄 살며시 붙였어요');
+          // #471 — ✓ prefix 추가 (스펙: `✓ 한 줄 살며시 붙였어요`).
+          announceStatus('✓ 한 줄 살며시 붙였어요');
           queryClient.invalidateQueries({ queryKey: ['messages'] });
         }}
       />
@@ -186,7 +191,8 @@ export const BoardPage = () => {
         onClose={() => setEditTarget(null)}
         onSuccess={() => {
           setEditTarget(null);
-          announceStatus('쪽지를 다시 다듬었어요');
+          // #471 — ✓ prefix 추가.
+          announceStatus('✓ 쪽지를 다시 다듬었어요');
         }}
       />
     </section>
@@ -213,7 +219,9 @@ const TitleStrip = ({ count, sortMode, onSortToggle }) => (
       </div>
       <div className="flex flex-col items-start gap-2 sm:items-end">
         <SortToggle value={sortMode} onChange={onSortToggle} />
-        {/* #304 — 카운트 영역 aria-live: SR 사용자가 추가/삭제를 인지. */}
+        {/* #304 — 카운트 영역 aria-live: SR 사용자가 추가/삭제를 인지.
+            #473 — 빈 상태 카피는 EmptyBoard 가 단일 책임. count===0 일 때 TitleStrip
+            카운트 영역은 비워서 "벽이 비어있어요" vs "아직 쪽지가 없어요" 톤 충돌 회피. */}
         <div
           aria-live="polite"
           aria-atomic="true"
@@ -224,9 +232,7 @@ const TitleStrip = ({ count, sortMode, onSortToggle }) => (
               총 <span className="font-bold text-ink dark:text-beige">{count}</span>장의 쪽지가
               붙어있어요
             </>
-          ) : (
-            '벽이 비어있어요'
-          )}
+          ) : null}
         </div>
       </div>
     </div>
@@ -236,18 +242,20 @@ const TitleStrip = ({ count, sortMode, onSortToggle }) => (
 
 /**
  * #307 — 정렬 토글 (라디오 그룹).
+ * #482 — Warm 손글씨 톤 통일: font-hand + 부드러운 어휘 ("방금 붙인 순"/"섞어서").
+ *   aria-label 도 "쪽지 배치" 로 자연스럽게.
  *
  * @param {{ value: 'latest'|'random', onChange: (m: 'latest'|'random') => void }} props
  */
 const SortToggle = ({ value, onChange }) => (
   <div
     role="radiogroup"
-    aria-label="정렬 방식"
-    className="inline-flex rounded-full border border-ink/15 bg-white/65 p-0.5 text-xs font-medium text-ink2 shadow-sm dark:border-beige/20 dark:bg-mocha3/55 dark:text-beige2"
+    aria-label="쪽지 배치"
+    className="inline-flex rounded-full border border-ink/15 bg-white/65 p-0.5 font-hand text-sm text-ink2 shadow-sm dark:border-beige/20 dark:bg-mocha3/55 dark:text-beige2"
   >
     {[
-      ['latest', '최신순'],
-      ['random', '무작위'],
+      ['latest', '방금 붙인 순'],
+      ['random', '섞어서'],
     ].map(([mode, label]) => (
       <button
         key={mode}

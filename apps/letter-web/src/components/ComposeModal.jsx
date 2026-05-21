@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { CONTENT_MAX, counterColorClass, retryAfterSec } from '../lib/modalHelpers.js';
+import { useBodyScrollLock } from '../lib/useBodyScrollLock.js';
 import { useDialogFocus } from '../lib/useDialogFocus.js';
 
 import { ColorPicker, STICKY_COLORS } from './ColorPicker.jsx';
@@ -14,13 +15,8 @@ import { ColorPicker, STICKY_COLORS } from './ColorPicker.jsx';
 const COLOR_VALUES = STICKY_COLORS.map((c) => c.value);
 
 /**
- * 폼 검증 스키마 — `MessageCreateInput` 과 동일한 규칙이지만
- * FE 한정으로 친절한 한국어 메시지를 강제 (특히 color 미선택).
- * BE 도 동일 zod (`MessageCreateInput`) 로 다시 검증하니 우회 위험 없음.
- *
- * NOTE: z.enum 은 undefined 를 `Required` 로만 처리하고 invalid 메시지를
- * 노출하지 못해서, color 는 union 으로 받고 refine 으로 "비선택" 케이스에
- * 사용자 친화 메시지를 강제.
+ * 폼 검증 스키마. BE `MessageCreateInput` 과 동일 규칙 + 한국어 메시지.
+ * color 는 z.enum 대신 union+refine 으로 "비선택" 케이스 안내 친화.
  */
 const ComposeFormSchema = z.object({
   // #323 — BE 도 trim 후 min(1) 검증. FE 에서 미리 잡아 친절한 메시지.
@@ -59,15 +55,7 @@ const toFriendlyError = (err) => {
 
 /**
  * 메시지 작성 모달 (Issue #55).
- *
- * 동작:
- *  - RHF + Zod (`MessageCreateInput`) 로 검증 — 색 / 내용 필수
- *  - 제출 → POST /api/messages → `['messages']` 쿼리 invalidate → onSuccess + onClose
- *  - backdrop 클릭 / Escape 키 → onClose
- *
- * 디자인:
- *  - Warm 톤 (cream 카드 + 손글씨 액센트 + 4색 파스텔 스와치)
- *  - 모달 본체는 종이 느낌. 색 선택 swatch 는 라디오 그룹.
+ * RHF+Zod 검증 / POST /api/messages / backdrop+Escape 닫기 / Warm 4색 스와치.
  *
  * @param {{
  *   open: boolean;
@@ -127,6 +115,9 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
 
   // 포커스 관리 — useDialogFocus hook 이 초기 포커스 + Tab 트랩 + 복원 담당.
   useDialogFocus({ open, ref: dialogRef, initialSelector: '#compose-content' });
+
+  // #464 — body scroll lock + dialog ancestor 형제만 inert (모달 트리는 살아있음).
+  useBodyScrollLock(open, dialogRef);
 
   // 모달 열릴 때마다 state 리셋 (이전 에러 / 입력 흔적 제거).
   useEffect(() => {

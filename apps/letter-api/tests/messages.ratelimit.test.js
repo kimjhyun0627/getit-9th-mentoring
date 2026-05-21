@@ -44,6 +44,26 @@ describe('letter-api rate limiting', () => {
       // FE 가 Retry-After 카운트다운에 활용 (#326).
       expect(blocked.headers['ratelimit-reset']).toBeDefined();
     });
+
+    // #486 — per-user (JWT sub) keyGenerator: 같은 IP 라도 다른 토큰이면 quota 독립.
+    it('같은 IP 라도 다른 JWT sub 면 read quota 가 독립적으로 누적된다 (#486)', async () => {
+      const isolated = createApp({ rateLimitMax: 1000, readRateLimitMax: 2 });
+      const a = tokenFor('user-a');
+      const b = tokenFor('user-b');
+      // a 가 2회 소진 → 다음 a 는 429.
+      for (let i = 0; i < 2; i += 1) {
+        const ok = await request(isolated).get('/api/messages').set('Authorization', `Bearer ${a}`);
+        expect(ok.status).toBe(200);
+      }
+      const aBlocked = await request(isolated)
+        .get('/api/messages')
+        .set('Authorization', `Bearer ${a}`);
+      expect(aBlocked.status).toBe(429);
+
+      // b 는 별개 bucket — 동일 IP 인데도 통과해야 함.
+      const bOk = await request(isolated).get('/api/messages').set('Authorization', `Bearer ${b}`);
+      expect(bOk.status).toBe(200);
+    });
   });
 
   describe('POST /api/messages — mutationLimiter (#326)', () => {

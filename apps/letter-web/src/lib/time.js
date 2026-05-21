@@ -2,6 +2,14 @@
  * createdAt → 한국어 상대 시간 ("방금", "N분 전", "M일 전", "YYYY-MM-DD").
  * Warm 시안의 손글씨 시간 표기와 동일한 분기 (board-web 의 formatUpdated 와 동등).
  *
+ * #453 — "방금 전" 윈도우 완화 (`min < 2`).
+ *   BE 가 createdAt 을 분 단위로 floor truncate (#250) 하기 때문에:
+ *     - 14:23:55 작성 → BE truncate → 14:23:00
+ *     - 14:24:05 조회 → diff 65s → floor(65/60) = 1 → "1분 전"
+ *   즉 작성 10초 후에 "1분 전" 으로 점프 (실제로는 0분 전이 자연스러움).
+ *   FE 단에서 `min < 2` 까지 "방금 전" 처리하면 익명성 (BE truncate) 유지 + UX 매끄러움.
+ *   2분 이상부터 `${min}분 전` — 손해는 "1분 전" 표시가 사라지는 것뿐.
+ *
  * @param {string | Date | null | undefined} value
  * @param {Date} [now] - 테스트용 주입 (deterministic).
  * @returns {string}
@@ -12,7 +20,7 @@ export const formatRelative = (value, now = new Date()) => {
   if (Number.isNaN(d.getTime())) return '';
   const diffMs = now.getTime() - d.getTime();
   const min = Math.floor(diffMs / 60_000);
-  if (min < 1) return '방금 전';
+  if (min < 2) return '방금 전';
   if (min < 60) return `${min}분 전`;
   const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr}시간 전`;

@@ -8,15 +8,21 @@ import { formatRelative, rotationFromId } from '../lib/time.js';
  * Warm 시안의 4색 + 다크모드용 짙은 변형 (tailwind.config.js `colors.note` 와 일치).
  * Schemas `MessageColor` enum 과 1:1.
  *
- * 워시테이프 색상도 같이 묶어둬서 색마다 다른 strip 가 붙는다 (시안과 동일).
+ * 워시테이프 색상은 포스트잇 색마다 보색/대비 톤으로 매핑 (#461):
+ *  - PINK    → sage    (그린 톤, 핑크와 보색)
+ *  - MINT    → peachDk (살구 톤, 민트와 대비)
+ *  - LEMON   → rose    (핑크 톤, 옐로우와 대비 — 다크는 sageW)
+ *  - LAVENDER→ peach   (살구 톤, 라벤더와 대비)
+ *
+ * 시안 `docs/design/letter/warm.html` 기준. 4색 변별력 보장 + 라이트/다크 톤 일관.
  */
 const PALETTE = /** @type {const} */ ({
   PINK: { bg: 'bg-note-pink dark:bg-note-pinkDk', tape: 'bg-sage/70 dark:bg-sageW/70' },
   MINT: { bg: 'bg-note-mint dark:bg-note-mintDk', tape: 'bg-peachDk/85 dark:bg-rose/85' },
-  LEMON: { bg: 'bg-note-lemon dark:bg-note-lemonDk', tape: 'bg-peachDk/85 dark:bg-rose/85' },
+  LEMON: { bg: 'bg-note-lemon dark:bg-note-lemonDk', tape: 'bg-rose/80 dark:bg-sageW/70' },
   LAVENDER: {
     bg: 'bg-note-lavender dark:bg-note-lavenderDk',
-    tape: 'bg-sageW/70 dark:bg-sageW/60',
+    tape: 'bg-peach/85 dark:bg-peachDk/70',
   },
 });
 
@@ -92,7 +98,12 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
       // 비상호작용 article 자체는 탭 동선에서 제외 (카드 N개만큼 stop 늘어남 방지).
       // hover 보정/포커스 강조는 내부 버튼 :focus-visible 과 카드의 :focus-within
       // 으로 자연스럽게 받는다.
-      aria-label={message.is_mine ? '내 메시지' : undefined}
+      //
+      // #467 — 본인 메시지 aria-label 중복 제거.
+      //   과거: article aria-label="내 메시지" + visible badge "내 메시지" 텍스트가
+      //   둘 다 announce 되어 SR 사용자에게 "내 메시지, article, 내 메시지" 더블 안내.
+      //   현재: article aria-label 제거, badge 텍스트만 한 번 announce.
+      //   판별은 위에 노출된 visible "내 메시지" 라벨 + .mine 클래스로 충분.
       style={{ '--rot': rot }}
       className={cn('note text-ink dark:text-mocha', palette.bg, message.is_mine && 'mine')}
     >

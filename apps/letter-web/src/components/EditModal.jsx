@@ -7,20 +7,14 @@ import { z } from 'zod';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { CONTENT_MAX, counterColorClass, retryAfterSec } from '../lib/modalHelpers.js';
+import { useBodyScrollLock } from '../lib/useBodyScrollLock.js';
 import { useDialogFocus } from '../lib/useDialogFocus.js';
 
 import { ColorPicker, STICKY_COLORS } from './ColorPicker.jsx';
 
 /**
  * EditModal — 본인 메시지 편집 모달 (Issue #249).
- *
- * ComposeModal 과 형태는 비슷하지만 책임이 다름:
- *  - PATCH /api/messages/:id (createMessage 대신 updateMessage)
- *  - initial 값으로 미리 채워진 폼
- *  - 변경 없으면 비활성 (no-op 차단)
- *
- * Postit 의 ✏ 편집 버튼이 호출. ComposeModal 과 한 파일로 묶으려다가 파일이
- * 300줄 초과해 분리 (CLAUDE.md 제약).
+ * PATCH /api/messages/:id, initial 값 prefill, mini-diff (#487).
  */
 
 const COLOR_VALUES = STICKY_COLORS.map((c) => c.value);
@@ -135,17 +129,32 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
   // 포커스 관리 — useDialogFocus 가 초기 포커스(textarea) + Tab 트랩 + 복원.
   useDialogFocus({ open, ref: dialogRef, initialSelector: '#edit-content' });
 
+  // #464 — body scroll lock + dialog ancestor 형제만 inert.
+  useBodyScrollLock(open, dialogRef);
+
   if (!open || !message) return null;
 
   /** @param {{ content: string; color: string }} values */
   const onSubmit = (values) => {
     // 변경 없으면 no-op (네트워크 절감).
-    if (values.content === message.content && values.color === message.color) {
+    //
+    // #487 — values.content 는 zodResolver 의 .trim() 으로 trimmed.
+    //   message.content (서버 원본) 도 BE 에서 trim 후 저장 → 보통 같지만
+    //   leading/trailing space 만 추가/제거한 케이스도 안전하게 no-op 으로 떨어진다.
+    const contentChanged = values.content !== message.content;
+    const colorChanged = values.color !== message.color;
+    if (!contentChanged && !colorChanged) {
       onClose();
       return;
     }
     setServerError(null);
-    mutation.mutate(values);
+    // #487 — mini-diff: 변경된 필드만 PATCH. MessageUpdateInput 은 partial 이라
+    //   서버는 둘 다 optional 로 받아도 정상. 네트워크 페이로드/감사 로그 모두 깨끗.
+    /** @type {{ content?: string; color?: string }} */
+    const patch = {};
+    if (contentChanged) patch.content = values.content;
+    if (colorChanged) patch.color = values.color;
+    mutation.mutate(patch);
   };
 
   return (

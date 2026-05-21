@@ -113,7 +113,8 @@ describe('BoardPage', () => {
     const articles = screen.getAllByRole('article');
     expect(articles).toHaveLength(2);
 
-    const mine = articles.find((a) => a.getAttribute('aria-label') === '내 메시지');
+    // #467 — article aria-label 제거됨. 본인 카드 식별은 .mine 클래스 + visible badge.
+    const mine = articles.find((a) => a.classList.contains('mine'));
     expect(mine).toBeDefined();
     expect(within(/** @type {HTMLElement} */ (mine)).getByText('내 메시지')).toBeInTheDocument();
     expect(
@@ -123,7 +124,7 @@ describe('BoardPage', () => {
       within(/** @type {HTMLElement} */ (mine)).getByRole('button', { name: /삭제/ }),
     ).toBeInTheDocument();
 
-    const other = articles.find((a) => a.getAttribute('aria-label') !== '내 메시지');
+    const other = articles.find((a) => !a.classList.contains('mine'));
     expect(other).toBeDefined();
     expect(
       within(/** @type {HTMLElement} */ (other)).queryByText('내 메시지'),
@@ -190,6 +191,32 @@ describe('BoardPage', () => {
     expect(screen.getByRole('button', { name: /다시 시도/ })).toBeInTheDocument();
     // redirect placeholder 텍스트는 노출되면 안 됨.
     expect(screen.queryByText(/로그인 페이지로 이동/)).not.toBeInTheDocument();
+  });
+
+  // #448 — listMessages 401 시 ErrorState 플래시 차단
+  it('listMessages 401 이면 ErrorState 대신 redirect 안내 (#448)', async () => {
+    vi.spyOn(api, 'listMessages').mockRejectedValue({ response: { status: 401 } });
+    renderPage();
+    expect(await screen.findByText(/로그인 페이지로 이동/)).toBeInTheDocument();
+    // "쪽지를 불러오지 못했어요" 가 깜빡 노출되면 안 됨.
+    expect(screen.queryByText(/쪽지를 불러오지 못했어요/)).not.toBeInTheDocument();
+  });
+
+  // #473 — 빈 보드 시 TitleStrip 카운트 영역에 "벽이 비어있어요" 안 나와야 (EmptyBoard 단일 책임)
+  it('빈 보드 시 TitleStrip 카운트 영역은 비어있다 (#473)', async () => {
+    vi.spyOn(api, 'listMessages').mockResolvedValue({ data: { items: [] } });
+    renderPage();
+    expect(await screen.findByText(/아직 쪽지가 없어요/)).toBeInTheDocument();
+    expect(screen.queryByText(/벽이 비어있어요/)).not.toBeInTheDocument();
+  });
+
+  // #482 — 정렬 토글 Warm 어휘
+  it('정렬 토글 라벨은 "방금 붙인 순" / "섞어서" (#482)', async () => {
+    vi.spyOn(api, 'listMessages').mockResolvedValue({ data: { items: [] } });
+    renderPage();
+    expect(await screen.findByRole('radio', { name: /방금 붙인 순/ })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /섞어서/ })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: /쪽지 배치/ })).toBeInTheDocument();
   });
 
   // #249 — 본인 메시지 삭제 mutation 연결

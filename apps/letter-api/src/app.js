@@ -110,12 +110,25 @@ export const createApp = (opts = {}) => {
 
   // GET /api/messages 도 timing oracle 차단 목적으로 limit (#252).
   // mutation 보다는 후하게 (기본 분당 60 = 1초당 1회).
+  //
+  // #486 — per-user (JWT sub) limit 으로 키 전환.
+  //   기존 per-IP 는 동아리 공용 wifi / 모바일 NAT 뒤 다중 사용자 누적 → 60/min 도달 가능
+  //   (탭 5개 × 30s polling + focus refetch). per-user 로 가면 IP 공유 false-positive 해소,
+  //   사용자 한 명이 다중 탭으로 폭주하는 진짜 abuse 만 잡힘. timing oracle 차단 의도는
+  //   "한 사용자가 짧은 시간 안에 많은 GET 으로 createdAt 분포를 캐기 어렵게" — sub 기준이
+  //   오히려 의도와 더 정합. auth 미통과 (req.user 없음) 케이스는 ip fallback 으로 안전.
   const readLimiter = rateLimit({
     windowMs: rateLimitWindowMs,
     max: readRateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'RateLimitExceeded' },
+    keyGenerator: (req) => {
+      const sub = /** @type {{ user?: { sub?: string } }} */ (req)?.user?.sub;
+      if (typeof sub === 'string' && sub.length > 0) return `u:${sub}`;
+      // unauthenticated 케이스 — auth 미들웨어가 먼저 401 처리하지만 방어 차원.
+      return `ip:${req.ip ?? 'unknown'}`;
+    },
   });
 
   const jwtSecret = readJwtSecret();

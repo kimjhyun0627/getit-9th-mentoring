@@ -98,6 +98,9 @@ describe('ComposeModal', () => {
     const { onClose } = renderModal();
 
     const backdrop = screen.getByTestId('compose-modal-backdrop');
+    // CR(#494) — useBodyScrollLock 가 backdrop 에 inert 걸지 않아야 한다.
+    //   dialogEl 의 형제(=backdrop) inert 면 click 차단 → 외부 클릭 닫기 회귀.
+    expect(backdrop.hasAttribute('inert')).toBe(false);
     await user.click(backdrop);
 
     expect(onClose).toHaveBeenCalledTimes(1);
