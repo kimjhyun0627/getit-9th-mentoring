@@ -114,6 +114,8 @@ describe('App (landing · Tech-Dark)', () => {
     for (const project of PROJECTS) {
       const heading = screen.getByRole('heading', { name: new RegExp(project.title) });
       const link = heading.closest('a');
+      // CR (#368): within(link) 전 null 가드 — 실패 메시지를 명확하게.
+      expect(link).not.toBeNull();
       expect(within(link).getByTestId('external-link-indicator')).toBeInTheDocument();
     }
   });

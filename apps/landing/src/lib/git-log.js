@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { getGitLog as getBuildTimeGitLog } from '../data/git-log.js';
 
 /**
@@ -11,6 +13,10 @@ import { getGitLog as getBuildTimeGitLog } from '../data/git-log.js';
  * 응답 mapping:
  *   { sha, commit: { message } } → { sha: sha.slice(0,7), message: message.split('\n')[0] }
  *
+ * CR (#368): 캐시 원소도 Zod 로 schema validate. 외부 storage 신뢰 X — 다른 탭/
+ * 확장 프로그램이 `[{...}, null]` 같은 형태로 오염시키면 Footer 의 구조분해에서
+ * TypeError. projects.js / useSession.js 패턴 따라 safeParse 사용.
+ *
  * 반환 형식은 build-time 과 동일 → Footer 가 그대로 렌더할 수 있게.
  */
 
@@ -19,22 +25,25 @@ const API_URL = 'https://api.github.com/repos/kimjhyun0627/getit-9th-mentoring/c
 const CACHE_KEY = 'landing.gitlog.v1';
 const TTL_MS = 60 * 60 * 1000; // 1 hour
 
+const GitLogItemSchema = z.object({
+  sha: z.string().min(1),
+  message: z.string().min(1),
+});
+
+const GitLogCacheSchema = z.object({
+  at: z.number(),
+  items: z.array(GitLogItemSchema).min(1),
+});
+
 const readCache = () => {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.sessionStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (
-      !parsed ||
-      typeof parsed.at !== 'number' ||
-      !Array.isArray(parsed.items) ||
-      parsed.items.length === 0
-    ) {
-      return null;
-    }
-    if (Date.now() - parsed.at > TTL_MS) return null;
-    return parsed.items;
+    const result = GitLogCacheSchema.safeParse(JSON.parse(raw));
+    if (!result.success) return null;
+    if (Date.now() - result.data.at > TTL_MS) return null;
+    return result.data.items;
   } catch {
     return null;
   }

@@ -106,6 +106,32 @@ describe('fetchGitLog (#362)', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
+  it('오염된 캐시 (items 에 null 포함) 는 무시하고 다시 fetch 한다 (CR #368)', async () => {
+    // 누군가/다른 탭이 sessionStorage 를 `[{...}, null]` 로 오염시켰다고 가정.
+    window.sessionStorage.setItem(
+      'landing.gitlog.v1',
+      JSON.stringify({
+        at: Date.now(),
+        items: [{ sha: 'abcdef1', message: 'feat: ok' }, null],
+      }),
+    );
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(okResponse([mockCommit('abcdef1234567890', 'feat: fresh')]));
+    const items = await fetchGitLog({ fetchImpl });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(items).toEqual([{ sha: 'abcdef1', message: 'feat: fresh' }]);
+  });
+
+  it('잘못된 JSON 도 (`at` 누락 등) 캐시 무시 + fetch', async () => {
+    window.sessionStorage.setItem('landing.gitlog.v1', JSON.stringify({ items: [] }));
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(okResponse([mockCommit('abcdef1234567890', 'feat: x')]));
+    await fetchGitLog({ fetchImpl });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
   it('GitHub Commits API URL + Accept header 를 호출한다', async () => {
     const fetchImpl = vi
       .fn()
