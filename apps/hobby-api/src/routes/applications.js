@@ -14,6 +14,7 @@
  *   applications.create.js 의 handleFirstCome 주석 참조.
  */
 import { requireAuth } from '@getit/auth-utils/server';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { ApplicationCreateInput, ApplicationIdParam } from '@getit/schemas/hobby';
 import { Router } from 'express';
 
@@ -21,11 +22,6 @@ import { prisma } from '../lib/prisma.js';
 
 import { applyToPost, respondApply } from './applications.create.js';
 import { approveApplication, rejectApplication, respondDecision } from './applications.decision.js';
-
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 const serializeApplication = (app) => ({
   id: app.id,

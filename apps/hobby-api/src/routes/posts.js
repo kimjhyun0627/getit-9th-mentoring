@@ -18,17 +18,13 @@
  *  - GET /api/posts 가 q (검색) / timeWindow (today|week) 서버 필터 처리.
  */
 import { requireAuth } from '@getit/auth-utils/server';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { PostCreateInput, PostIdParam, PostListQuery } from '@getit/schemas/hobby';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
 
 import { serializePost } from './posts.serialize.js';
-
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 /**
  * 태그 이름 정규화 — trim + 소문자. 같은 이름의 중복 entry 도 제거.

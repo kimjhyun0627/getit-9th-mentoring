@@ -15,6 +15,7 @@
  * 별점 0-5 정수 검증은 ShelfAddInput / ShelfUpdateInput 의 zod schema 가 강제.
  */
 import { requireAuth } from '@getit/auth-utils/server';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { ShelfAddInput, ShelfUpdateInput } from '@getit/schemas/shelf';
 import { Router } from 'express';
 
@@ -28,7 +29,6 @@ import {
   parseListQuery,
   publicReadOnlyShelf,
   publicShelf,
-  zodErrorBody,
 } from './shelves.helpers.js';
 
 /**

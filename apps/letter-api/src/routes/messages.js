@@ -19,20 +19,11 @@
  * 응답 모양 회귀 (snapshot/contract) 는 #53 (BE-security) 에서 별도.
  */
 import { requireAuth } from '@getit/auth-utils/server';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { MessageCreateInput, MessageIdParam, MessageUpdateInput } from '@getit/schemas/letter';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
-
-/**
- * Zod 에러를 400 응답 본문으로 변환.
- *
- * @param {import('zod').ZodError} err
- */
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 /**
  * createdAt 을 분(minute) 단위로 라운딩한 ISO 문자열로 변환.

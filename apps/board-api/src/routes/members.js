@@ -11,6 +11,7 @@
  *   mergeParams: true 로 부모 `:id` 를 자식 라우터에서 사용.
  */
 import { ProjectMemberInput } from '@getit/schemas/board';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
@@ -18,11 +19,6 @@ import { lookupUserNames } from '../lib/userLookup.js';
 
 // Prisma unique constraint violation code (projectId+userId 충돌 시).
 const PRISMA_UNIQUE_VIOLATION = 'P2002';
-
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 const publicMember = (m) => ({
   id: m.id,

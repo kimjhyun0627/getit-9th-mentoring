@@ -16,6 +16,7 @@
  *  - 노쇼 신고는 meetAt 이 지난 모임만. 그 전엔 422.
  */
 import { requireAuth } from '@getit/auth-utils/server';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { NoShowReportInput, PostIdParam, PostUpdateInput } from '@getit/schemas/hobby';
 import { Router } from 'express';
 
@@ -23,11 +24,6 @@ import { noShowReportedMessage, postClosedMessage } from '../lib/notificationMes
 import { prisma } from '../lib/prisma.js';
 
 import { serializePost } from './posts.serialize.js';
-
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 const normalizeTagNames = (raw) => {
   const seen = new Set();

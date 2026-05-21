@@ -15,15 +15,11 @@
  * 알림 생성은 applications.js 의 FULL 전이 훅에서 수행.
  */
 import { requireAuth } from '@getit/auth-utils/server';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { NotificationListQuery } from '@getit/schemas/hobby';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
-
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 const toIso = (d) => (d instanceof Date ? d.toISOString() : (d ?? null));
 

@@ -11,6 +11,7 @@
  * - DELETE /projects/:id    — OWNER만
  */
 import { ProjectCreateInput, ProjectUpdateInput } from '@getit/schemas/board';
+import { zodErrorBody } from '@getit/schemas/errors';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
@@ -23,16 +24,6 @@ const DEFAULT_COLUMNS = [
   { name: 'Doing', order: 2000 },
   { name: 'Done', order: 3000 },
 ];
-
-/**
- * Zod 에러를 400 응답 본문으로 변환.
- *
- * @param {import('zod').ZodError} err
- */
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 /**
  * 응답에 노출할 안전한 Project 필드만 추림.

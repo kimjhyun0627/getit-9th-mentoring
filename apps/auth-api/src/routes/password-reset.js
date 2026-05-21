@@ -22,6 +22,7 @@
 import crypto from 'node:crypto';
 
 import { ForgotPasswordInput, ResetPasswordInput } from '@getit/schemas/auth';
+import { zodErrorBody } from '@getit/schemas/errors';
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
@@ -46,17 +47,6 @@ const shouldReturnTokenInResponse = () => {
   if (process.env.NODE_ENV === 'production') return false;
   return process.env.RESET_TOKEN_DEV_RETURN === 'true' || process.env.NODE_ENV === 'test';
 };
-
-/**
- * Zod 에러 → 400 본문.
- *
- * @param {import('zod').ZodError} err
- * @returns {{ error: string, issues: Array<{ path: string, message: string }> }}
- */
-const zodErrorBody = (err) => ({
-  error: 'ValidationError',
-  issues: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
-});
 
 /**
  * 1회용 reset token (64 hex chars). DB엔 SHA-256 해시만 저장.

@@ -9,6 +9,7 @@
     ".": "./src/index.js",
     "./auth": "./src/auth.js",
     "./board": "./src/board.js",
+    "./errors": "./src/errors.js",
     "./hobby": "./src/hobby.js",
     "./letter": "./src/letter.js",
     "./shelf": "./src/shelf.js"
