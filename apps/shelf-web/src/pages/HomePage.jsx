@@ -1,18 +1,20 @@
 import { SHELF_SORT_DEFAULT, ShelfSortKey } from '@getit/schemas/shelf';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { BookCard, BookCardSkeleton } from '../components/BookCard.jsx';
 import { EditShelfModal } from '../components/EditShelfModal.jsx';
 import { EmptyShelf } from '../components/EmptyShelf.jsx';
 import { FilterTabs } from '../components/FilterTabs.jsx';
-import { Pagination } from '../components/Pagination.jsx';
 import { RatingFilter } from '../components/RatingFilter.jsx';
 import { SortControl } from '../components/SortControl.jsx';
-import { useMyShelves, useRemoveShelf, useUpdateShelf } from '../hooks/useShelves.js';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
+import { useInfiniteMyShelves, useRemoveShelf, useUpdateShelf } from '../hooks/useShelves.js';
 import { shelfError } from '../lib/error-messages.js';
 
-const PAGE_SIZE = 50;
+// 한 페이지당 책 수 — 무한 스크롤(#525) 전환 후 첫 페이지로 grid 한 화면 + 약간 여유 채우는
+// 균형점. 30 이면 4-col grid 기준 7-8 행, 모바일 2-col 기준 ~15 행으로 첫 fetch ~6KB.
+const PAGE_SIZE = 30;
 
 /** @typedef {import('@getit/schemas/shelf').ShelfSortKeyT} SortKey */
 
@@ -28,9 +30,13 @@ const SORT_KEYS = ShelfSortKey.options;
  * 섹션:
  *  1) Hero — "나의 도서관." + 이번 시즌 카운트
  *  2) Filter tabs — All / Read / Reading / Wishlist
- *  3) Library grid — BookCard
+ *  3) Library grid — BookCard (무한 스크롤, #525)
  *  4) (옵션) Empty placeholder
  *  5) 책 클릭 → EditShelfModal (PATCH / DELETE)
+ *
+ * 무한 스크롤(#525): 사용자 피드백 "도서가 몇 권 안 뜨는 것 같다" → `Pagination` 제거,
+ * `useInfiniteMyShelves` + IntersectionObserver sentinel 로 자연 누적. URL `?page=` 도
+ * 제거 (deep link 의도 없음 — 정렬만 ?sort 로 유지).
  */
 export const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,20 +45,17 @@ export const HomePage = () => {
     SORT_KEYS.includes(/** @type {SortKey} */ (sortParam)) ? sortParam : SHELF_SORT_DEFAULT
   );
 
-  // 페이지네이션 — 100건 넘는 서재 처리 (#269).
-  // BE 가 pageSize ≤ 100 이라 전체를 한 번에 못 가져옴 → 서버 페이지네이션을 그대로 사용.
-  // 단, 필터/정렬은 "현재 페이지" 가 아닌 "전체 서재" 기준이 되도록 BE 정렬 + 클라 cull
-  // 조합으로 처리하고, status 필터는 BE 에 내릴 수 없으니 모든 status 카운트가 정확하게
-  // 표시될 때까지는 페이지네이션을 'ALL' 필터일 때만 노출 (다른 필터엔 클라 cull 표시).
-  // 이는 CR #346 의 "필터/페이지 결과 불일치" 지적에 대한 명시적 trade-off.
-  const pageParam = Number.parseInt(searchParams.get('page') ?? '', 10);
-  const requestedPage = Number.isFinite(pageParam) && pageParam >= 1 ? pageParam : 1;
-
-  const { data, isLoading, isError, error } = useMyShelves({
-    sort,
-    page: requestedPage,
-    pageSize: PAGE_SIZE,
-  });
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    isFetchNextPageError,
+    refetch,
+  } = useInfiniteMyShelves({ sort, pageSize: PAGE_SIZE });
   const update = useUpdateShelf();
   const remove = useRemoveShelf();
 
@@ -69,32 +72,8 @@ export const HomePage = () => {
     setSearchParams(params, { replace: true });
   };
 
-  const shelves = useMemo(() => data?.shelves ?? [], [data]);
-  const total = data?.pagination?.total ?? shelves.length;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  // 페이지 범위 초과 가드 (CR #346): ?page=999 같은 입력이나
-  // 마지막 페이지의 유일한 항목 삭제로 totalPages 가 줄어든 경우 마지막 유효 페이지로 클램프.
-  const page = Math.min(requestedPage, totalPages);
-  useEffect(() => {
-    if (isLoading) return;
-    if (requestedPage > totalPages) {
-      const params = new URLSearchParams(searchParams);
-      if (totalPages <= 1) params.delete('page');
-      else params.set('page', String(totalPages));
-      setSearchParams(params, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, totalPages, requestedPage]);
-
-  // 정렬 변경 시 page 1 로 리셋 (URL state 정리).
-  useEffect(() => {
-    if (requestedPage === 1) return;
-    const params = new URLSearchParams(searchParams);
-    params.delete('page');
-    setSearchParams(params, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort]);
+  const shelves = useMemo(() => (data?.pages ?? []).flatMap((p) => p?.shelves ?? []), [data]);
+  const total = data?.pages?.[0]?.pagination?.total ?? shelves.length;
 
   const counts = useMemo(() => countByStatus(shelves), [shelves]);
   const visible = useMemo(() => {
@@ -105,19 +84,17 @@ export const HomePage = () => {
     return next;
   }, [shelves, filter, minRating]);
 
-  // 페이지네이션은 ALL + minRating=0 일 때만 노출 — status/rating 필터는 현재 페이지에만 적용되므로
-  // 다른 페이지 결과와 혼선을 막기 위해 필터가 걸린 동안에는 페이지네이션을 숨긴다 (CR #346 trade-off).
-  // 필터가 걸리면 사용자가 다른 페이지로 이동할 의미가 약하고, BE 필터 도입은 별도 PR.
-  const paginationActive = filter === 'ALL' && minRating === 0;
-
-  const handlePageChange = (next) => {
-    const params = new URLSearchParams(searchParams);
-    if (next <= 1) params.delete('page');
-    else params.set('page', String(next));
-    setSearchParams(params, { replace: false });
-  };
+  // sentinel — 화면 끝에서 200px 전에 미리 fetch. 필터 걸려도 누적 자체는 계속 진행해야
+  // 사용자가 필터 조건 만족하는 더 많은 책을 볼 수 있음 → enabled 는 hasNextPage 만 본다.
+  const setSentinel = useInfiniteScroll({
+    onIntersect: () => {
+      if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) fetchNextPage();
+    },
+    enabled: hasNextPage && !isFetchingNextPage && !isFetchNextPageError,
+  });
 
   const pageError = isError ? shelfError(error) : null;
+  const nextPageError = isFetchNextPageError ? shelfError(error) : null;
 
   const closeModal = () => {
     setEditing(null);
@@ -154,7 +131,16 @@ export const HomePage = () => {
               </p>
               <aside className="col-span-12 md:col-span-5">
                 <div className="hairline mb-4" />
-                <p className="smallcaps mb-3 text-[11px]">This Season</p>
+                <p className="smallcaps mb-3 text-[11px]">
+                  This Season{' '}
+                  <span className="text-hint">
+                    · 전체{' '}
+                    <span data-testid="shelf-total-count" className="num-display">
+                      {total}
+                    </span>
+                    권
+                  </span>
+                </p>
                 <ul className="text-body space-y-2 font-serif text-[14px]">
                   <li className="flex items-baseline justify-between gap-4">
                     <span>읽은 책</span>
@@ -169,6 +155,14 @@ export const HomePage = () => {
                     <span className="text-meta num-display">{counts.WANT}권</span>
                   </li>
                 </ul>
+                {/* 상태별 권수는 로드된 범위 기준 (BE 가 status 카운트를 따로 안 내려줌).
+                    무한 스크롤로 끝까지 받으면 합계가 total 과 일치. 사용자 혼란 방지를
+                    위해 not-yet-loaded 인 동안에도 hairline 으로 시각적 구분. */}
+                {shelves.length < total ? (
+                  <p className="mt-3 text-[11px] text-hint">
+                    스크롤하면 더 많은 책의 통계가 합쳐집니다.
+                  </p>
+                ) : null}
                 <div className="hairline mt-5" />
               </aside>
             </div>
@@ -224,14 +218,33 @@ export const HomePage = () => {
                 <BookCard key={shelf.id} shelf={shelf} onEdit={setEditing} />
               ))}
             </div>
-            {paginationActive && totalPages > 1 ? (
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                onChange={handlePageChange}
-                className="mt-12"
-              />
-            ) : null}
+
+            {/* sentinel + 더 가져오는 중 / 다 봄 / 다시 시도 status row. */}
+            <div
+              ref={setSentinel}
+              data-testid="shelf-sentinel"
+              className="mt-12 flex items-center justify-center"
+              aria-live="polite"
+            >
+              {isFetchingNextPage ? (
+                <p className="font-serif text-sm text-meta">더 불러오는 중…</p>
+              ) : nextPageError ? (
+                <div className="flex flex-col items-center gap-2">
+                  <p role="alert" className="font-serif text-sm text-destructive">
+                    {nextPageError}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => refetch()}
+                    className="rounded-sm border border-rule-2 px-3 py-1 font-serif text-xs text-meta transition hover:border-foreground hover:text-ink"
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : !hasNextPage && shelves.length >= PAGE_SIZE ? (
+                <p className="essay-kr text-[13px] text-meta">모든 책을 봤어요.</p>
+              ) : null}
+            </div>
           </>
         )}
       </section>

@@ -9,15 +9,36 @@ import { api } from '../lib/api.js';
 
 import { HomePage } from './HomePage.jsx';
 
+/**
+ * 무한 스크롤(#525) 가드는 `HomePage.infinite-scroll.test.jsx` 로 분리 — 본 파일은
+ * 기본 UI / 필터 / 모달 / 정렬 회귀 가드만 (300줄 cap 준수).
+ *
+ * IntersectionObserver 가 없는 환경에서도 `useInfiniteScroll` 은 no-op 으로 동작하므로
+ * 본 파일은 별도 IO mock 필요 없음.
+ */
+
+const makeShelf = (i, overrides = {}) => ({
+  id: `shelf-${i}`,
+  bookId: `book-${i}`,
+  status: 'READ',
+  rating: 5,
+  review: null,
+  addedAt: '2026-04-10T00:00:00.000Z',
+  completedAt: '2026-04-12T00:00:00.000Z',
+  book: {
+    id: `book-${i}`,
+    isbn: `978${String(i).padStart(10, '0')}`,
+    title: `책 ${i}`,
+    author: '저자',
+    coverUrl: null,
+  },
+  ...overrides,
+});
+
 const shelves = [
-  {
-    id: 'shelf-1',
-    bookId: 'book-1',
+  makeShelf(1, {
     status: 'READ',
-    rating: 5,
     review: '읽기의 계절 감상',
-    addedAt: '2026-04-10T00:00:00.000Z',
-    completedAt: '2026-04-12T00:00:00.000Z',
     book: {
       id: 'book-1',
       isbn: '9788900000001',
@@ -25,15 +46,10 @@ const shelves = [
       author: '김연수',
       coverUrl: null,
     },
-  },
-  {
-    id: 'shelf-2',
-    bookId: 'book-2',
+  }),
+  makeShelf(2, {
     status: 'READING',
     rating: 0,
-    review: null,
-    addedAt: '2026-05-01T00:00:00.000Z',
-    completedAt: null,
     book: {
       id: 'book-2',
       isbn: '9788900000002',
@@ -41,15 +57,10 @@ const shelves = [
       author: '박서영',
       coverUrl: null,
     },
-  },
-  {
-    id: 'shelf-3',
-    bookId: 'book-3',
+  }),
+  makeShelf(3, {
     status: 'WANT',
     rating: 0,
-    review: null,
-    addedAt: '2026-05-05T00:00:00.000Z',
-    completedAt: null,
     book: {
       id: 'book-3',
       isbn: '9788900000003',
@@ -57,7 +68,7 @@ const shelves = [
       author: '정세랑',
       coverUrl: null,
     },
-  },
+  }),
 ];
 
 const renderHome = () => {
@@ -86,7 +97,7 @@ describe('HomePage', () => {
 
   it('서재 목록 fetch 후 책 카드들을 렌더한다', async () => {
     vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: { shelves, pagination: { page: 1, pageSize: 100, total: 3 } },
+      data: { shelves, pagination: { page: 1, pageSize: 30, total: 3 } },
     });
     renderHome();
     expect(await screen.findByRole('heading', { name: '읽기의 계절' })).toBeInTheDocument();
@@ -96,7 +107,7 @@ describe('HomePage', () => {
 
   it('hero에 "나의 도서관" 헤딩이 있다', async () => {
     vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: { shelves, pagination: { page: 1, pageSize: 100, total: 3 } },
+      data: { shelves, pagination: { page: 1, pageSize: 30, total: 3 } },
     });
     renderHome();
     expect(await screen.findByRole('heading', { name: /나의 도서관/ })).toBeInTheDocument();
@@ -105,7 +116,7 @@ describe('HomePage', () => {
   it('필터 탭: Reading 만 보이게 1권만 남는다', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: { shelves, pagination: { page: 1, pageSize: 100, total: 3 } },
+      data: { shelves, pagination: { page: 1, pageSize: 30, total: 3 } },
     });
     renderHome();
     await screen.findByRole('heading', { name: '읽기의 계절' });
@@ -117,7 +128,7 @@ describe('HomePage', () => {
 
   it('서재 비어 있으면 empty placeholder 노출', async () => {
     vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: { shelves: [], pagination: { page: 1, pageSize: 100, total: 0 } },
+      data: { shelves: [], pagination: { page: 1, pageSize: 30, total: 0 } },
     });
     renderHome();
     expect(await screen.findByText(/서가가 아직 비어 있습니다/)).toBeInTheDocument();
@@ -126,7 +137,7 @@ describe('HomePage', () => {
   it('책 카드 클릭 → 편집 모달 오픈', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: { shelves, pagination: { page: 1, pageSize: 100, total: 3 } },
+      data: { shelves, pagination: { page: 1, pageSize: 30, total: 3 } },
     });
     renderHome();
     const card = await screen.findByRole('button', { name: /읽기의 계절 자세히 보기/ });
@@ -137,7 +148,7 @@ describe('HomePage', () => {
   it('편집 저장 → updateShelf API 호출', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: { shelves, pagination: { page: 1, pageSize: 100, total: 3 } },
+      data: { shelves, pagination: { page: 1, pageSize: 30, total: 3 } },
     });
     const updateSpy = vi
       .spyOn(api, 'updateShelf')
@@ -164,7 +175,7 @@ describe('HomePage', () => {
   it('SortControl 노출 + 변경 시 listMyShelves 가 새 sort 파라미터로 호출된다 (#196)', async () => {
     const user = userEvent.setup();
     const spy = vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: { shelves, pagination: { page: 1, pageSize: 100, total: 3 } },
+      data: { shelves, pagination: { page: 1, pageSize: 30, total: 3 } },
     });
     renderHome();
     await screen.findByRole('heading', { name: '읽기의 계절' });
@@ -176,9 +187,6 @@ describe('HomePage', () => {
       expect(spy).toHaveBeenCalledWith(expect.objectContaining({ sort: 'rating-desc' }));
     });
 
-    // 기본값으로 되돌리면 URL 의 ?sort=가 제거되어 default 로 재호출 (회귀 가드).
-    // 초기 마운트 시 이미 addedAt-desc 로 호출되므로 toHaveBeenCalledWith 만으론 가짜 성공.
-    // 호출 횟수 증가 + 마지막 호출 인수까지 검증.
     const beforeResetCalls = spy.mock.calls.length;
     await user.selectOptions(screen.getByRole('combobox', { name: /정렬/ }), 'addedAt-desc');
     await waitFor(() => {
@@ -186,4 +194,6 @@ describe('HomePage', () => {
       expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ sort: 'addedAt-desc' }));
     });
   });
+
+  // 무한 스크롤(#525) 가드는 `HomePage.infinite-scroll.test.jsx` 로 분리.
 });

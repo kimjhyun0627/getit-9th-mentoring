@@ -252,6 +252,9 @@ describe('SearchPage', () => {
     expect(input.value.length).toBe(100);
   });
 
+  // 무한 스크롤(#525) 가드는 `SearchPage.infinite-scroll.test.jsx` 로 분리 — 본 파일
+  // 300 줄 상한 + 책임 분리.
+
   it('서재 추가 실패(422 이미 존재) 시 안내 토스트가 노출된다', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'searchBooks').mockResolvedValue({

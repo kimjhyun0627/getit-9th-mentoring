@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ToastStack } from '../components/Toast.jsx';
 import { useToastQueue } from '../components/useToastQueue.js';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
 import { useMyShelves } from '../hooks/useShelves.js';
 import { api } from '../lib/api.js';
 import { addBookError, searchError } from '../lib/error-messages.js';
@@ -148,6 +149,14 @@ export const SearchPage = () => {
   const showPrompt = !isQueryable;
   const pendingKey = addMutation.variables?.bookId ?? addMutation.variables?.isbn ?? null;
 
+  // 무한 스크롤 sentinel (#525) — 결과 끝에서 PAGE_STEP 씩 증분.
+  // 검색 결과는 KAKAO API 1회 응답을 client-side slice 하는 구조라 추가 fetch 가 아닌
+  // 단순 visibleCount 증가. enabled 는 hasMore 일 때만.
+  const setSentinel = useInfiniteScroll({
+    onIntersect: () => setVisibleCount((c) => c + PAGE_STEP),
+    enabled: hasMore,
+  });
+
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 pt-12 md:px-10 md:pb-20 md:pt-16">
       <ToastStack items={toastQueue.items} onDismiss={handleDismissToast} />
@@ -181,18 +190,21 @@ export const SearchPage = () => {
               shelvedKeys={shelvedKeys}
               optimisticKeys={optimisticKeys.current}
             />
-            {hasMore ? (
-              <div className="mt-10 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => setVisibleCount((c) => c + PAGE_STEP)}
-                  className="inline-flex items-center gap-2 rounded-sm border border-border bg-background px-5 py-2 font-serif text-sm text-ink transition hover:border-foreground hover:text-accent-wine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  data-testid="search-load-more"
-                >
-                  더 보기 ({items.length - visibleCount}권 남음)
-                </button>
-              </div>
-            ) : null}
+            <div
+              ref={setSentinel}
+              data-testid="search-sentinel"
+              className="mt-10 flex justify-center"
+              aria-live="polite"
+            >
+              {hasMore ? (
+                <p className="font-serif text-sm text-meta">
+                  더 불러오는 중…{' '}
+                  <span className="num-display">({items.length - visibleCount}권 남음)</span>
+                </p>
+              ) : items.length > 0 ? (
+                <p className="essay-kr text-[13px] text-meta">모두 보여드렸어요.</p>
+              ) : null}
+            </div>
           </>
         )}
       </div>
