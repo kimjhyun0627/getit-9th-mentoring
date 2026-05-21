@@ -79,7 +79,7 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
         return res.status(422).json({ error: 'PostClosed' });
       }
 
-      const { tags, capacity, ...rest } = parsed.data;
+      const { tags, capacity, applicationPolicy, ...rest } = parsed.data;
       // capacity 를 신청자 수보다 아래로 낮추는 건 금지 — 이미 신청한 사람이 잘리면 안 됨.
       if (typeof capacity === 'number' && capacity < post.currentCapacity) {
         return res.status(422).json({
@@ -87,10 +87,18 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
           currentCapacity: post.currentCapacity,
         });
       }
+      // #500: 정책 변경은 신청자 있으면 거부 (PENDING 처리/openChatUrl 노출 충돌 방지).
+      const policyChange =
+        applicationPolicy && applicationPolicy !== (post.applicationPolicy ?? 'FIRST_COME');
+      if (policyChange) {
+        const apps = await prisma.application.findMany({ where: { postId: post.id } });
+        if (apps.length > 0) return res.status(422).json({ error: 'PolicyChangeNotAllowed' });
+      }
 
       const updated = await prisma.$transaction(async (tx) => {
         const data = { ...rest };
         if (typeof capacity === 'number') data.capacity = capacity;
+        if (applicationPolicy) data.applicationPolicy = applicationPolicy;
         await tx.post.update({ where: { id: post.id }, data });
 
         if (Array.isArray(tags)) {
@@ -218,12 +226,19 @@ export const createPostMutationsRouter = ({ jwtSecret, mutationLimiter }) => {
         .map((a) => ({
           id: a.id,
           userId: a.userId,
+          // #500: status 노출 — FE 가 PENDING/APPROVED/REJECTED 분기 (승인/거절 버튼).
+          status: a.status ?? 'APPROVED',
           createdAt: a.createdAt instanceof Date ? a.createdAt.toISOString() : a.createdAt,
           noShow: Boolean(a.noShow),
           noShowCount: noShowCountByUser.get(a.userId) ?? 0,
         }));
 
-      return res.status(200).json({ items, total: items.length });
+      // policy 도 함께 응답 — FE 분기에서 별도 GET /posts/:id 호출 없이 처리 가능.
+      return res.status(200).json({
+        items,
+        total: items.length,
+        applicationPolicy: post.applicationPolicy ?? 'FIRST_COME',
+      });
     } catch (err) {
       return next(err);
     }

@@ -27,7 +27,7 @@ const flattenTags = (post) => {
  * @param {object} post — Prisma Post row (include: { tags: { include: { tag: true } } })
  * @param {{
  *   exposeOpenChat?: boolean,
- *   myApplication?: { id: string, createdAt: string } | null,
+ *   myApplication?: { id: string, status?: string, createdAt: string } | null,
  * }} [opts]
  */
 export const serializePost = (post, opts = {}) => {
@@ -41,6 +41,9 @@ export const serializePost = (post, opts = {}) => {
     capacity: post.capacity,
     currentCapacity: post.currentCapacity,
     status: post.status,
+    // #500: FE 가 정책별 UI 분기 (신청 토글 카피, 신청자 페이지 승인/거절 버튼).
+    // 기본 FIRST_COME (Prisma default 가 보장하지만 row 가 undefined 인 fake-prisma 경로 방어).
+    applicationPolicy: post.applicationPolicy ?? 'FIRST_COME',
     createdAt: toIso(post.createdAt),
     updatedAt: toIso(post.updatedAt),
     tags: flattenTags(post),

@@ -115,14 +115,24 @@ export const createMeRouter = ({ jwtSecret }) => {
           const post = byId.get(app.postId);
           if (!post) return null;
           const isOwner = post.ownerId === userId;
-          const isApplicantOnFull = post.status === 'FULL';
+          const status = app.status ?? 'APPROVED';
+          // openChatUrl 노출 정책 (#500):
+          //  - 방장: 본인 모임이라 항상.
+          //  - FIRST_COME 정책: post 가 FULL 이면 노출 (기존 동작).
+          //  - APPROVAL 정책: 본인 신청이 APPROVED 일 때만.
+          const isApprovalPolicy = (post.applicationPolicy ?? 'FIRST_COME') === 'APPROVAL';
+          const isApprovedApplicant = status === 'APPROVED';
+          const isApplicantOnFull = !isApprovalPolicy && post.status === 'FULL';
+          const exposeOpenChat =
+            isOwner || isApplicantOnFull || (isApprovalPolicy && isApprovedApplicant);
           return {
             id: app.id,
             postId: app.postId,
+            status,
             createdAt: toIso(app.createdAt),
             post: serializePost(post, {
-              exposeOpenChat: isOwner || isApplicantOnFull,
-              myApplication: { id: app.id, createdAt: toIso(app.createdAt) },
+              exposeOpenChat,
+              myApplication: { id: app.id, status, createdAt: toIso(app.createdAt) },
             }),
           };
         })

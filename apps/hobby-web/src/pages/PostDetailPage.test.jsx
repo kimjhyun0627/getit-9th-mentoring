@@ -21,6 +21,7 @@ const samplePost = (over = {}) => ({
   createdAt: '2026-05-19T08:00:00+09:00',
   updatedAt: '2026-05-19T08:00:00+09:00',
   tags: over.tags ?? [{ id: 't1', name: '마라탕' }],
+  applicationPolicy: over.applicationPolicy ?? 'FIRST_COME',
   ...(over.openChatUrl !== undefined ? { openChatUrl: over.openChatUrl } : {}),
   ...(over.myApplication !== undefined ? { myApplication: over.myApplication } : {}),
 });
@@ -245,5 +246,53 @@ describe('PostDetailPage', () => {
     renderAt('missing');
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/모임을 찾을 수 없/);
+  });
+
+  // #500/#506 — 정책별 신청자 상태 분기.
+  describe('APPROVAL 정책 상태 분기 (#500)', () => {
+    it('PENDING — 방장 승인 대기 안내 + 신청 취소 버튼', async () => {
+      vi.spyOn(api, 'getPost').mockResolvedValue({
+        post: samplePost({
+          applicationPolicy: 'APPROVAL',
+          myApplication: {
+            id: 'app-1',
+            status: 'PENDING',
+            createdAt: '2026-05-19T08:00:00+09:00',
+          },
+        }),
+      });
+      vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+      renderAt();
+      expect(await screen.findByTestId('apply-section-pending')).toBeInTheDocument();
+      expect(screen.getByText(/방장 승인 대기 중/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /신청 취소/ })).toBeInTheDocument();
+    });
+
+    it('REJECTED — 거절 안내 + 신청 버튼 X', async () => {
+      vi.spyOn(api, 'getPost').mockResolvedValue({
+        post: samplePost({
+          applicationPolicy: 'APPROVAL',
+          myApplication: {
+            id: 'app-1',
+            status: 'REJECTED',
+            createdAt: '2026-05-19T08:00:00+09:00',
+          },
+        }),
+      });
+      vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+      renderAt();
+      expect(await screen.findByTestId('apply-section-rejected')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /신청하기/ })).not.toBeInTheDocument();
+    });
+
+    it('APPROVAL 정책 + 미신청 — 신청 버튼 라벨 "승인 요청"', async () => {
+      vi.spyOn(api, 'getPost').mockResolvedValue({
+        post: samplePost({ applicationPolicy: 'APPROVAL' }),
+      });
+      vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+      renderAt();
+      const btn = await screen.findByRole('button', { name: /승인 요청/ });
+      expect(btn).toBeInTheDocument();
+    });
   });
 });

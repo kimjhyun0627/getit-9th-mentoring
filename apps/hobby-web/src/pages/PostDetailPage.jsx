@@ -7,13 +7,13 @@ import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { formatMeetAt, initialOf } from '../lib/format.js';
 
+import { ApplySection } from './PostDetailPage.apply.jsx';
 import {
   applyErrorMessage,
   cancelErrorMessage,
   fetchErrorMessage,
 } from './PostDetailPage.errors.js';
 import { PENDING_APPLICATION_ID, usePostDetailMutations } from './PostDetailPage.mutations.js';
-import { OwnerPanel } from './PostDetailPage.owner.jsx';
 import { PageShell } from './PostDetailPage.shell.jsx';
 
 /**
@@ -59,6 +59,10 @@ export const PostDetailPage = () => {
   // #212: 신청 여부 식별은 서버 응답 myApplication 으로. reload 후에도 유지됨.
   const myApplication = postQuery.data?.post?.myApplication ?? null;
   const isPendingApplication = myApplication?.id === PENDING_APPLICATION_ID;
+  // #500/#506: APPROVAL 정책에서 PENDING/REJECTED 상태 분기.
+  const appStatus = myApplication?.status ?? 'APPROVED';
+  const isPendingApproval = appStatus === 'PENDING';
+  const isRejected = appStatus === 'REJECTED';
 
   const {
     apply: applyMutation,
@@ -227,48 +231,22 @@ export const PostDetailPage = () => {
             >
               <span aria-hidden="true">🔒</span> 모집 종료된 모임이야
             </p>
-          ) : isOwner ? (
-            <OwnerPanel
-              postId={id}
-              status={post.status}
-              onClose={() => closeMutation.mutate()}
-              closing={closeMutation.isPending}
-              closeError={closeMutation.error}
-            />
-          ) : !meQuery.data ? (
-            <a
-              href={`https://auth.get-it.cloud/login?redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
-              // #311 — dark amber-300 → 짙은 슬레이트 글자 (대비 ~11.5:1, AAA)
-              // #332 — 모바일 좁은 너비에서도 한 줄 유지 (휘어진 패딩으로 wrap 방지)
-              className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-5 sm:px-6 py-3 font-display font-extrabold text-sm sm:text-base shadow-lg whitespace-nowrap"
-            >
-              로그인하고 신청하기 →
-            </a>
-          ) : isApplied ? (
-            <button
-              type="button"
-              onClick={() => cancelMutation.mutate()}
-              disabled={cancelDisabled}
-              // #311 — disabled: 단색 muted-gray 로 교체 (opacity-50 그라데이션 가독성 문제 해결)
-              className="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/10 ring-1 ring-slate-900/10 dark:ring-white/15 text-slate-700 dark:text-slate-200 px-6 py-3 font-display font-extrabold text-base shadow-sm disabled:bg-slate-200 disabled:text-slate-500 disabled:dark:bg-slate-700 disabled:dark:text-slate-300 disabled:ring-0 disabled:cursor-not-allowed hover:scale-[1.02] disabled:hover:scale-100 transition"
-            >
-              {cancelMutation.isPending
-                ? '취소 중…'
-                : isPendingApplication
-                  ? '신청 처리 중…'
-                  : '신청 취소'}
-            </button>
           ) : (
-            <button
-              type="button"
-              onClick={() => applyMutation.mutate()}
-              disabled={applyMutation.isPending || isCapacityReached}
-              // #311 — disabled: 그라데이션 + opacity-50 대신 단색 slate. 글자 가독성 보장.
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-violet-500 text-white px-7 py-3 font-display font-extrabold text-base shadow-lg shadow-rose-400/40 disabled:bg-none disabled:bg-slate-300 disabled:text-slate-600 disabled:dark:bg-slate-700 disabled:dark:text-slate-300 disabled:shadow-none disabled:cursor-not-allowed hover:scale-[1.03] hover:-rotate-1 disabled:hover:scale-100 disabled:hover:rotate-0 transition"
-            >
-              {applyMutation.isPending ? '신청 중…' : isCapacityReached ? '정원 마감' : '신청하기'}
-              {!applyMutation.isPending && !isInactive ? <span aria-hidden="true">→</span> : null}
-            </button>
+            <ApplySection
+              post={post}
+              isOwner={isOwner}
+              meQueryData={meQuery.data}
+              isApplied={isApplied}
+              isPendingApproval={isPendingApproval}
+              isRejected={isRejected}
+              isCapacityReached={isCapacityReached}
+              isInactive={isInactive}
+              isPendingApplication={isPendingApplication}
+              cancelDisabled={cancelDisabled}
+              applyMutation={applyMutation}
+              cancelMutation={cancelMutation}
+              closeMutation={closeMutation}
+            />
           )}
 
           {errAlert ? (

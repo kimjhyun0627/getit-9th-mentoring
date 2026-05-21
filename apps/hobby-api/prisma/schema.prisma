@@ -21,28 +21,52 @@ datasource db {
 ///   Race condition 방지: 트랜잭션 + 비교 업데이트 (BE 책임).
 /// - openChatUrl: 카카오 오픈채팅 링크. 매칭 완료 전엔 API 응답에서 마스킹.
 /// - status: 라이프사이클 상태.
+/// - applicationPolicy (#500): 방장이 선택하는 신청 정책.
+///   - FIRST_COME (default): 신청 즉시 APPROVED, currentCapacity +1.
+///   - APPROVAL: 신청 = PENDING. 방장이 approve/reject 결정.
 model Post {
-  id              String         @id @default(cuid())
-  ownerId         String
+  id                String            @id @default(cuid())
+  ownerId           String
   /// 방장 표시 이름 스냅샷 — auth-api JWT 의 `name` claim 을 작성 시점에 저장.
   /// 다른 BE 와 DB 가 분리돼 있어 FK join 불가 → 작성 시점 캡처가 가장 단순/저렴 (#212).
   /// 닉네임 변경 시 stale 일 수 있으나, 모집글은 단기성이라 허용. null → FE 가 '익명' fallback.
-  ownerName       String?
-  title           String
-  body            String         @db.Text
-  meetAt          DateTime
-  capacity        Int            @db.UnsignedInt
-  currentCapacity Int            @default(0) @db.UnsignedInt
-  openChatUrl     String         @db.VarChar(512)
-  status          PostStatus     @default(RECRUITING)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  tags            PostTag[]
-  applications    Application[]
-  notifications   Notification[]
+  ownerName         String?
+  title             String
+  body              String            @db.Text
+  meetAt            DateTime
+  capacity          Int               @db.UnsignedInt
+  currentCapacity   Int               @default(0) @db.UnsignedInt
+  openChatUrl       String            @db.VarChar(512)
+  status            PostStatus        @default(RECRUITING)
+  applicationPolicy ApplicationPolicy @default(FIRST_COME)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  tags              PostTag[]
+  applications      Application[]
+  notifications     Notification[]
 
   @@index([ownerId])
   @@index([status, meetAt])
+}
+
+/// 신청 정책 (#500).
+/// - FIRST_COME: 선착순. 신청 즉시 effective, capacity 도달 시 마감.
+/// - APPROVAL: 승인 게이트. 신청 = PENDING, 방장 approve/reject 필요.
+enum ApplicationPolicy {
+  FIRST_COME
+  APPROVAL
+}
+
+/// 신청 상태 (#500).
+/// - PENDING: 방장 결정 대기 (APPROVAL 정책 한정).
+/// - APPROVED: 입장 확정 (FIRST_COME 즉시 / APPROVAL 승인 시).
+/// - REJECTED: 방장 거절 (APPROVAL 정책 한정).
+///
+/// 마이그레이션 시 기존 row 는 APPROVED 로 백필 (FIRST_COME 모임이었던 전제).
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 /// 모집 게시글 상태.
@@ -81,16 +105,18 @@ model PostTag {
 /// - noShow (#247): 모임 끝난 뒤 방장이 노쇼로 신고한 경우 true.
 ///   FK 없이 userId 그룹핑으로 누적 카운트 산출. 별도 User 모델은 auth-api 소유.
 model Application {
-  id        String   @id @default(cuid())
+  id        String            @id @default(cuid())
   postId    String
   userId    String
-  createdAt DateTime @default(now())
-  noShow    Boolean  @default(false)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  status    ApplicationStatus @default(APPROVED)
+  createdAt DateTime          @default(now())
+  noShow    Boolean           @default(false)
+  post      Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@index([userId])
   @@index([userId, noShow])
+  @@index([postId, status])
 }
 
 /// 알림.

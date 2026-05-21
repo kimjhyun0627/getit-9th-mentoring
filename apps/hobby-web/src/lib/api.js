@@ -1,6 +1,10 @@
 import axios from 'axios';
 
+import { assertJsonObject, assertListShape, buildListParams, onSuccess } from './api.helpers.js';
 import { makeOnError, refreshAccessToken } from './api.refresh.js';
+
+// re-export — 기존 외부 호출자 호환 (다른 파일에서 `import { assertJsonObject } from './api'` 사용 가능).
+export { assertJsonObject, assertListShape };
 
 /**
  * hobby-web 전용 axios 인스턴스.
@@ -34,142 +38,11 @@ export const setUnauthorizedHandler = (fn) => {
   handlers.onUnauthorized = fn;
 };
 
-/**
- * 응답 본체가 진짜 JSON 형태인지 확인.
- *
- * BE 미기동 시 vite dev server 가 SPA fallback 으로 `/api/*` 요청에
- * `index.html` (HTML 문자열) 을 status 200 으로 응답하는 케이스가 실측됨 (issue #89).
- * axios 는 그대로 통과시켜 `res.data` 가 문자열이 되고, 이후 `.pages.flatMap` 등에서
- * undefined dereference 로 React 가 컴포넌트 전체 unmount → 빈 화면.
- *
- * 글로벌 interceptor 에서 호출돼 `client` / `authClient` 모든 요청에 적용된다.
- * 여기서 미리 throw 해서 react-query 의 `isError` 분기로 흘려보낸다.
- *
- * axios 1.x 는 응답 헤더 키를 소문자로 정규화하므로 `content-type` 만 본다.
- *
- * @param {unknown} data
- * @param {Record<string, string> | undefined} headers
- * @returns {void}
- */
-export const assertJsonObject = (data, headers) => {
-  const contentType = headers?.['content-type'] ?? '';
-  if (typeof contentType === 'string' && contentType.includes('text/html')) {
-    throw new Error('invalid response: expected JSON, got HTML (BE down?)');
-  }
-  if (typeof data === 'string') {
-    throw new Error('invalid response: expected JSON object, got string');
-  }
-  if (data === null || typeof data !== 'object') {
-    throw new Error('invalid response: expected JSON object');
-  }
-};
-
-/**
- * 글로벌 응답 interceptor 핸들러.
- *
- * - 2xx 응답: JSON 검증 (HEAD/204 는 skip)
- * - 401 응답: onUnauthorized 콜백 (있으면) 발화
- *
- * @param {import('axios').AxiosResponse} res
- * @returns {import('axios').AxiosResponse}
- */
-const onSuccess = (res) => {
-  // 204 No Content / HEAD 응답은 body 가 없을 수 있어 검증 skip.
-  if (res.status === 204 || res.config?.method?.toLowerCase() === 'head') {
-    return res;
-  }
-  assertJsonObject(res.data, res.headers);
-  return res;
-};
-
 client.interceptors.response.use(onSuccess, makeOnError(client, handlers));
 
-/**
- * GET /api/posts query string 빌더.
- *
- * @param {{
- *   status?: string;
- *   tag?: string;
- *   q?: string;
- *   timeWindow?: 'all'|'today'|'week';
- *   cursor?: string;
- *   limit?: number;
- * }} params
- * @returns {Record<string, string|number>}
- */
-const buildListParams = (params) => {
-  const out = {};
-  if (params.status) out.status = params.status;
-  if (params.tag) out.tag = params.tag;
-  if (params.q) out.q = params.q;
-  if (params.timeWindow && params.timeWindow !== 'all') out.timeWindow = params.timeWindow;
-  if (params.cursor) out.cursor = params.cursor;
-  if (params.limit !== undefined) out.limit = params.limit;
-  return out;
-};
-
-/**
- * 리스트 응답 shape 검증.
- * 호출 시점에 `data` 가 이미 JSON 객체임이 보장되므로 (interceptor), items 만 본다.
- *
- * @param {unknown} data
- * @returns {asserts data is PostListResponse}
- */
-export const assertListShape = (data) => {
-  const d = /** @type {{ items?: unknown }} */ (data);
-  if (!Array.isArray(d.items)) {
-    throw new Error('invalid response: items must be an array');
-  }
-};
-
-/**
- * 모집 게시글 (`/api/posts` 리스트 / `/api/posts/:id` 단건 응답 공통 형태).
- *
- * @typedef {object} PostItem
- * @property {string} id - 게시글 id (cuid)
- * @property {string} ownerId - 방장 user id
- * @property {string} title - 제목
- * @property {string} body - 본문
- * @property {string} meetAt - 모임 일시 (ISO 8601)
- * @property {number} capacity - 정원
- * @property {number} currentCapacity - 현재 신청자 수
- * @property {'RECRUITING' | 'FULL' | 'CLOSED'} status - 모집 상태
- * @property {string} createdAt - 생성 시각 (ISO 8601)
- * @property {string} updatedAt - 수정 시각 (ISO 8601)
- * @property {Array<{ id: string; name: string }>} tags - 태그 목록
- * @property {string} [openChatUrl] - 오픈채팅 URL (방장 OR FULL 일 때만 응답에 포함)
- */
-
-/**
- * 리스트 응답.
- *
- * @typedef {object} PostListResponse
- * @property {PostItem[]} items - 카드 아이템
- * @property {string | null} nextCursor - 다음 페이지 cursor (없으면 null)
- */
-
-/**
- * 단건 조회 응답.
- *
- * @typedef {object} PostDetailResponse
- * @property {PostItem} post - 게시글 본체
- */
-
-/**
- * 매칭 신청 응답.
- *
- * @typedef {object} ApplicationResponse
- * @property {{ id: string; postId: string; userId: string; createdAt: string }} application - 새로 생성된 신청
- */
-
-/**
- * 현재 로그인 사용자 응답. 비로그인이면 401.
- *
- * @typedef {object} MeResponse
- * @property {string} id - user id (= JWT sub)
- * @property {string} [email] - 이메일 (응답에 포함될 수도 있음)
- * @property {string} [name] - 이름 (응답에 포함될 수도 있음)
- */
+// JSDoc typedef (PostItem / PostListResponse / PostDetailResponse / ApplicationResponse / MeResponse)
+// 는 api.types.js, assertJsonObject / onSuccess / buildListParams / assertListShape 는
+// api.helpers.js 로 분리 — file size cap 안에 들어가도록.
 
 /**
  * auth-api 와 통신할 axios 인스턴스. VITE_AUTH_API_URL 우선,
@@ -198,7 +71,7 @@ export const api = {
    * GET /api/posts — 모집 게시글 리스트. cursor 페이지네이션.
    *
    * @param {{ status?: string; tag?: string; cursor?: string; limit?: number }} [params]
-   * @returns {Promise<PostListResponse>}
+   * @returns {Promise<import('./api.types.js').PostListResponse>}
    */
   listPosts: async (params = {}) => {
     // JSON shape (HTML / 문자열 / null) 은 글로벌 interceptor 에서 이미 검증됨.
@@ -268,6 +141,7 @@ export const api = {
    *   capacity: number;
    *   openChatUrl: string;
    *   tags: string[];
+   *   applicationPolicy?: 'FIRST_COME' | 'APPROVAL';
    * }} body
    */
   createPost: (body) => client.post('/posts', body),
@@ -283,6 +157,7 @@ export const api = {
    *   capacity: number;
    *   openChatUrl: string;
    *   tags: string[];
+   *   applicationPolicy: 'FIRST_COME' | 'APPROVAL';
    * }>} patch
    */
   updatePost: async (id, patch) => {
@@ -303,17 +178,40 @@ export const api = {
   /**
    * 신청자 목록 (owner only) — #245.
    *
+   * #500: 응답에 `applicationPolicy` + `items[].status` 포함.
+   *
    * @param {string} id
    * @returns {Promise<{ items: Array<{
    *   id: string;
    *   userId: string;
+   *   status: 'PENDING' | 'APPROVED' | 'REJECTED';
    *   createdAt: string;
    *   noShow: boolean;
    *   noShowCount: number;
-   * }>; total: number }>}
+   * }>; total: number; applicationPolicy: 'FIRST_COME' | 'APPROVAL' }>}
    */
   listApplicants: async (id) => {
     const res = await client.get(`/posts/${encodeURIComponent(id)}/applicants`);
+    return res.data;
+  },
+
+  /**
+   * 신청 승인 (방장, APPROVAL 정책) — #500/#502.
+   *
+   * @param {string} applicationId
+   */
+  approveApplication: async (applicationId) => {
+    const res = await client.patch(`/applications/${encodeURIComponent(applicationId)}/approve`);
+    return res.data;
+  },
+
+  /**
+   * 신청 거절 (방장, APPROVAL 정책) — #500/#502.
+   *
+   * @param {string} applicationId
+   */
+  rejectApplication: async (applicationId) => {
+    const res = await client.patch(`/applications/${encodeURIComponent(applicationId)}/reject`);
     return res.data;
   },
 
@@ -334,7 +232,7 @@ export const api = {
    * GET /api/posts/:id — 단건 상세. JWT 쿠키가 있으면 owner 판정.
    *
    * @param {string} id
-   * @returns {Promise<PostDetailResponse>}
+   * @returns {Promise<import('./api.types.js').PostDetailResponse>}
    */
   getPost: async (id) => {
     const res = await client.get(`/posts/${encodeURIComponent(id)}`);
@@ -345,7 +243,7 @@ export const api = {
    * POST /api/applications — 매칭 신청. JWT 필요.
    *
    * @param {string} postId
-   * @returns {Promise<ApplicationResponse>}
+   * @returns {Promise<import('./api.types.js').ApplicationResponse>}
    */
   applyPost: async (postId) => {
     const res = await client.post('/applications', { postId });
@@ -370,7 +268,7 @@ export const api = {
    *
    * id 가 비어있으면 throw — 호출자가 "로그인됨" 으로 오인하지 않도록 strict.
    *
-   * @returns {Promise<MeResponse>}
+   * @returns {Promise<import('./api.types.js').MeResponse>}
    */
   getMe: async () => {
     // Cache-Control: no-cache — 라이브 버그 대응 (auth-api 가 304 보내면 axios 응답

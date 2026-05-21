@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { FormField, inputBaseClass } from '../components/FormField.jsx';
 import { HobbyLayout } from '../components/HobbyLayout.jsx';
+import { PolicyToggle } from '../components/PolicyToggle.jsx';
 import { SubmitButton } from '../components/SubmitButton.jsx';
 import { TagInput } from '../components/TagInput.jsx';
 import { api } from '../lib/api.js';
@@ -14,6 +15,7 @@ import { useRequireAuth } from '../lib/auth.js';
 import { cn } from '../lib/cn.js';
 
 import { computePatchDiff } from './EditPostPage.diff.js';
+import { EditState } from './EditPostPage.state.jsx';
 
 /**
  * 게시글 수정 페이지 — #333.
@@ -53,6 +55,8 @@ const EditFormSchema = z.object({
       { message: '카카오 오픈채팅 링크만 돼 (https://open.kakao.com/o/...)' },
     ),
   tags: z.array(z.string()).max(5).default([]),
+  // #500: 정책. 신청자가 있으면 변경 불가 (BE 422 PolicyChangeNotAllowed).
+  applicationPolicy: z.enum(['FIRST_COME', 'APPROVAL']).default('FIRST_COME'),
 });
 
 const isoToLocalInput = (iso) => {
@@ -95,6 +99,7 @@ export const EditPostPage = () => {
       capacity: 4,
       openChatUrl: '',
       tags: [],
+      applicationPolicy: 'FIRST_COME',
     },
   });
 
@@ -109,6 +114,7 @@ export const EditPostPage = () => {
       capacity: post.capacity,
       openChatUrl: post.openChatUrl ?? '',
       tags: (post.tags ?? []).map((t) => t.name),
+      applicationPolicy: post.applicationPolicy ?? 'FIRST_COME',
     });
     initialRef.current = post;
     didPrefillRef.current = true;
@@ -124,58 +130,13 @@ export const EditPostPage = () => {
     );
   }
 
-  if (postQuery.isLoading) {
-    return (
-      <HobbyLayout>
-        <p role="status" className="mt-20 text-center font-round">
-          모임 정보 가져오는 중…
-        </p>
-      </HobbyLayout>
-    );
-  }
+  if (postQuery.isLoading) return <EditState id={id} message="모임 정보 가져오는 중…" />;
   const post = postQuery.data?.post;
-  if (!post) {
-    return (
-      <HobbyLayout>
-        <p
-          role="alert"
-          className="mt-20 text-center font-round font-bold text-rose-600 dark:text-rose-300"
-        >
-          모임을 찾지 못했어.
-        </p>
-      </HobbyLayout>
-    );
-  }
-  if (me && me.id !== post.ownerId) {
-    return (
-      <HobbyLayout>
-        <div className="mt-20 text-center font-round">
-          <p className="font-display font-extrabold text-xl">방장만 수정할 수 있어</p>
-          <Link
-            to={`/posts/${id}`}
-            className="mt-6 inline-flex items-center gap-1 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 py-2 text-sm font-display font-bold"
-          >
-            ← 모임 상세
-          </Link>
-        </div>
-      </HobbyLayout>
-    );
-  }
-  if (post.status === 'CLOSED') {
-    return (
-      <HobbyLayout>
-        <div className="mt-20 text-center font-round">
-          <p className="font-display font-extrabold text-xl">종료된 모임은 수정할 수 없어</p>
-          <Link
-            to={`/posts/${id}`}
-            className="mt-6 inline-flex items-center gap-1 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 py-2 text-sm font-display font-bold"
-          >
-            ← 모임 상세
-          </Link>
-        </div>
-      </HobbyLayout>
-    );
-  }
+  if (!post) return <EditState id={id} message="모임을 찾지 못했어." role="alert" tone="error" />;
+  if (me && me.id !== post.ownerId)
+    return <EditState id={id} message="방장만 수정할 수 있어" showBack />;
+  if (post.status === 'CLOSED')
+    return <EditState id={id} message="종료된 모임은 수정할 수 없어" showBack />;
 
   const onSubmit = async (values) => {
     setServerError(null);
@@ -270,6 +231,18 @@ export const EditPostPage = () => {
             )}
           />
 
+          <Controller
+            control={control}
+            name="applicationPolicy"
+            render={({ field }) => (
+              <PolicyToggle
+                value={field.value}
+                onChange={field.onChange}
+                disabled={post.currentCapacity > 0}
+              />
+            )}
+          />
+
           {serverError ? (
             <p
               role="alert"
@@ -286,14 +259,17 @@ export const EditPostPage = () => {
   );
 };
 
+const ERROR_BY_CODE = {
+  CapacityBelowApplicants: '이미 신청한 사람보다 정원을 낮출 수 없어.',
+  PostClosed: '종료된 모임은 수정할 수 없어.',
+  PolicyChangeNotAllowed: '신청자가 있는 모임은 신청 정책을 바꿀 수 없어.',
+};
 const toFriendlyError = (err) => {
   const status = err?.response?.status;
   const code = err?.response?.data?.error;
   if (status === 401) return '로그인이 만료됐어. 다시 로그인해줘.';
   if (status === 403) return '방장만 수정할 수 있어.';
-  if (status === 422 && code === 'CapacityBelowApplicants')
-    return '이미 신청한 사람보다 정원을 낮출 수 없어.';
-  if (status === 422 && code === 'PostClosed') return '종료된 모임은 수정할 수 없어.';
+  if (status === 422 && ERROR_BY_CODE[code]) return ERROR_BY_CODE[code];
   if (status === 400) return '입력값을 다시 확인해줘.';
   if (status === 429) return '요청이 너무 많아. 잠시 후 다시 시도해줘.';
   return '저장에 실패했어. 잠시 후 다시 시도해줘.';
