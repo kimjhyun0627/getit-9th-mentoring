@@ -35,7 +35,11 @@ export const isKakaoError = (err) =>
 /**
  * Book 도메인 객체를 Prisma upsert. cachedAt 은 prisma `@updatedAt` 으로 자동 갱신.
  *
- * @param {ReturnType<typeof toBookRecord>} record
+ * 호출자는 `record !== null` 보장 후 진입해야 함 (kakaoAdapter는 null drop 책임을
+ * `searchBooks` 에서 처리). 타입에 `Exclude<..., null>` 박아서 null 가드 누락을 컴파일/IDE
+ * 단계에서 잡는다.
+ *
+ * @param {Exclude<ReturnType<typeof toBookRecord>, null>} record
  */
 export const upsertBook = (record) =>
   prisma.book.upsert({
@@ -59,9 +63,15 @@ export const upsertBook = (record) =>
  * 라우터는 try/catch 로 `isKakaoError` 만 검사하면 됨.
  *
  * @param {{ query: string, apiKey: string, target?: string, size?: number }} params
- * @returns {Promise<Array<ReturnType<typeof toBookRecord>>>}
+ * @returns {Promise<Array<Exclude<ReturnType<typeof toBookRecord>, null>>>}
  */
 export const searchBooks = async (params) => {
   const docs = await searchKakaoBooks(params);
-  return docs.map(toBookRecord).filter(Boolean);
+  /** @type {Array<Exclude<ReturnType<typeof toBookRecord>, null>>} */
+  const records = [];
+  for (const doc of docs) {
+    const record = toBookRecord(doc);
+    if (record !== null) records.push(record);
+  }
+  return records;
 };
