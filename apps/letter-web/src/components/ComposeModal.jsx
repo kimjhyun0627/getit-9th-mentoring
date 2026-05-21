@@ -116,8 +116,8 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
   // 포커스 관리 — useDialogFocus hook 이 초기 포커스 + Tab 트랩 + 복원 담당.
   useDialogFocus({ open, ref: dialogRef, initialSelector: '#compose-content' });
 
-  // #464 — body scroll lock + 배경 inert (iOS Safari + VoiceOver 가드).
-  useBodyScrollLock(open);
+  // #464 — body scroll lock + dialog ancestor 형제만 inert (모달 트리는 살아있음).
+  useBodyScrollLock(open, dialogRef);
 
   // 모달 열릴 때마다 state 리셋 (이전 에러 / 입력 흔적 제거).
   useEffect(() => {

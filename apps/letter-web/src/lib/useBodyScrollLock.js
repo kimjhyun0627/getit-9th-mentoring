@@ -3,39 +3,61 @@ import { useEffect } from 'react';
 /**
  * #464 — 모달 open 시 body scroll lock + 배경 inert 토글.
  *
- * 동작:
+ * 핵심:
  *  - `document.body.style.overflow = 'hidden'` 적용/복원
- *  - root 의 sibling element 들 중 `data-app-root="true"` 또는 `#root` 자식들에
- *    `inert` 토글 → VoiceOver swipe / Tab focus 모두 배경 차단.
- *  - 다중 모달 동시 open 케이스 — 모듈 단위 counter 로 안전 복원.
+ *  - dialogRef 가 가리키는 dialog 의 모든 ancestor 의 sibling 형제들에 `inert` 토글.
+ *    → 모달 트리 안쪽은 그대로 사용 가능, 바깥쪽 (BoardPage 등) 만 차단.
+ *    (CR feedback: 단순히 `#root` 에 inert 걸면 모달 자체도 #root 자손이라 같이 막힘.)
+ *  - 다중 모달 동시 open 가능성 — 모듈 단위 counter 로 안전 복원.
  *
- * WAI-ARIA dialog 패턴 권장: body scroll lock + 배경 inert.
+ * WAI-ARIA dialog 패턴: body scroll lock + 배경 inert (focus, click, SR 모두 차단).
  *
  * @param {boolean} open
+ * @param {{ current: HTMLElement | null }} [dialogRef] - 모달 root 요소 ref
  */
 let lockCount = 0;
 let savedOverflow = '';
 
-export const useBodyScrollLock = (open) => {
+/** @type {Element[]} */
+let inertedNodes = [];
+
+const markBackgroundInert = (dialogEl) => {
+  /** @type {Element[]} */
+  const nodes = [];
+  let cursor = dialogEl;
+  while (cursor && cursor !== document.body && cursor.parentElement) {
+    const parent = cursor.parentElement;
+    for (const sibling of parent.children) {
+      if (sibling !== cursor && !sibling.hasAttribute('inert')) {
+        sibling.setAttribute('inert', '');
+        nodes.push(sibling);
+      }
+    }
+    cursor = parent;
+  }
+  return nodes;
+};
+
+export const useBodyScrollLock = (open, dialogRef) => {
   useEffect(() => {
     if (!open) return undefined;
 
     if (lockCount === 0) {
       savedOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
+      const el = dialogRef?.current;
+      if (el) inertedNodes = markBackgroundInert(el);
     }
     lockCount += 1;
-
-    const root = document.getElementById('root');
-    if (root) root.setAttribute('inert', '');
 
     return () => {
       lockCount -= 1;
       if (lockCount <= 0) {
         lockCount = 0;
         document.body.style.overflow = savedOverflow;
-        if (root) root.removeAttribute('inert');
+        for (const node of inertedNodes) node.removeAttribute('inert');
+        inertedNodes = [];
       }
     };
-  }, [open]);
+  }, [open, dialogRef]);
 };

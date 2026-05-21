@@ -129,8 +129,8 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
   // 포커스 관리 — useDialogFocus 가 초기 포커스(textarea) + Tab 트랩 + 복원.
   useDialogFocus({ open, ref: dialogRef, initialSelector: '#edit-content' });
 
-  // #464 — body scroll lock + 배경 inert.
-  useBodyScrollLock(open);
+  // #464 — body scroll lock + dialog ancestor 형제만 inert.
+  useBodyScrollLock(open, dialogRef);
 
   if (!open || !message) return null;
 

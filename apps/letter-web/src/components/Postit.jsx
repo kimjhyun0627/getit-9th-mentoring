@@ -109,11 +109,7 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
     >
       <span aria-hidden="true" className={cn('washi', tape, palette.tape)} />
 
-      {message.is_mine ? (
-        <span className="mine-badge" aria-label="내가 쓴 쪽지">
-          내 메시지
-        </span>
-      ) : null}
+      {message.is_mine ? <span className="mine-badge">내 메시지</span> : null}
 
       <p className="text-[15px] leading-relaxed [word-break:keep-all]">{message.content}</p>
 
