@@ -1,4 +1,5 @@
 import { cn } from '../lib/cn.js';
+import { upscaleCoverUrl } from '../lib/coverUrl.js';
 
 import { StarRating } from './StarRating.jsx';
 
@@ -57,8 +58,10 @@ export const BookCard = ({ shelf, onEdit, className }) => {
   const { book, status, rating, review, addedAt } = shelf;
   const dateLabel = formatYearMonth(addedAt);
   const meta = status === 'READING' ? statusLabel(status) : `${statusLabel(status)} · ${dateLabel}`;
-  const coverStyle = book.coverUrl
-    ? { backgroundImage: `url("${book.coverUrl}")` }
+  // #474 — Kakao R120x174 저화질 URL 이 캐시에서 흘러오는 경우 클라이언트에서도 hi-res 로 방어 변환.
+  const cover = upscaleCoverUrl(book.coverUrl);
+  const coverStyle = cover
+    ? { backgroundImage: `url("${cover}")` }
     : { backgroundImage: fallbackGradient(book.title ?? book.isbn) };
 
   return (

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { upscaleCoverUrl } from '../lib/coverUrl.js';
+
 /** @typedef {'WANT' | 'READING' | 'READ'} ShelfStatus */
 
 /** @type {{ value: ShelfStatus; label: string }[]} */
@@ -49,12 +51,15 @@ export const SearchResultCard = ({ book, onAdd, isPending = false, isAdded = fal
     }
   };
 
+  // #474 — 캐시된 stale row 가 R120x174 저화질로 흘러와도 클라이언트에서 hi-res 로 방어 변환.
+  const cover = upscaleCoverUrl(book.coverUrl);
+
   return (
     <article className="group flex flex-col gap-3" data-testid="search-result-card">
       <div className="bg-paper-2 relative aspect-[2/3] overflow-hidden rounded-sm ring-1 ring-border transition-all duration-300 group-hover:ring-2 group-hover:ring-[var(--wine,#7a1a2a)] group-focus-within:ring-2 group-focus-within:ring-ring">
-        {book.coverUrl ? (
+        {cover ? (
           <img
-            src={book.coverUrl}
+            src={cover}
             alt={book.title}
             loading="lazy"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"

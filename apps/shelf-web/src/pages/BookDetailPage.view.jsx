@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 
 import { StarRating } from '../components/StarRating.jsx';
+import { upscaleCoverUrl } from '../lib/coverUrl.js';
 
 /**
  * 책 상세 화면 본문 — 데이터 로드 후 표시 (#201).
@@ -27,14 +28,16 @@ export const BookDetailView = ({
   onShare,
   copyState,
 }) => {
+  // #474 — Kakao R120x174 캐시 stale 대비 클라이언트 hi-res 변환.
+  const cover = upscaleCoverUrl(book.coverUrl);
   return (
     <>
       <section className="grid grid-cols-1 gap-10 md:grid-cols-3">
         <div className="cover relative md:col-span-1">
-          {book.coverUrl ? (
+          {cover ? (
             <div
               className="cover-inner"
-              style={{ backgroundImage: `url("${book.coverUrl}")` }}
+              style={{ backgroundImage: `url("${cover}")` }}
               aria-hidden="true"
             />
           ) : (
@@ -125,27 +128,31 @@ const RecommendationGrid = ({ recs }) => (
       <p className="text-meta mt-4 text-[13px]">추천할 책이 아직 없어요.</p>
     ) : (
       <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
-        {recs.map((b) => (
-          <li key={b.isbn}>
-            <Link
-              to={`/book/${encodeURIComponent(b.isbn)}`}
-              className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wine)]"
-            >
-              <div className="cover relative">
-                {b.coverUrl ? (
-                  <div
-                    className="cover-inner"
-                    style={{ backgroundImage: `url("${b.coverUrl}")` }}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-paper-2" />
-                )}
-              </div>
-              <p className="font-display mt-2 text-sm font-bold leading-tight">{b.title}</p>
-            </Link>
-          </li>
-        ))}
+        {recs.map((b) => {
+          // #474 — 추천 그리드도 동일하게 hi-res 변환.
+          const recCover = upscaleCoverUrl(b.coverUrl);
+          return (
+            <li key={b.isbn}>
+              <Link
+                to={`/book/${encodeURIComponent(b.isbn)}`}
+                className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wine)]"
+              >
+                <div className="cover relative">
+                  {recCover ? (
+                    <div
+                      className="cover-inner"
+                      style={{ backgroundImage: `url("${recCover}")` }}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-paper-2" />
+                  )}
+                </div>
+                <p className="font-display mt-2 text-sm font-bold leading-tight">{b.title}</p>
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     )}
   </section>
