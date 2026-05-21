@@ -119,7 +119,8 @@ describe('#415 /api/docs prod gate — recon 표적 차단', () => {
       const spec = await request(app).get('/api/openapi.json');
       expect(spec.status).toBe(404);
     } finally {
-      process.env.NODE_ENV = originalEnv;
+      if (originalEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalEnv;
       if (originalDocs === undefined) delete process.env.AUTH_DOCS_PUBLIC;
       else process.env.AUTH_DOCS_PUBLIC = originalDocs;
     }
@@ -136,7 +137,8 @@ describe('#415 /api/docs prod gate — recon 표적 차단', () => {
       expect(spec.status).toBe(200);
       expect(spec.body.openapi).toMatch(/^3\./);
     } finally {
-      process.env.NODE_ENV = originalEnv;
+      if (originalEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalEnv;
       if (originalDocs === undefined) delete process.env.AUTH_DOCS_PUBLIC;
       else process.env.AUTH_DOCS_PUBLIC = originalDocs;
     }
