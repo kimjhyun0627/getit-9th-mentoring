@@ -161,33 +161,46 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
 
       // 토큰 소비 + 비밀번호 교체 + refresh 토큰 revoke 를 하나의 트랜잭션으로 묶어
       // 어느 단계에서 실패해도 전체가 롤백되도록 한다 (Gemini #1).
-      const success = await prisma.$transaction(async (tx) => {
+      //
+      // #465: 실패 사유 세분화 (InvalidToken / ExpiredToken / AlreadyUsed) →
+      // FE 가 카피 분기 (만료 vs 사용됨 vs 잘못된 링크). 토큰 hash 는 unique +
+      // 1회용 발급이라 reason leak 으로 추측 가능한 정보 없음.
+      const result = await prisma.$transaction(async (tx) => {
         // 1회용 토큰 원자적 마킹: usedAt IS NULL + expiresAt > now 일 때만 갱신.
         const { count } = await tx.passwordResetToken.updateMany({
           where: { tokenHash, usedAt: null, expiresAt: { gt: now } },
           data: { usedAt: now },
         });
-        if (count !== 1) return false;
 
-        const stored = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
-        if (!stored) return false;
+        if (count === 1) {
+          const stored = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+          if (!stored) return { ok: false, reason: 'InvalidToken' };
 
-        await tx.user.update({
-          where: { id: stored.userId },
-          data: { passwordHash },
-        });
+          await tx.user.update({
+            where: { id: stored.userId },
+            data: { passwordHash },
+          });
 
-        // 보안: 비밀번호 변경 시 기존 모든 refresh 토큰 강제 revoke.
-        await tx.refreshToken.updateMany({
-          where: { userId: stored.userId, revokedAt: null },
-          data: { revokedAt: now },
-        });
+          // 보안: 비밀번호 변경 시 기존 모든 refresh 토큰 강제 revoke.
+          await tx.refreshToken.updateMany({
+            where: { userId: stored.userId, revokedAt: null },
+            data: { revokedAt: now },
+          });
+          return { ok: true };
+        }
 
-        return true;
+        // 갱신 실패 → 토큰 row 의 상태로 reason 추론.
+        const existing = await tx.passwordResetToken.findUnique({ where: { tokenHash } });
+        if (!existing) return { ok: false, reason: 'InvalidToken' };
+        if (existing.usedAt) return { ok: false, reason: 'AlreadyUsed' };
+        if (existing.expiresAt <= now) return { ok: false, reason: 'ExpiredToken' };
+        return { ok: false, reason: 'InvalidToken' };
       });
 
-      if (!success) {
-        return res.status(400).json({ error: 'InvalidOrExpiredToken' });
+      if (!result.ok) {
+        // 외부 호환성 유지 — `error` 는 기존 InvalidOrExpiredToken.
+        // 신규 `reason` 필드로 FE 카피 분기 (#465).
+        return res.status(400).json({ error: 'InvalidOrExpiredToken', reason: result.reason });
       }
       return res.status(200).json({ ok: true });
     } catch (err) {

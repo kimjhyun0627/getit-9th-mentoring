@@ -163,8 +163,12 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter, refreshLimiter }
   // POST /api/login
   router.post('/login', loginLimiter, async (req, res, next) => {
     try {
+      // #432: login 의 ValidationError 는 비밀번호 길이/정책을 노출 (`8자 이상` 등) →
+      // 봇/공격자에게 정책 누설 + UX 측면 "비번 잘못 입력" 과 분리될 이유가 없다.
+      // → ValidationError 도 401 InvalidCredentials 로 collapse (단일 응답).
+      // signup/reset 은 강한 정책 가이드 유지 (사용자 가이드용).
       const parsed = LoginInput.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
+      if (!parsed.success) return res.status(401).json({ error: 'InvalidCredentials' });
 
       const { email, password } = parsed.data;
       const user = await prisma.user.findUnique({ where: { email } });

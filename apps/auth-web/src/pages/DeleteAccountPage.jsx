@@ -34,6 +34,13 @@ export const DeleteAccountPage = () => {
       await api.deleteAccount(values);
       window.location.replace('https://get-it.cloud');
     } catch (err) {
+      // #423: UserNotFound (이미 탈퇴/세션 만료) → /login redirect.
+      const status = err?.response?.status;
+      const reason = err?.response?.data?.error;
+      if (status === 401 && reason === 'UserNotFound') {
+        navigate('/login?redirect=/delete-account', { replace: true });
+        return;
+      }
       setServerError(toFriendlyError(err));
     }
   };
@@ -48,8 +55,29 @@ export const DeleteAccountPage = () => {
           회원 탈퇴
         </h1>
         <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-          탈퇴 시 계정과 모든 세션이 즉시 종료돼요. 작성한 게시물은 익명으로 남을 수 있어요.
+          탈퇴하면 아래 처리가 즉시 진행돼요.
         </p>
+        {/* #454: 데이터 정책 / cross-domain / 재가입 가능성 명시 (UX writer 라운드). */}
+        <ul className="mt-1 list-disc space-y-1 pl-5 font-mono text-[12px] text-zinc-700 dark:text-zinc-300">
+          <li>
+            계정과 모든 세션이 즉시 종료돼요 — 4 개 프로젝트(취미메이트 · 스마트서재 · 칸반 ·
+            롤링페이퍼) 자동 로그아웃
+          </li>
+          <li>작성한 게시물·댓글·편지는 익명 처리(작성자 표기 제거)되며, 데이터 자체는 유지돼요</li>
+          <li>같은 이메일로 다시 가입할 수 있어요 (탈퇴 기록은 보존돼요)</li>
+          <li>
+            자세한 처리 방식은{' '}
+            <a
+              href="https://get-it.cloud/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cyan-700 underline-offset-4 hover:underline dark:text-cyan-neon"
+            >
+              개인정보 처리방침
+            </a>
+            을 참고해주세요
+          </li>
+        </ul>
       </header>
 
       <form

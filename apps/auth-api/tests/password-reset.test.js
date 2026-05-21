@@ -169,7 +169,7 @@ describe('password-reset', () => {
       expect(res.status).toBe(401);
     });
 
-    it('잘못된 토큰 → 400', async () => {
+    it('잘못된 토큰 → 400 + reason=InvalidToken (#465)', async () => {
       const res = await request(app)
         .post('/api/password/reset')
         .send({
@@ -178,9 +178,10 @@ describe('password-reset', () => {
           passwordConfirm: 'Newpass456',
         });
       expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ error: 'InvalidOrExpiredToken', reason: 'InvalidToken' });
     });
 
-    it('사용된 토큰 재사용 → 400', async () => {
+    it('사용된 토큰 재사용 → 400 + reason=AlreadyUsed (#465)', async () => {
       const token = await issueToken();
       await request(app).post('/api/password/reset').send({
         token,
@@ -193,9 +194,10 @@ describe('password-reset', () => {
         passwordConfirm: 'Thirdpw789',
       });
       expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ error: 'InvalidOrExpiredToken', reason: 'AlreadyUsed' });
     });
 
-    it('만료된 토큰 → 400', async () => {
+    it('만료된 토큰 → 400 + reason=ExpiredToken (#465)', async () => {
       const token = await issueToken();
       // expiresAt 강제 과거로 변경
       const hash = sha256(token);
@@ -210,6 +212,7 @@ describe('password-reset', () => {
         passwordConfirm: 'Newpass456',
       });
       expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({ error: 'InvalidOrExpiredToken', reason: 'ExpiredToken' });
     });
 
     it('비밀번호 8자 미만 → 400', async () => {

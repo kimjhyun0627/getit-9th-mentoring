@@ -75,6 +75,14 @@ export const ProfilePage = () => {
       await api.updateProfile(payload);
       setToast('프로필이 저장되었습니다');
     } catch (err) {
+      // #423: UserNotFound 는 비번 틀림이 아니라 세션 만료/탈퇴 케이스 →
+      // 카피 분리 + 자동 /login redirect (잠금 위험 차단).
+      const status = err?.response?.status;
+      const reason = err?.response?.data?.error;
+      if (status === 401 && reason === 'UserNotFound') {
+        navigate('/login?redirect=/profile', { replace: true });
+        return;
+      }
       setServerError(toFriendlyError(err));
     }
   };
@@ -169,9 +177,23 @@ export const ProfilePage = () => {
   );
 };
 
+/**
+ * 서버 에러 → 사용자 친화 메시지.
+ *
+ * #423: 401 의 두 reason 분리.
+ *  - InvalidCurrentPassword: "현재 비밀번호가 맞지 않습니다"
+ *  - UserNotFound: 호출 측에서 /login redirect 처리 — 여기 도달하면 fallback.
+ *
+ * @param {unknown} err
+ * @returns {string}
+ */
 const toFriendlyError = (err) => {
   const status = err?.response?.status;
-  if (status === 401) return '현재 비밀번호가 맞지 않습니다';
+  const reason = err?.response?.data?.error;
+  if (status === 401) {
+    if (reason === 'UserNotFound') return '세션이 만료되었어요 · 다시 로그인해주세요';
+    return '현재 비밀번호가 맞지 않습니다';
+  }
   if (status === 409) return '이미 사용 중인 이메일입니다';
   if (status === 400) return '입력값이 올바르지 않습니다';
   if (typeof status === 'number' && status >= 500)

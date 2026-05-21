@@ -33,9 +33,21 @@ describe('#312 CSRF guard', () => {
     expect(sc.some((c) => c.startsWith('getit_csrf_pub='))).toBe(true);
   });
 
-  it('protected /api/me/profile — CSRF 헤더 없이 PATCH → 403', async () => {
+  it('protected /api/me/profile — 미인증 PATCH → 401 (CSRF 우선 X, #427)', async () => {
+    // #427: JWT 쿠키 없는 요청은 CSRF 검사를 건너뛰고 requireAuth 가 401 을 먼저 응답.
+    // 외부 호출 일관성: "왜 안되는지" 가 "CsrfTokenMismatch" 보다 "NotAuthenticated" 가 맞다.
     const app = createApp({ rateLimitMax: 1000 });
     const res = await request(app).patch('/api/me/profile').send({});
+    expect(res.status).toBe(401);
+  });
+
+  it('protected /api/me/profile — JWT 있는데 CSRF 없으면 403', async () => {
+    // CSRF guard 는 인증된 사용자에게만 적용. JWT 가 있으면 CSRF mismatch → 403.
+    const app = createApp({ rateLimitMax: 1000 });
+    const res = await request(app)
+      .patch('/api/me/profile')
+      .set('Cookie', 'getit_jwt=anything')
+      .send({});
     expect(res.status).toBe(403);
     expect(res.body.error).toBe('CsrfTokenMismatch');
   });

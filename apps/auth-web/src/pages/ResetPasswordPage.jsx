@@ -178,9 +178,18 @@ const Header = () => (
  * @returns {string}
  */
 const toFriendlyError = (err) => {
-  const status = /** @type {{response?: {status?: number}}} */ (err)?.response?.status;
-  if (status === 400)
+  const response = /** @type {{response?: {status?: number, data?: {reason?: string}}}} */ (err)
+    ?.response;
+  const status = response?.status;
+  const reason = response?.data?.reason;
+  if (status === 400) {
+    // #465: BE 가 reason 으로 만료 vs 사용됨 vs 잘못 구분.
+    if (reason === 'ExpiredToken')
+      return '재설정 링크가 만료되었어요 (15분 경과) · 비밀번호 찾기를 다시 시도해주세요';
+    if (reason === 'AlreadyUsed') return '이미 사용된 링크예요 · 비밀번호 찾기를 다시 시도해주세요';
+    if (reason === 'InvalidToken') return '잘못된 링크예요 · 비밀번호 찾기를 다시 시도해주세요';
     return '토큰이 만료되었거나 이미 사용되었습니다 · 비밀번호 찾기를 다시 시도해주세요';
+  }
   if (status === 429) return '잠시 후 다시 시도해주세요';
   if (typeof status === 'number' && status >= 500)
     return '서버 오류가 발생했습니다 · 잠시 후 다시 시도해주세요';
