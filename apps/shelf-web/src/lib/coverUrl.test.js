@@ -60,6 +60,9 @@ describe('upscaleCoverUrl — Kakao thumb URL → fname 원본 URL 추출', () =
   it('fname 이 위험 스킴 (javascript:/data:) → 원본 유지', () => {
     const evil = 'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=javascript%3Aalert(1)';
     expect(upscaleCoverUrl(evil)).toBe(evil);
+    const dataUri =
+      'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=data%3Atext%2Fhtml%2C%3Cscript%3Ealert(1)%3C%2Fscript%3E';
+    expect(upscaleCoverUrl(dataUri)).toBe(dataUri);
   });
 
   it('원본 daumcdn URL 이 이미 직접 박혀있으면 그대로', () => {

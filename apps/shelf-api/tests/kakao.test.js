@@ -150,8 +150,10 @@ describe('toBookRecord — 카카오 응답을 Book 도메인으로 매핑', () 
 
   it('coverUrl: fname 이 javascript:/data: 같은 위험 스킴이면 원본 thumb URL 유지', () => {
     const evil = 'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=javascript%3Aalert(1)';
-    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: evil });
-    expect(book.coverUrl).toBe(evil);
+    expect(toBookRecord({ ...sampleKakaoDoc, thumbnail: evil }).coverUrl).toBe(evil);
+    const dataUri =
+      'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=data%3Atext%2Fhtml%2C%3Cscript%3Ealert(1)%3C%2Fscript%3E';
+    expect(toBookRecord({ ...sampleKakaoDoc, thumbnail: dataUri }).coverUrl).toBe(dataUri);
   });
 
   it('coverUrl: fname 에 query string 이 붙어있어도 그대로 살린다', () => {
