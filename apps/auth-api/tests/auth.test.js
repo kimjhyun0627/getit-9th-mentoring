@@ -126,6 +126,22 @@ describe('auth-api', () => {
       expect(res.status).toBe(401);
     });
 
+    it('8자 미만 비번 / 잘못된 email shape → 401 InvalidCredentials (정책 누설 차단, #432)', async () => {
+      // 이전엔 ValidationError 로 400 + "비밀번호는 8자 이상이어야 합니다" 응답 → 정책 누설.
+      // 이제는 모두 401 InvalidCredentials 로 collapse → 봇이 정책 추론 불가.
+      const shortPw = await request(app)
+        .post('/api/login')
+        .send({ email: VALID_SIGNUP.email, password: 'x' });
+      expect(shortPw.status).toBe(401);
+      expect(shortPw.body).toEqual({ error: 'InvalidCredentials' });
+
+      const badEmail = await request(app)
+        .post('/api/login')
+        .send({ email: 'not-an-email', password: 'whatever12' });
+      expect(badEmail.status).toBe(401);
+      expect(badEmail.body).toEqual({ error: 'InvalidCredentials' });
+    });
+
     it('미존재 email 응답시간이 존재 email 잘못된 비번 시간과 비슷 (timing leak 방어, #299)', async () => {
       // 동일 cost (BCRYPT_COST=4) 의 bcrypt.compare 가 두 케이스 모두 실행돼야 한다.
       await signupOk(app);

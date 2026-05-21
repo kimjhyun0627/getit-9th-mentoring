@@ -175,10 +175,15 @@ const MetaStrip = () => (
 );
 
 /**
- * 약관/개인정보 동의 체크박스 (#237).
+ * 약관/개인정보 동의 체크박스 (#237, #470 9기 학습용 컨텍스트 명시).
+ *
+ * GETIT 은 학회 학습용 임시 서비스 → 약관/처리방침 첫 줄에 9기 운영 기간 한정 명시.
  */
 const Consent = ({ register, errors }) => (
   <div className="flex flex-col gap-2 rounded-md border border-hairline bg-white/40 p-3 dark:bg-ink-900/30">
+    <p className="font-mono text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+      GETIT 9기 멘토링 학습용 서비스 · 9기 운영 기간에 한해 운영돼요
+    </p>
     <label className="flex items-start gap-2 font-mono text-[12px] text-zinc-700 dark:text-zinc-300">
       <input
         type="checkbox"
@@ -195,7 +200,7 @@ const Consent = ({ register, errors }) => (
         >
           이용약관
         </a>
-        에 동의합니다 (필수)
+        에 동의해요 (필수)
       </span>
     </label>
     {errors.acceptTerms ? (
@@ -220,7 +225,7 @@ const Consent = ({ register, errors }) => (
         >
           개인정보 처리방침
         </a>
-        에 동의합니다 (필수)
+        에 동의해요 (필수)
       </span>
     </label>
     {errors.acceptPrivacy ? (

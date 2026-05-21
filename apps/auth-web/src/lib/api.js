@@ -59,7 +59,21 @@ client.interceptors.response.use(
   (res) => res,
   (err) => {
     const status = err?.response?.status;
-    if (status === 401 && handlers.onUnauthorized) handlers.onUnauthorized();
+    const url = String(err?.config?.url ?? '');
+    const errorCode = err?.response?.data?.error;
+    // #456: /refresh 의 실패 케이스 모두 onUnauthorized → /login redirect.
+    //  - 401 NoRefreshToken: 쿠키 없음 (이미 만료/clear)
+    //  - 401 InvalidRefreshToken: revoked / 이미 회전됨 (reuse detect)
+    //  - 401 UserNotFound: 사용자 탈퇴 / deletedAt
+    //  - 429 RateLimitExceeded: refresh 폭증 — 재시도 폭주 차단, 사용자는 로그인 페이지로.
+    // CR 피드백: `/refresh?x=1` 같은 query 포함 케이스도 매칭되도록 regex.
+    const isRefresh = /\/refresh(?:\?|$)/.test(url);
+    if (isRefresh && (status === 401 || status === 429)) {
+      if (handlers.onUnauthorized)
+        handlers.onUnauthorized({ reason: errorCode ?? `HTTP${status}` });
+      return Promise.reject(err);
+    }
+    if (status === 401 && handlers.onUnauthorized) handlers.onUnauthorized({ reason: errorCode });
     // CSRF mismatch (서버 재시작 등) → 토큰 캐시 비우고 다음 요청에서 재발급.
     if (status === 403 && err?.response?.data?.error?.startsWith?.('Csrf')) {
       csrfToken = null;

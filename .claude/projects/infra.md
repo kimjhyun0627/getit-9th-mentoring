@@ -72,3 +72,59 @@ labels:
 ## 우선순위 에이전트
 
 DevOps (압도적 H) > Security (인증/시크릿 관리) > Code Reviewer
+
+## Auth 운영 검증 (Phase 8)
+
+### Cross-domain 탈퇴 흐름 (#426)
+
+정책: **탈퇴 = 즉시 4 도메인 자동 로그아웃**.
+
+- `POST /api/me/delete` → `clearAuthCookies(res, cfg)` 가 `Set-Cookie ...; Domain=.get-it.cloud` 로 응답.
+- 모든 서브도메인(hobby/shelf/board/letter/auth)의 access/refresh 쿠키가 즉시 클리어.
+- DB 의 `User.deletedAt` 마킹 + 모든 `RefreshToken.revokedAt` 갱신.
+
+Zombie session 한도:
+
+- 4 프로젝트 BE 는 access JWT 검증만 (DB revoked-check 없음) → 다른 탭에서 사용 중이면 access TTL 동안 동작 가능.
+- silent refresh 호출 시 `getit_refresh` 쿠키 이미 clear → `/api/refresh` 401 NoRefreshToken → FE interceptor 가 /login redirect (#456).
+- 결론: **탈퇴 = 최대 access TTL (15분) 안에 모든 도메인 로그아웃 보장**.
+
+검증 (수동):
+
+```bash
+# 1. 로그인 → access TTL 동안 4 도메인 동작 확인
+# 2. /api/me/delete 호출 (auth.get-it.cloud)
+# 3. 각 서브도메인 새로고침 → 401 (access TTL 만료 후) 또는 즉시 (쿠키 clear)
+curl -i -b "getit_jwt=$JWT" https://hobby.get-it.cloud/api/health
+```
+
+follow-up (P3+): hobby/shelf/board/letter BE 에 `deletedAt` 가드 추가 — auth-api 의 `loadActiveUser` 패턴 이식 시 zombie window 0 초화.
+
+### Prisma migration 라이브 검증 (#460)
+
+Migrations:
+
+- `20260519000000_init`
+- `20260520000000_password_reset`
+- `20260520120000_phase6c_user_profile_verify` (User.emailVerifiedAt, deletedAt, EmailVerifyToken)
+
+검증 명령 (SSH 필요):
+
+```bash
+ssh -i "$DEPLOY_SSH_KEY" "$DEPLOY_USER@$DEPLOY_HOST" \
+  'docker exec getit-auth-api-1 npx -y prisma@6 migrate status'
+
+# 신규 migration 추가 시 (CI 가 적용 안 함):
+ssh -i "$DEPLOY_SSH_KEY" "$DEPLOY_USER@$DEPLOY_HOST" \
+  'docker exec getit-auth-api-1 npx -y prisma@6 migrate deploy'
+```
+
+> 환경변수: `DEPLOY_SSH_KEY=~/.ssh/getit_deploy`, `DEPLOY_USER`, `DEPLOY_HOST`.
+> 실값은 비공개 런북 / GitHub Secrets 참조.
+
+라이브 sanity (signup 1회 → SMTP fallback):
+
+```bash
+ssh -i "$DEPLOY_SSH_KEY" "$DEPLOY_USER@$DEPLOY_HOST" \
+  'docker logs --since 5m getit-auth-api-1 | grep mailer-fallback'
+```

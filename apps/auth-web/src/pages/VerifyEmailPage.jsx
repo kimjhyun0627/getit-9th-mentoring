@@ -49,36 +49,23 @@ export const VerifyEmailPage = () => {
         </h1>
       </header>
 
-      {token ? (
-        <Banner state={state} />
-      ) : (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-            가입 시 보내드린 인증 메일을 받지 못하셨다면 아래 버튼으로 재발송하세요.
-          </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              onResend();
-            }}
-            aria-label="인증 메일 재발송 폼"
-          >
-            <SubmitButton loading={resendState === 'pending'} loadingText="발송 중…">
-              인증 메일 다시 받기
-            </SubmitButton>
-          </form>
-          {resendState === 'ok' ? (
-            <p role="status" className="font-mono text-[12px] text-cyan-700 dark:text-cyan-neon">
-              발송 완료 · 메일함을 확인해주세요
-            </p>
-          ) : null}
-          {resendState === 'fail' ? (
-            <p role="alert" className="font-mono text-[12px] text-destructive">
-              발송 실패 · 로그인 상태에서만 가능해요
-            </p>
-          ) : null}
-        </div>
-      )}
+      {token ? <Banner state={state} /> : null}
+
+      {/*
+        #419: token 처리 실패 (state='fail') 시에도 재발송 CTA + 로그인 CTA 노출 →
+        사용자가 막다른 길에 갇히지 않도록. token 없는 진입에도 동일 영역 노출.
+      */}
+      {!token || state === 'fail' ? (
+        <ResendBlock
+          resendState={resendState}
+          onResend={onResend}
+          intro={
+            state === 'fail'
+              ? '링크가 만료/사용 처리됐어요. 로그인 상태라면 아래에서 다시 받을 수 있어요.'
+              : '가입 시 보내드린 인증 메일을 받지 못하셨다면 아래 버튼으로 재발송하세요.'
+          }
+        />
+      ) : null}
 
       <div className="divider-mono text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
       <p className="text-center font-mono text-[12px] text-zinc-600 dark:text-zinc-300">
@@ -90,9 +77,56 @@ export const VerifyEmailPage = () => {
   );
 };
 
+/**
+ * 재발송 블록 — 토큰 없는 진입 + fail 후 dead-end 회피용 (#419).
+ *
+ * @param {{
+ *   resendState: 'idle'|'pending'|'ok'|'fail',
+ *   onResend: () => Promise<void>,
+ *   intro: string,
+ * }} props
+ */
+const ResendBlock = ({ resendState, onResend, intro }) => (
+  <div className="flex flex-col gap-3">
+    <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{intro}</p>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onResend();
+      }}
+      aria-label="인증 메일 재발송 폼"
+    >
+      <SubmitButton loading={resendState === 'pending'} loadingText="발송 중…">
+        인증 메일 다시 받기
+      </SubmitButton>
+    </form>
+    {resendState === 'ok' ? (
+      <p role="status" className="font-mono text-[12px] text-cyan-700 dark:text-cyan-neon">
+        발송 완료 · 메일함을 확인해주세요
+      </p>
+    ) : null}
+    {resendState === 'fail' ? (
+      <p role="alert" className="font-mono text-[12px] text-destructive">
+        발송 실패 · 로그인 후 다시 시도해주세요{' '}
+        <Link
+          to="/login?redirect=/verify-email"
+          className="underline-offset-4 hover:underline focus-visible:underline"
+        >
+          로그인
+        </Link>
+      </p>
+    ) : null}
+  </div>
+);
+
 const Banner = ({ state }) => {
+  // #450: SR 가 state 전환을 인지하도록 role=status + aria-live 폴라이트.
   if (state === 'pending')
-    return <p className="font-mono text-[12px] text-zinc-500">인증 처리 중…</p>;
+    return (
+      <p role="status" aria-live="polite" className="font-mono text-[12px] text-zinc-500">
+        인증 처리 중…
+      </p>
+    );
   if (state === 'ok')
     return (
       <p
