@@ -68,12 +68,16 @@ export const CodeTerminalToggle = ({ className }) => {
   // 값 텍스트 — 폭 일정화 (라이트 7글자 [ light ], 다크 7글자 [ dark  ])
   const valueText = isDark ? '[ dark  ]' : '[ light ]';
 
-  // bg 알파를 0.7 → 0.92 로 올려 dark scene 위 텍스트 contrast 안정화 (#371).
+  // bg 알파: dark 는 ink-900 불투명 (다크 모드에서 알파/스케일 미스매치로 fallback
+  // bg-white/90 가 그대로 적용돼 흰 영역으로 보이는 #379 버그 방지). Tailwind v3
+  // 기본 opacity 스케일은 step 5 (..., 90, 95, 100) — `/92` 같은 비표준 값은
+  // 빌드 CSS 에서 누락된다. 다크 카드 위 토글 컨테이너는 알파 없이 솔리드 ink-900
+  // 로 충분히 자연스럽고, 라이트는 alpha 90% 유지 (시안 패턴).
   const baseClass =
     'group inline-flex h-9 items-center gap-1.5 rounded-md border border-hairline px-2.5 font-mono text-[11px] leading-none transition focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-cyan-700 dark:focus-visible:outline-cyan-neon';
 
   const themeColors =
-    'bg-white/90 text-zinc-700 hover:border-cyan-700 hover:text-cyan-700 dark:bg-ink-900/92 dark:text-zinc-100 dark:hover:border-cyan-neon';
+    'bg-white/90 text-zinc-700 hover:border-cyan-700 hover:text-cyan-700 dark:bg-ink-900 dark:text-zinc-100 dark:hover:border-cyan-neon';
 
   return (
     <button

@@ -19,6 +19,10 @@ export default {
     // 삭제돼 라이브에서 텍스트 색이 안 먹는 사고 발생 (#377).
     '../../packages/theme/src/**/*.{js,jsx}',
   ],
+  // 토글 솔리드 배경 (#379) — packages/theme 가 어떤 alpha 표기로 들어와도
+  // 라이브에서 흰색 fallback 으로 보이지 않도록 안전한 솔리드 ink 색을
+  // safelist 에 박아둔다.
+  safelist: ['bg-ink-900', 'bg-ink-950', 'dark:bg-ink-900', 'dark:bg-ink-950'],
   theme: {
     extend: {
       colors: {
