@@ -83,12 +83,12 @@ export const BoardForbidden = ({ status, onBack }) => {
         className="flex flex-col items-center justify-center gap-3 rounded-lg border border-hairline px-6 py-16 text-center"
       >
         <p className="text-sm font-medium text-foreground">
-          {isMissing ? '보드를 찾을 수 없어요' : '이 보드에 접근할 권한이 없어요'}
+          {isMissing ? '보드를 찾을 수 없어' : '이 보드는 멤버만 볼 수 있어'}
         </p>
         <p className="text-xs leading-relaxed text-muted-foreground">
           {isMissing
-            ? '주소를 확인하거나 프로젝트 목록에서 다시 들어와 주세요.'
-            : '프로젝트 OWNER 에게 멤버 초대를 요청하거나 다른 보드로 이동해 주세요.'}
+            ? '주소를 다시 확인해보거나 프로젝트 목록에서 들어와줘.'
+            : '프로젝트 만든 사람한테 멤버로 추가해달라고 부탁해줘. 멤버 관리에서 너의 userId 를 복사해서 전달하면 돼.'}
         </p>
         <button
           type="button"
@@ -111,9 +111,9 @@ export const BoardError = ({ onRetry }) => (
       role="alert"
       className="flex flex-col items-center justify-center gap-3 rounded-lg border border-hairline px-6 py-16 text-center"
     >
-      <p className="text-sm font-medium text-foreground">보드를 불러오지 못했어요</p>
+      <p className="text-sm font-medium text-foreground">보드를 불러오지 못했어</p>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        네트워크 상태를 확인한 뒤 다시 시도해 주세요.
+        네트워크 상태 확인하고 다시 시도해줘.
       </p>
       <button
         type="button"

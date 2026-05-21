@@ -117,6 +117,21 @@ describe('computeDropOrder (#395 같은 컬럼 DnD reorder)', () => {
     expect(order).toBe(2500);
   });
 
+  it('#428 같은 컬럼: 자기 자신 위에 드롭 → 끝에 append 로 잘못 흐름 (BoardDndContext early-return 으로 막아야)', () => {
+    // computeDropOrder 만 단독으로 보면 self-drop 시 자기 제외 → 끝 append 가 된다.
+    // 이게 시각적 no-op 처럼 보여야 정상이므로, BoardDndContext 가 active.id===over.id 를 early return.
+    const order = computeDropOrder({
+      activeCardId: 'b',
+      sourceColumnId: 'col',
+      sourceCards: cards,
+      targetColumnId: 'col',
+      targetCards: cards,
+      overCardId: 'b',
+    });
+    // 자기 제외 [a,c] → c 뒤 = 4000. 호출되면 잘못된 위치. handler 측 early-return 으로 호출 자체를 막는 것이 옳다.
+    expect(order).toBe(4000);
+  });
+
   it('컬럼 본체 드롭 → 끝에 append', () => {
     const order = computeDropOrder({
       activeCardId: 'a',

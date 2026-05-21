@@ -193,7 +193,16 @@ export const useBoardCardMutations = ({ onUpdateError, onUpdateSuccess, projectI
       const cards = queryClient.getQueryData(['cards', columnId]) ?? [];
       const existing = cards.find((c) => c.id === cardId);
       const payload = { ...changes };
-      const ts = existing?.updatedAt;
+      let ts = existing?.updatedAt;
+      // #455: BE 가 expectedUpdatedAt 을 필수로 강제. 캐시 miss 면 GET /cards/:id 한 번 호출해 최신 ts 확보.
+      if (!ts) {
+        try {
+          const fetched = await api.getCard?.(cardId);
+          ts = fetched?.data?.card?.updatedAt;
+        } catch {
+          // graceful — fallback 도 실패하면 페이로드만 보내고 BE 가 400 으로 사유 알려준다.
+        }
+      }
       if (ts) {
         payload.expectedUpdatedAt =
           ts instanceof Date ? ts.toISOString() : new Date(ts).toISOString();

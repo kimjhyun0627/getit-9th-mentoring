@@ -198,7 +198,7 @@ describe('BoardsPage', () => {
     await user.type(screen.getByLabelText('프로젝트 이름'), 'Bad Project');
     await user.click(screen.getByRole('button', { name: '만들기' }));
 
-    expect(await screen.findByText(/서버 오류가 발생했습니다/)).toBeInTheDocument();
+    expect(await screen.findByText(/서버 오류가 났어/)).toBeInTheDocument();
     // 다이얼로그는 여전히 열려있어야 함
     expect(screen.getByRole('heading', { name: '새 프로젝트 만들기' })).toBeInTheDocument();
   });
@@ -209,7 +209,7 @@ describe('BoardsPage', () => {
       response: { status: 500 },
     });
     renderPage();
-    expect(await screen.findByText('프로젝트를 불러오지 못했어요')).toBeInTheDocument();
+    expect(await screen.findByText('프로젝트를 불러오지 못했어')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument();
   });
 });

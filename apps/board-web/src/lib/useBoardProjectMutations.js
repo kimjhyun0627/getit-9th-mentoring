@@ -60,13 +60,13 @@ const toFriendlyError = (err, kind) => {
   const code = /** @type {{ response?: { data?: { error?: string } } }} */ (err)?.response?.data
     ?.error;
   if (code === 'OwnerOnly' || status === 403) {
-    return kind === 'delete' ? 'OWNER만 삭제할 수 있어요.' : '권한이 없어요.';
+    return kind === 'delete' ? 'OWNER만 삭제할 수 있어.' : '권한이 없어.';
   }
-  if (status === 400) return '입력을 확인해 주세요.';
-  if (status === 404) return '프로젝트를 찾을 수 없어요.';
+  if (status === 400) return '입력을 다시 확인해줘.';
+  if (status === 404) return '프로젝트를 찾을 수 없어.';
   if (typeof status === 'number' && status >= 500)
-    return '서버 오류가 발생했어요. 잠시 후 다시 시도해 주세요.';
+    return '서버 오류가 났어. 잠시 후 다시 시도해줘.';
   return kind === 'delete'
-    ? '삭제하지 못했어요. 잠시 후 다시 시도해 주세요.'
-    : '저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
+    ? '삭제하지 못했어. 잠시 후 다시 시도해줘.'
+    : '저장하지 못했어. 잠시 후 다시 시도해줘.';
 };

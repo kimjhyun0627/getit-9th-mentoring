@@ -34,7 +34,7 @@ const copyToClipboard = async (text) => {
  *   role: 'OWNER' | 'MEMBER';
  *   members: Array<{ userId: string; role: 'OWNER'|'MEMBER'; name?: string | null }>;
  *   currentUserId: string | null;
- *   onInvite: (userId: string) => Promise<void> | void;
+ *   onInvite: (userId: string) => Promise<boolean | void> | boolean | void;
  *   onRemove: (userId: string) => Promise<void> | void;
  *   inviting?: boolean;
  *   removingUserId?: string | null;
@@ -90,12 +90,14 @@ export const MembersDialog = ({
     e.preventDefault();
     const trimmed = userId.trim();
     if (!trimmed) {
-      setLocalErr('userId가 필요합니다');
+      setLocalErr('userId를 적어줘');
       return;
     }
     setLocalErr(null);
-    await onInvite(trimmed);
-    setUserId('');
+    // #438: invite 실패 시 input 을 유지해 재시도 동선 보존. onInvite 가 boolean 반환을
+    // 약속한 경우 false 면 비우지 않는다. 기존 호출자(반환값 없음)는 undefined → !==false → 비움.
+    const result = await onInvite(trimmed);
+    if (result !== false) setUserId('');
   };
 
   return (
@@ -125,8 +127,8 @@ export const MembersDialog = ({
           </h2>
           <p className="text-xs leading-relaxed text-muted-foreground">
             {role === 'OWNER'
-              ? 'userId 로 다른 사람을 초대하거나 멤버를 추방할 수 있어요.'
-              : '본인 탈퇴만 가능합니다. 다른 멤버는 OWNER만 관리해요.'}
+              ? 'userId 로 다른 사람을 초대하거나 멤버를 추방할 수 있어.'
+              : '본인 탈퇴만 가능해. 다른 멤버는 OWNER 만 관리할 수 있어.'}
           </p>
         </header>
 
@@ -152,7 +154,7 @@ export const MembersDialog = ({
               </button>
             </div>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              다른 보드에 초대받을 때 이 ID 를 공유하세요.
+              다른 보드에 초대받을 때 이 ID 를 공유해.
             </p>
           </section>
         ) : null}

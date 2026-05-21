@@ -66,7 +66,7 @@ export const BoardViewPage = () => {
   // (조회 성공 전엔 projectQuery.members 를 fallback 으로 사용해 "멤버 없음" 오해 방지.)
   useEffect(() => {
     if (membersOpen && membersQuery.isError && !membersError) {
-      setMembersError('멤버 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
+      setMembersError('멤버 목록을 불러오지 못했어. 잠시 후 다시 시도해줘.');
     }
   }, [membersOpen, membersQuery.isError, membersError]);
 
@@ -270,7 +270,14 @@ export const BoardViewPage = () => {
               }))
         }
         currentUserId={projectQuery.data?.currentUserId ?? null}
-        onInvite={(userId) => memberMut.invite.mutateAsync({ userId }).catch(() => {})}
+        // #438: invite 실패해도 input 이 비워지는 문제 — onInvite 가 성공 여부를 반환하도록
+        // 약속을 변경. catch 에서 false 를 돌려주면 MembersDialog 가 input 을 비우지 않는다.
+        onInvite={(userId) =>
+          memberMut.invite
+            .mutateAsync({ userId })
+            .then(() => true)
+            .catch(() => false)
+        }
         onRemove={(userId) => memberMut.remove.mutateAsync({ userId }).catch(() => {})}
         inviting={memberMut.invite.isPending}
         removingUserId={memberMut.remove.isPending ? memberMut.remove.variables?.userId : null}

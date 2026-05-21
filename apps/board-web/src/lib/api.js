@@ -190,6 +190,12 @@ export const api = {
   createCard: (body) =>
     parseOrReject(CardCreateInput, body).then((parsed) => client.post('/cards', parsed)),
   /**
+   * 카드 단건 조회 — useBoardCardMutations 가 cache miss 시 expectedUpdatedAt fallback 으로 사용 (#455).
+   *
+   * @param {string} cardId
+   */
+  getCard: (cardId) => client.get(`/cards/${cardId}`),
+  /**
    * 카드 수정 (title / description / assigneeId 중 1+).
    *
    * @param {string} cardId

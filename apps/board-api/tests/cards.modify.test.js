@@ -25,6 +25,9 @@ describe('board-api cards modify', () => {
   });
 
   describe('PATCH /api/cards/:id', () => {
+    // #455: expectedUpdatedAt 은 이제 필수. 기존 케이스에 expected 헬퍼로 채워보낸다.
+    const expected = (card) => new Date(card.updatedAt).toISOString();
+
     it('title 변경 → 200', async () => {
       const pid = await createProject(request, app, 'alice');
       const [todo] = columnsOf(pid);
@@ -32,7 +35,7 @@ describe('board-api cards modify', () => {
       const res = await request(app)
         .patch(`/api/cards/${card.id}`)
         .set(authHeader('alice'))
-        .send({ title: 'new' });
+        .send({ title: 'new', expectedUpdatedAt: expected(card) });
       expect(res.status).toBe(200);
       expect(res.body.card.title).toBe('new');
     });
@@ -44,7 +47,7 @@ describe('board-api cards modify', () => {
       const res = await request(app)
         .patch(`/api/cards/${card.id}`)
         .set(authHeader('alice'))
-        .send({ description: null });
+        .send({ description: null, expectedUpdatedAt: expected(card) });
       expect(res.status).toBe(200);
       expect(res.body.card.description).toBeNull();
     });
@@ -57,7 +60,7 @@ describe('board-api cards modify', () => {
       const res = await request(app)
         .patch(`/api/cards/${card.id}`)
         .set(authHeader('alice'))
-        .send({ assigneeId: 'bob' });
+        .send({ assigneeId: 'bob', expectedUpdatedAt: expected(card) });
       expect(res.status).toBe(200);
       expect(res.body.card.assigneeId).toBe('bob');
     });
@@ -69,7 +72,7 @@ describe('board-api cards modify', () => {
       const res = await request(app)
         .patch(`/api/cards/${card.id}`)
         .set(authHeader('alice'))
-        .send({ assigneeId: 'eve' });
+        .send({ assigneeId: 'eve', expectedUpdatedAt: expected(card) });
       expect(res.status).toBe(422);
       expect(res.body.error).toBe('AssigneeNotMember');
     });
@@ -82,7 +85,7 @@ describe('board-api cards modify', () => {
       const res = await request(app)
         .patch(`/api/cards/${card.id}`)
         .set(authHeader('alice'))
-        .send({ assigneeId: null });
+        .send({ assigneeId: null, expectedUpdatedAt: expected(card) });
       expect(res.status).toBe(200);
       expect(res.body.card.assigneeId).toBeNull();
     });
@@ -105,7 +108,7 @@ describe('board-api cards modify', () => {
       const res = await request(app)
         .patch(`/api/cards/${card.id}`)
         .set(authHeader('eve'))
-        .send({ title: 'x' });
+        .send({ title: 'x', expectedUpdatedAt: expected(card) });
       expect(res.status).toBe(403);
     });
 
@@ -113,8 +116,22 @@ describe('board-api cards modify', () => {
       const res = await request(app)
         .patch('/api/cards/card_nope')
         .set(authHeader('alice'))
-        .send({ title: 'x' });
+        .send({ title: 'x', expectedUpdatedAt: new Date().toISOString() });
       expect(res.status).toBe(404);
+    });
+
+    // #455: expectedUpdatedAt 미전송 → 400 + 최신 카드 포함.
+    it('expectedUpdatedAt 미전송 → 400 MissingExpectedUpdatedAt', async () => {
+      const pid = await createProject(request, app, 'alice');
+      const [todo] = columnsOf(pid);
+      const card = await createCard(app, 'alice', todo.id);
+      const res = await request(app)
+        .patch(`/api/cards/${card.id}`)
+        .set(authHeader('alice'))
+        .send({ title: 'new' });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('MissingExpectedUpdatedAt');
+      expect(res.body.card?.id).toBe(card.id);
     });
 
     // #253 conflict detection
