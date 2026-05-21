@@ -6,17 +6,34 @@
   aria-label="GETIT 9기"
 >
   <!--
-    GETIT 9기 favicon (Tech-Dark).
-    ink-950 #08090b 베이스 + cyan-neon #22d3ee G9 모노그램.
-    32×32 viewBox; SVG favicon은 modern browser 전역 지원 (Safari 9+ / Chrome / Firefox / Edge).
+    GETIT 9기 favicon — Tech-Dark 페르소나 (#533).
+    `apps/landing/src/components/BrandMark.jsx` 의 `< | >` bracket + caret 모티프를
+    standalone SVG 로 추출. Tailwind 토큰 → 명시 hex inline 으로 치환
+    (favicon 은 다크모드 분기 없이 단일 SVG).
+
+    이전 G9 텍스트 모노그램은 16×16 렌더 시 가독성이 떨어져 BrandMark 와 통일.
+
+    팔레트:
+    - ink-950  #08090b   box fill
+    - ink-900  #0c0d10   box border
+    - cyan-neon #22d3ee  brackets + caret
   -->
-  <rect width="32" height="32" rx="6" fill="#08090b" />
-  <g
-    font-family='"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace'
-    font-weight="700"
-    fill="#22d3ee"
-    text-anchor="middle"
-  >
-    <text x="16" y="21" font-size="14" letter-spacing="-0.04em">G9</text>
-  </g>
+  <rect x="1.5" y="1.5" width="29" height="29" rx="6" fill="#08090b" stroke="#0c0d10" stroke-width="1" />
+  <path
+    d="M12 10 L7.5 16 L12 22"
+    fill="none"
+    stroke="#22d3ee"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M20 10 L24.5 16 L20 22"
+    fill="none"
+    stroke="#22d3ee"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <line x1="16" y1="11" x2="16" y2="21" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" />
 </svg>
