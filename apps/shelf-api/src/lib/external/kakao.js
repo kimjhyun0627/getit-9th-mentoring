@@ -54,6 +54,37 @@ const pickIsbn = (raw) => {
 };
 
 /**
+ * 카카오 thumbnail URL → 고해상도 변환 (#359).
+ *
+ * 카카오 검색이 돌려주는 thumbnail 은 기본 `R120x174` (가로 ~120px) 라
+ * retina / 큰 카드에서 흐릿하다. kakaocdn 의 사이즈 토큰
+ * (`R120x174` / `C98x140` 등 영문1자 + WxH) 만 `R480x696` 으로 바꾸면
+ * 같은 자산의 고해상도가 즉시 떨어진다 — 새 endpoint 없음.
+ *
+ * kakaocdn 호스트가 아닌 URL (테스트/우회 자산) 은 손대지 않는다.
+ *
+ * @param {string} url
+ * @returns {string}
+ */
+const upscaleKakaoThumbnail = (url) => {
+  if (!url) return '';
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  // 호스트 정확 매칭: kakaocdn.net 또는 그 서브도메인 (`search1.kakaocdn.net` 등) 만.
+  // 외부 호스트가 쿼리/패스에 `kakaocdn.net/thumb/` 문자열을 우연히 포함해도 손대지 않는다.
+  const host = parsed.hostname.toLowerCase();
+  const isKakaoCdn = host === 'kakaocdn.net' || host.endsWith('.kakaocdn.net');
+  if (!isKakaoCdn) return url;
+  if (!parsed.pathname.startsWith('/thumb/')) return url;
+  parsed.pathname = parsed.pathname.replace(/^\/thumb\/[A-Z]\d+x\d+/i, '/thumb/R480x696');
+  return parsed.toString();
+};
+
+/**
  * 카카오 documents[i] 1건을 Prisma Book 입력으로 변환.
  *
  * @param {Record<string, any>} doc
@@ -83,7 +114,7 @@ export const toBookRecord = (doc) => {
     author: authors.join(', '),
     publisher: String(doc?.publisher ?? '').trim(),
     publishedAt,
-    coverUrl: String(doc?.thumbnail ?? ''),
+    coverUrl: upscaleKakaoThumbnail(String(doc?.thumbnail ?? '')),
     description: String(doc?.contents ?? ''),
     source: 'kakao',
   };
