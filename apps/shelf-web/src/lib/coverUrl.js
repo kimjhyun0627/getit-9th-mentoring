@@ -48,11 +48,11 @@ export const upscaleCoverUrl = (url) => {
       } catch {
         return forceHttps(parsed);
       }
+      // 추출된 원본 URL 이 http/https 면 forceHttps 로 일관 처리 (CR review #530).
+      // 위험 스킴 (data:/javascript:) → 원본 thumb URL 유지 (http→https 만 잠금).
       if (originUrl.protocol === 'http:' || originUrl.protocol === 'https:') {
-        if (originUrl.protocol === 'http:') originUrl.protocol = 'https:';
-        return originUrl.toString();
+        return forceHttps(originUrl);
       }
-      // 위험 스킴 (data:/javascript:) — 원본 thumb URL 유지 (http→https 만 잠금).
       return forceHttps(parsed);
     }
   }
