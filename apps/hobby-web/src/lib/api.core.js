@@ -36,11 +36,15 @@ export const client = axios.create({
 const handlers = { onUnauthorized: null };
 
 /**
- * 401 콜백 등록.
+ * 401 콜백 등록. 함수 또는 null 만 허용 — 잘못된 값이 들어와 401 인터셉터에서
+ * `handlers.onUnauthorized()` 호출 시점에 폭발하는 사고 방지.
  *
- * @param {() => void} fn
+ * @param {(() => void) | null} fn
  */
 export const setUnauthorizedHandler = (fn) => {
+  if (fn !== null && typeof fn !== 'function') {
+    throw new TypeError('setUnauthorizedHandler: fn must be a function or null');
+  }
   handlers.onUnauthorized = fn;
 };
 

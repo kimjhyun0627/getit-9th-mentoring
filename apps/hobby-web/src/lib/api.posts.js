@@ -36,7 +36,8 @@ export const getPost = async (id) => {
 };
 
 /**
- * 게시글 작성.
+ * 게시글 작성. 다른 도메인 함수와 동일하게 `res.data` 만 반환 — 호출자는
+ * `{ post: {...} }` 형태를 직접 다룬다.
  *
  * @param {{
  *   title: string;
@@ -48,7 +49,10 @@ export const getPost = async (id) => {
  *   applicationPolicy?: 'FIRST_COME' | 'APPROVAL';
  * }} body
  */
-export const createPost = (body) => client.post('/posts', body);
+export const createPost = async (body) => {
+  const res = await client.post('/posts', body);
+  return res.data;
+};
 
 /**
  * 게시글 수정 (PATCH, owner only) — #333.

@@ -48,7 +48,13 @@ export const cancelApplication = async (applicationId) => {
  */
 export const listApplicants = async (id) => {
   const res = await client.get(`/posts/${encodeURIComponent(id)}/applicants`);
-  return res.data;
+  // 응답 shape 가 깨져도 호출자가 `items.map` 등에서 즉시 폭발하지 않도록
+  // 최소 sanitization. total / applicationPolicy 는 그대로 통과시킨다.
+  const data = res.data ?? {};
+  return {
+    ...data,
+    items: Array.isArray(data.items) ? data.items : [],
+  };
 };
 
 /**

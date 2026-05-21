@@ -119,7 +119,8 @@ export const CreatePostPage = () => {
         tags: values.tags,
         applicationPolicy: values.applicationPolicy,
       });
-      const postId = res?.data?.post?.id;
+      // createPost 가 res.data 만 반환하도록 통일됨 (#521).
+      const postId = res?.post?.id;
       if (postId) {
         navigate(`/posts/${postId}`, { replace: true });
       } else {
