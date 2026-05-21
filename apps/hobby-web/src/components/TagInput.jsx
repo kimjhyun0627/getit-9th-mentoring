@@ -2,6 +2,8 @@ import { useId, useState } from 'react';
 
 import { cn } from '../lib/cn.js';
 
+import { TagSuggestions } from './TagSuggestions.jsx';
+
 const MAX_TAGS = 5;
 const MAX_TAG_LEN = 24;
 // #192: BE Zod (`@getit/schemas/hobby` TagName) 와 동일한 정규식. 글자/숫자/`-`/`_` 만.
@@ -41,14 +43,20 @@ export const TagInput = ({
   // 스크린리더가 error 와 input 을 연결할 수 있음.
   const effectiveError = error ?? localError;
 
-  /** 현재 draft 를 정규화하고 chip 으로 추가. 중복/제한/정규식 체크 (#192). */
-  const commit = () => {
-    const next = draft.trim();
+  /**
+   * raw 문자열을 정규화 후 chip 으로 추가. 중복/제한/정규식 체크 (#192).
+   * draft 입력 commit + 추천 칩 클릭 둘 다 이걸 통과한다.
+   *
+   * @param {string} raw
+   * @param {{ clearDraft?: boolean }} [opts]
+   */
+  const tryAdd = (raw, opts = {}) => {
+    const next = raw.trim();
     setLocalError(null);
     if (!next) return;
     if (value.length >= MAX_TAGS) {
       setLocalError(`태그는 최대 ${MAX_TAGS}개까지`);
-      setDraft('');
+      if (opts.clearDraft) setDraft('');
       return;
     }
     if (!TAG_PATTERN.test(next)) {
@@ -58,12 +66,15 @@ export const TagInput = ({
     }
     const lower = next.toLowerCase();
     if (value.some((t) => t.toLowerCase() === lower)) {
-      setDraft('');
+      if (opts.clearDraft) setDraft('');
       return;
     }
     onChange([...value, next.slice(0, MAX_TAG_LEN)]);
-    setDraft('');
+    if (opts.clearDraft) setDraft('');
   };
+
+  /** 현재 draft 를 정규화하고 chip 으로 추가. */
+  const commit = () => tryAdd(draft, { clearDraft: true });
 
   /** @param {import('react').KeyboardEvent<HTMLInputElement>} e */
   const onKeyDown = (e) => {
@@ -145,6 +156,12 @@ export const TagInput = ({
           {hint}
         </p>
       ) : null}
+
+      <TagSuggestions
+        value={value}
+        onPick={(label) => tryAdd(label)}
+        disabled={value.length >= MAX_TAGS}
+      />
     </div>
   );
 };
