@@ -4,16 +4,17 @@
 
 /**
  * Tech-Dark 시안 토큰 시스템.
- * - 베이스: ink-950 (#08090b) 다크 기본
- * - 라이트: stone-50 (#fafaf9) — 절제된 charcoal 액센트
+ * - 베이스 (다크): #0a0e15 — 코드 에디터 풍 slight 청회색 (#372 조정)
+ * - 라이트: #f6f7f9 — pure white 대신 살짝 cool off-white (#372 조정)
  * - 액센트 네온 4종: cyan / magenta / lime / amber (카드 분배 + caret + CTA)
  * - 폰트 시스템: mono(JetBrains)=heading/meta, sans(Inter+Pretendard)=body
  * shadcn 호환 CSS variable 시스템 유지 (--background/--foreground/...).
  */
 @layer base {
   :root {
-    --background: 60 9% 98%;
-    --foreground: 240 10% 4%;
+    /* #f6f7f9 = hsl(220 23% 97%) — 코드 에디터 풍 off-white (#372) */
+    --background: 220 23% 97%;
+    --foreground: 222 16% 8%;
 
     --card: 0 0% 100%;
     --card-foreground: 240 10% 4%;
@@ -48,7 +49,8 @@
   }
 
   .dark {
-    --background: 220 12% 4%;
+    /* #0a0e15 ≈ hsl(218 35% 6%) — 코드 에디터 청회색 (#372) */
+    --background: 218 35% 6%;
     --foreground: 0 0% 98%;
 
     --card: 220 11% 7%;

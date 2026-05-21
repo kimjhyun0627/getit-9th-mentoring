@@ -7,6 +7,12 @@ afterEach(() => {
   cleanup();
   // 전역 localStorage 인스턴스 재사용 시 테스트 간 상태 누수 방지.
   window.localStorage.clear();
+  // theme cookie sync (PR #376) — 테스트 간 오염 방지로 모든 쿠키 expire.
+  const all = document.cookie ? document.cookie.split(';') : [];
+  for (const part of all) {
+    const k = part.split('=')[0]?.trim();
+    if (k) document.cookie = `${k}=; Max-Age=0; Path=/`;
+  }
 });
 
 // Node 25 실험적 localstorage 충돌 회피 — 인메모리 stub.

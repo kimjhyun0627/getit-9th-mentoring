@@ -29,8 +29,14 @@ const renderToggle = (props) =>
 describe('CodeTerminalToggle', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    // jsdom cookie 초기화 (이전 테스트 leak 방지)
+    const all = document.cookie ? document.cookie.split(';') : [];
+    for (const part of all) {
+      const k = part.split('=')[0]?.trim();
+      if (k) document.cookie = `${k}=; Max-Age=0; Path=/`;
+    }
     document.documentElement.classList.remove('dark');
-    useTheme.setState({ preference: 'light', resolved: 'light' });
+    useTheme.setState({ preference: 'light', resolved: 'light', cookieDomain: undefined });
   });
 
   afterEach(() => {
@@ -121,5 +127,17 @@ describe('CodeTerminalToggle', () => {
     const sw = screen.getByRole('switch');
     expect(sw.className).toContain('font-mono');
     expect(sw.className).toContain('border-hairline');
+  });
+
+  it('값 텍스트는 다크에서 cyan-300 (#371 contrast fix) — 배경과 명확히 분리', () => {
+    renderToggle();
+    fireEvent.click(screen.getByRole('switch'));
+    const sw = screen.getByRole('switch');
+    const valueSpan = Array.from(sw.querySelectorAll('span')).find((s) =>
+      s.textContent?.includes('[ dark'),
+    );
+    expect(valueSpan).toBeTruthy();
+    // dark:text-cyan-300 → 다크 모드일 때 cyan-300 적용
+    expect(valueSpan.className).toContain('dark:text-cyan-300');
   });
 });

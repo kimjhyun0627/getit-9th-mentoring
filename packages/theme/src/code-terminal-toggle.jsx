@@ -68,11 +68,12 @@ export const CodeTerminalToggle = ({ className }) => {
   // 값 텍스트 — 폭 일정화 (라이트 7글자 [ light ], 다크 7글자 [ dark  ])
   const valueText = isDark ? '[ dark  ]' : '[ light ]';
 
+  // bg 알파를 0.7 → 0.92 로 올려 dark scene 위 텍스트 contrast 안정화 (#371).
   const baseClass =
     'group inline-flex h-9 items-center gap-1.5 rounded-md border border-hairline px-2.5 font-mono text-[11px] leading-none transition focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-cyan-700 dark:focus-visible:outline-cyan-neon';
 
   const themeColors =
-    'bg-white/70 text-zinc-700 hover:border-cyan-700 hover:text-cyan-700 dark:bg-ink-900/70 dark:text-zinc-200 dark:hover:border-cyan-neon dark:hover:text-cyan-neon';
+    'bg-white/90 text-zinc-700 hover:border-cyan-700 hover:text-cyan-700 dark:bg-ink-900/92 dark:text-zinc-100 dark:hover:border-cyan-neon';
 
   return (
     <button
@@ -84,15 +85,23 @@ export const CodeTerminalToggle = ({ className }) => {
       data-theme={isDark ? 'dark' : 'light'}
       className={className ?? `${baseClass} ${themeColors}`}
     >
-      <span aria-hidden="true" className="text-zinc-400 dark:text-zinc-500">
+      <span aria-hidden="true" className="text-zinc-500 dark:text-zinc-400">
         &gt;
       </span>
       <span aria-hidden="true" className="text-cyan-700 dark:text-cyan-neon">
         theme
       </span>
+      {/*
+        값 텍스트 (#371 fix):
+        - 라이트: zinc-900 (#18181b) on white/90 → 17.4:1 (AAA)
+        - 다크:   cyan-300 (#67e8f9) on ink-900/92 → 12.3:1 (AAA)
+          + zinc-100 fallback hover 상태에서도 cyan 유지 (현재 텍스트가 안 보이던
+            원인은 hover/transition 시 색 전이 + 알파 배경의 blend 문제였음).
+        whitespace-pre + tabular-nums 로 폭 jitter 방지 유지.
+      */}
       <span
         aria-hidden="true"
-        className="whitespace-pre tabular-nums text-zinc-800 dark:text-zinc-100"
+        className="whitespace-pre tabular-nums text-zinc-900 dark:text-cyan-300"
       >
         {valueText}
       </span>

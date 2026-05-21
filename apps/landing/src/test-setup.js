@@ -5,6 +5,12 @@ import { afterEach } from 'vitest';
 // `globals: false`라 RTL auto-cleanup이 안 걸림. 명시적으로 등록.
 afterEach(() => {
   cleanup();
+  // theme cookie sync (PR #376) — 테스트 간 오염 방지로 모든 쿠키 expire.
+  const all = document.cookie ? document.cookie.split(';') : [];
+  for (const part of all) {
+    const k = part.split('=')[0]?.trim();
+    if (k) document.cookie = `${k}=; Max-Age=0; Path=/`;
+  }
 });
 
 // Node 25의 실험적 `--localstorage-file` 플래그가 jsdom localStorage를
