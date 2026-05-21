@@ -12,8 +12,8 @@
  */
 @layer base {
   :root {
-    /* #f7f8fa → hsl(220 14% 97%) */
-    --background: 220 14% 97%;
+    /* #f7f8fa ≈ hsl(220 23% 97%) */
+    --background: 220 23% 97%;
     --foreground: 222 16% 8%;
 
     --card: 0 0% 100%;
@@ -49,8 +49,8 @@
   }
 
   .dark {
-    /* #0a0e15 → hsl(216 22% 6%) — 코드 에디터 청회색 (#372) */
-    --background: 216 22% 6%;
+    /* #0a0e15 ≈ hsl(218 35% 6%) — 코드 에디터 청회색 (#372) */
+    --background: 218 35% 6%;
     --foreground: 0 0% 98%;
 
     --card: 220 11% 7%;

@@ -6,13 +6,14 @@ import { create } from 'zustand';
 export const STORAGE_KEY = 'getit:theme';
 /**
  * 6 도메인 (*.get-it.cloud) 다크모드 sync 용 쿠키 key.
- * - localStorage 와 별도. 키 충돌 방지 위해 동일 이름 사용 (`getit:theme`).
+ * - RFC 6265 cookie-name 토큰에 ':' 불허 → localStorage key 와 분리해
+ *   하이픈 표기 `getit-theme` 사용.
  * - max-age: 1년 (31536000s)
  * - SameSite=Lax (다른 서브도메인 navigation 시 따라가도록)
  * - production: `domain=.get-it.cloud` → get-it.cloud + 모든 subdomain 공유
  * - dev/localhost: domain 옵션 생략 → 현재 호스트로만 저장 (브라우저 기본)
  */
-export const COOKIE_KEY = 'getit:theme';
+export const COOKIE_KEY = 'getit-theme';
 export const COOKIE_MAX_AGE_SEC = 31536000;
 const DEFAULT_PROD_HOST_SUFFIX = '.get-it.cloud';
 

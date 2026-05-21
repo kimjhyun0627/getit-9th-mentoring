@@ -159,11 +159,14 @@ describe('cookieDomain override', () => {
     useTheme.setState({ preference: 'system', resolved: 'light', cookieDomain: undefined });
   });
 
-  it('setCookieDomain 으로 override 가능 (provider props 경로)', () => {
+  it('setCookieDomain 으로 override → cookie write 에 Domain= 포함 (provider props 경로)', () => {
+    // jsdom 의 document.cookie 는 cross-domain write 을 silently 무시하므로
+    // setter 를 spy 해 실제 write 호출 인자를 검증 (CR #376 제안).
+    const setterSpy = vi.spyOn(Document.prototype, 'cookie', 'set');
     useTheme.getState().setCookieDomain('.example.test');
     expect(useTheme.getState().cookieDomain).toBe('.example.test');
-    // jsdom 에서는 cross-domain cookie 설정이 silently 실패할 수 있어
-    // 동작 무결성만 확인 (throw X)
-    expect(() => useTheme.getState().setPreference('dark')).not.toThrow();
+    useTheme.getState().setPreference('dark');
+    expect(setterSpy).toHaveBeenCalledWith(expect.stringContaining('Domain=.example.test'));
+    setterSpy.mockRestore();
   });
 });
