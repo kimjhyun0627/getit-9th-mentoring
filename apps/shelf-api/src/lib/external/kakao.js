@@ -68,8 +68,20 @@ const pickIsbn = (raw) => {
  */
 const upscaleKakaoThumbnail = (url) => {
   if (!url) return '';
-  if (!/kakaocdn\.net\/thumb\//.test(url)) return url;
-  return url.replace(/\/thumb\/[A-Z]\d+x\d+/i, '/thumb/R480x696');
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  // 호스트 정확 매칭: kakaocdn.net 또는 그 서브도메인 (`search1.kakaocdn.net` 등) 만.
+  // 외부 호스트가 쿼리/패스에 `kakaocdn.net/thumb/` 문자열을 우연히 포함해도 손대지 않는다.
+  const host = parsed.hostname.toLowerCase();
+  const isKakaoCdn = host === 'kakaocdn.net' || host.endsWith('.kakaocdn.net');
+  if (!isKakaoCdn) return url;
+  if (!parsed.pathname.startsWith('/thumb/')) return url;
+  parsed.pathname = parsed.pathname.replace(/^\/thumb\/[A-Z]\d+x\d+/i, '/thumb/R480x696');
+  return parsed.toString();
 };
 
 /**

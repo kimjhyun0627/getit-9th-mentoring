@@ -93,6 +93,21 @@ describe('toBookRecord — 카카오 응답을 Book 도메인으로 매핑', () 
     const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: 'https://example.com/cover.jpg' });
     expect(book.coverUrl).toBe('https://example.com/cover.jpg');
   });
+
+  // CR #366: 호스트 검증이 substring 매칭이면 외부 호스트의 쿼리/경로에
+  // `kakaocdn.net/thumb/` 가 포함될 때 오치환 발생. URL hostname 으로 정확 매칭하는지 잠근다.
+  it('coverUrl: 외부 호스트가 쿼리에 kakaocdn 문자열 포함해도 그대로 유지', () => {
+    const proxied =
+      'https://proxy.example.com/image?src=https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=x';
+    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: proxied });
+    expect(book.coverUrl).toBe(proxied);
+  });
+
+  it('coverUrl: 외부 호스트 패스에 /thumb/ 가 있어도 그대로 유지', () => {
+    const decoy = 'https://evil.example.com/thumb/R120x174.q85/fake';
+    const book = toBookRecord({ ...sampleKakaoDoc, thumbnail: decoy });
+    expect(book.coverUrl).toBe(decoy);
+  });
 });
 
 describe('searchKakaoBooks — HTTP 호출', () => {
