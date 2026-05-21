@@ -11,10 +11,10 @@ import { Link } from 'react-router-dom';
  */
 export const EmptyCard = ({ mode = 'cta' }) => {
   const heading = mode === 'empty' ? '여기 빈 자리!' : '또 다른 모임?';
-  const body =
+  const bodyLines =
     mode === 'empty'
-      ? '아직 모집이 없어. 첫 모임을 만들어볼래?'
-      : '마음에 드는 게 없어? 직접 한 판 깔아보자.';
+      ? ['아직 모집이 없어.', '첫 모임을 만들어볼래?']
+      : ['마음에 드는 게 없어?', '직접 한 판 깔아보자.'];
 
   return (
     <Link
@@ -30,7 +30,9 @@ export const EmptyCard = ({ mode = 'cta' }) => {
           {heading}
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 font-round max-w-[220px] break-keep [overflow-wrap:anywhere]">
-          {body}
+          {bodyLines[0]}
+          <br />
+          {bodyLines[1]}
         </p>
         <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 py-2 font-display font-bold text-sm group-hover:scale-105 group-hover:rotate-1 transition">
           ＋ 새 모임 만들기

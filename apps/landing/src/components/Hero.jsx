@@ -106,8 +106,11 @@ export const Hero = () => {
         </h1>
 
         <p className="mt-8 max-w-xl text-base leading-relaxed text-zinc-600 sm:text-lg dark:text-zinc-300">
-          경북대 GETIT 9기가 만드는 네 개의 작은 제품. 하나의 SSO, 공통 다크모드, 모노레포로 묶인
-          풀스택 플레이그라운드.
+          경북대 GETIT 9기가 만드는 네 개의 작은 제품.
+          <br />
+          하나의 SSO, 공통 다크모드,
+          <br />
+          모노레포로 묶인 풀스택 플레이그라운드.
         </p>
 
         <div className="mt-10 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
