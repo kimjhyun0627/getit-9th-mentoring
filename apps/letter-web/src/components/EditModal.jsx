@@ -184,14 +184,14 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
         </button>
 
         <header className="mb-5 flex flex-col gap-1">
-          <p className="font-pen text-2xl leading-none text-sageDk dark:text-sageW">고쳐 적기</p>
+          <p className="font-pen text-3xl leading-none text-sageDk dark:text-sageW">고쳐 적기</p>
           <h2
             id={headingId}
             className="font-sans text-2xl font-bold tracking-tight text-ink dark:text-beige"
           >
             메시지 수정
           </h2>
-          <p className="font-hand text-sm text-ink2 dark:text-beige2">한 줄 다시 다듬어볼게요.</p>
+          <p className="font-hand text-base text-ink2 dark:text-beige2">한 줄 다시 다듬어볼게요.</p>
         </header>
 
         <form
@@ -215,15 +215,12 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-baseline justify-between gap-2">
-              <label
-                htmlFor="edit-content"
-                className="font-hand text-base text-ink dark:text-beige"
-              >
+              <label htmlFor="edit-content" className="font-hand text-lg text-ink dark:text-beige">
                 내용
               </label>
               <span
                 aria-live="polite"
-                className={cn('font-hand text-xs tabular-nums transition-colors', counterColor)}
+                className={cn('font-hand text-sm tabular-nums transition-colors', counterColor)}
               >
                 <span className="sr-only">현재 글자수 </span>
                 {contentLen} / {CONTENT_MAX}

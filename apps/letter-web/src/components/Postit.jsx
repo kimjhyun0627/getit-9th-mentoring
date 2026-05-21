@@ -104,7 +104,7 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
 
       <div className="mt-3 flex items-end justify-between gap-2">
         {/* #327 — opacity-70 → 85. 파스텔 배경(LEMON/PINK) 에서 WCAG AA 4.5:1 보장. */}
-        <span className="font-hand text-sm opacity-85">
+        <span className="font-hand text-base opacity-85">
           {formatRelative(message.createdAt, now)}
         </span>
         {message.is_mine ? (
@@ -143,7 +143,7 @@ export const Postit = ({ message, onEdit, onDelete, now }) => {
           <p id={`${confirmId}-title`} className="text-sm font-semibold">
             이 쪽지를 떼어낼까요?
           </p>
-          <p id={`${confirmId}-desc`} className="mt-1 font-hand text-xs text-ink2 dark:text-beige2">
+          <p id={`${confirmId}-desc`} className="mt-1 font-hand text-sm text-ink2 dark:text-beige2">
             한 번 떼어내면 다시 붙일 수 없어요.
           </p>
           <div className="mt-3 flex items-center justify-end gap-2">

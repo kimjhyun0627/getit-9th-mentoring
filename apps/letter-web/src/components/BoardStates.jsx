@@ -67,9 +67,9 @@ export const EmptyBoard = () => (
       <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-2 h-3 w-16 border-2 border-dashed border-ink2/40 bg-white/40 dark:border-beige2/40 dark:bg-mocha2/40" />
       <span className="font-pen text-4xl text-peachDk dark:text-rose">+</span>
     </div>
-    <p className="mt-3 text-sm font-medium text-ink dark:text-beige">아직 쪽지가 없어요</p>
-    <p className="font-hand text-base text-ink2 dark:text-beige2">첫 한 줄을 살며시 붙여주세요</p>
-    <p className="font-hand text-xs text-sageDk dark:text-sageW">
+    <p className="mt-3 text-base font-medium text-ink dark:text-beige">아직 쪽지가 없어요</p>
+    <p className="font-hand text-lg text-ink2 dark:text-beige2">첫 한 줄을 살며시 붙여주세요</p>
+    <p className="font-hand text-sm text-sageDk dark:text-sageW">
       이름은 다른 부원에게 표시되지 않아요
     </p>
   </div>
