@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import { BrandMark } from './BrandMark.jsx';
 import { ThemeSegmented } from './ThemeSegmented.jsx';
 
 /**
@@ -14,12 +15,7 @@ export const AppLayout = ({ children }) => {
       <header className="sticky top-0 z-30 border-b border-hairline bg-background/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6 lg:px-10">
           <Link to="/" className="group flex items-center gap-2" aria-label="Board 홈으로 이동">
-            <span
-              aria-hidden="true"
-              className="grid h-7 w-7 place-items-center rounded-md bg-foreground text-[11px] font-bold tracking-tight text-background"
-            >
-              B
-            </span>
+            <BrandMark className="h-7 w-7" />
             <span className="text-sm font-semibold tracking-tight">Board</span>
             <span aria-hidden="true" className="text-zinc-300 dark:text-zinc-700">
               /

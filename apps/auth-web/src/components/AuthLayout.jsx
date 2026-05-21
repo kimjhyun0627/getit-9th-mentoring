@@ -1,5 +1,7 @@
 import { CodeTerminalToggle } from '@getit/theme';
 
+import { BrandMark } from './BrandMark.jsx';
+
 /**
  * Auth 페이지 공통 레이아웃 — Tech-Dark 페르소나 (Issue #172).
  * Landing과 동일 톤: ink-950 다크 베이스 + scene-dark 그리드 + hairline 보더 + cyan 액센트.
@@ -42,12 +44,8 @@ export const AuthLayout = ({ children }) => {
             className="group flex items-center gap-2"
             aria-label="GETIT 9기 홈"
           >
-            <span
-              aria-hidden="true"
-              className="grid h-7 w-7 place-items-center rounded-md border border-hairline bg-ink-950 font-mono text-[11px] font-bold text-cyan-neon dark:bg-cyan-neon dark:text-ink-950"
-            >
-              G9
-            </span>
+            <BrandMark className="h-7 w-7" />
+
             <span className="font-mono text-sm font-semibold tracking-tight">
               <span className="text-cyan-700 dark:text-cyan-neon">GETIT</span>
               <span className="text-zinc-400 dark:text-zinc-500">/</span>9

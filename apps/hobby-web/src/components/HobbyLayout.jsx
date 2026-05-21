@@ -1,3 +1,4 @@
+import { BrandMark } from './BrandMark.jsx';
 import { PlayfulThemeToggle } from './PlayfulThemeToggle.jsx';
 
 /**
@@ -24,12 +25,8 @@ export const HobbyLayout = ({ children }) => {
           className="group inline-flex shrink-0 items-center gap-2.5"
           aria-label="취미메이트 홈"
         >
-          <span
-            aria-hidden="true"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 via-fuchsia-500 to-violet-500 text-xl font-extrabold text-white shadow-lg shadow-fuchsia-500/30 transition group-hover:rotate-6 group-hover:scale-105 font-display"
-          >
-            🤲
-          </span>
+          <BrandMark className="h-10 w-10 rounded-2xl shadow-lg shadow-fuchsia-500/30 transition group-hover:rotate-6 group-hover:scale-105" />
+
           <span className="whitespace-nowrap font-display text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
             취미<span className="text-rose-500 dark:text-rose-300">메이트</span>
           </span>

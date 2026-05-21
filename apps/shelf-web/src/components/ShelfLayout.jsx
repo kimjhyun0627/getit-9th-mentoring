@@ -1,4 +1,5 @@
 import { BookFlipToggle } from './BookFlipToggle.jsx';
+import { BrandMark } from './BrandMark.jsx';
 
 /**
  * shelf editorial 공통 레이아웃 — 매거진 헤더 + 이슈 바 + 본문 + colophon.
@@ -13,8 +14,9 @@ export const ShelfLayout = ({ children }) => {
   return (
     <div className="paper-grain bg-paper-1 flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 pb-5 pt-7 md:px-10">
-        <a href="/" className="flex shrink-0 items-baseline gap-2" aria-label="스마트 서재 홈">
-          <span className="font-display text-xl font-black tracking-tightest text-ink-strong">
+        <a href="/" className="flex shrink-0 items-center gap-2.5" aria-label="스마트 서재 홈">
+          <BrandMark className="h-6 w-6 text-ink-strong" />
+          <span className="font-display text-xl font-black tracking-tightest leading-none text-ink-strong">
             Shelf
           </span>
           <span className="font-serif text-sm text-meta">/</span>
