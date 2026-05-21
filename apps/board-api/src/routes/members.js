@@ -14,6 +14,7 @@ import { ProjectMemberInput } from '@getit/schemas/board';
 import { Router } from 'express';
 
 import { prisma } from '../lib/prisma.js';
+import { lookupUserNames } from '../lib/userLookup.js';
 
 // Prisma unique constraint violation code (projectId+userId 충돌 시).
 const PRISMA_UNIQUE_VIOLATION = 'P2002';
@@ -40,7 +41,7 @@ export const createMembersRouter = () => {
   const router = Router({ mergeParams: true });
 
   // GET /projects/:id/members — 멤버 누구나 (담당자 picker 용, #200).
-  // SSO User 테이블이 다른 DB에 있어 name 은 일단 null. 추후 user lookup 연동 지점.
+  // `auth.User` cross-schema lookup 으로 name 채움 (#398). 실패 시 null.
   router.get('/', async (req, res, next) => {
     try {
       const projectId = req.params.id;
@@ -48,11 +49,12 @@ export const createMembersRouter = () => {
         where: { projectId },
         orderBy: { userId: 'asc' },
       });
+      const nameByUserId = await lookupUserNames(rows.map((m) => m.userId));
       const members = rows.map((m) => ({
         userId: m.userId,
         role: m.role,
         joinedAt: m.joinedAt,
-        name: null,
+        name: nameByUserId.get(m.userId) ?? null,
       }));
       return res.status(200).json({ members });
     } catch (err) {

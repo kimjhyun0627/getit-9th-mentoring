@@ -8,7 +8,7 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 
-import { betweenOrder } from '../lib/cardMoveStrategy.js';
+import { computeDropOrder } from '../lib/cardMoveStrategy.js';
 
 /**
  * 보드 전체 DnD 컨텍스트 (#274).
@@ -66,35 +66,23 @@ export const BoardDndContext = ({ columns, cardsByColumn, onMoveCard, children }
     }
     if (!targetColumnId) return;
 
-    const targetCards = (cardsByColumn[targetColumnId] ?? [])
-      .filter((c) => c.id !== cardId)
-      .slice()
-      .sort((a, b) => a.order - b.order);
-
-    // same column same position no-op 가드
-    if (sourceColumnId === targetColumnId && targetCards.length === 0) return;
-
-    let prevOrder = null;
-    let nextOrder = null;
-    if (overCardId) {
-      const overIdx = targetCards.findIndex((c) => c.id === overCardId);
-      if (overIdx >= 0) {
-        // dropping ON a card → place BEFORE it (인접 두 카드 사이)
-        prevOrder = overIdx > 0 ? targetCards[overIdx - 1].order : null;
-        nextOrder = targetCards[overIdx].order;
-      } else {
-        // overCard 가 target 컬럼에 없으면 끝에 append
-        prevOrder = targetCards.length > 0 ? targetCards[targetCards.length - 1].order : null;
-      }
-    } else {
-      // 컬럼 본체에 드롭 → 끝에 append
-      prevOrder = targetCards.length > 0 ? targetCards[targetCards.length - 1].order : null;
-    }
-
-    const newOrder = betweenOrder(prevOrder, nextOrder);
-
-    // 같은 컬럼에서 같은 카드를 같은 위치로 이동하는 경우 (no-op) 가드
     const sourceCards = cardsByColumn[sourceColumnId] ?? [];
+    const targetCards = cardsByColumn[targetColumnId] ?? [];
+
+    // same column + 빈 컬럼 = no-op 가드 (자기 자신만 있는 케이스).
+    if (sourceColumnId === targetColumnId && targetCards.length <= 1 && !overCardId) return;
+
+    const newOrder = computeDropOrder({
+      activeCardId: cardId,
+      sourceColumnId,
+      sourceCards,
+      targetColumnId,
+      targetCards,
+      overCardId,
+    });
+    if (newOrder === null) return;
+
+    // 같은 컬럼에서 같은 위치로 이동하는 경우 (no-op) 가드.
     const currentCard = sourceCards.find((c) => c.id === cardId);
     if (
       currentCard &&

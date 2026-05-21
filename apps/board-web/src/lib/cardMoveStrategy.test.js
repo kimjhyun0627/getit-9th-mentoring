@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import {
   appendOrder,
   betweenOrder,
+  computeDropOrder,
   optimisticMove,
   ORDER_GAP,
   reorderWithin,
@@ -67,6 +68,90 @@ describe('reorderWithin', () => {
 
   it('존재하지 않는 카드 → null', () => {
     expect(reorderWithin(cards, 'zzz', 'up')).toBeNull();
+  });
+});
+
+describe('computeDropOrder (#395 같은 컬럼 DnD reorder)', () => {
+  const cards = [
+    { id: 'a', columnId: 'col', order: 1000 },
+    { id: 'b', columnId: 'col', order: 2000 },
+    { id: 'c', columnId: 'col', order: 3000 },
+  ];
+
+  it('같은 컬럼: a 를 c 위로 드롭 (아래로 이동) → c 다음', () => {
+    const order = computeDropOrder({
+      activeCardId: 'a',
+      sourceColumnId: 'col',
+      sourceCards: cards,
+      targetColumnId: 'col',
+      targetCards: cards,
+      overCardId: 'c',
+    });
+    // a 가 원래 idx 0, c 가 idx 2 → 아래로 이동 → c 뒤. 자기 제외 sorted = [b,c]. c 뒤 = 3000+1000=4000.
+    expect(order).toBe(4000);
+  });
+
+  it('같은 컬럼: c 를 a 위로 드롭 (위로 이동) → a 앞', () => {
+    const order = computeDropOrder({
+      activeCardId: 'c',
+      sourceColumnId: 'col',
+      sourceCards: cards,
+      targetColumnId: 'col',
+      targetCards: cards,
+      overCardId: 'a',
+    });
+    // 위로 이동 → a 앞 = null/1000 → 1000 - 1000 = 0.
+    expect(order).toBe(0);
+  });
+
+  it('같은 컬럼: a 를 b 위로 드롭 (아래로 1칸) → b 뒤 = b 와 c 사이', () => {
+    const order = computeDropOrder({
+      activeCardId: 'a',
+      sourceColumnId: 'col',
+      sourceCards: cards,
+      targetColumnId: 'col',
+      targetCards: cards,
+      overCardId: 'b',
+    });
+    // a 자기 제외 sorted = [b,c]. b 뒤 = (2000+3000)/2 = 2500.
+    expect(order).toBe(2500);
+  });
+
+  it('컬럼 본체 드롭 → 끝에 append', () => {
+    const order = computeDropOrder({
+      activeCardId: 'a',
+      sourceColumnId: 'col',
+      sourceCards: cards,
+      targetColumnId: 'col',
+      targetCards: cards,
+      overCardId: null,
+    });
+    expect(order).toBe(4000);
+  });
+
+  it('다른 컬럼 → over 카드 앞', () => {
+    const target = [{ id: 'x', columnId: 'col2', order: 5000 }];
+    const order = computeDropOrder({
+      activeCardId: 'a',
+      sourceColumnId: 'col',
+      sourceCards: cards,
+      targetColumnId: 'col2',
+      targetCards: target,
+      overCardId: 'x',
+    });
+    expect(order).toBe(4000);
+  });
+
+  it('다른 컬럼 빈 컬럼 → GAP', () => {
+    const order = computeDropOrder({
+      activeCardId: 'a',
+      sourceColumnId: 'col',
+      sourceCards: cards,
+      targetColumnId: 'col2',
+      targetCards: [],
+      overCardId: null,
+    });
+    expect(order).toBe(ORDER_GAP);
   });
 });
 

@@ -77,6 +77,80 @@ export const reorderWithin = (cards, cardId, direction) => {
 };
 
 /**
+ * dnd-kit drop 위치(카드 id 또는 컬럼)와 source/active 의 원래 위치를 받아
+ * BE 로 보낼 새 order 값을 계산한다 (#395).
+ *
+ * dnd-kit 은 "before/after" 정보를 직접 주지 않는다. verticalListSortingStrategy
+ * 기준 활성 카드가 over 카드보다 원래 위쪽(작은 인덱스)이면 "아래로 이동" → over
+ * 다음 자리, 반대면 "위로 이동" → over 앞 자리로 해석한다. 다른 컬럼 이동은
+ * 항상 over 앞.
+ *
+ * @param {{
+ *   activeCardId: string;
+ *   sourceColumnId: string;
+ *   sourceCards: Array<{ id: string; order: number }>;
+ *   targetColumnId: string;
+ *   targetCards: Array<{ id: string; order: number }>;
+ *   overCardId: string | null;
+ * }} params
+ * @returns {number | null} 같은 위치라서 no-op 인 경우 null.
+ */
+export const computeDropOrder = ({
+  activeCardId,
+  sourceColumnId,
+  sourceCards,
+  targetColumnId,
+  targetCards,
+  overCardId,
+}) => {
+  const sortedTarget = targetCards
+    .filter((c) => c.id !== activeCardId)
+    .slice()
+    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+
+  if (!overCardId) {
+    // 컬럼 본체에 드롭 → 끝에 append.
+    if (sortedTarget.length === 0) return ORDER_GAP;
+    return sortedTarget[sortedTarget.length - 1].order + ORDER_GAP;
+  }
+
+  const overIdx = sortedTarget.findIndex((c) => c.id === overCardId);
+  if (overIdx === -1) {
+    if (sortedTarget.length === 0) return ORDER_GAP;
+    return sortedTarget[sortedTarget.length - 1].order + ORDER_GAP;
+  }
+
+  // 같은 컬럼이면 원래 인덱스 비교로 before/after 결정. 다른 컬럼은 항상 before.
+  let placeAfter = false;
+  if (sourceColumnId === targetColumnId) {
+    const sortedSource = sourceCards
+      .slice()
+      .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+    const activeOriginalIdx = sortedSource.findIndex((c) => c.id === activeCardId);
+    // overCard 의 원래 인덱스 (활성 카드 포함 정렬).
+    const overOriginalIdx = sortedSource.findIndex((c) => c.id === overCardId);
+    if (activeOriginalIdx === -1 || overOriginalIdx === -1) {
+      placeAfter = false;
+    } else {
+      placeAfter = activeOriginalIdx < overOriginalIdx;
+    }
+  }
+
+  const prevOrder = placeAfter
+    ? sortedTarget[overIdx].order
+    : overIdx > 0
+      ? sortedTarget[overIdx - 1].order
+      : null;
+  const nextOrder = placeAfter
+    ? overIdx < sortedTarget.length - 1
+      ? sortedTarget[overIdx + 1].order
+      : null
+    : sortedTarget[overIdx].order;
+
+  return betweenOrder(prevOrder, nextOrder);
+};
+
+/**
  * optimistic 이동: 카드 배열에서 해당 카드를 빼고 대상 컬럼에 배치.
  * - newOrder 명시 시 그대로 사용 (#214 same-column reorder 회귀 가드)
  * - 아니면 끝에 append

@@ -4,6 +4,24 @@ import { cn } from '../lib/cn.js';
 import { initials } from '../lib/initials.js';
 
 /**
+ * 클립보드 복사 — Promise<boolean>. Async clipboard API 없거나 실패 시 false.
+ *
+ * @param {string} text
+ * @returns {Promise<boolean>}
+ */
+const copyToClipboard = async (text) => {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * 멤버 관리 다이얼로그 (#203).
  *
  * - OWNER: userId 입력 → 초대, 다른 멤버는 추방 가능.
@@ -38,6 +56,7 @@ export const MembersDialog = ({
   const dialogRef = useRef(/** @type {HTMLDialogElement | null} */ (null));
   const [userId, setUserId] = useState('');
   const [localErr, setLocalErr] = useState(/** @type {string | null} */ (null));
+  const [copiedAt, setCopiedAt] = useState(/** @type {number | null} */ (null));
 
   useEffect(() => {
     const node = dialogRef.current;
@@ -50,8 +69,22 @@ export const MembersDialog = ({
     if (!open) {
       setUserId('');
       setLocalErr(null);
+      setCopiedAt(null);
     }
   }, [open]);
+
+  // 1.5초 후 "복사됨" 토스트 자동 dismiss.
+  useEffect(() => {
+    if (copiedAt === null) return undefined;
+    const t = setTimeout(() => setCopiedAt(null), 1500);
+    return () => clearTimeout(t);
+  }, [copiedAt]);
+
+  const handleCopyMyId = async () => {
+    if (!currentUserId) return;
+    const ok = await copyToClipboard(currentUserId);
+    if (ok) setCopiedAt(Date.now());
+  };
 
   const handleInvite = async (e) => {
     e.preventDefault();
@@ -96,6 +129,33 @@ export const MembersDialog = ({
               : '본인 탈퇴만 가능합니다. 다른 멤버는 OWNER만 관리해요.'}
           </p>
         </header>
+
+        {currentUserId ? (
+          <section
+            aria-label="내 ID"
+            className="flex flex-col gap-1.5 rounded-md border border-hairline bg-foreground/[0.02] p-3"
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+              내 ID
+            </span>
+            <div className="flex items-center gap-2">
+              <code className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">
+                {currentUserId}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopyMyId}
+                aria-label="내 ID 복사"
+                className="inline-flex h-7 shrink-0 items-center justify-center rounded-md border border-hairline px-2 text-xs font-medium text-foreground transition hover:bg-foreground/[0.04]"
+              >
+                {copiedAt ? '복사됨' : '복사'}
+              </button>
+            </div>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              다른 보드에 초대받을 때 이 ID 를 공유하세요.
+            </p>
+          </section>
+        ) : null}
 
         {role === 'OWNER' ? (
           <form onSubmit={handleInvite} className="flex flex-col gap-2">
@@ -142,6 +202,7 @@ export const MembersDialog = ({
           <ul className="flex flex-col divide-y divide-hairline rounded-md border border-hairline">
             {members.map((m) => {
               const display = m.name ?? m.userId;
+              const showUserIdLine = Boolean(m.name) && m.name !== m.userId;
               const isSelf = currentUserId === m.userId;
               // OWNER 가 다른 OWNER 를 추방하지 못하도록 — 소유권 이전 먼저.
               const canRemoveOther = role === 'OWNER' && !isSelf && m.role !== 'OWNER';
@@ -158,9 +219,21 @@ export const MembersDialog = ({
                       {initials(display)}
                     </span>
                     <div className="flex min-w-0 flex-col">
-                      <span className="truncate text-sm font-medium text-foreground">
-                        {display}
-                      </span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-medium text-foreground">
+                          {display}
+                        </span>
+                        {isSelf ? (
+                          <span className="shrink-0 rounded-sm bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                            나
+                          </span>
+                        ) : null}
+                      </div>
+                      {showUserIdLine ? (
+                        <span className="truncate font-mono text-[10px] text-muted-foreground/80">
+                          {m.userId}
+                        </span>
+                      ) : null}
                       <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                         {m.role === 'OWNER' ? 'Owner' : 'Member'}
                       </span>

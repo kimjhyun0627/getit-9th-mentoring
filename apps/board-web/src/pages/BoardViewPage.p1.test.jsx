@@ -255,6 +255,62 @@ describe('BoardViewPage P1 (Phase 6b)', () => {
     });
   });
 
+  it('내 ID 영역에 currentUserId + 복사 버튼이 보인다 (#396)', async () => {
+    const user = userEvent.setup();
+    stubHappyPath();
+    vi.spyOn(api, 'listMembers').mockResolvedValue({
+      data: {
+        members: [
+          { userId: 'alice', role: 'OWNER', name: null, joinedAt: '2026-05-01T00:00:00.000Z' },
+        ],
+      },
+    });
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'GETIT board' });
+    await user.click(screen.getByRole('button', { name: '멤버 관리' }));
+    await screen.findByRole('heading', { name: '멤버 관리' });
+    const myIdRegion = screen.getByRole('region', { name: '내 ID' });
+    expect(within(myIdRegion).getByText('alice', { selector: 'code' })).toBeInTheDocument();
+    expect(within(myIdRegion).getByRole('button', { name: '내 ID 복사' })).toBeInTheDocument();
+  });
+
+  it('멤버 row 에 name 이 있으면 name 우선 + userid 보조표시 (#398)', async () => {
+    const user = userEvent.setup();
+    stubHappyPath();
+    vi.spyOn(api, 'listMembers').mockResolvedValue({
+      data: {
+        members: [
+          {
+            userId: 'alice',
+            role: 'OWNER',
+            name: '앨리스',
+            joinedAt: '2026-05-01T00:00:00.000Z',
+          },
+          {
+            userId: 'bob',
+            role: 'MEMBER',
+            name: '밥',
+            joinedAt: '2026-05-02T00:00:00.000Z',
+          },
+        ],
+      },
+    });
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'GETIT board' });
+    await user.click(screen.getByRole('button', { name: '멤버 관리' }));
+    const memberList = await screen.findByRole('region', { name: '멤버 목록' });
+    // 이름은 sm 폰트 span — 정확 일치로 보조 aria-label 텍스트와 분리.
+    expect(
+      within(memberList).getByText('앨리스', { selector: 'span.text-sm' }),
+    ).toBeInTheDocument();
+    expect(within(memberList).getByText('밥', { selector: 'span.text-sm' })).toBeInTheDocument();
+    // userid 보조 표시 — 폰트 mono span.
+    expect(
+      within(memberList).getByText('alice', { selector: 'span.font-mono' }),
+    ).toBeInTheDocument();
+    expect(within(memberList).getByText('bob', { selector: 'span.font-mono' })).toBeInTheDocument();
+  });
+
   it('MEMBER role 일 때 초대 입력 폼은 없고 본인 탈퇴 버튼만 보인다 (#203)', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'getProject').mockResolvedValue({
