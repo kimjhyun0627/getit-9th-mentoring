@@ -21,10 +21,22 @@ let savedOverflow = '';
 /** @type {Element[]} */
 let inertedNodes = [];
 
+/**
+ * CR(#494) — dialogEl 의 *부모* (overlay 컨테이너) 부터 ancestor chain 따라
+ *   sibling 형제만 inert. dialogEl 자신의 형제는 backdrop button 일 수 있어
+ *   skip (그 형제 inert 면 backdrop 클릭 닫기가 죽음).
+ *
+ *   구조: body > #root > … > <div fixed inset-0>     ← overlay (dialogEl 의 부모)
+ *                                ├ button backdrop   ← dialog 의 형제, inert 금지
+ *                                └ div role=dialog   ← dialogEl
+ *
+ *   overlay 의 형제부터 body 까지 ancestor 의 형제들에만 inert 토글.
+ */
 const markBackgroundInert = (dialogEl) => {
   /** @type {Element[]} */
   const nodes = [];
-  let cursor = dialogEl;
+  // 첫 cursor 는 dialogEl 의 부모 (overlay container). 그 형제부터 inert 시작.
+  let cursor = dialogEl.parentElement;
   while (cursor && cursor !== document.body && cursor.parentElement) {
     const parent = cursor.parentElement;
     for (const sibling of parent.children) {
