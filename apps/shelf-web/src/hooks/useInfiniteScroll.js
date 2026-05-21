@@ -33,14 +33,12 @@ export const useInfiniteScroll = ({ onIntersect, enabled = true, rootMargin = '2
   }, [onIntersect]);
 
   const observerRef = useRef(/** @type {IntersectionObserver | null} */ (null));
-  const nodeRef = useRef(/** @type {Element | null} */ (null));
 
   const observe = useCallback(
     /** @param {Element | null} node */
     (node) => {
       observerRef.current?.disconnect();
       observerRef.current = null;
-      nodeRef.current = node;
       if (!node || !enabled) return;
       if (typeof IntersectionObserver === 'undefined') return;
       const obs = new IntersectionObserver(

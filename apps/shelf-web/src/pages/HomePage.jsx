@@ -131,7 +131,16 @@ export const HomePage = () => {
               </p>
               <aside className="col-span-12 md:col-span-5">
                 <div className="hairline mb-4" />
-                <p className="smallcaps mb-3 text-[11px]">This Season</p>
+                <p className="smallcaps mb-3 text-[11px]">
+                  This Season{' '}
+                  <span className="text-hint">
+                    · 전체{' '}
+                    <span data-testid="shelf-total-count" className="num-display">
+                      {total}
+                    </span>
+                    권
+                  </span>
+                </p>
                 <ul className="text-body space-y-2 font-serif text-[14px]">
                   <li className="flex items-baseline justify-between gap-4">
                     <span>읽은 책</span>
@@ -145,13 +154,15 @@ export const HomePage = () => {
                     <span>읽고 싶은</span>
                     <span className="text-meta num-display">{counts.WANT}권</span>
                   </li>
-                  <li className="flex items-baseline justify-between gap-4 border-t border-rule-2 pt-2 text-meta">
-                    <span>전체</span>
-                    <span className="text-meta num-display" data-testid="shelf-total-count">
-                      {total}권
-                    </span>
-                  </li>
                 </ul>
+                {/* 상태별 권수는 로드된 범위 기준 (BE 가 status 카운트를 따로 안 내려줌).
+                    무한 스크롤로 끝까지 받으면 합계가 total 과 일치. 사용자 혼란 방지를
+                    위해 not-yet-loaded 인 동안에도 hairline 으로 시각적 구분. */}
+                {shelves.length < total ? (
+                  <p className="mt-3 text-[11px] text-hint">
+                    스크롤하면 더 많은 책의 통계가 합쳐집니다.
+                  </p>
+                ) : null}
                 <div className="hairline mt-5" />
               </aside>
             </div>

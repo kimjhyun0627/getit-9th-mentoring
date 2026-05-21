@@ -1,38 +1,10 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
 import { renderSearch } from './SearchPage.testkit.jsx';
-
-/**
- * IntersectionObserver mock — sentinel intersect 시뮬레이션 (#525).
- *
- * @returns {Array<{ trigger: () => void; observed: Element[] }>}
- */
-const setupObserverMock = () => {
-  const instances = [];
-  class MockIO {
-    constructor(cb) {
-      this.cb = cb;
-      this.observed = [];
-      instances.push(this);
-    }
-    observe(el) {
-      this.observed.push(el);
-    }
-    unobserve() {}
-    disconnect() {
-      this.observed = [];
-    }
-    trigger() {
-      this.cb(this.observed.map((target) => ({ isIntersecting: true, target })));
-    }
-  }
-  vi.stubGlobal('IntersectionObserver', MockIO);
-  return instances;
-};
 
 /**
  * SearchPage TDD 가드 (Issue #43).
@@ -280,53 +252,8 @@ describe('SearchPage', () => {
     expect(input.value.length).toBe(100);
   });
 
-  // #525 — 무한 스크롤 가드.
-
-  it('검색 결과 10건 초과 시 sentinel intersect → 추가 카드가 노출된다', async () => {
-    const items = Array.from({ length: 25 }, (_, i) => ({
-      id: `book-${i + 1}`,
-      isbn: `978${String(i + 1).padStart(10, '0')}`,
-      title: `검색결과 ${i + 1}`,
-      author: '저자',
-      publisher: '출판사',
-      coverUrl: null,
-    }));
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items });
-    const observerInstances = setupObserverMock();
-
-    const user = userEvent.setup();
-    renderSearch();
-    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
-
-    // 1페이지 (10건) 렌더 대기.
-    await screen.findByRole('heading', { name: '검색결과 1' });
-    expect(screen.queryByRole('heading', { name: '검색결과 11' })).not.toBeInTheDocument();
-    expect(screen.getByTestId('search-sentinel')).toBeInTheDocument();
-
-    // sentinel 진입 → visibleCount += 10.
-    await act(async () => {
-      observerInstances[observerInstances.length - 1]?.trigger();
-    });
-    expect(await screen.findByRole('heading', { name: '검색결과 20' })).toBeInTheDocument();
-  });
-
-  it('"더 보기" 버튼이 더 이상 렌더되지 않는다 (#525 회귀 가드)', async () => {
-    setupObserverMock();
-    const items = Array.from({ length: 25 }, (_, i) => ({
-      id: `book-${i + 1}`,
-      isbn: `978${String(i + 1).padStart(10, '0')}`,
-      title: `검색결과 ${i + 1}`,
-      author: '저자',
-      publisher: '출판사',
-      coverUrl: null,
-    }));
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items });
-    const user = userEvent.setup();
-    renderSearch();
-    await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
-    await screen.findByRole('heading', { name: '검색결과 1' });
-    expect(screen.queryByTestId('search-load-more')).not.toBeInTheDocument();
-  });
+  // 무한 스크롤(#525) 가드는 `SearchPage.infinite-scroll.test.jsx` 로 분리 — 본 파일
+  // 300 줄 상한 + 책임 분리.
 
   it('서재 추가 실패(422 이미 존재) 시 안내 토스트가 노출된다', async () => {
     const user = userEvent.setup();
