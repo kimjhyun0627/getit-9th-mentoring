@@ -49,7 +49,7 @@ describe('UserShelfPage (/u/:userId) — #292', () => {
     // 책 데이터는 비동기 — findByRole 로 대기
     expect(await screen.findByRole('heading', { name: '소년이 온다' })).toBeInTheDocument();
     expect(screen.getByText('인생책')).toBeInTheDocument();
-    expect(screen.getByText('총 1권')).toBeInTheDocument();
+    expect(screen.getByText(/총 1권/)).toBeInTheDocument();
   });
 
   it('빈 서재면 안내 문구', async () => {
@@ -61,6 +61,6 @@ describe('UserShelfPage (/u/:userId) — #292', () => {
       },
     });
     renderAt('/u/ghost');
-    expect(await screen.findByText('아직 담긴 책이 없어요.')).toBeInTheDocument();
+    expect(await screen.findByText('아직 첫 책이 꽂히지 않았습니다.')).toBeInTheDocument();
   });
 });

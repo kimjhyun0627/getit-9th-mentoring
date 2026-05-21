@@ -135,11 +135,24 @@ const formatYearMonth = (iso) => {
 /**
  * 제목 기반 deterministic 그라데이션 — 표지 없는 책의 fallback.
  *
+ * #478 — Editorial 팔레트 (wine / mustard / paper-deep) 안에서만 lerp.
+ * 무지개 hue 가 cream paper-1 카드 사이에서 튀던 문제를 해소.
+ *
  * @param {string} seed
  */
+const FALLBACK_PALETTES = /** @type {const} */ ([
+  // wine — 깊은 적포도주
+  ['#4a1320', '#2a0c14', '#180609'],
+  // mustard — 그을린 황토
+  ['#5a3a0a', '#3a2406', '#1f1303'],
+  // paper-deep — 그을음 종이
+  ['#2b2520', '#1a1612', '#0e0c0a'],
+]);
+
 const fallbackGradient = (seed = '') => {
-  const hue = Math.abs(hash(seed)) % 360;
-  return `linear-gradient(160deg, hsl(${hue} 22% 28%) 0%, hsl(${(hue + 24) % 360} 18% 18%) 60%, hsl(${(hue + 48) % 360} 14% 10%) 100%)`;
+  const idx = Math.abs(hash(seed)) % FALLBACK_PALETTES.length;
+  const [a, b, c] = FALLBACK_PALETTES[idx];
+  return `linear-gradient(160deg, ${a} 0%, ${b} 60%, ${c} 100%)`;
 };
 
 const hash = (s) => {

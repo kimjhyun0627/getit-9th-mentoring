@@ -149,3 +149,115 @@ export const findOrFetchBookByIsbn = async (isbn) => {
  * @returns {boolean}
  */
 export const isUniqueViolation = (err) => err?.code === 'P2002';
+
+/**
+ * GET /api/shelves/me/contains 핸들러 (#477).
+ *
+ * lightweight ownership lookup — bookId / isbn / bookIds / isbns 중 하나로
+ * 내가 책을 보유 중인지 단일 또는 배치 (최대 50) 응답.
+ *
+ * 100건 myShelves 페이지 한계 회피용. 실 Prisma + in-memory fake 모두에서
+ * 안전하게 동작하도록 nested where 대신 ISBN → bookId 2-step lookup.
+ *
+ * @param {string} userId — 인증된 사용자 sub
+ * @param {Record<string, any>} query — req.query
+ * @returns {Promise<{ status: number, body: Record<string, any> }>}
+ */
+export const handleContainsLookup = async (userId, query) => {
+  const { bookId, isbn, bookIds, isbns } = query;
+
+  const BATCH_MAX = 50;
+  const splitCsv = (v) =>
+    typeof v === 'string'
+      ? v
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+
+  if (typeof bookId === 'string' && bookId) {
+    const row = await prisma.bookShelf.findUnique({
+      where: { userId_bookId: { userId, bookId } },
+      include: { book: true },
+    });
+    return {
+      status: 200,
+      body: { bookId, contains: Boolean(row), shelf: row ? publicShelf(row) : undefined },
+    };
+  }
+
+  if (typeof isbn === 'string' && isbn) {
+    const upper = isbn.toUpperCase();
+    const book = await prisma.book.findUnique({ where: { isbn: upper } });
+    if (!book) return { status: 200, body: { isbn: upper, contains: false } };
+    const row = await prisma.bookShelf.findUnique({
+      where: { userId_bookId: { userId, bookId: book.id } },
+      include: { book: true },
+    });
+    return {
+      status: 200,
+      body: {
+        isbn: upper,
+        contains: Boolean(row),
+        shelf: row ? publicShelf(row) : undefined,
+      },
+    };
+  }
+
+  const ids = splitCsv(bookIds);
+  if (ids.length > BATCH_MAX) {
+    return {
+      status: 400,
+      body: { error: 'ValidationError', message: `bookIds exceeds ${BATCH_MAX}` },
+    };
+  }
+  if (ids.length > 0) {
+    const rows = await prisma.bookShelf.findMany({
+      where: { userId, bookId: { in: ids } },
+      select: { bookId: true },
+    });
+    const set = new Set(rows.map((r) => r.bookId));
+    return {
+      status: 200,
+      body: { contains: Object.fromEntries(ids.map((id) => [id, set.has(id)])) },
+    };
+  }
+
+  const isbnList = splitCsv(isbns).map((s) => s.toUpperCase());
+  if (isbnList.length > BATCH_MAX) {
+    return {
+      status: 400,
+      body: { error: 'ValidationError', message: `isbns exceeds ${BATCH_MAX}` },
+    };
+  }
+  if (isbnList.length > 0) {
+    const books = await prisma.book.findMany({ where: { isbn: { in: isbnList } } });
+    const isbnToId = new Map(books.map((b) => [b.isbn, b.id]));
+    const ownedIds = isbnToId.size
+      ? await prisma.bookShelf.findMany({
+          where: { userId, bookId: { in: [...isbnToId.values()] } },
+          select: { bookId: true },
+        })
+      : [];
+    const ownedIdSet = new Set(ownedIds.map((r) => r.bookId));
+    return {
+      status: 200,
+      body: {
+        contains: Object.fromEntries(
+          isbnList.map((v) => {
+            const id = isbnToId.get(v);
+            return [v, id ? ownedIdSet.has(id) : false];
+          }),
+        ),
+      },
+    };
+  }
+
+  return {
+    status: 400,
+    body: {
+      error: 'ValidationError',
+      message: 'one of bookId / isbn / bookIds / isbns is required',
+    },
+  };
+};

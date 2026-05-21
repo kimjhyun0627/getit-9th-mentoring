@@ -158,7 +158,7 @@ describe('HomePage', () => {
       response: { status: 500, data: { error: 'InternalError' } },
     });
     renderHome();
-    expect(await screen.findByText(/지금은 서재를 펼칠 수 없습니다/)).toBeInTheDocument();
+    expect(await screen.findByText(/지금은 서가를 펼칠 수 없습니다/)).toBeInTheDocument();
   });
 
   it('SortControl 노출 + 변경 시 listMyShelves 가 새 sort 파라미터로 호출된다 (#196)', async () => {

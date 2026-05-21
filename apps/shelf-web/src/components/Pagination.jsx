@@ -26,7 +26,13 @@ export const Pagination = ({ page, totalPages, onChange, className }) => {
   return (
     <nav
       aria-label="서재 페이지"
-      className={cn('flex items-center justify-center gap-2 font-serif text-[13px]', className)}
+      // #480 — 좁은 폰 (≤ 480px) 에서 한 줄에 안 들어갈 때 한 행 wrap.
+      //         computeSlots 가 이미 1…?…last 로 축약 하지만, 토큰 자체가 7-9 개라
+      //         320px 폭에서는 ›/‹ 버튼이 잘림. flex-wrap 으로 가로 스크롤 대신 줄바꿈.
+      className={cn(
+        'flex flex-wrap items-center justify-center gap-1.5 font-serif text-[13px] sm:gap-2',
+        className,
+      )}
       data-testid="shelf-pagination"
     >
       <button
@@ -58,7 +64,7 @@ export const Pagination = ({ page, totalPages, onChange, className }) => {
               slot === page
                 ? 'border-foreground bg-foreground text-background'
                 : 'border-rule-2 text-meta hover:border-foreground hover:text-ink',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wine)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--paper-1)]',
             )}
           >
             {slot}
