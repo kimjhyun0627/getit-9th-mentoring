@@ -101,7 +101,8 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
             data: { usedAt: new Date() },
           })
           .catch(() => null);
-        return res.status(404).json({ ok: false, error: 'EmailNotFound' });
+        // ErrorResponse 스키마 준수 (CR #401): { error } 만, ok 필드 없음.
+        return res.status(404).json({ error: 'EmailNotFound' });
       }
 
       // 이전 미사용 토큰은 무효화 (한 사용자당 활성 토큰 1개만 의미 있게).

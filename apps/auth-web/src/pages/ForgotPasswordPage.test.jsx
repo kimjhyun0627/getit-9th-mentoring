@@ -64,7 +64,7 @@ describe('ForgotPasswordPage', () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'forgotPassword').mockRejectedValue({
       isAxiosError: true,
-      response: { status: 404, data: { ok: false, error: 'EmailNotFound' } },
+      response: { status: 404, data: { error: 'EmailNotFound' } },
     });
     renderForgot();
     await user.type(screen.getByLabelText('이메일'), 'nobody@example.com');
