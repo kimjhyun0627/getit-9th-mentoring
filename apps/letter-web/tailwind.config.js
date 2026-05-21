@@ -35,8 +35,13 @@ export default {
         beige2: '#C9B49E',
         rose: '#D9A892',
         sageW: '#A8B89A',
-        // 포스트잇 4색 — color enum 매핑 (light/dark 각각).
-        sticky: {
+        // 포스트잇 4색 — color enum (MessageColor) 매핑 (light/dark 각각).
+        // ⚠️ 키 이름은 반드시 `note` — Postit.jsx / BoardStates.jsx / Postit.test.jsx /
+        //   index.css `.note` 모두 `bg-note-*` 클래스로 참조. 과거 `sticky` 였던 시절
+        //   FE 가 `bg-note-*` 로 쓰는 동안 정의가 비어있어 4색이 전혀 적용되지 않는
+        //   silent regression 발생 (#358). 이름 변경 금지 — alias 추가가 필요하면
+        //   `sticky: { ... }` 를 따로 추가할 것.
+        note: {
           pink: '#FBD6DC',
           mint: '#CFE5D3',
           lemon: '#FBE9B7',

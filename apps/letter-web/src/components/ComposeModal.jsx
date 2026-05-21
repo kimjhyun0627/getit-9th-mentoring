@@ -145,7 +145,7 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-40 flex items-center justify-center px-4 py-6 sm:py-8">
       {/* Backdrop — 별도 button 으로 분리해서 a11y 친화 (Escape + 외부 클릭 모두 닫기). */}
       <button
         type="button"
@@ -161,10 +161,19 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
         aria-modal="true"
         aria-labelledby={headingId}
         className={cn(
+          // #354 — 중앙 팝업 dialog. 부모 flex(items-center justify-center) 가 viewport 중앙,
+          //   여기서는 카드 모양 + 등장 애니메이션만. 과거 bottom-sheet 인상은 sm: padding
+          //   여백 부족으로 카드가 viewport 끝까지 닿아서 시각적으로 "올라온 시트" 처럼 보였던 것.
+          //   max-w-md 로 데스크탑에서도 명확한 카드 hierarchy.
           'relative w-full max-w-md rounded-3xl bg-cream p-6 shadow-2xl ring-1 ring-ink/10',
-          // #280 — 모바일에서 모달이 viewport 넘치면 내부 스크롤. iOS 키보드 올라와도 actions 가려지지 않게.
-          'max-h-[calc(100vh-3rem)] overflow-y-auto',
+          // #280 — 모바일 viewport 넘침 가드. dvh 로 iOS 주소창 동적 변경에도 안전.
+          //   100dvh 미지원 환경(아주 옛 브라우저) fallback 으로 100vh 도 같이.
+          'max-h-[calc(100vh-3rem)] max-h-[calc(100dvh-3rem)] overflow-y-auto',
           'sm:p-8 dark:bg-mocha2 dark:ring-beige/10',
+          // 팝업 등장 애니메이션 — bottom-sheet 슬라이드가 아니라 중앙 fade+zoom.
+          //   motion-safe: prefix 는 prefers-reduced-motion: no-preference 일 때만
+          //   적용 → 사용자가 모션 감소를 선호하면 애니메이션 자동 비활성화.
+          'motion-safe:animate-[popin_180ms_cubic-bezier(0.2,0.7,0.2,1)]',
         )}
       >
         <button

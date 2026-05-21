@@ -255,6 +255,23 @@
 }
 
 /* ─────────────────────────────────────────────────────────
+   ComposeModal / EditModal (#354) — 중앙 팝업 등장 애니메이션.
+   bottom-sheet 슬라이드가 아니라 중앙에서 fade + 살짝 scale-up.
+   prefers-reduced-motion 은 Tailwind `motion-safe:` prefix 가
+   자동으로 제외하므로 별도 미디어쿼리 가드 불필요.
+   ───────────────────────────────────────────────────────── */
+@keyframes popin {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
    CandleToggle (Warm 페르소나, A안 — 양초 심지 글로우):
    - flame:  좌우로 살짝 흔들리고 위아래로 호흡 (flicker)
    - glow:   투명도/스케일 미세 호흡
