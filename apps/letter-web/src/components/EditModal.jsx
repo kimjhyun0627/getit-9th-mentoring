@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -133,6 +134,8 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
   useBodyScrollLock(open, dialogRef);
 
   if (!open || !message) return null;
+  // SSR / 테스트 가드 — document 없는 환경에서는 portal mount 불가, null.
+  if (typeof document === 'undefined') return null;
 
   /** @param {{ content: string; color: string }} values */
   const onSubmit = (values) => {
@@ -157,7 +160,9 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
     mutation.mutate(patch);
   };
 
-  return (
+  // #511 — createPortal 로 document.body 직접 마운트. ancestor CSS containing-block
+  //   swap (transform/filter/contain 등) 영향 없이 viewport fixed 보장.
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-center justify-center px-4 py-6 sm:py-8">
       <button
         type="button"
@@ -295,6 +300,7 @@ export const EditModal = ({ open, message, onClose, onSuccess }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

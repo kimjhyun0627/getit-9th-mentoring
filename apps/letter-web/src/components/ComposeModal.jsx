@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -128,6 +129,9 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
   }, [open, reset]);
 
   if (!open) return null;
+  // SSR / 테스트 가드 — document 없는 환경에서는 portal mount 불가, 그냥 null.
+  //   (현재 letter-web 은 CSR 전용이지만 향후 SSR 대비 + jsdom 테스트도 안전.)
+  if (typeof document === 'undefined') return null;
 
   /** @param {{ content: string; color: string }} values */
   const onSubmit = (values) => {
@@ -135,7 +139,11 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
     mutation.mutate(values);
   };
 
-  return (
+  // #511 — createPortal 로 document.body 직접 마운트.
+  //   ancestor 의 transform/filter/contain/will-change 등이 fixed 의 containing block
+  //   을 viewport 아닌 ancestor 로 바꿔버리는 케이스 (CSS spec) 를 원천 차단.
+  //   라이브에서 page 본문 inline 으로 박히고 backdrop dim 사라진 회귀 (#511) 대응.
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-center justify-center px-4 py-6 sm:py-8">
       {/* Backdrop — 별도 button 으로 분리해서 a11y 친화 (Escape + 외부 클릭 모두 닫기). */}
       <button
@@ -290,6 +298,7 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
