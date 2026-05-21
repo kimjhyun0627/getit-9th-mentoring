@@ -7,6 +7,7 @@ import { EditShelfModal } from '../components/EditShelfModal.jsx';
 import { EmptyShelf } from '../components/EmptyShelf.jsx';
 import { FilterTabs } from '../components/FilterTabs.jsx';
 import { RatingFilter } from '../components/RatingFilter.jsx';
+import { RequireSignIn } from '../components/RequireSignIn.jsx';
 import { SortControl } from '../components/SortControl.jsx';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
 import { useInfiniteMyShelves, useRemoveShelf, useUpdateShelf } from '../hooks/useShelves.js';
@@ -95,6 +96,9 @@ export const HomePage = () => {
 
   const pageError = isError ? shelfError(error) : null;
   const nextPageError = isFetchNextPageError ? shelfError(error) : null;
+  // 비로그인(401) — 텍스트 한 줄 대신 "로그인하러 가기" CTA 카드로 분기 (#531).
+  // 다른 5xx/4xx 는 기존 pageError 텍스트 유지.
+  const is401 = /** @type {{ response?: { status?: number } }} */ (error)?.response?.status === 401;
 
   const closeModal = () => {
     setEditing(null);
@@ -192,13 +196,15 @@ export const HomePage = () => {
           </div>
         </div>
 
-        {pageError ? (
+        {is401 ? (
+          <RequireSignIn />
+        ) : pageError ? (
           <p role="alert" className="text-destructive text-sm">
             {pageError}
           </p>
         ) : null}
 
-        {isLoading ? (
+        {is401 ? null : isLoading ? (
           <div
             role="status"
             aria-busy="true"
