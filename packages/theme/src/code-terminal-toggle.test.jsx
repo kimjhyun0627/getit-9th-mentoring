@@ -151,4 +151,16 @@ describe('CodeTerminalToggle', () => {
     expect(valueSpan).toBeTruthy();
     expect(valueSpan.className).toContain('text-zinc-900');
   });
+
+  it('다크 배경은 솔리드 ink-900 (#379) — Tailwind opacity scale 비표준 알파 회귀 방지', () => {
+    // Tailwind v3 기본 opacity scale 은 step 5 (..., 90, 95, 100). `/92` 같은
+    // 비표준 값은 빌드 CSS 에서 누락돼 라이브에서 라이트 fallback (bg-white/90)
+    // 이 그대로 보여 다크 모드인데 흰 영역으로 노출되는 버그가 있었다 (#379).
+    // 솔리드 ink-900 (safelist 보강) 로 고정해 회귀를 막는다.
+    renderToggle();
+    const sw = screen.getByRole('switch');
+    expect(sw.className).toContain('dark:bg-ink-900');
+    // 비표준 알파 표기가 다시 들어오면 실패
+    expect(sw.className).not.toMatch(/dark:bg-ink-900\/9[1-46-9]/);
+  });
 });
