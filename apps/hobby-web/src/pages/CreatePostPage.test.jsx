@@ -128,9 +128,7 @@ describe('CreatePostPage', () => {
 
   it('정상 입력 시 api.createPost 를 ISO 시각 + 정수 capacity 로 호출한다', async () => {
     const user = userEvent.setup();
-    const createSpy = vi
-      .spyOn(api, 'createPost')
-      .mockResolvedValue({ data: { post: { id: 'abc123' } } });
+    const createSpy = vi.spyOn(api, 'createPost').mockResolvedValue({ post: { id: 'abc123' } });
     renderPage();
 
     await user.type(screen.getByLabelText('제목'), '북문 마라탕 같이 갈 사람');
@@ -169,7 +167,7 @@ describe('CreatePostPage', () => {
   it('성공 시 /posts/:id 로 이동한다', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'createPost').mockResolvedValue({
-      data: { post: { id: 'new-post-id' } },
+      post: { id: 'new-post-id' },
     });
     renderPage();
 
@@ -210,9 +208,7 @@ describe('CreatePostPage', () => {
   // #500 — 정책 토글.
   it('정책 토글 — 기본 FIRST_COME 으로 createPost 호출', async () => {
     const user = userEvent.setup();
-    const createSpy = vi
-      .spyOn(api, 'createPost')
-      .mockResolvedValue({ data: { post: { id: 'abc' } } });
+    const createSpy = vi.spyOn(api, 'createPost').mockResolvedValue({ post: { id: 'abc' } });
     renderPage();
     await user.type(screen.getByLabelText('제목'), '북문 마라탕');
     await user.type(screen.getByLabelText('본문'), '본문');
@@ -228,9 +224,7 @@ describe('CreatePostPage', () => {
 
   it('정책 토글 — APPROVAL 선택 시 그대로 전달', async () => {
     const user = userEvent.setup();
-    const createSpy = vi
-      .spyOn(api, 'createPost')
-      .mockResolvedValue({ data: { post: { id: 'abc' } } });
+    const createSpy = vi.spyOn(api, 'createPost').mockResolvedValue({ post: { id: 'abc' } });
     renderPage();
     // APPROVAL 라디오 클릭
     const approval = screen.getByRole('radio', { name: /승인 게이트/ });
