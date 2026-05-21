@@ -11,8 +11,15 @@ describe('formatRelative', () => {
     expect(formatRelative('not-a-date', now)).toBe('');
   });
 
-  it('1분 미만이면 "방금 전"', () => {
+  it('2분 미만이면 "방금 전" (#453 — BE minute truncate 보정)', () => {
+    // 30초 전 — 방금 전
     expect(formatRelative('2026-05-19T11:59:30.000Z', now)).toBe('방금 전');
+    // 1분 5초 전 — BE truncate 보정으로 여전히 "방금 전"
+    expect(formatRelative('2026-05-19T11:58:55.000Z', now)).toBe('방금 전');
+  });
+
+  it('2분 이상이면 분 단위로 표시', () => {
+    expect(formatRelative('2026-05-19T11:58:00.000Z', now)).toBe('2분 전');
   });
 
   it('1시간 미만이면 분 단위', () => {

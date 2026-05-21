@@ -97,6 +97,16 @@ export const BoardStatusLive = ({ message }) => {
 };
 
 /**
+ * #448 — 401 SSO redirect 직전 placeholder. ErrorState 플래시 회피.
+ * meQuery / messagesQuery 401 양쪽에서 공유 (톤 통일).
+ */
+export const RedirectingNotice = () => (
+  <div className="mx-auto max-w-md py-16 text-center">
+    <p className="font-hand text-base text-ink2 dark:text-beige2">로그인 페이지로 이동 중이에요…</p>
+  </div>
+);
+
+/**
  * @param {{ onRetry: () => void }} props
  */
 export const ErrorState = ({ onRetry }) => (

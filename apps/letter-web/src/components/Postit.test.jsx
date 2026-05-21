@@ -43,6 +43,16 @@ describe('Postit', () => {
     expect(label ?? '').not.toMatch(/내 메시지/);
   });
 
+  // #467 — 본인 메시지 announce 중복 차단.
+  it('본인 메시지: article 에 aria-label 가 없고 badge 한 번만 announce', () => {
+    render(<Postit message={{ ...base, is_mine: true }} now={fixedNow} />);
+    const article = screen.getByRole('article');
+    // article 자체에 aria-label="내 메시지" 가 붙으면 badge 와 더블 안내됨 → 제거 검증.
+    expect(article.getAttribute('aria-label')).toBeNull();
+    // visible badge 텍스트는 그대로 노출 (시각 사용자 + SR 모두 한 번 announce).
+    expect(within(article).getByText('내 메시지')).toBeInTheDocument();
+  });
+
   it('is_mine=true 면 "내 메시지" 라벨과 편집/삭제 버튼이 보인다', () => {
     render(<Postit message={{ ...base, is_mine: true }} now={fixedNow} />);
     const article = screen.getByRole('article');
