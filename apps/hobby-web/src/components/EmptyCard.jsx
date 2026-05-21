@@ -26,10 +26,10 @@ export const EmptyCard = ({ mode = 'cta' }) => {
         <span aria-hidden="true" className="text-6xl float-mid" style={{ ['--r']: '-6deg' }}>
           🪄
         </span>
-        <h3 className="font-display font-extrabold text-xl text-slate-800 dark:text-slate-100">
+        <h3 className="font-display font-extrabold text-xl text-slate-800 dark:text-slate-100 break-keep">
           {heading}
         </h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-round max-w-[220px]">
+        <p className="text-sm text-slate-500 dark:text-slate-400 font-round max-w-[220px] break-keep [overflow-wrap:anywhere]">
           {body}
         </p>
         <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-4 py-2 font-display font-bold text-sm group-hover:scale-105 group-hover:rotate-1 transition">

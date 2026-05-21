@@ -96,9 +96,11 @@ export const MeetupCard = ({ post }) => {
           {emoji}
         </span>
         <div className={cn(badge.bodyCls)}>
-          <h3 className="font-display font-extrabold text-xl leading-tight">{post.title}</h3>
+          <h3 className="font-display font-extrabold text-xl leading-tight break-keep">
+            {post.title}
+          </h3>
           {post.location ? (
-            <p className="mt-1 opacity-90 font-round text-sm">{post.location}</p>
+            <p className="mt-1 opacity-90 font-round text-sm break-keep">{post.location}</p>
           ) : null}
         </div>
       </div>
