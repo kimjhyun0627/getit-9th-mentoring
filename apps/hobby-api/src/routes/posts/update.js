@@ -81,14 +81,14 @@ const runUpdateTransaction = ({ post, patch, policyChange }) =>
     const data = { ...rest };
     if (typeof capacity === 'number') data.capacity = capacity;
     if (applicationPolicy) data.applicationPolicy = applicationPolicy;
+    // 정원을 currentCapacity 이상으로 올린 경우 FULL → RECRUITING 복귀.
+    // 일반 필드 업데이트와 같은 update 호출에 묶어 DB round-trip 1회 (Gemini #518 review).
+    if (typeof capacity === 'number' && capacity > post.currentCapacity && post.status === 'FULL') {
+      data.status = 'RECRUITING';
+    }
     await tx.post.update({ where: { id: post.id }, data });
 
     if (Array.isArray(tags)) await replaceTags(tx, post.id, tags);
-
-    // 정원을 currentCapacity 이상으로 올린 경우 FULL → RECRUITING 복귀.
-    if (typeof capacity === 'number' && capacity > post.currentCapacity && post.status === 'FULL') {
-      await tx.post.update({ where: { id: post.id }, data: { status: 'RECRUITING' } });
-    }
 
     return tx.post.findUnique({
       where: { id: post.id },
@@ -97,11 +97,11 @@ const runUpdateTransaction = ({ post, patch, policyChange }) =>
   });
 
 const replaceTags = async (tx, postId, tags) => {
-  await tx.postTag.deleteMany?.({ where: { postId } });
+  await tx.postTag.deleteMany({ where: { postId } });
   const names = normalizeTagNames(tags);
   for (const name of names) {
-    await tx.tag.upsert({ where: { name }, create: { name }, update: {} });
-    const tag = await tx.tag.findUnique({ where: { name } });
-    await tx.postTag.create?.({ data: { postId, tagId: tag.id } });
+    // upsert 가 생성/업데이트된 row 를 반환하므로 별도 findUnique 불필요 (Gemini #518 review).
+    const tag = await tx.tag.upsert({ where: { name }, create: { name }, update: {} });
+    await tx.postTag.create({ data: { postId, tagId: tag.id } });
   }
 };
