@@ -141,4 +141,14 @@ describe('CodeTerminalToggle', () => {
     expect(valueSpan.className).toContain('dark:text-white');
     expect(valueSpan.className).not.toContain('dark:text-cyan-300');
   });
+
+  it('값 텍스트는 라이트에서 zinc-900 — 배경 white 와 최대 대비 (대칭 단언)', () => {
+    renderToggle();
+    const sw = screen.getByRole('switch');
+    const valueSpan = Array.from(sw.querySelectorAll('span')).find((s) =>
+      s.textContent?.includes('[ light'),
+    );
+    expect(valueSpan).toBeTruthy();
+    expect(valueSpan.className).toContain('text-zinc-900');
+  });
 });

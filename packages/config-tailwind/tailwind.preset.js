@@ -7,7 +7,11 @@
  */
 export default {
   darkMode: 'class',
-  content: [],
+  // packages/theme 컴포넌트 (CodeTerminalToggle 등) 의 클래스가
+  // 모든 앱 빌드 CSS 에 보존되도록 preset 단에서 보장 (#378, Gemini 제안).
+  // 각 앱은 자체 `content` 에 `./index.html`, `./src/**/*.{js,jsx}` 만 추가하면 됨.
+  // Tailwind 는 preset content 와 앱 content 를 머지함.
+  content: ['../../packages/theme/src/**/*.{js,jsx}'],
   theme: {
     container: {
       center: true,
