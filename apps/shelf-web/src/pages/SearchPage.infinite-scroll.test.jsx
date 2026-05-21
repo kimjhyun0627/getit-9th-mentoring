@@ -122,7 +122,7 @@ describe('SearchPage — 무한 스크롤 (#527)', () => {
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
     await screen.findByRole('heading', { name: '검색결과 1' });
     // 첫 호출만 발생. 추가 호출이 없는지 잠깐 대기 후 검증.
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     expect(spy).toHaveBeenCalledTimes(1);
     // 종료 안내 노출 (cap 도달 → "모두 보여드렸어요").
     expect(await screen.findByText(/모두 보여드렸어요/)).toBeInTheDocument();
