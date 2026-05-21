@@ -20,11 +20,17 @@ export const LetterLayout = ({ children }) => {
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 pt-7 sm:px-8">
         <Link to="/" className="flex items-center gap-2" aria-label="롤링페이퍼 홈">
           <BrandMark className="h-7 w-7 sm:h-8 sm:w-8" />
-          <span className="flex items-baseline gap-1.5">
-            <span className="font-hand text-3xl leading-none text-peachDk dark:text-rose sm:text-4xl">
-              G
-            </span>
-            <span className="text-lg font-semibold tracking-tight sm:text-xl">ETIT 롤링페이퍼</span>
+          {/*
+            #457 — 헤더 로고 'G'만 font-hand 로 split 되던 문제 해결.
+            BoardPage TitleStrip (#407) 와 동일 패턴 적용:
+            'GETIT' 5글자를 라틴 폰트로 명시해 통일하고, '롤링페이퍼' 는 sans 유지.
+            sageDk/sageW 색상 액센트로 브랜드 강조 유지.
+          */}
+          <span className="text-lg font-semibold tracking-tight sm:text-xl">
+            <span className="[font-family:Inter,system-ui,-apple-system,sans-serif] text-sageDk dark:text-sageW">
+              GETIT
+            </span>{' '}
+            롤링페이퍼
           </span>
         </Link>
 
