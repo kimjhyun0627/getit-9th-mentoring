@@ -2,6 +2,18 @@ import { ACCENT_CLASSES } from '../data/accents.js';
 
 import { ArrowIcon } from './ArrowIcon.jsx';
 import { ExternalLinkIcon } from './ExternalLinkIcon.jsx';
+import { BoardIcon, HobbyIcon, LetterIcon, ShelfIcon } from './ProjectIcons.jsx';
+
+/**
+ * slug → 아이콘 컴포넌트 매핑. PROJECT_ICONS 상수를 컴포넌트 파일에 두면
+ * react-refresh 경고가 떠서 호출처 (ProjectCard.jsx) 에 inline 로 둔다.
+ */
+const PROJECT_ICONS = {
+  HOBBY: HobbyIcon,
+  SHELF: ShelfIcon,
+  BOARD: BoardIcon,
+  LETTER: LetterIcon,
+};
 
 /**
  * @typedef {import('../data/projects.js').Project} Project
@@ -37,6 +49,7 @@ export const ProjectCard = ({
 }) => {
   const safeAccent = ACCENT_CLASSES[accent] ? accent : 'cyan';
   const tokens = ACCENT_CLASSES[safeAccent];
+  const Icon = PROJECT_ICONS[slug] ?? null;
   return (
     <li>
       <a
@@ -58,9 +71,9 @@ export const ProjectCard = ({
         <div className="mt-6 flex items-center gap-3">
           <span
             aria-hidden="true"
-            className="grid size-12 place-items-center rounded-lg border border-hairline bg-zinc-50 text-2xl dark:bg-ink-850"
+            className={`grid size-12 place-items-center rounded-lg border border-hairline bg-zinc-50 dark:bg-ink-850 ${tokens.text}`}
           >
-            {emoji}
+            {Icon ? <Icon className="size-6" /> : <span className="text-2xl">{emoji}</span>}
           </span>
           <div>
             <h3 className="text-xl font-semibold tracking-tight text-ink-950 dark:text-white">

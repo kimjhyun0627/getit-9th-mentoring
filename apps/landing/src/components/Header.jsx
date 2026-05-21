@@ -4,6 +4,8 @@ import { buildLoginUrl } from '../lib/auth-redirect.js';
 import { performLogout } from '../lib/logout.js';
 import { useSession } from '../lib/useSession.js';
 
+import { BrandMark } from './BrandMark.jsx';
+
 /**
  * Sticky 상단 헤더 (Tech-Dark).
  * - 좌: G9 cyan 모노그램 + `GETIT/9` mono 로고 + mono nav (services, about)
@@ -38,12 +40,8 @@ export const Header = () => {
             className={`group flex items-center gap-2 ${focusMono}`}
             aria-label="GETIT 9기 홈"
           >
-            <span
-              aria-hidden="true"
-              className="grid h-7 w-7 place-items-center rounded-md border border-hairline bg-ink-950 font-mono text-[11px] font-bold text-cyan-neon dark:bg-cyan-neon dark:text-ink-950"
-            >
-              G9
-            </span>
+            <BrandMark className="h-7 w-7" />
+
             <span className="font-mono text-sm font-semibold tracking-tight">
               <span className="text-cyan-700 dark:text-cyan-neon">GETIT</span>
               <span className="text-zinc-400 dark:text-zinc-500">/</span>9

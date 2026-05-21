@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api.js';
 
+import { BrandMark } from './BrandMark.jsx';
 import { NotificationBell } from './NotificationBell.jsx';
 import { PlayfulThemeToggle } from './PlayfulThemeToggle.jsx';
 
@@ -46,12 +47,8 @@ export const Header = ({ search, onSearchChange }) => {
         className="group inline-flex items-center gap-2.5 shrink-0"
         aria-label="취미메이트 홈"
       >
-        <span
-          aria-hidden="true"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-400 via-fuchsia-500 to-violet-500 text-white text-xl font-display font-extrabold shadow-lg shadow-fuchsia-500/30 group-hover:rotate-6 group-hover:scale-105 transition"
-        >
-          🤲
-        </span>
+        <BrandMark className="h-10 w-10 shadow-lg shadow-fuchsia-500/30 rounded-2xl transition group-hover:rotate-6 group-hover:scale-105" />
+
         <span className="font-display text-lg font-extrabold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
           취미<span className="text-rose-500 dark:text-rose-300">메이트</span>
         </span>

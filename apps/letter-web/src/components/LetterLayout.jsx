@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import { BrandMark } from './BrandMark.jsx';
 import { CandleToggle } from './CandleToggle.jsx';
 
 /**
@@ -17,11 +18,14 @@ export const LetterLayout = ({ children }) => {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 wall-bg opacity-90" />
 
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 pt-7 sm:px-8">
-        <Link to="/" className="flex items-baseline gap-1.5" aria-label="롤링페이퍼 홈">
-          <span className="font-hand text-3xl leading-none text-peachDk dark:text-rose sm:text-4xl">
-            G
+        <Link to="/" className="flex items-center gap-2" aria-label="롤링페이퍼 홈">
+          <BrandMark className="h-7 w-7 sm:h-8 sm:w-8" />
+          <span className="flex items-baseline gap-1.5">
+            <span className="font-hand text-3xl leading-none text-peachDk dark:text-rose sm:text-4xl">
+              G
+            </span>
+            <span className="text-lg font-semibold tracking-tight sm:text-xl">ETIT 롤링페이퍼</span>
           </span>
-          <span className="text-lg font-semibold tracking-tight sm:text-xl">ETIT 롤링페이퍼</span>
         </Link>
 
         <div className="flex items-center gap-3">
