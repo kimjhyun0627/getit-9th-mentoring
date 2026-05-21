@@ -217,11 +217,12 @@ describe('auth-api', () => {
       expect(res.headers['cache-control']).toBe('no-store');
     });
 
-    it('미인증 401 응답도 Cache-Control: no-store', async () => {
+    it('미인증이면 401', async () => {
       const res = await request(app).get('/api/me');
       expect(res.status).toBe(401);
-      // 미들웨어가 먼저 가로채는 케이스(requireAuth)는 헤더 없을 수 있음 — 우리 핸들러
-      // 가 실행되는 케이스(유효 JWT but UserRevokedOrDeleted)는 별도 테스트 필요시 추가.
+      // 참고: requireAuth 미들웨어가 먼저 가로채는 401 은 핸들러 진입 전이라
+      // Cache-Control 헤더가 없을 수 있음. 핸들러까지 도달하는 401
+      // (유효 JWT but UserRevokedOrDeleted) 검증은 별도 fixture 필요 — 본 PR 범위 외.
     });
   });
 
