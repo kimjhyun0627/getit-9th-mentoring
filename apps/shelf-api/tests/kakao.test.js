@@ -165,6 +165,37 @@ describe('toBookRecord — 카카오 응답을 Book 도메인으로 매핑', () 
     });
     expect(book.coverUrl).toBe('https://t1.daumcdn.net/lbook/image/1.jpg?v=2');
   });
+
+  // #529 — 라이브에서 잡힌 Mixed Content 회귀.
+  // 카카오는 fname 을 `http://t1.daumcdn.net/...` (HTTP) 로 박아서 응답한다.
+  // shelf-web 은 HTTPS 페이지 → 브라우저 콘솔에 Mixed Content 경고가 뜬다.
+  // daumcdn 은 https 정상 지원 → 추출 단계에서 https 로 강제 업그레이드.
+  it('coverUrl: fname 이 http:// daumcdn 이면 https:// 로 강제 업그레이드 (#529 mixed content)', () => {
+    const book = toBookRecord({
+      ...sampleKakaoDoc,
+      thumbnail:
+        'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F529.jpg',
+    });
+    expect(book.coverUrl).toBe('https://t1.daumcdn.net/lbook/image/529.jpg');
+  });
+
+  it('coverUrl: fname 이 이미 https 면 그대로 (idempotent)', () => {
+    const book = toBookRecord({
+      ...sampleKakaoDoc,
+      thumbnail:
+        'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=https%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2Fidem.jpg',
+    });
+    expect(book.coverUrl).toBe('https://t1.daumcdn.net/lbook/image/idem.jpg');
+  });
+
+  it('coverUrl: http daumcdn + query string 동시에도 https 업그레이드 유지', () => {
+    const book = toBookRecord({
+      ...sampleKakaoDoc,
+      thumbnail:
+        'https://search1.kakaocdn.net/thumb/R120x174.q85/?fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F529.jpg%3Fv%3D3',
+    });
+    expect(book.coverUrl).toBe('https://t1.daumcdn.net/lbook/image/529.jpg?v=3');
+  });
 });
 
 describe('searchKakaoBooks — HTTP 호출', () => {
