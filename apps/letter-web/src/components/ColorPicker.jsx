@@ -80,7 +80,7 @@ export const ColorPicker = ({ value, onChange, error, errorId }) => {
       aria-describedby={error ? errorId : undefined}
       className="flex flex-col gap-2"
     >
-      <legend id={groupLabelId} className="font-hand text-base text-ink dark:text-beige">
+      <legend id={groupLabelId} className="font-hand text-lg text-ink dark:text-beige">
         포스트잇 색
       </legend>
       <div role="radiogroup" aria-labelledby={groupLabelId} className="flex flex-wrap gap-3">

@@ -186,18 +186,18 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
         </button>
 
         <header className="mb-5 flex flex-col gap-1">
-          <p className="font-pen text-2xl leading-none text-sageDk dark:text-sageW">한 줄 남기기</p>
+          <p className="font-pen text-3xl leading-none text-sageDk dark:text-sageW">한 줄 남기기</p>
           <h2
             id={headingId}
             className="font-sans text-2xl font-bold tracking-tight text-ink dark:text-beige"
           >
             메시지 작성
           </h2>
-          <p className="font-hand text-sm text-ink2 dark:text-beige2">
+          <p className="font-hand text-base text-ink2 dark:text-beige2">
             익명으로 부원실 벽에 살며시 붙여둘게요.
           </p>
           {/* #325 — 익명성 약속을 더 명확히. 다른 부원에게는 표시되지 않음 (DB 저장 사실과 정합). */}
-          <p className="font-hand text-xs text-sageDk dark:text-sageW">
+          <p className="font-hand text-sm text-sageDk dark:text-sageW">
             이름은 다른 부원에게 표시되지 않아요.
           </p>
         </header>
@@ -225,14 +225,14 @@ export const ComposeModal = ({ open, onClose, onSuccess }) => {
             <div className="flex items-baseline justify-between gap-2">
               <label
                 htmlFor="compose-content"
-                className="font-hand text-base text-ink dark:text-beige"
+                className="font-hand text-lg text-ink dark:text-beige"
               >
                 내용
               </label>
               {/* #281 — 글자수 카운터. aria-live=polite 로 SR 에도 알림 (단, 매 키입력마다는 시끄러우니 fluid 변화는 시각만). */}
               <span
                 aria-live="polite"
-                className={cn('font-hand text-xs tabular-nums transition-colors', counterColor)}
+                className={cn('font-hand text-sm tabular-nums transition-colors', counterColor)}
               >
                 <span className="sr-only">현재 글자수 </span>
                 {contentLen} / {CONTENT_MAX}

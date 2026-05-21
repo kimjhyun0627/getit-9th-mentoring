@@ -110,7 +110,7 @@ export const BoardPage = () => {
       return (
         <section className="paper relative">
           <div className="relative z-10 mx-auto max-w-md py-16 text-center">
-            <p className="font-hand text-sm text-ink2 dark:text-beige2">
+            <p className="font-hand text-base text-ink2 dark:text-beige2">
               로그인 페이지로 이동 중이에요…
             </p>
           </div>
@@ -200,7 +200,7 @@ const TitleStrip = ({ count, sortMode, onSortToggle }) => (
   <div className="mb-8">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="font-pen text-2xl leading-none text-sageDk sm:text-3xl dark:text-sageW">
+        <p className="font-pen text-3xl leading-none text-sageDk sm:text-4xl dark:text-sageW">
           우리들의 한 줄
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight leading-tight sm:text-5xl">
@@ -216,7 +216,7 @@ const TitleStrip = ({ count, sortMode, onSortToggle }) => (
         <div
           aria-live="polite"
           aria-atomic="true"
-          className="font-hand text-xs text-ink2/80 sm:text-sm dark:text-beige2/80"
+          className="font-hand text-sm text-ink2/80 sm:text-base dark:text-beige2/80"
         >
           {count > 0 ? (
             <>
