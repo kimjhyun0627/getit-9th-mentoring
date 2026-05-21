@@ -15,7 +15,7 @@ import request from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../src/app.js';
-import { meetAtRangeFor } from '../src/routes/posts.js';
+import { meetAtRangeFor } from '../src/lib/timeWindow.js';
 
 import './setup.js';
 import { memDb } from './fake-prisma.js';
