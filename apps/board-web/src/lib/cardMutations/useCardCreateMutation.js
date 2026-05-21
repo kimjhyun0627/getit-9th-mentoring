@@ -41,8 +41,17 @@ export const useCardCreateMutation = ({ projectId }) => {
       if (ctx) queryClient.setQueryData(['cards', ctx.columnId], ctx.previous);
     },
     onSuccess: (created, _vars, ctx) => {
-      if (!ctx || !created) return;
+      if (!ctx) return;
       const current = queryClient.getQueryData(['cards', ctx.columnId]) ?? [];
+      if (!created) {
+        // 성공이지만 빈 바디 — optimistic temp 카드 그대로 두면 가짜 카드가 남아.
+        // invalidate 가 안 닿는 케이스 대비해 여기서 temp 만 정리.
+        queryClient.setQueryData(
+          ['cards', ctx.columnId],
+          current.filter((c) => c.id !== ctx.tempId),
+        );
+        return;
+      }
       queryClient.setQueryData(
         ['cards', ctx.columnId],
         current.map((c) => (c.id === ctx.tempId ? created : c)),

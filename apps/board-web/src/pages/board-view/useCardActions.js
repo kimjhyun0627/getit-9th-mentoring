@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { reorderWithin } from '../../lib/cardMoveStrategy.js';
 import { useBoardCardMutations } from '../../lib/useBoardCardMutations.js';
@@ -87,6 +87,8 @@ export const useCardActions = ({ projectId, cardsByColumn }) => {
   const handleSaveEdit = (cardId, changes) => {
     const card = findCard(cardId);
     if (!card) return;
+    // 재저장 시 이전 서버 에러 잔존 방지 — 새 요청 시작 시점에 클리어.
+    setEditServerError(null);
     cardMut.update.mutate({ cardId, columnId: card.columnId, changes });
   };
 
@@ -95,7 +97,13 @@ export const useCardActions = ({ projectId, cardsByColumn }) => {
     setEditServerError(null);
   };
 
-  const editingCard = editingCardId ? findCard(editingCardId) : null;
+  // editingCardId 또는 cardsByColumn 변경 시에만 재계산 — 다른 state 변경 시
+  // findCard 루프가 매번 도는 비용 절감.
+  const editingCard = useMemo(
+    () => (editingCardId ? findCard(editingCardId) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editingCardId, cardsByColumn],
+  );
 
   return {
     cardMut,

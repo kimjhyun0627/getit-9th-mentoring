@@ -77,12 +77,15 @@ export const useCardUpdateMutation = ({ projectId, onError, onSuccess }) => {
       onError(toFriendlyCardError(err));
     },
     onSuccess: (saved, vars) => {
-      if (!saved) return;
-      const cards = queryClient.getQueryData(['cards', vars.columnId]) ?? [];
-      queryClient.setQueryData(
-        ['cards', vars.columnId],
-        cards.map((c) => (c.id === saved.id ? { ...c, ...saved } : c)),
-      );
+      // 캐시 병합은 saved 있을 때만, onSuccess 콜백은 성공이면 항상 호출
+      // — 빈 바디 응답이어도 편집 UI 상태(modal close 등) 정리되도록.
+      if (saved) {
+        const cards = queryClient.getQueryData(['cards', vars.columnId]) ?? [];
+        queryClient.setQueryData(
+          ['cards', vars.columnId],
+          cards.map((c) => (c.id === saved.id ? { ...c, ...saved } : c)),
+        );
+      }
       onSuccess();
     },
     onSettled: invalidateBatchSoon,

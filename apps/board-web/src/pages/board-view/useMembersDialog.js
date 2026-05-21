@@ -34,6 +34,13 @@ export const useMembersDialog = ({ projectId }) => {
     }
   }, [membersOpen, membersQuery.isError, membersError]);
 
+  // 조회 성공 전환 시 이전 에러 문구 클리어 — 재시도 성공 후에도 stale 에러 잔존 방지.
+  useEffect(() => {
+    if (membersOpen && membersQuery.isSuccess && membersError) {
+      setMembersError(null);
+    }
+  }, [membersOpen, membersQuery.isSuccess, membersError]);
+
   const memberMut = useBoardMemberMutations({
     projectId,
     onError: setMembersError,
