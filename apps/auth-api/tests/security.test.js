@@ -7,11 +7,15 @@
  * - #328 COOKIE_DOMAIN fail-fast (별도 단위 검사).
  * - #329 /api/refresh limiter 적용.
  */
+import { signJwt } from '@getit/auth-utils/server';
 import request from 'supertest';
 import { describe, it, expect } from 'vitest';
 
 import { createApp } from '../src/app.js';
 import { issueCsrfToken } from '../src/lib/csrf.js';
+
+/** @param {{ sub: string, email: string, name: string }} payload */
+const signJwtForTest = (payload) => signJwt(payload, process.env.JWT_SECRET);
 
 const SIGNUP = {
   email: 'sec@get-it.cloud',
@@ -41,12 +45,23 @@ describe('#312 CSRF guard', () => {
     expect(res.status).toBe(401);
   });
 
-  it('protected /api/me/profile — JWT 있는데 CSRF 없으면 403', async () => {
-    // CSRF guard 는 인증된 사용자에게만 적용. JWT 가 있으면 CSRF mismatch → 403.
+  it('protected /api/me/profile — 무효 JWT 쿠키 PATCH → 401 (#427 expired/invalid 도 401 우선)', async () => {
+    // CR 피드백: stale/invalid JWT 쿠키도 CSRF mismatch 보다 401 이 먼저.
     const app = createApp({ rateLimitMax: 1000 });
     const res = await request(app)
       .patch('/api/me/profile')
-      .set('Cookie', 'getit_jwt=anything')
+      .set('Cookie', 'getit_jwt=invalid-token')
+      .send({});
+    expect(res.status).toBe(401);
+  });
+
+  it('protected /api/me/profile — 유효 JWT 인데 CSRF 없으면 403', async () => {
+    // 유효 JWT + CSRF 미동봉 → CSRF mismatch 응답 (실제 CSRF 위협 케이스).
+    const app = createApp({ rateLimitMax: 1000 });
+    const jwt = signJwtForTest({ sub: 'u1', email: 'u@x.com', name: 'U' });
+    const res = await request(app)
+      .patch('/api/me/profile')
+      .set('Cookie', `getit_jwt=${jwt}`)
       .send({});
     expect(res.status).toBe(403);
     expect(res.body.error).toBe('CsrfTokenMismatch');

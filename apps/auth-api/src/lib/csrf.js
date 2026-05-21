@@ -19,7 +19,7 @@
  */
 import crypto from 'node:crypto';
 
-import { COOKIE_NAME as JWT_COOKIE } from '@getit/auth-utils/server';
+import { COOKIE_NAME as JWT_COOKIE, verifyJwt } from '@getit/auth-utils/server';
 
 export const CSRF_COOKIE_HTTP = 'getit_csrf';
 export const CSRF_COOKIE_PUB = 'getit_csrf_pub';
@@ -87,8 +87,21 @@ export const csrfGuard = () => {
     // #427: 미인증 호출은 CSRF 검사 전에 라우터(requireAuth) 가 401 을 먼저 돌려주도록
     // skip 한다. 그렇지 않으면 unauth 사용자가 /api/me/delete 등에 접근 시
     // "CsrfTokenMismatch" 가 먼저 응답돼 API 응답 일관성이 깨지고 외부 모니터링이
-    // 혼란스러워진다. JWT 쿠키 없으면 CSRF 검사도 의미 없음 (cross-site forge 불가).
-    if (!req.cookies?.[JWT_COOKIE]) return next();
+    // 혼란스러워진다.
+    //
+    // CR 피드백: 쿠키 "존재" 만 보면 invalid/expired JWT 도 CSRF 부터 검사돼 401 우선
+    // 정책이 깨진다. → JWT 의 실제 유효성까지 확인. 검증 실패면 skip (라우터의
+    // requireAuth 가 401 처리). cross-site forge 는 인증된 사용자만 위험.
+    const rawJwt = req.cookies?.[JWT_COOKIE];
+    if (!rawJwt) return next();
+    try {
+      const secret = process.env.JWT_SECRET;
+      if (!secret) return next();
+      verifyJwt(rawJwt, secret);
+    } catch {
+      // 무효/만료 JWT → 401 이 우선되어야 한다 (requireAuth 에 위임).
+      return next();
+    }
     const headerToken = req.headers[CSRF_HEADER];
     const cookieToken = req.cookies?.[CSRF_COOKIE_HTTP];
     if (!headerToken || !cookieToken || headerToken !== cookieToken) {

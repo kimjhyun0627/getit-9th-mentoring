@@ -111,16 +111,20 @@ Migrations:
 검증 명령 (SSH 필요):
 
 ```bash
-ssh -i ~/.ssh/getit_deploy jinhyun@34.64.104.92 \
+ssh -i "$DEPLOY_SSH_KEY" "$DEPLOY_USER@$DEPLOY_HOST" \
   'docker exec getit-auth-api-1 npx -y prisma@6 migrate status'
 
 # 신규 migration 추가 시 (CI 가 적용 안 함):
-ssh -i ~/.ssh/getit_deploy jinhyun@34.64.104.92 \
+ssh -i "$DEPLOY_SSH_KEY" "$DEPLOY_USER@$DEPLOY_HOST" \
   'docker exec getit-auth-api-1 npx -y prisma@6 migrate deploy'
 ```
+
+> 환경변수: `DEPLOY_SSH_KEY=~/.ssh/getit_deploy`, `DEPLOY_USER`, `DEPLOY_HOST`.
+> 실값은 비공개 런북 / GitHub Secrets 참조.
 
 라이브 sanity (signup 1회 → SMTP fallback):
 
 ```bash
-ssh ... 'docker logs --since 5m getit-auth-api-1 | grep mailer-fallback'
+ssh -i "$DEPLOY_SSH_KEY" "$DEPLOY_USER@$DEPLOY_HOST" \
+  'docker logs --since 5m getit-auth-api-1 | grep mailer-fallback'
 ```
