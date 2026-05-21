@@ -105,3 +105,46 @@ describe('#329 /api/refresh rate-limit', () => {
     expect(lastStatus).toBe(429);
   });
 });
+
+describe('#415 /api/docs prod gate — recon 표적 차단', () => {
+  it('NODE_ENV=production + AUTH_DOCS_PUBLIC 미설정 → /api/docs 404', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    const originalDocs = process.env.AUTH_DOCS_PUBLIC;
+    process.env.NODE_ENV = 'production';
+    delete process.env.AUTH_DOCS_PUBLIC;
+    try {
+      const app = createApp({ rateLimitMax: 100 });
+      const docs = await request(app).get('/api/docs/');
+      expect(docs.status).toBe(404);
+      const spec = await request(app).get('/api/openapi.json');
+      expect(spec.status).toBe(404);
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+      if (originalDocs === undefined) delete process.env.AUTH_DOCS_PUBLIC;
+      else process.env.AUTH_DOCS_PUBLIC = originalDocs;
+    }
+  });
+
+  it('NODE_ENV=production + AUTH_DOCS_PUBLIC=true → 명시적 opt-in 으로 노출', async () => {
+    const originalEnv = process.env.NODE_ENV;
+    const originalDocs = process.env.AUTH_DOCS_PUBLIC;
+    process.env.NODE_ENV = 'production';
+    process.env.AUTH_DOCS_PUBLIC = 'true';
+    try {
+      const app = createApp({ rateLimitMax: 100 });
+      const spec = await request(app).get('/api/openapi.json');
+      expect(spec.status).toBe(200);
+      expect(spec.body.openapi).toMatch(/^3\./);
+    } finally {
+      process.env.NODE_ENV = originalEnv;
+      if (originalDocs === undefined) delete process.env.AUTH_DOCS_PUBLIC;
+      else process.env.AUTH_DOCS_PUBLIC = originalDocs;
+    }
+  });
+
+  it('NODE_ENV=test (기본) → /api/openapi.json 노출 — staging/개발 흐름 보존', async () => {
+    const app = createApp({ rateLimitMax: 100 });
+    const spec = await request(app).get('/api/openapi.json');
+    expect(spec.status).toBe(200);
+  });
+});

@@ -1,10 +1,13 @@
 /**
- * 비밀번호 재설정 라우터 (Issue #221, UX 분기 Issue #394).
+ * 비밀번호 재설정 라우터 (Issue #221, UX 분기 Issue #394, enumeration fix Issue #413).
  *
  * 흐름:
  *   1. POST /api/password/forgot { email } → 1회용 토큰 발급 (15분 TTL).
- *      - 사용자 명시 요청 (#394): 미등록 이메일은 404 + EmailNotFound 로 분기.
- *      - 보안 trade-off: enumeration 가능. 운영 환경에선 rate-limit/captcha 로 보완.
+ *      - 등록/미등록 이메일 모두 200 ok 통일 응답 (enumeration 차단, Issue #413).
+ *        - 등록: `{ ok:true, sent:true, email }` + (dev 모드) token
+ *        - 미등록: `{ ok:true, sent:false, email }` — 메일 발송 X, 토큰 row 생성 X
+ *        - FE 는 sent flag 로 분기해 사용자 친화 메시지 노출 (Issue #417).
+ *      - 외부 관측자 (HTTP status/응답 shape) 에서는 등록 여부 식별 불가능.
  *      - timing parity: 미존재 분기도 동일한 no-op DB 라운드트립 수행 (응답시간 측면 부분 보완).
  *      - dev 모드 (`RESET_TOKEN_DEV_RETURN=true`) 면 응답 본문에 token 노출.
  *      - 운영에선 console.log 만 (이메일 발송은 후속 issue).
@@ -91,9 +94,9 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
       const tokenHash = hashResetToken(token);
       const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MIN * 60 * 1000);
 
-      // 사용자 명시 요청 (#394): 미존재 이메일은 분기 응답.
+      // 미존재 이메일 → 200 통합 응답 (sent:false). enumeration 차단 (#413).
       // 응답시간 partial parity: no-op DB 라운드트립으로 일부 타이밍 차이 흡수.
-      // 보안 trade-off: enumeration 가능 → 운영에선 rate-limit/captcha 강화.
+      // FE 는 sent flag 분기로 사용자 친화 메시지 노출 (#417).
       if (!user) {
         await prisma.passwordResetToken
           .updateMany({
@@ -101,8 +104,7 @@ export const createPasswordResetRouter = ({ resetLimiter }) => {
             data: { usedAt: new Date() },
           })
           .catch(() => null);
-        // ErrorResponse 스키마 준수 (CR #401): { error } 만, ok 필드 없음.
-        return res.status(404).json({ error: 'EmailNotFound' });
+        return res.status(200).json({ ok: true, sent: false, email });
       }
 
       // 이전 미사용 토큰은 무효화 (한 사용자당 활성 토큰 1개만 의미 있게).

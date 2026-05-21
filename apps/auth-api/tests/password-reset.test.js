@@ -1,10 +1,11 @@
 /**
- * 비밀번호 재설정 라우터 통합 테스트 (Issue #221).
+ * 비밀번호 재설정 라우터 통합 테스트 (Issue #221, enumeration fix #413).
  *
  * 커버리지:
  *  - POST /api/password/forgot
  *    - 존재 이메일: 200 + sent:true + email + (dev 모드면 token 노출)
- *    - 미존재 이메일: 404 + EmailNotFound (Issue #394, 사용자 명시 요청 분기)
+ *    - 미존재 이메일: 200 + sent:false + email (enumeration 차단, #413)
+ *    - 응답 status/shape parity: 등록/미등록 모두 200, ok:true, sent flag 만 차이.
  *    - 검증 실패: 400
  *  - POST /api/password/reset
  *    - 정상 토큰: 200 + 비밀번호 변경 + 토큰 used 마킹 + 모든 refresh revoke
@@ -75,15 +76,34 @@ describe('password-reset', () => {
       expect(stored[0].usedAt).toBeNull();
     });
 
-    it('미존재 이메일 → 404 + EmailNotFound (Issue #394 분기)', async () => {
+    it('미존재 이메일 → 200 + sent:false + email (enumeration 차단, Issue #413)', async () => {
       const res = await request(app)
         .post('/api/password/forgot')
         .send({ email: 'nobody@get-it.cloud' });
-      expect(res.status).toBe(404);
-      expect(res.body.error).toBe('EmailNotFound');
+      expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
+      expect(res.body.sent).toBe(false);
+      expect(res.body.email).toBe('nobody@get-it.cloud');
       expect(res.body.token).toBeUndefined();
-      // DB 에 토큰 row 도 생성되지 않음
+      expect(res.body.error).toBeUndefined();
+      // DB 에 실제 토큰 row 는 생성되지 않음 (등록 사용자만 발급).
       expect(memDb.passwordResetTokens.size).toBe(0);
+    });
+
+    it('등록/미등록 응답 shape parity — status + ok 동일 (#413)', async () => {
+      const registered = await request(app)
+        .post('/api/password/forgot')
+        .send({ email: VALID_SIGNUP.email });
+      const unregistered = await request(app)
+        .post('/api/password/forgot')
+        .send({ email: 'nobody2@get-it.cloud' });
+      expect(registered.status).toBe(unregistered.status);
+      expect(registered.status).toBe(200);
+      expect(registered.body.ok).toBe(true);
+      expect(unregistered.body.ok).toBe(true);
+      // sent flag 는 의도적으로 다름 — FE 분기용 (#417). 외부 status 만으론 식별 불가.
+      expect(registered.body.sent).toBe(true);
+      expect(unregistered.body.sent).toBe(false);
     });
 
     it('이메일 형식 오류 → 400', async () => {
