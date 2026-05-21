@@ -52,7 +52,7 @@ describe('ConfirmDialog', () => {
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
-  it('role=alertdialog + 제목/설명 노출 + aria-labelledby 연결', () => {
+  it('role=alertdialog + 제목/설명 노출 + aria-labelledby/aria-describedby 연결', () => {
     render(<Harness />);
     const dialog = screen.getByRole('alertdialog');
     expect(dialog).toBeInTheDocument();
@@ -61,6 +61,11 @@ describe('ConfirmDialog', () => {
     const title = document.getElementById(labelId);
     expect(title?.textContent).toMatch(/모집을 종료할까/);
     expect(screen.getByText('신청자를 더 받지 못해.')).toBeInTheDocument();
+    // aria-describedby — description <p> id 와 연결돼야 a11y 보조기기가 본문 읽음
+    const describeId = dialog.getAttribute('aria-describedby');
+    expect(describeId).toBeTruthy();
+    const desc = document.getElementById(describeId);
+    expect(desc?.textContent).toBe('신청자를 더 받지 못해.');
   });
 
   it('ESC 키 → onClose', async () => {

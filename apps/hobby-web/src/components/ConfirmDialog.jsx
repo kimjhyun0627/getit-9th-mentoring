@@ -44,6 +44,7 @@ export const ConfirmDialog = ({
   onClose,
 }) => {
   const titleId = useId();
+  const descriptionId = useId();
   const cancelRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
   const confirmRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
 
@@ -103,6 +104,7 @@ export const ConfirmDialog = ({
       <div
         role="alertdialog"
         aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
         aria-modal="true"
         onKeyDown={handleKeyDown}
         className={cn(
@@ -121,7 +123,10 @@ export const ConfirmDialog = ({
           {title}
         </h2>
         {description ? (
-          <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+          <p
+            id={descriptionId}
+            className="mt-2 text-sm text-slate-700 dark:text-slate-300 leading-relaxed"
+          >
             {description}
           </p>
         ) : null}

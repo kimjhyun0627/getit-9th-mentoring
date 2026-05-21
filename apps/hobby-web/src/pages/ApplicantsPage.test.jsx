@@ -84,6 +84,24 @@ describe('ApplicantsPage', () => {
     expect(screen.getByText(/신청자 가져오는 중/)).toBeInTheDocument();
   });
 
+  it('401 미인증 → "로그인 페이지로 이동 중…" 안내 (#430)', async () => {
+    // me 조회를 401 reject 로 override. useRequireAuth 가 is401 분기 → SSO redirect 메시지.
+    vi.spyOn(api, 'getMe').mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 401 },
+    });
+    // window.location.href 할당이 jsdom 에서 실제 navigation 시도하지 않게 stub.
+    const originalLocation = window.location;
+    delete window.location;
+    window.location = { ...originalLocation, href: 'http://localhost/posts/post-1/applicants' };
+    try {
+      renderPage({ loggedIn: false });
+      expect(await screen.findByText(/로그인 페이지로 이동 중/)).toBeInTheDocument();
+    } finally {
+      window.location = originalLocation;
+    }
+  });
+
   it('403 → "방장만 볼 수 있어"', async () => {
     vi.spyOn(api, 'listApplicants').mockRejectedValue({
       isAxiosError: true,
