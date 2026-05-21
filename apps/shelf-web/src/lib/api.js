@@ -42,12 +42,23 @@ client.interceptors.response.use(
 );
 
 /**
- * 검색 응답 — items 배열만 강제. 각 책은 외부 출처(KAKAO 등) → record 허용.
- * 잘못된 형태가 오면 빈 배열로 fallback해 UI 폭주 방지.
+ * 검색 응답 — items 배열 + pagination meta.
+ *
+ * #527: PR #526 의 client-side slice 무한 스크롤이 BE 한 번 호출에 10개만 받아오는
+ * 한계를 노출해 무한 스크롤이 무용지물이었음. BE 가 카카오 page/size 를 그대로 노출하고
+ * isEnd/totalCount 를 같이 내려주도록 변경 → FE 는 `useInfiniteQuery` 로 진짜
+ * 페이지네이션 fetch 한다.
+ *
+ * 각 책은 외부 출처(KAKAO 등) → record 허용. passthrough 로 BE 가 필드 늘려도 안 깨짐.
+ * 잘못된 형태가 오면 schema parse 에러 → 호출자가 catch 해서 에러 토스트 노출.
  */
 const bookItemSchema = z.record(z.unknown());
 const searchResponseSchema = z.object({
   items: z.array(bookItemSchema).default([]),
+  page: z.number().int().min(1).default(1),
+  size: z.number().int().min(1).default(30),
+  isEnd: z.boolean().default(true),
+  totalCount: z.number().int().min(0).default(0),
 });
 
 // CR #353: 신규 응답도 경계에서 최소 스키마 검증 → 화면까지 깨진 응답 전파 차단.
@@ -106,12 +117,28 @@ export const api = {
   removeShelf: (bookId) => client.delete(`/shelves/${encodeURIComponent(bookId)}`),
 
   /**
+   * 도서 검색 — KAKAO API page/size 직통 (#527).
+   *
    * @param {string} q
-   * @param {{ target?: 'title' | 'person' | 'publisher' | 'isbn' }} [opts]
-   * @returns {Promise<{ items: Array<Record<string, unknown>> }>}
+   * @param {{
+   *   target?: 'title' | 'person' | 'publisher' | 'isbn';
+   *   page?: number;
+   *   size?: number;
+   * }} [opts]
+   * @returns {Promise<{
+   *   items: Array<Record<string, unknown>>;
+   *   page: number;
+   *   size: number;
+   *   isEnd: boolean;
+   *   totalCount: number;
+   * }>}
    */
   searchBooks: async (q, opts = {}) => {
-    const params = opts.target ? { q, target: opts.target } : { q };
+    /** @type {Record<string, string | number>} */
+    const params = { q };
+    if (opts.target) params.target = opts.target;
+    if (opts.page) params.page = opts.page;
+    if (opts.size) params.size = opts.size;
     const res = await client.get('/books/search', { params });
     return searchResponseSchema.parse(res.data ?? {});
   },

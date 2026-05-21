@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ToastStack } from '../components/Toast.jsx';
@@ -30,7 +30,10 @@ import {
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY = 2;
-const PAGE_STEP = 10;
+// 무한 스크롤 한 페이지 크기 (#527). 카카오 API max 는 size=50.
+// 30 이면 4-col grid 첫 페이지로 7-8 행이 자연스럽게 차고, 추가 fetch 2-3 회면
+// 100권 도달 → 사용자 신고("10개밖에 안 들고온다") 즉시 해소.
+const PAGE_SIZE = 30;
 
 /** @typedef {import('./SearchPage.constants.js').TargetKey} TargetKey */
 
@@ -47,7 +50,6 @@ const PAGE_STEP = 10;
 export const SearchPage = () => {
   const [query, setQuery] = useState('');
   const [target, setTarget] = useState(/** @type {TargetKey} */ ('all'));
-  const [visibleCount, setVisibleCount] = useState(PAGE_STEP);
   const debouncedQuery = useDebounce(query, DEBOUNCE_MS);
   // 다중 토스트 스택 — 빠른 연속 추가 시 같은 메시지 머지 + 카운터 (#294).
   const toastQueue = useToastQueue({ max: 3, duration: 2400 });
@@ -75,22 +77,22 @@ export const SearchPage = () => {
   const trimmed = debouncedQuery.trim();
   const isQueryable = trimmed.length >= MIN_QUERY;
 
-  const search = useQuery({
+  // #527: useInfiniteQuery — 카카오 page/size 를 BE 로 그대로 흘려보내 진짜 페이지네이션.
+  // PR #526 의 client-side slice 는 BE 가 10개만 받아오던 한계 때문에 무용지물이었음.
+  const search = useInfiniteQuery({
     queryKey: ['books', 'search', trimmed, target],
-    queryFn: async () => {
-      const result =
-        target === 'all'
-          ? await api.searchBooks(trimmed)
-          : await api.searchBooks(trimmed, { target });
-      return result.items ?? [];
+    initialPageParam: 1,
+    queryFn: async ({ pageParam = 1 }) => {
+      const opts = { page: pageParam, size: PAGE_SIZE };
+      if (target !== 'all') opts.target = /** @type {Exclude<TargetKey, 'all'>} */ (target);
+      return api.searchBooks(trimmed, opts);
+    },
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || lastPage.isEnd) return undefined;
+      return (lastPage.page ?? 0) + 1;
     },
     enabled: isQueryable,
   });
-
-  // 새 검색 / target 변경 시 페이지 카운터 리셋 (#205)
-  useEffect(() => {
-    setVisibleCount(PAGE_STEP);
-  }, [trimmed, target]);
 
   useEffect(() => {
     if (search.isError) {
@@ -142,19 +144,24 @@ export const SearchPage = () => {
 
   const handleDismissToast = useCallback((id) => toastQueue.dismiss(id), [toastQueue]);
 
-  const items = useMemo(() => /** @type {BookItem[]} */ (search.data ?? []), [search.data]);
-  const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount]);
-  const hasMore = items.length > visibleCount;
+  const items = useMemo(
+    () =>
+      /** @type {BookItem[]} */ (
+        (search.data?.pages ?? []).flatMap((p) => /** @type {BookItem[]} */ (p?.items ?? []))
+      ),
+    [search.data],
+  );
   const showEmpty = isQueryable && !search.isLoading && !search.isError && items.length === 0;
   const showPrompt = !isQueryable;
   const pendingKey = addMutation.variables?.bookId ?? addMutation.variables?.isbn ?? null;
 
-  // 무한 스크롤 sentinel (#525) — 결과 끝에서 PAGE_STEP 씩 증분.
-  // 검색 결과는 KAKAO API 1회 응답을 client-side slice 하는 구조라 추가 fetch 가 아닌
-  // 단순 visibleCount 증가. enabled 는 hasMore 일 때만.
+  // 무한 스크롤 sentinel (#527) — sentinel intersect 시 BE 에 다음 page fetch.
+  // 카카오 API 가 페이지 종료를 알려주므로 (`isEnd`) hasNextPage 가 source of truth.
   const setSentinel = useInfiniteScroll({
-    onIntersect: () => setVisibleCount((c) => c + PAGE_STEP),
-    enabled: hasMore,
+    onIntersect: () => {
+      if (search.hasNextPage && !search.isFetchingNextPage) search.fetchNextPage();
+    },
+    enabled: search.hasNextPage && !search.isFetchingNextPage,
   });
 
   return (
@@ -184,7 +191,7 @@ export const SearchPage = () => {
         ) : (
           <>
             <ResultsGrid
-              items={visibleItems}
+              items={items}
               onAdd={handleAdd}
               pendingKey={addMutation.isPending ? pendingKey : null}
               shelvedKeys={shelvedKeys}
@@ -196,13 +203,18 @@ export const SearchPage = () => {
               className="mt-10 flex justify-center"
               aria-live="polite"
             >
-              {hasMore ? (
-                <p className="font-serif text-sm text-meta">
-                  더 불러오는 중…{' '}
-                  <span className="num-display">({items.length - visibleCount}권 남음)</span>
-                </p>
-              ) : items.length > 0 ? (
-                <p className="essay-kr text-[13px] text-meta">모두 보여드렸어요.</p>
+              {search.isFetchingNextPage ? (
+                <p className="font-serif text-sm text-meta">더 불러오는 중…</p>
+              ) : search.isFetchNextPageError ? (
+                <button
+                  type="button"
+                  onClick={() => search.fetchNextPage()}
+                  className="rounded-sm border border-rule-2 px-3 py-1 font-serif text-xs text-meta transition hover:border-foreground hover:text-ink"
+                >
+                  더 불러오지 못했어요 (다시 시도)
+                </button>
+              ) : !search.hasNextPage && items.length > 0 ? (
+                <p className="essay-kr text-[13px] text-meta">모두 보여드렸어요</p>
               ) : null}
             </div>
           </>

@@ -40,3 +40,20 @@ export const DEMIAN = {
   publisher: '민음사',
   coverUrl: null,
 };
+
+/**
+ * `api.searchBooks` 모킹 응답 헬퍼 (#527) — pagination meta 포함.
+ *
+ * `useInfiniteQuery` 가 `getNextPageParam` 으로 lastPage.isEnd 를 검사하므로
+ * 테스트에서 무한 루프 회피하려면 isEnd 가 명시되어야 함. 명시하지 않으면 true 기본 (1페이지에서 끝).
+ *
+ * @param {Array<Record<string, unknown>>} items
+ * @param {{ page?: number; size?: number; isEnd?: boolean; totalCount?: number }} [opts]
+ */
+export const searchPage = (items, opts = {}) => ({
+  items,
+  page: opts.page ?? 1,
+  size: opts.size ?? 30,
+  isEnd: opts.isEnd ?? true,
+  totalCount: opts.totalCount ?? items.length,
+});

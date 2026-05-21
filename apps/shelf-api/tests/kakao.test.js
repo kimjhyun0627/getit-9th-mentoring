@@ -174,36 +174,96 @@ describe('searchKakaoBooks — HTTP 호출', () => {
     );
   });
 
-  it('정상 응답 → documents 배열 반환', async () => {
+  it('정상 응답 → { documents, meta } 반환', async () => {
     mockKakaoPool()
       .intercept({
         method: 'GET',
-        path: '/v3/search/book?query=%EC%86%8C%EB%85%84%EC%9D%B4+%EC%98%A8%EB%8B%A4&size=10',
+        path: '/v3/search/book?query=%EC%86%8C%EB%85%84%EC%9D%B4+%EC%98%A8%EB%8B%A4&page=1&size=10',
         headers: { authorization: 'KakaoAK test-key' },
       })
-      .reply(200, { documents: [sampleKakaoDoc], meta: { total_count: 1 } });
+      .reply(200, {
+        documents: [sampleKakaoDoc],
+        meta: { is_end: true, pageable_count: 1, total_count: 1 },
+      });
 
-    const docs = await searchKakaoBooks({ query: '소년이 온다', apiKey: 'test-key' });
-    expect(docs).toHaveLength(1);
-    expect(docs[0].title).toBe('소년이 온다');
+    const { documents, meta } = await searchKakaoBooks({
+      query: '소년이 온다',
+      apiKey: 'test-key',
+    });
+    expect(documents).toHaveLength(1);
+    expect(documents[0].title).toBe('소년이 온다');
+    expect(meta).toMatchObject({ is_end: true, pageable_count: 1, total_count: 1 });
   });
 
   it('isbn 검색 시 target=isbn 파라미터 추가', async () => {
     mockKakaoPool()
       .intercept({
         method: 'GET',
-        path: '/v3/search/book?query=9788932917245&target=isbn&size=1',
+        path: '/v3/search/book?query=9788932917245&target=isbn&page=1&size=1',
         headers: { authorization: 'KakaoAK test-key' },
       })
-      .reply(200, { documents: [sampleKakaoDoc], meta: { total_count: 1 } });
+      .reply(200, {
+        documents: [sampleKakaoDoc],
+        meta: { is_end: true, pageable_count: 1, total_count: 1 },
+      });
 
-    const docs = await searchKakaoBooks({
+    const { documents } = await searchKakaoBooks({
       query: '9788932917245',
       apiKey: 'test-key',
       target: 'isbn',
       size: 1,
     });
-    expect(docs).toHaveLength(1);
+    expect(documents).toHaveLength(1);
+  });
+
+  // #527: 무한 스크롤이 다음 페이지 fetch 결정에 page/size 를 카카오 쿼리로 전달해야 함.
+  it('page/size 옵션이 카카오 쿼리에 그대로 전달된다 (#527)', async () => {
+    let interceptedPath = '';
+    mockKakaoPool()
+      .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+      .reply((req) => {
+        interceptedPath = req.path;
+        return {
+          statusCode: 200,
+          data: {
+            documents: [sampleKakaoDoc],
+            meta: { is_end: false, pageable_count: 100, total_count: 100 },
+          },
+        };
+      });
+
+    const { meta } = await searchKakaoBooks({
+      query: '책',
+      apiKey: 'test-key',
+      page: 2,
+      size: 30,
+    });
+    expect(interceptedPath).toMatch(/page=2/);
+    expect(interceptedPath).toMatch(/size=30/);
+    expect(meta.is_end).toBe(false);
+    expect(meta.total_count).toBe(100);
+  });
+
+  // #527: 카카오가 meta 를 누락하거나 일부만 줄 때도 안전한 기본값을 보장해야 한다.
+  // is_end 누락 + documents.length < size → 마지막 페이지로 추론.
+  it('meta 누락 + documents 가 size 미만이면 is_end=true 로 추론', async () => {
+    mockKakaoPool()
+      .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+      .reply(200, { documents: [sampleKakaoDoc] });
+
+    const { meta } = await searchKakaoBooks({ query: '책', apiKey: 'k', size: 30 });
+    expect(meta.is_end).toBe(true);
+    expect(meta.total_count).toBe(0);
+  });
+
+  it('meta 누락 + documents 가 size 만큼 가득 차면 is_end=false 로 추론', async () => {
+    const docs = Array.from({ length: 30 }, () => sampleKakaoDoc);
+    mockKakaoPool()
+      .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+      .reply(200, { documents: docs });
+
+    const { meta } = await searchKakaoBooks({ query: '책', apiKey: 'k', size: 30 });
+    expect(meta.is_end).toBe(false);
   });
 
   it('4xx 응답 → KakaoApiError (status 보존)', async () => {

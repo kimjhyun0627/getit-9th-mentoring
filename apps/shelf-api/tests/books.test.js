@@ -47,10 +47,13 @@ describe('shelf-api books routes', () => {
       expect(res.body.error).toBe('ValidationError');
     });
 
-    it('정상 검색 → 외부 API 호출 + Book upsert + items 반환', async () => {
+    it('정상 검색 → 외부 API 호출 + Book upsert + items + pagination meta 반환', async () => {
       mockKakaoPool()
         .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
-        .reply(200, { documents: [docKr], meta: { total_count: 1 } });
+        .reply(200, {
+          documents: [docKr],
+          meta: { is_end: true, pageable_count: 1, total_count: 1 },
+        });
 
       const res = await request(app).get('/api/books/search').query({ q: '소년이 온다' });
       expect(res.status).toBe(200);
@@ -62,11 +65,60 @@ describe('shelf-api books routes', () => {
         publisher: '창비',
         source: 'kakao',
       });
+      // #527: pagination meta 필드 검증.
+      expect(res.body).toMatchObject({ page: 1, size: 30, isEnd: true, totalCount: 1 });
 
       // DB upsert 확인
       const stored = await prisma.book.findUnique({ where: { isbn: '9788932917245' } });
       expect(stored).not.toBeNull();
       expect(stored.title).toBe('소년이 온다');
+    });
+
+    // #527: page/size 가 카카오 쿼리에 전달되고 무한 스크롤이 isEnd 로 종료 판정한다.
+    it('page=2 + size=30 쿼리가 카카오에 전달되고 isEnd 가 응답에 반영된다 (#527)', async () => {
+      let interceptedPath = '';
+      mockKakaoPool()
+        .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+        .reply((req) => {
+          interceptedPath = req.path;
+          return {
+            statusCode: 200,
+            data: {
+              documents: [docKr],
+              meta: { is_end: false, pageable_count: 100, total_count: 100 },
+            },
+          };
+        });
+
+      const res = await request(app).get('/api/books/search').query({ q: '책', page: 2, size: 30 });
+      expect(res.status).toBe(200);
+      expect(interceptedPath).toMatch(/page=2/);
+      expect(interceptedPath).toMatch(/size=30/);
+      expect(res.body).toMatchObject({ page: 2, size: 30, isEnd: false, totalCount: 100 });
+    });
+
+    it('page=1 응답에 size 기본값 30 이 적용된다', async () => {
+      let interceptedPath = '';
+      mockKakaoPool()
+        .intercept({ method: 'GET', path: /^\/v3\/search\/book/ })
+        .reply((req) => {
+          interceptedPath = req.path;
+          return {
+            statusCode: 200,
+            data: { documents: [], meta: { is_end: true, pageable_count: 0, total_count: 0 } },
+          };
+        });
+      const res = await request(app).get('/api/books/search').query({ q: '없는검색' });
+      expect(res.status).toBe(200);
+      expect(interceptedPath).toMatch(/size=30/);
+      expect(res.body.size).toBe(30);
+    });
+
+    it('page=0 / size=51 같은 cap 초과 값은 400', async () => {
+      let res = await request(app).get('/api/books/search').query({ q: '책', page: 0 });
+      expect(res.status).toBe(400);
+      res = await request(app).get('/api/books/search').query({ q: '책', size: 51 });
+      expect(res.status).toBe(400);
     });
 
     it('같은 isbn 재검색 시 외부 API 응답 재upsert (cachedAt 갱신, row 1개 유지)', async () => {

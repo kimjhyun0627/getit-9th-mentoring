@@ -104,8 +104,8 @@ export const findOrFetchBookByIsbn = async (isbn) => {
 
   const apiKey = process.env.KAKAO_BOOK_API_KEY ?? '';
   try {
-    const docs = await searchKakaoBooks({ query: isbn, apiKey, target: 'isbn', size: 1 });
-    const record = docs.map(toBookRecord).find(Boolean);
+    const { documents } = await searchKakaoBooks({ query: isbn, apiKey, target: 'isbn', size: 1 });
+    const record = documents.map(toBookRecord).find(Boolean);
     if (!record) return { status: 404, error: 'BookNotFound' };
     const saved = await prisma.book.upsert({
       where: { isbn: record.isbn },

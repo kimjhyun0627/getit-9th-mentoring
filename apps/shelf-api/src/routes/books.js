@@ -35,9 +35,17 @@ import { prisma } from '../lib/prisma.js';
  */
 const SearchTarget = z.enum(['title', 'person', 'publisher', 'isbn']);
 
+// 카카오 API cap: page 1~50, size 1~50 (그 이상은 카카오가 4xx 로 거절).
+// 무한 스크롤(#527) 첫 페이지에 풍부함을 주려고 size 기본 30 — DB 순차 upsert
+// 비용과 한 화면 채움의 균형점. page 기본 1.
+const SearchPageParam = z.coerce.number().int().min(1).max(50);
+const SearchSizeParam = z.coerce.number().int().min(1).max(50);
+
 const SearchQuery = z.object({
   q: z.string().min(1, 'q is required').max(100, 'q too long'),
   target: SearchTarget.optional(),
+  page: SearchPageParam.default(1),
+  size: SearchSizeParam.default(30),
 });
 
 // ISBN 10/13 자리. 끝자리 X 는 대소문자 모두 받아 대문자로 정규화 — 캐시 키 일관성 (#224).
@@ -72,13 +80,17 @@ export const createBooksRouter = () => {
       // target=isbn 인 경우 입력값을 대문자로 정규화 (캐시 키 #224 와 동일 규칙)
       const queryNormalized =
         parsed.data.target === 'isbn' ? parsed.data.q.toUpperCase() : parsed.data.q;
+      const { page, size } = parsed.data;
       let records;
+      let meta;
       try {
-        records = await searchBooks({
+        ({ records, meta } = await searchBooks({
           query: queryNormalized,
           apiKey,
           target: parsed.data.target,
-        });
+          page,
+          size,
+        }));
       } catch (err) {
         if (isKakaoError(err)) {
           req.log?.warn({ err }, 'kakao search failed');
@@ -87,13 +99,20 @@ export const createBooksRouter = () => {
         throw err;
       }
 
-      // 순차 upsert — 검색 결과는 보통 ≤10건이라 병렬 race 회피용으로 순차가 안전.
+      // 순차 upsert — 페이지당 최대 50건이라 병렬 race 회피용으로 순차가 안전.
       const items = [];
       for (const record of records) {
         const saved = await upsertBook(record);
         items.push(serializeBook(saved, { cached: false }));
       }
-      return res.status(200).json({ items });
+      // #527: 무한 스크롤이 다음 페이지 존재를 판단하도록 page/size + meta 노출.
+      return res.status(200).json({
+        items,
+        page,
+        size,
+        isEnd: meta.is_end,
+        totalCount: meta.total_count,
+      });
     } catch (err) {
       return next(err);
     }
@@ -150,7 +169,7 @@ export const createBooksRouter = () => {
       if (cachedSameAuthor.length < 8) {
         const apiKey = process.env.KAKAO_BOOK_API_KEY ?? '';
         try {
-          const records = await searchBooks({
+          const { records } = await searchBooks({
             query: author,
             apiKey,
             target: 'person',
@@ -200,7 +219,7 @@ export const createBooksRouter = () => {
       // 캐시 만료 or 미스 → 외부 재호출
       const apiKey = process.env.KAKAO_BOOK_API_KEY ?? '';
       try {
-        const records = await searchBooks({ query: isbn, apiKey, target: 'isbn', size: 1 });
+        const { records } = await searchBooks({ query: isbn, apiKey, target: 'isbn', size: 1 });
         const record = records[0];
         if (record) {
           const saved = await upsertBook(record);

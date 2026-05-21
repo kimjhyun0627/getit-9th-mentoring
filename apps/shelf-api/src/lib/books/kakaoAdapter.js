@@ -62,16 +62,23 @@ export const upsertBook = (record) =>
  *
  * 라우터는 try/catch 로 `isKakaoError` 만 검사하면 됨.
  *
- * @param {{ query: string, apiKey: string, target?: string, size?: number }} params
- * @returns {Promise<Array<Exclude<ReturnType<typeof toBookRecord>, null>>>}
+ * #527: meta 도 같이 노출 — 라우터가 `is_end` / `total_count` 를 무한 스크롤 응답에
+ * 그대로 흘려보낼 수 있어야 함. null drop 으로 records 수가 documents 수보다 적어질 수
+ * 있지만 meta 는 카카오 기준 그대로 유지 (페이지 종료 판정은 외부 source of truth).
+ *
+ * @param {{ query: string, apiKey: string, target?: string, page?: number, size?: number }} params
+ * @returns {Promise<{
+ *   records: Array<Exclude<ReturnType<typeof toBookRecord>, null>>,
+ *   meta: { is_end: boolean, pageable_count: number, total_count: number },
+ * }>}
  */
 export const searchBooks = async (params) => {
-  const docs = await searchKakaoBooks(params);
+  const { documents, meta } = await searchKakaoBooks(params);
   /** @type {Array<Exclude<ReturnType<typeof toBookRecord>, null>>} */
   const records = [];
-  for (const doc of docs) {
+  for (const doc of documents) {
     const record = toBookRecord(doc);
     if (record !== null) records.push(record);
   }
-  return records;
+  return { records, meta };
 };

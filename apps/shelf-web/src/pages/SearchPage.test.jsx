@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
-import { renderSearch } from './SearchPage.testkit.jsx';
+import { renderSearch, searchPage } from './SearchPage.testkit.jsx';
 
 /**
  * SearchPage TDD 가드 (Issue #43).
@@ -38,14 +38,14 @@ describe('SearchPage', () => {
   });
 
   it('초기 상태에서는 검색 API 를 호출하지 않는다', () => {
-    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
+    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue(searchPage([]));
     renderSearch();
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('타이핑 직후엔 검색 API 가 호출되지 않고, 300ms 후엔 호출된다 (debounce)', async () => {
     const user = userEvent.setup();
-    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
+    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue(searchPage([]));
 
     renderSearch();
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '데미안');
@@ -53,10 +53,10 @@ describe('SearchPage', () => {
     // 타이핑 직후엔 debounce 안 풀려 → 호출 X
     expect(spy).not.toHaveBeenCalled();
 
-    // 300ms+ 지나면 호출 됨
+    // 300ms+ 지나면 호출 됨 — #527 부터 page/size 옵션도 함께 전달.
     await waitFor(
       () => {
-        expect(spy).toHaveBeenCalledWith('데미안');
+        expect(spy).toHaveBeenCalledWith('데미안', expect.objectContaining({ page: 1, size: 30 }));
       },
       { timeout: 1500 },
     );
@@ -65,7 +65,7 @@ describe('SearchPage', () => {
 
   it('빈 검색 결과면 placeholder 를 노출한다', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(searchPage([]));
 
     renderSearch();
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '없는책');
@@ -77,8 +77,8 @@ describe('SearchPage', () => {
 
   it('결과 카드의 "서재에 추가" 버튼 클릭 시 addToShelf 가 호출된다', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(
+      searchPage([
         {
           id: 'book-1',
           isbn: '9788932917245',
@@ -87,8 +87,8 @@ describe('SearchPage', () => {
           publisher: '민음사',
           coverUrl: null,
         },
-      ],
-    });
+      ]),
+    );
     const addSpy = vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
 
     renderSearch();
@@ -104,8 +104,8 @@ describe('SearchPage', () => {
 
   it('서재 추가 성공 시 토스트가 노출된다', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(
+      searchPage([
         {
           id: 'book-1',
           isbn: '9788932917245',
@@ -114,8 +114,8 @@ describe('SearchPage', () => {
           publisher: '민음사',
           coverUrl: null,
         },
-      ],
-    });
+      ]),
+    );
     vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
 
     renderSearch();
@@ -127,8 +127,8 @@ describe('SearchPage', () => {
 
   it('서재 추가 성공 시 /shelves/me 캐시를 무효화한다', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(
+      searchPage([
         {
           id: 'book-1',
           isbn: '9788932917245',
@@ -137,8 +137,8 @@ describe('SearchPage', () => {
           publisher: '민음사',
           coverUrl: null,
         },
-      ],
-    });
+      ]),
+    );
     vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
 
     const { queryClient } = renderSearch();
@@ -172,8 +172,8 @@ describe('SearchPage', () => {
 
   it('검색 페이지에서 status 기본값은 WANT (#298 회귀 가드)', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(
+      searchPage([
         {
           id: 'book-1',
           isbn: '9788932917245',
@@ -182,8 +182,8 @@ describe('SearchPage', () => {
           publisher: '민음사',
           coverUrl: null,
         },
-      ],
-    });
+      ]),
+    );
     const addSpy = vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
 
     renderSearch();
@@ -197,8 +197,8 @@ describe('SearchPage', () => {
 
   it('검색 카드에서 status 를 READ 로 선택 후 추가하면 READ 가 전달된다 (#298)', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(
+      searchPage([
         {
           id: 'book-1',
           isbn: '9788932917245',
@@ -207,8 +207,8 @@ describe('SearchPage', () => {
           publisher: '민음사',
           coverUrl: null,
         },
-      ],
-    });
+      ]),
+    );
     const addSpy = vi.spyOn(api, 'addToShelf').mockResolvedValue({ data: { shelf: {} } });
 
     renderSearch();
@@ -227,13 +227,16 @@ describe('SearchPage', () => {
 
   it('target 토글 → searchBooks 가 target opt 와 함께 호출된다 (#202)', async () => {
     const user = userEvent.setup();
-    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
+    const spy = vi.spyOn(api, 'searchBooks').mockResolvedValue(searchPage([]));
     renderSearch();
     await user.click(screen.getByRole('radio', { name: '저자' }));
     await user.type(screen.getByRole('searchbox', { name: /책 검색/ }), '한강');
     await waitFor(
       () => {
-        expect(spy).toHaveBeenCalledWith('한강', { target: 'person' });
+        expect(spy).toHaveBeenCalledWith(
+          '한강',
+          expect.objectContaining({ target: 'person', page: 1, size: 30 }),
+        );
       },
       { timeout: 1500 },
     );
@@ -242,7 +245,7 @@ describe('SearchPage', () => {
   it('검색어 입력은 100자 초과 시 잘려서 입력된다 (#232)', async () => {
     const user = userEvent.setup();
     // debounce 이후 실제 호출 발생을 막아 테스트 안정화 (CR #346).
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(searchPage([]));
     renderSearch();
     const input = /** @type {HTMLInputElement} */ (
       screen.getByRole('searchbox', { name: /책 검색/ })
@@ -257,8 +260,8 @@ describe('SearchPage', () => {
 
   it('서재 추가 실패(422 이미 존재) 시 안내 토스트가 노출된다', async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, 'searchBooks').mockResolvedValue({
-      items: [
+    vi.spyOn(api, 'searchBooks').mockResolvedValue(
+      searchPage([
         {
           id: 'book-1',
           isbn: '9788932917245',
@@ -267,8 +270,8 @@ describe('SearchPage', () => {
           publisher: '민음사',
           coverUrl: null,
         },
-      ],
-    });
+      ]),
+    );
     vi.spyOn(api, 'addToShelf').mockRejectedValue({
       isAxiosError: true,
       response: { status: 422, data: { error: 'ShelfAlreadyExists' } },
