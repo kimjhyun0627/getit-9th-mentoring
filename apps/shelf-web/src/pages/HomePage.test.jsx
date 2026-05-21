@@ -1,6 +1,6 @@
 import { ThemeProvider } from '@getit/theme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,31 +10,12 @@ import { api } from '../lib/api.js';
 import { HomePage } from './HomePage.jsx';
 
 /**
- * IntersectionObserver mock — trigger 로 sentinel intersect 시뮬레이션.
- * 무한 스크롤(#525) 가드: 화면 끝 진입 시 fetchNextPage 가 발사되는지 검증.
+ * 무한 스크롤(#525) 가드는 `HomePage.infinite-scroll.test.jsx` 로 분리 — 본 파일은
+ * 기본 UI / 필터 / 모달 / 정렬 회귀 가드만 (300줄 cap 준수).
+ *
+ * IntersectionObserver 가 없는 환경에서도 `useInfiniteScroll` 은 no-op 으로 동작하므로
+ * 본 파일은 별도 IO mock 필요 없음.
  */
-const setupObserverMock = () => {
-  const instances = [];
-  class MockIO {
-    constructor(cb) {
-      this.cb = cb;
-      this.observed = [];
-      instances.push(this);
-    }
-    observe(el) {
-      this.observed.push(el);
-    }
-    unobserve() {}
-    disconnect() {
-      this.observed = [];
-    }
-    trigger() {
-      this.cb(this.observed.map((target) => ({ isIntersecting: true, target })));
-    }
-  }
-  vi.stubGlobal('IntersectionObserver', MockIO);
-  return instances;
-};
 
 const makeShelf = (i, overrides = {}) => ({
   id: `shelf-${i}`,
@@ -106,15 +87,12 @@ const renderHome = () => {
 };
 
 describe('HomePage', () => {
-  let observerInstances;
   beforeEach(() => {
     vi.restoreAllMocks();
-    observerInstances = setupObserverMock();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.unstubAllGlobals();
   });
 
   it('서재 목록 fetch 후 책 카드들을 렌더한다', async () => {
@@ -217,105 +195,5 @@ describe('HomePage', () => {
     });
   });
 
-  // #525 — 무한 스크롤 가드.
-
-  it('sentinel intersect 시 fetchNextPage 가 호출되어 다음 페이지가 누적된다', async () => {
-    const spy = vi.spyOn(api, 'listMyShelves').mockImplementation(async ({ page }) => {
-      if (page === 1) {
-        return {
-          data: {
-            shelves: Array.from({ length: 30 }, (_, i) =>
-              makeShelf(i + 1, {
-                book: {
-                  id: `book-${i + 1}`,
-                  isbn: `978${String(i + 1).padStart(10, '0')}`,
-                  title: `책 ${i + 1}`,
-                  author: '저자',
-                  coverUrl: null,
-                },
-              }),
-            ),
-            pagination: { page: 1, pageSize: 30, total: 45 },
-          },
-        };
-      }
-      return {
-        data: {
-          shelves: Array.from({ length: 15 }, (_, i) =>
-            makeShelf(i + 31, {
-              book: {
-                id: `book-${i + 31}`,
-                isbn: `978${String(i + 31).padStart(10, '0')}`,
-                title: `책 ${i + 31}`,
-                author: '저자',
-                coverUrl: null,
-              },
-            }),
-          ),
-          pagination: { page: 2, pageSize: 30, total: 45 },
-        },
-      };
-    });
-
-    renderHome();
-    await screen.findByRole('heading', { name: '책 1' });
-    expect(spy).toHaveBeenCalledTimes(1);
-
-    // sentinel observer trigger → fetchNextPage 발사.
-    await act(async () => {
-      observerInstances[0]?.trigger();
-    });
-
-    await waitFor(() => {
-      expect(spy).toHaveBeenCalledTimes(2);
-    });
-    expect(spy).toHaveBeenNthCalledWith(2, expect.objectContaining({ page: 2 }));
-
-    // 2페이지 책도 렌더됨.
-    expect(await screen.findByRole('heading', { name: '책 31' })).toBeInTheDocument();
-  });
-
-  it('hasNextPage=false 이면 "모든 책을 봤어요" 안내가 노출된다', async () => {
-    vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: {
-        shelves: Array.from({ length: 30 }, (_, i) =>
-          makeShelf(i + 1, {
-            book: {
-              id: `book-${i + 1}`,
-              isbn: `978${String(i + 1).padStart(10, '0')}`,
-              title: `책 ${i + 1}`,
-              author: '저자',
-              coverUrl: null,
-            },
-          }),
-        ),
-        pagination: { page: 1, pageSize: 30, total: 30 },
-      },
-    });
-    renderHome();
-    expect(await screen.findByText(/모든 책을 봤어요/)).toBeInTheDocument();
-  });
-
-  it('Pagination UI 가 더 이상 렌더되지 않는다 (#525 회귀 가드)', async () => {
-    vi.spyOn(api, 'listMyShelves').mockResolvedValue({
-      data: {
-        shelves: Array.from({ length: 30 }, (_, i) =>
-          makeShelf(i + 1, {
-            book: {
-              id: `book-${i + 1}`,
-              isbn: `978${String(i + 1).padStart(10, '0')}`,
-              title: `책 ${i + 1}`,
-              author: '저자',
-              coverUrl: null,
-            },
-          }),
-        ),
-        pagination: { page: 1, pageSize: 30, total: 100 },
-      },
-    });
-    renderHome();
-    await screen.findByRole('heading', { name: '책 1' });
-    expect(screen.queryByTestId('shelf-pagination')).not.toBeInTheDocument();
-    expect(screen.queryByRole('navigation', { name: '서재 페이지' })).not.toBeInTheDocument();
-  });
+  // 무한 스크롤(#525) 가드는 `HomePage.infinite-scroll.test.jsx` 로 분리.
 });
