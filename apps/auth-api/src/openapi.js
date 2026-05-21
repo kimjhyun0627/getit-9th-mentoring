@@ -111,19 +111,22 @@ export const buildOpenApiDoc = () =>
       },
       '/api/password/forgot': {
         post: {
-          summary: '비밀번호 재설정 토큰 발급 (Issue #221)',
+          summary: '비밀번호 재설정 토큰 발급 (Issue #221, UX 분기 #394)',
           description:
-            '미등록 이메일도 동일 응답으로 enumeration 방지. dev 모드에선 응답에 token 포함.',
+            '존재 이메일: 200 + sent:true + email. 미존재 이메일: 404 + EmailNotFound (사용자 명시 요청 — enumeration trade-off, rate-limit/captcha 로 보완). dev 모드에선 응답에 token 포함.',
           requestBody: { content: { 'application/json': { schema: ForgotPasswordInput } } },
           responses: {
             200: ok(
               z.object({
                 ok: z.boolean(),
+                sent: z.boolean().optional(),
+                email: z.string().optional(),
                 token: z.string().optional(),
                 expiresAt: z.string().optional(),
               }),
             ),
             400: errResp('ValidationError'),
+            404: errResp('EmailNotFound'),
             429: errResp('RateLimitExceeded'),
           },
         },

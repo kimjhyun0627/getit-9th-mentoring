@@ -3,8 +3,8 @@
  *
  * 커버리지:
  *  - POST /api/password/forgot
- *    - 존재 이메일: 200 + (dev 모드면 token 노출)
- *    - 미존재 이메일: 200 + token 노출 X (enumeration 차단)
+ *    - 존재 이메일: 200 + sent:true + email + (dev 모드면 token 노출)
+ *    - 미존재 이메일: 404 + EmailNotFound (Issue #394, 사용자 명시 요청 분기)
  *    - 검증 실패: 400
  *  - POST /api/password/reset
  *    - 정상 토큰: 200 + 비밀번호 변경 + 토큰 used 마킹 + 모든 refresh revoke
@@ -59,11 +59,13 @@ describe('password-reset', () => {
   });
 
   describe('POST /api/password/forgot', () => {
-    it('존재 이메일 → 200 + token 발급 (dev mode)', async () => {
+    it('존재 이메일 → 200 + sent:true + email + token (dev mode)', async () => {
       const res = await request(app)
         .post('/api/password/forgot')
         .send({ email: VALID_SIGNUP.email });
       expect(res.status).toBe(200);
+      expect(res.body.sent).toBe(true);
+      expect(res.body.email).toBe(VALID_SIGNUP.email);
       expect(res.body.token).toBeTruthy();
       expect(typeof res.body.token).toBe('string');
       // 토큰이 DB에 hash 로만 저장돼야 한다 (평문 X)
@@ -73,11 +75,12 @@ describe('password-reset', () => {
       expect(stored[0].usedAt).toBeNull();
     });
 
-    it('미존재 이메일 → 200 + token 노출 X (enumeration 차단)', async () => {
+    it('미존재 이메일 → 404 + EmailNotFound (Issue #394 분기)', async () => {
       const res = await request(app)
         .post('/api/password/forgot')
         .send({ email: 'nobody@get-it.cloud' });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('EmailNotFound');
       expect(res.body.token).toBeUndefined();
       // DB 에 토큰 row 도 생성되지 않음
       expect(memDb.passwordResetTokens.size).toBe(0);

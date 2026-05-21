@@ -44,20 +44,42 @@ describe('ForgotPasswordPage', () => {
     expect(await screen.findByText(/올바른 이메일 형식이 아닙니다/)).toBeInTheDocument();
   });
 
-  it('정상 입력 시 api.forgotPassword 를 호출하고 성공 메시지를 보여준다', async () => {
+  it('정상 입력 시 api.forgotPassword 를 호출하고 성공 메시지 + 이메일 표시 (#394)', async () => {
     const user = userEvent.setup();
-    const spy = vi.spyOn(api, 'forgotPassword').mockResolvedValue({ data: { ok: true } });
+    const spy = vi
+      .spyOn(api, 'forgotPassword')
+      .mockResolvedValue({ data: { ok: true, sent: true, email: 'me@example.com' } });
     renderForgot();
     await user.type(screen.getByLabelText('이메일'), 'me@example.com');
     await user.click(screen.getByRole('button', { name: '재설정 링크 보내기' }));
     await waitFor(() => expect(spy).toHaveBeenCalledWith({ email: 'me@example.com' }));
-    expect(await screen.findByTestId('forgot-success')).toBeInTheDocument();
+    const success = await screen.findByTestId('forgot-success');
+    expect(success).toBeInTheDocument();
+    expect(success.textContent).toMatch(/me@example\.com/);
+    expect(success.textContent).toMatch(/재설정 링크를 보냈습니다/);
+    expect(success.textContent).toMatch(/메일을 확인해주세요/);
+  });
+
+  it('미등록 이메일 (404 EmailNotFound) → 분기 안내 + 가입 링크 표시 (#394)', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'forgotPassword').mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 404, data: { ok: false, error: 'EmailNotFound' } },
+    });
+    renderForgot();
+    await user.type(screen.getByLabelText('이메일'), 'nobody@example.com');
+    await user.click(screen.getByRole('button', { name: '재설정 링크 보내기' }));
+    const banner = await screen.findByTestId('forgot-not-found');
+    expect(banner.textContent).toMatch(/등록되지 않은 이메일입니다/);
+    expect(screen.getByRole('link', { name: /회원가입/ })).toHaveAttribute('href', '/signup');
+    // 성공 화면으로 넘어가지 않음
+    expect(screen.queryByTestId('forgot-success')).not.toBeInTheDocument();
   });
 
   it('dev 모드 응답에 token 이 있으면 보조 노출한다 (개발 디버그)', async () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'forgotPassword').mockResolvedValue({
-      data: { ok: true, token: 'dev-token-abc' },
+      data: { ok: true, sent: true, email: 'me@example.com', token: 'dev-token-abc' },
     });
     renderForgot();
     await user.type(screen.getByLabelText('이메일'), 'me@example.com');
