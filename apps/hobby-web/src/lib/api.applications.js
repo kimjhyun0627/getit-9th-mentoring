@@ -49,8 +49,9 @@ export const cancelApplication = async (applicationId) => {
 export const listApplicants = async (id) => {
   const res = await client.get(`/posts/${encodeURIComponent(id)}/applicants`);
   // 응답 shape 가 깨져도 호출자가 `items.map` 등에서 즉시 폭발하지 않도록
-  // 최소 sanitization. total / applicationPolicy 는 그대로 통과시킨다.
-  const data = res.data ?? {};
+  // 최소 sanitization. plain object 만 spread — 배열/문자열/null 은 빈 객체로
+  // 떨어뜨려서 이상한 키 전파 차단. total / applicationPolicy 는 그대로 통과.
+  const data = res.data && typeof res.data === 'object' && !Array.isArray(res.data) ? res.data : {};
   return {
     ...data,
     items: Array.isArray(data.items) ? data.items : [],
