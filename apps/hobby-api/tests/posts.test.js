@@ -86,6 +86,9 @@ describe('hobby-api posts', () => {
       expect(res.status).toBe(400);
     });
 
+    // #562/#563 owner.nickname 스냅샷 케이스는 posts.owner-snapshot.test.js 로 분리
+    // (CR #563: 300줄 한도 회복).
+
     it('태그 중복 입력해도 한 번만 연결됨 (trim + 대소문자 무시)', async () => {
       const token = tokenFor('alice');
       const res = await request(app)

@@ -123,9 +123,34 @@ model SchoolVerifyToken {
 
 > **publicUser 헬퍼**: auth-api 의 `publicUser` 헬퍼 최종 반환 필드 = `{ id, email, name, emailVerifiedAt, createdAt, nickname, studentId, schoolEmail, schoolVerifiedAt }` (기존 4필드 + 신규 5필드). 신규 5필드 (`createdAt, nickname, studentId, schoolEmail, schoolVerifiedAt`) 가 현재 누락 — 추가 필요. 기존 필드 누락 금지.
 
-### hobby-api 가드
+### hobby 가드 — 페이지 진입 + mutation API 학교 인증 필수 (#562 갱신)
 
-**원칙**: hobby 의 **모든 mutation** (POST / PATCH / PUT / DELETE) 에 학교 인증 가드 적용. 조회(GET) 는 미인증자도 허용.
+**PM 결정 (2026-05-22, 라이브 신고)**: 기존 "조회 OK + mutation 차단" 정책을 폐기하고
+**hobby 사용 자체 (페이지 진입 + mutation API) 학교 인증 필수** 로 강화한다.
+
+> 정책 표현 정확성 (CR #563): 현재 구현은 FE 라우터 가드 + BE mutation 가드 까지.
+> BE GET 조회 차단은 후속 ticket — 정상 사용자 흐름은 FE 가드가 막아 정책 의도를
+> 충족하지만, API 직접 호출자는 여전히 조회 가능. 학회 행사 정보의 민감도가 그 정도
+> 노출을 허용하지 않으면 별도 ticket 로 GET 차단 추가 (수용 가능 리스크 판단 —
+> `apps/hobby-api/src/middleware/schoolAuthGuard.js` 확장).
+>
+> 사용자(PM) 신고 원문 (#562): "학교 인증도 안 되어있는데 들어가지면 안되겠죠?"
+> 둘러보고 가입 동기 부여 효과보다 "외부인이 모집글을 읽는 것 자체"가 학회 행사
+> 성격에 어긋난다는 판단.
+
+#### FE — 라우터 가드 (hobby-web)
+
+- `apps/hobby-web/src/App.jsx` 가 모든 라우트를 `<SchoolAuthGate>` 로 감싼다.
+- 로그인 + `schoolVerifiedAt == null` → 페이지 진입 자체 차단 + `<SchoolAuthRequired>` 안내 화면 노출.
+  - 카피: "hobby 서비스는 학교 인증 후 이용할 수 있어요" / "학교 메일(@knu.ac.kr) 한 통이면 끝나요. 인증하고 다시 와줘!"
+  - CTA: "학교 인증하러 가기" → `https://auth.get-it.cloud/me?focus=school-link` (기존 `SCHOOL_AUTH_URL` 상수 재사용)
+- 비로그인 → children 통과 (각 페이지의 자체 SSO redirect 흐름 유지).
+- 학교 인증 완료 → children 통과 (평소대로).
+
+기존 `<SchoolAuthBanner>` (dismissible 안내 카드, #541) 는 가드가 이미 진입을 차단해서
+도달 불가 — 컴포넌트는 deprecate 상태로 남기되 신규 라우트에는 노출하지 않는다.
+
+#### BE — 라우터 단위 가드 (hobby-api)
 
 | Method | Path | 가드 동작 |
 | :--- | :--- | :--- |
@@ -134,11 +159,10 @@ model SchoolVerifyToken {
 | POST | `/api/applications` | 같은 가드 |
 | PATCH / DELETE | `/api/applications/:id` (취소 / 상태 변경) | 같은 가드 |
 | POST | `/api/reports` (노쇼 신고 등) | 같은 가드 |
-| GET | (조회 계열) | 가드 X — 외부인도 hobby 둘러보기는 가능 |
+| GET | (조회 계열) | FE 가드가 페이지 진입 자체 차단하므로 정상 사용자 흐름에서 hit 불가. BE GET 추가 차단은 후속 ticket — 본 PR 범위 밖 (FE 가드만으로도 사용자 의도 충족). |
 
-> 구현 가이드: 라우터 단위가 아니라 **HTTP method 기반 미들웨어** 로 일괄 적용해서 신규 mutation 라우터가 누락되지 않게 한다.
->
-> PM 결정 필요: **조회 자체도 차단할지** — 본 PRD 디폴트는 "조회 OK, 모든 mutation 차단" (둘러보고 가입 동기 부여).
+> 구현 가이드: mutation 가드는 기존 `schoolAuthGuard` 미들웨어 (#541) 그대로 유지.
+> FE 가드가 normal 사용자 흐름의 페이지 진입을 막으므로 BE GET 차단은 별도 결정 후 추가.
 
 ### hobby 안내 카피 (미인증 사용자 진입 시)
 
@@ -382,7 +406,7 @@ GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고
 - [ ] 닉네임 case-insensitive unique 구현 방법 (collation vs `nicknameLower` 컬럼)
 - [ ] 닉네임 변경 cooldown — 무제한 / 30일 / 시즌제
 - [ ] 닉네임 금칙어 목록 확정
-- [ ] hobby 가드 — 조회까지 차단할지, 액션만 차단할지 (PRD 디폴트: 액션만)
+- [x] hobby 가드 — 조회까지 차단할지, 액션만 차단할지 → **결정 (#562, 2026-05-22)**: hobby 사용 자체 (페이지 진입 + 모든 API) 학교 인증 필수. FE 라우터 가드로 페이지 진입 차단.
 - [ ] 학교 인증 메일 본문 카피 톤 (기존 메일과 통일)
 - [ ] `User.nickname NOT NULL` 강제 시점 (마이그레이션 완료 후 N일?)
 
