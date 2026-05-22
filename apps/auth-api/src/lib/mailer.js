@@ -100,7 +100,23 @@ const getTransport = async () => {
 };
 
 /**
- * Disabled transport — console.log 로 메일 내용 dump + ready=false.
+ * 메일 본문에서 verify/reset 토큰을 마스킹한다.
+ * - `?token=<...>` / `&token=<...>` 쿼리값 → `****` 로 치환.
+ * - URL path 의 마지막 segment 가 hex 토큰처럼 보이면 → `****`.
+ * disabled transport 로그에 raw 토큰이 흘러나가는 사고 방지 (CR #546).
+ *
+ * @param {string} body
+ * @returns {string}
+ */
+const redactTokenInBody = (body) => {
+  if (typeof body !== 'string') return body;
+  return body
+    .replace(/([?&](?:token|t|verifyToken|resetToken)=)[^\s&]+/gi, '$1****')
+    .replace(/\/(verify|reset)[^?\s]*\/[A-Za-z0-9_-]{16,}/g, '/$1.../****');
+};
+
+/**
+ * Disabled transport — 본문은 마스킹해서 로그에 남긴다 (token leak 방지).
  *
  * @param {string} reason
  * @returns {{ ready: false, send: (m: Mail) => Promise<void> }}
@@ -109,7 +125,7 @@ const disabledTransport = (reason) => ({
   ready: false,
   send: async (m) => {
     log.warn(
-      { reason, to: m.to, subject: m.subject, body: m.text },
+      { reason, to: m.to, subject: m.subject, body: redactTokenInBody(m.text) },
       '[mailer DISABLED] would send',
     );
   },
@@ -167,5 +183,38 @@ export const sendVerifyEmail = async ({ to, verifyUrl }) => {
     });
   } catch (err) {
     log.error({ err: String(err) }, 'verify email send failed');
+  }
+};
+
+/**
+ * 학교 메일 인증 메일 발송 (Issue #538).
+ *
+ * - 30분 TTL.
+ * - 클릭 → `auth-web/verify-school?token=...` 페이지에서 학번 입력.
+ *
+ * 운영 SMTP 미설정 시 disabled 모드로 동작 — 에러 안 던지고 콘솔만.
+ *
+ * @param {{ to: string, verifyUrl: string }} args
+ * @returns {Promise<void>}
+ */
+export const sendSchoolVerifyEmail = async ({ to, verifyUrl }) => {
+  try {
+    const t = await getTransport();
+    await t.send({
+      to,
+      subject: '[GETIT/9] 학교 인증 메일',
+      text: [
+        '안녕하세요, GETIT 9기입니다.',
+        '',
+        '아래 링크를 눌러 학교 인증을 완료해주세요. (30분 후 만료)',
+        verifyUrl,
+        '',
+        '학번 8자리 입력까지 마쳐야 인증이 완료됩니다.',
+        '',
+        '본인이 요청하지 않았다면 이 메일을 무시해주세요.',
+      ].join('\n'),
+    });
+  } catch (err) {
+    log.error({ err: String(err) }, 'school verify email send failed');
   }
 };

@@ -28,7 +28,14 @@ export const CSRF_HEADER = 'x-csrf-token';
 // /api/logout 은 CSRF 면제 — idempotent 하고 본인 세션만 revoke. 다른 web 앱이
 // 토큰 없이 호출할 수 있어야 한다 (각 web 앱이 csrf prefetch 안 해도 동작).
 // /api/me/* 만 보호 (프로필 변경/탈퇴/세션 revoke 가 CSRF 위험).
-const CSRF_PROTECTED_PATHS = ['/api/me/profile', '/api/me/delete', '/api/me/sessions'];
+const CSRF_PROTECTED_PATHS = [
+  '/api/me/profile',
+  '/api/me/delete',
+  '/api/me/sessions',
+  // #538: 학교 인증 link / resend 도 인증된 유저 상태변경.
+  // verify-school 은 토큰 기반 (auth 미적용) — CSRF 면제 (signup/verify-email 과 동일 그룹).
+  '/api/me/school-link',
+];
 
 /**
  * 토큰 발급용 시크릿 (jwt secret 재사용 — 추가 env 줄이기 위해).

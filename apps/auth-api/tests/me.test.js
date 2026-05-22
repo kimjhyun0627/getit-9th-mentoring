@@ -131,6 +131,42 @@ describe('me endpoints (Phase 6c)', () => {
         .send({ email: SIGNUP.email, password: 'Brand9999' });
       expect(login.status).toBe(200);
     });
+
+    // #538 — nickname PATCH 회귀.
+    it('#538 nickname 변경 → 200 + 응답 반영', async () => {
+      const { jwt } = await signupAndGetCookies();
+      const res = await withCsrf(request(app).patch('/api/me/profile'), [`getit_jwt=${jwt}`]).send({
+        name: SIGNUP.name,
+        email: SIGNUP.email,
+        nickname: '새닉네임',
+        currentPassword: SIGNUP.password,
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.user.nickname).toBe('새닉네임');
+    });
+
+    it('#538 nickname 중복 → 409 NicknameTaken', async () => {
+      // 다른 user 가 먼저 같은 nickname 점유.
+      memDb.users.set('u_squatter', {
+        id: 'u_squatter',
+        email: 'squat@get-it.cloud',
+        passwordHash: 'x',
+        name: 'Squat',
+        nickname: 'taken',
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const { jwt } = await signupAndGetCookies();
+      const res = await withCsrf(request(app).patch('/api/me/profile'), [`getit_jwt=${jwt}`]).send({
+        name: SIGNUP.name,
+        email: SIGNUP.email,
+        nickname: 'taken',
+        currentPassword: SIGNUP.password,
+      });
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('NicknameTaken');
+    });
   });
 
   describe('#231 POST /api/me/delete', () => {
