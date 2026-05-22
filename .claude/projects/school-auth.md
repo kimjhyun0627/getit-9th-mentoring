@@ -152,13 +152,13 @@ model SchoolVerifyToken {
 - **카피 (strict, 변경 금지)**:
   - 제목: **"hobby 서비스를 사용하려면 학교 인증이 필요해요"**
   - 보조: "모집글 작성 / 신청은 학교 인증한 부원만 가능해요. 학교 메일(@knu.ac.kr) 한 통이면 끝나요."
-  - CTA 버튼: **"학교 인증하러 가기"** → `https://auth.get-it.cloud/profile?focus=school-link` (기존 auth-web 라우트 `/profile` 재사용 — `ProfilePage.jsx`)
+  - CTA 버튼: **"학교 인증하러 가기"** → `https://auth.get-it.cloud/me?focus=school-link` (기존 auth-web 라우트 `/me` 재사용 — `MePage.jsx`)
 - **톤**: Playful 페르소나 (hobby 의 기존 톤 유지) — 반말 OK, 위협적이지 않게.
 - **a11y**: `role="status"` + 키보드 접근 가능한 dismiss 버튼.
 
 #### `?focus=school-link` 쿼리 처리
 
-- auth-web `/profile` 페이지가 `focus=school-link` 쿼리를 받으면 **학교 계정 연동 카드를 자동 스크롤 + 시각 강조** (예: 카드 border 1초 highlight, focus ring).
+- auth-web `/me` 페이지가 `focus=school-link` 쿼리를 받으면 **학교 계정 연동 카드를 자동 스크롤 + 시각 강조** (예: 카드 border 1초 highlight, focus ring).
 - 같은 패턴을 landing `/me` 에서도 재사용 (아래 "landing /me 마이페이지" 섹션 참고).
 - 쿼리 미존재 시 평상시 마이페이지.
 
@@ -253,7 +253,7 @@ model SchoolVerifyToken {
 ### auth-web
 
 - `/signup` — nickname 필드 추가 (required), 실시간 unique check API 호출 (debounce 300ms)
-- `/profile` (마이페이지, 기존 `ProfilePage.jsx`) — "학교 계정 연동" 카드 신규 + `?focus=school-link` 쿼리 강조 처리
+- `/me` (마이페이지, 기존 `MePage.jsx`) — "학교 계정 연동" 카드 신규 + `?focus=school-link` 쿼리 강조 처리
   - 미인증: "학교 메일 입력 → 인증 받기" CTA
   - 인증됨: 학교 메일 + 학번 + 인증일 + "다시 인증하기" 링크
 - `/verify-school` — 토큰 받고 학번 입력 폼 + 결과 페이지
@@ -262,11 +262,11 @@ model SchoolVerifyToken {
 ### 전 webs (landing / hobby / shelf / board / letter)
 
 - `useSession` 훅 응답에 nickname / schoolVerifiedAt / studentId / **createdAt** 포함되도록 확장 (landing `/me` 가입 일자 표시가 의존 — 단일 출처 보장. 같은 5필드를 `/api/me` 응답 + `publicUser` 헬퍼도 그대로 노출)
-- nickname null 감지 → `auth.get-it.cloud/onboarding/nickname?redirect=<현재URL>` 강제 redirect (기존 auth-web `?redirect=` 파라미터 컨벤션과 일치 — `ProfilePage.jsx` 참고)
+- nickname null 감지 → `auth.get-it.cloud/onboarding/nickname?redirect=<현재URL>` 강제 redirect (기존 auth-web `?redirect=` 파라미터 컨벤션과 일치 — `MePage.jsx` 참고)
 - **`?redirect=` 보안 정책 (모든 webs 공통, auth-web `/login` / `onboarding/nickname` 포함)**:
   - 허용 도메인 allowlist: `get-it.cloud` (정확 매치) + **1레벨 서브도메인만** `*.get-it.cloud` (정규식 `^[a-z0-9-]+\.get-it\.cloud$` — 소문자/숫자/하이픈 허용, 다중 레벨 서브도메인 `a.b.get-it.cloud` 제외)
-  - 매치 대상 호스트 예시 (OK): `get-it.cloud`, `auth.get-it.cloud`, `hobby.get-it.cloud`, `shelf.get-it.cloud`, `board.get-it.cloud`, `letter.get-it.cloud`
-  - 매치 거부 예시 (FAIL): `evil.com`, `get-it.cloud.evil.com`, `a.b.get-it.cloud` (다중 레벨), `GET-IT.CLOUD` (대문자 — 비교 전 lowercase 정규화 필수)
+  - 매치 대상 호스트 예시 (OK): `get-it.cloud`, `auth.get-it.cloud`, `hobby.get-it.cloud`, `shelf.get-it.cloud`, `board.get-it.cloud`, `letter.get-it.cloud` (host는 비교 전 lowercase 정규화되므로 `GET-IT.CLOUD` 같은 대문자 입력도 동일 통과)
+  - 매치 거부 예시 (FAIL): `evil.com`, `get-it.cloud.evil.com`, `a.b.get-it.cloud` (다중 레벨 서브도메인)
   - 처리 절차: (1) URL 디코딩 → (2) `new URL(...)` 파싱 (parse 실패 시 reject) → (3) `host.toLowerCase()` 가 정규식 매치 또는 `=== "get-it.cloud"` 확인 → (4) 매치 안 되면 안전 기본 경로(`https://get-it.cloud`)로 폴백
   - 오픈 리다이렉트 방어 목적 — 구현자 재량 금지, 위 절차 그대로 따름
 - 사용자명 표시는 `user.nickname ?? user.name` 헬퍼로 통일
@@ -274,7 +274,7 @@ model SchoolVerifyToken {
 
 ### landing `/me` 마이페이지 (신규)
 
-GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고 학교 인증으로 진입할 수 있게 한다. auth-web `/profile` 와 별개로 **landing 도메인 (`get-it.cloud`) 안에서** 가벼운 마이페이지 제공 — 다른 서비스 카드들 옆에서 자연스럽게 마이페이지 진입. (landing 자체 라우트는 `/me` 로 신규 — landing 도메인의 마이페이지 컨벤션 표준화.)
+GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고 학교 인증으로 진입할 수 있게 한다. auth-web `/me` 와 별개로 **landing 도메인 (`get-it.cloud`) 안에서** 가벼운 마이페이지 제공 — 다른 서비스 카드들 옆에서 자연스럽게 마이페이지 진입. (landing 자체 라우트는 `/me` 로 신규 — landing 도메인의 마이페이지 컨벤션 표준화.)
 
 #### 라우트 / 진입
 
@@ -293,7 +293,7 @@ GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고
 | 닉네임 | `useSession().user.nickname` | null 이면 "닉네임을 설정해주세요" + onboarding 유도 (nickname onboarding 강제 흐름과 통합 — sub-issue #540) |
 | 가입 일자 | `useSession().user.createdAt` (`useSession` 확장에서 보장 — 위 "전 webs" 섹션 참조, 단일 출처) | YYYY-MM-DD 한국어 |
 | 학교 인증 상태 | `useSession().user.schoolVerifiedAt` / `studentId` | **인증됨**: "학교 인증 완료 · 학번 20241234" / **미인증**: "학교 미인증" + **"학교 인증하기"** 버튼 |
-| 학교 인증하기 버튼 | — | 클릭 시 `https://auth.get-it.cloud/profile?focus=school-link` 로 redirect. `focus` 쿼리로 auth-web 마이페이지에서 학교 연동 카드 자동 강조 (위 "hobby 안내 카피 — `?focus=school-link` 쿼리 처리" 참고) |
+| 학교 인증하기 버튼 | — | 클릭 시 `https://auth.get-it.cloud/me?focus=school-link` 로 redirect. `focus` 쿼리로 auth-web 마이페이지에서 학교 연동 카드 자동 강조 (위 "hobby 안내 카피 — `?focus=school-link` 쿼리 처리" 참고) |
 
 #### 디자인 톤
 
@@ -303,7 +303,7 @@ GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고
 
 #### Out of scope (landing /me)
 
-- 닉네임 변경 / 비밀번호 변경 등 mutation — auth-web `/profile` 로 위임
+- 닉네임 변경 / 비밀번호 변경 등 mutation — auth-web `/me` 로 위임
 - 학교 인증 폼 자체 — landing /me 에는 진입 버튼만, 실제 입력은 auth-web `/verify-school` 흐름
 
 > 의도: landing /me 는 **상태 확인 + 행동 진입점** 역할. 본격적인 계정 관리는 auth-web 으로 일임.
@@ -320,7 +320,7 @@ GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고
 
 - 배포 전 학회 부원 단톡방 사전 공지 (학교 인증 가이드 + lockout 외부인 안내)
 - hobby home 상단 안내 카드 — **상세 카피 / CTA / redirect URL 은 위 "hobby 안내 카피" 섹션의 strict 정의를 단일 출처(SSOT)로 사용**. 이 섹션에서 별도 카피 재서술하지 않음 (구현/QA 기준 분기 방지).
-- landing `/me` 마이페이지에서도 학교 인증 미인증자에게 "학교 인증하기" 버튼 노출 — 같은 redirect URL (`https://auth.get-it.cloud/profile?focus=school-link`)
+- landing `/me` 마이페이지에서도 학교 인증 미인증자에게 "학교 인증하기" 버튼 노출 — 같은 redirect URL (`https://auth.get-it.cloud/me?focus=school-link`)
 
 ### 롤백 시나리오
 
@@ -342,7 +342,7 @@ GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고
 - [ ] 전 webs: nickname onboarding 강제 redirect + `useSession` 확장 (nickname / schoolVerifiedAt / studentId / **createdAt**) + 표시 helper 적용 + `?redirect=` allowlist 검증 (`get-it.cloud` + `*.get-it.cloud`)
 - [ ] hobby: 모집글 / 신청 가드 + FE 비인증 사용자 disabled + **hobby home 안내 카드 (strict 카피)** + 토스트
 - [ ] landing: `/me` 마이페이지 (닉네임 / 가입일 / 학교 인증 상태 / "학교 인증하기" 버튼) + 헤더 "마이페이지" 링크 (로그인 시만)
-- [ ] landing `/me` "학교 인증하기" 버튼 **동작 검증**: 클릭 시 `https://auth.get-it.cloud/profile?focus=school-link` 로 redirect + auth-web `/profile` 가 `focus=school-link` 쿼리 받아 학교 연동 카드 자동 스크롤 + 시각 강조까지 end-to-end 확인 (스크린샷 첨부)
+- [ ] landing `/me` "학교 인증하기" 버튼 **동작 검증**: 클릭 시 `https://auth.get-it.cloud/me?focus=school-link` 로 redirect + auth-web `/me` 가 `focus=school-link` 쿼리 받아 학교 연동 카드 자동 스크롤 + 시각 강조까지 end-to-end 확인 (스크린샷 첨부)
 - [ ] 이메일 템플릿: Gmail SMTP 발송 동작 확인 (실제 메일 수신 테스트)
 - [ ] QA: 신규 가입 / 기존 외부인 / 기존 부원 3 시나리오 검증
 - [ ] 노션 / CLAUDE.md 메모리: Phase 10 entry 갱신
