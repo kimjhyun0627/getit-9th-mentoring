@@ -98,6 +98,39 @@ describe('auth-api', () => {
       // 하나는 201, 다른 하나는 409 여야 한다. 절대 500 X.
       expect(statuses).toEqual([201, 409]);
     });
+
+    // #538 — nickname 회귀.
+    it('#538 nickname 포함 가입 → 201 + 응답에 nickname 노출', async () => {
+      const res = await signupOk(app, { nickname: '길동이' });
+      expect(res.status).toBe(201);
+      expect(res.body.user.nickname).toBe('길동이');
+    });
+
+    it('#538 nickname 중복 → 409 NicknameTaken', async () => {
+      await signupOk(app, { nickname: 'samenick' });
+      const r2 = await signupOk(app, {
+        email: 'other@get-it.cloud',
+        nickname: 'samenick',
+      });
+      expect(r2.status).toBe(409);
+      expect(r2.body.error).toBe('NicknameTaken');
+    });
+
+    it('#538 nickname 형식 위반 (특수문자) → 400', async () => {
+      const res = await signupOk(app, { nickname: 'bad!nick' });
+      expect(res.status).toBe(400);
+    });
+
+    it('#538 nickname 1자 → 400', async () => {
+      const res = await signupOk(app, { nickname: 'a' });
+      expect(res.status).toBe(400);
+    });
+
+    it('#538 nickname 빈 문자열은 허용 (마이그레이션 단계 nullable)', async () => {
+      const res = await signupOk(app, { nickname: '' });
+      expect(res.status).toBe(201);
+      expect(res.body.user.nickname).toBeNull();
+    });
   });
 
   describe('POST /api/login', () => {

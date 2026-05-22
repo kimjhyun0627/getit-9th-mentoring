@@ -33,6 +33,8 @@ import {
   setAuthCookies,
 } from '../lib/tokens.js';
 
+import { publicUser } from './userSerialize.js';
+
 const BCRYPT_COST = Number.parseInt(process.env.BCRYPT_COST ?? '12', 10);
 
 /**
@@ -46,14 +48,6 @@ const BCRYPT_COST = Number.parseInt(process.env.BCRYPT_COST ?? '12', 10);
  * (cost=12 기준) 추가되지만 1회뿐이라 허용.
  */
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), BCRYPT_COST);
-
-/**
- * User 객체에서 응답에 안전한 필드만 추려서 반환 (passwordHash 절대 노출 X).
- *
- * @param {{ id: string, email: string, name: string }} user
- * @returns {{ sub: string, email: string, name: string }}
- */
-const publicUser = (user) => ({ sub: user.id, email: user.email, name: user.name });
 
 /**
  * access + refresh 토큰 발급 + DB 저장 + 쿠키 set 까지 한 번에.
@@ -105,24 +99,39 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter, refreshLimiter }
       const parsed = SignupInput.safeParse(req.body);
       if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
 
-      const { email, password, name } = parsed.data;
+      const { email, password, name, nickname } = parsed.data;
       // 사전 조회로 명시 충돌 메시지 + 동시성 race 는 P2002 catch 로 백업.
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) return res.status(409).json({ error: 'EmailAlreadyInUse' });
+
+      // #538: nickname 사전 unique 검사 (race 는 P2002 catch 로 백업).
+      if (nickname) {
+        const dup = await prisma.user.findUnique({ where: { nickname } });
+        if (dup) return res.status(409).json({ error: 'NicknameTaken' });
+      }
 
       const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
 
       // user.create + refreshToken.create 를 한 트랜잭션으로 묶어
       // 토큰 발급 실패 시 사용자 레코드도 롤백 → 가입 프로세스 일관성.
+      const userData = { email, name, passwordHash };
+      if (nickname) userData.nickname = nickname;
+
       let user;
       try {
         user = await prisma.$transaction(async (tx) => {
-          const created = await tx.user.create({ data: { email, name, passwordHash } });
+          const created = await tx.user.create({ data: userData });
           await issueTokensAndCookies(created, res, tx);
           return created;
         });
       } catch (err) {
         if (err?.code === PRISMA_UNIQUE_VIOLATION) {
+          // P2002 의 meta.target 에 따라 정확한 충돌 필드 응답.
+          const target = err?.meta?.target;
+          const targets = Array.isArray(target) ? target : target ? [target] : [];
+          if (targets.includes('nickname')) {
+            return res.status(409).json({ error: 'NicknameTaken' });
+          }
           return res.status(409).json({ error: 'EmailAlreadyInUse' });
         }
         throw err;
@@ -259,14 +268,7 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter, refreshLimiter }
         return res.status(401).json({ error: 'UserRevokedOrDeleted' });
       }
       res.set('Cache-Control', 'no-store');
-      return res.status(200).json({
-        user: {
-          sub: existing.id,
-          email: existing.email,
-          name: existing.name,
-          emailVerifiedAt: existing.emailVerifiedAt,
-        },
-      });
+      return res.status(200).json({ user: publicUser(existing) });
     } catch (err) {
       return next(err);
     }

@@ -30,6 +30,7 @@ import { buildOpenApiDoc } from './openapi.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createMeRouter } from './routes/me.js';
 import { createPasswordResetRouter } from './routes/password-reset.js';
+import { createSchoolVerifyRouter } from './routes/school-verify.js';
 import { createVerifyEmailRouter } from './routes/verify-email.js';
 
 /**
@@ -87,13 +88,27 @@ const strictCorsReject = (allowed) => (req, res, next) => {
 /**
  * Express 앱 인스턴스 생성.
  *
- * @param {{ rateLimitMax?: number, rateLimitWindowMs?: number, trustProxy?: boolean }} [opts]
+ * @param {{
+ *   rateLimitMax?: number,
+ *   rateLimitWindowMs?: number,
+ *   trustProxy?: boolean,
+ *   schoolLinkMax?: number,
+ *   schoolResendMax?: number,
+ * }} [opts]
  * @returns {import('express').Express}
  */
 export const createApp = (opts = {}) => {
   // #313: 5/min 은 정상 로그인 폼 실패만으로도 429 → 운영 항의. 30/min 으로 완화.
   // burst 차단 목적은 유지 (특정 IP 가 1초에 100회 시도 → 차단).
-  const { rateLimitMax = 30, rateLimitWindowMs = 60 * 1000, trustProxy = true } = opts;
+  const {
+    rateLimitMax = 30,
+    rateLimitWindowMs = 60 * 1000,
+    trustProxy = true,
+    // #538: 운영 기본값은 PRD 따라 link 3/min, resend 1/min.
+    // 테스트에선 큰 값 주입 가능 — 테스트 내에서 별도 인스턴스 만들어 작은 값으로 검증.
+    schoolLinkMax = 3,
+    schoolResendMax = 1,
+  } = opts;
   assertCookieConfig();
   const app = express();
 
@@ -155,6 +170,14 @@ export const createApp = (opts = {}) => {
   app.use('/api', createPasswordResetRouter({ resetLimiter }));
   app.use('/api', createVerifyEmailRouter({ verifyLimiter }));
   app.use('/api', createMeRouter());
+  // #538: 학교 인증 — link / verify-school / resend. 자체 rate-limit 적용.
+  app.use(
+    '/api',
+    createSchoolVerifyRouter({
+      linkMax: schoolLinkMax,
+      resendMax: schoolResendMax,
+    }),
+  );
 
   // /api/docs — swagger UI + /api/openapi.json (Issue #415).
   // 운영 환경에선 recon 표적이 되므로 disable. AUTH_DOCS_PUBLIC=true 일 때만 노출.

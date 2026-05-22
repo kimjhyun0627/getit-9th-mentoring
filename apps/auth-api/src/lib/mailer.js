@@ -169,3 +169,36 @@ export const sendVerifyEmail = async ({ to, verifyUrl }) => {
     log.error({ err: String(err) }, 'verify email send failed');
   }
 };
+
+/**
+ * 학교 메일 인증 메일 발송 (Issue #538).
+ *
+ * - 30분 TTL.
+ * - 클릭 → `auth-web/verify-school?token=...` 페이지에서 학번 입력.
+ *
+ * 운영 SMTP 미설정 시 disabled 모드로 동작 — 에러 안 던지고 콘솔만.
+ *
+ * @param {{ to: string, verifyUrl: string }} args
+ * @returns {Promise<void>}
+ */
+export const sendSchoolVerifyEmail = async ({ to, verifyUrl }) => {
+  try {
+    const t = await getTransport();
+    await t.send({
+      to,
+      subject: '[GETIT/9] 학교 인증 메일',
+      text: [
+        '안녕하세요, GETIT 9기입니다.',
+        '',
+        '아래 링크를 눌러 학교 인증을 완료해주세요. (30분 후 만료)',
+        verifyUrl,
+        '',
+        '학번 8자리 입력까지 마쳐야 인증이 완료됩니다.',
+        '',
+        '본인이 요청하지 않았다면 이 메일을 무시해주세요.',
+      ].join('\n'),
+    });
+  } catch (err) {
+    log.error({ err: String(err) }, 'school verify email send failed');
+  }
+};

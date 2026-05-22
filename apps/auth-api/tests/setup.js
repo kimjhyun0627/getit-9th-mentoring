@@ -25,6 +25,7 @@ process.env.PORT = '0';
  *   refreshTokens: Map<string, any>,
  *   passwordResetTokens: Map<string, any>,
  *   emailVerifyTokens: Map<string, any>,
+ *   schoolVerifyTokens: Map<string, any>,
  * }}
  */
 export const memDb = {
@@ -32,6 +33,7 @@ export const memDb = {
   refreshTokens: new Map(),
   passwordResetTokens: new Map(),
   emailVerifyTokens: new Map(),
+  schoolVerifyTokens: new Map(),
 };
 
 let idCounter = 0;
@@ -43,6 +45,7 @@ export const resetDb = () => {
   memDb.refreshTokens.clear();
   memDb.passwordResetTokens.clear();
   memDb.emailVerifyTokens.clear();
+  memDb.schoolVerifyTokens.clear();
   idCounter = 0;
 };
 
@@ -83,9 +86,15 @@ class FakePrismaClient {
         return null;
       },
       create: async ({ data }) => {
-        // email unique constraint 시뮬레이션 → P2002 race 케이스 테스트 가능.
+        // email/nickname/schoolEmail unique constraint 시뮬레이션 → P2002 race 케이스 검증.
         for (const u of memDb.users.values()) {
           if (u.email === data.email) throw new PrismaUniqueViolation(['email']);
+          if (data.nickname && u.nickname === data.nickname) {
+            throw new PrismaUniqueViolation(['nickname']);
+          }
+          if (data.schoolEmail && u.schoolEmail === data.schoolEmail) {
+            throw new PrismaUniqueViolation(['schoolEmail']);
+          }
         }
         const id = nextId('u');
         const now = new Date();
@@ -93,6 +102,10 @@ class FakePrismaClient {
           id,
           emailVerifiedAt: null,
           deletedAt: null,
+          nickname: null,
+          studentId: null,
+          schoolEmail: null,
+          schoolVerifiedAt: null,
           ...data,
           createdAt: now,
           updatedAt: now,
@@ -103,11 +116,25 @@ class FakePrismaClient {
       update: async ({ where, data }) => {
         for (const [id, u] of memDb.users) {
           if (matchWhere(u, where)) {
-            // unique constraint 검사 (email 변경 시).
+            // unique constraint 검사 (email/nickname/schoolEmail 변경 시).
             if (data.email && data.email !== u.email) {
               for (const other of memDb.users.values()) {
                 if (other.id !== u.id && other.email === data.email) {
                   throw new PrismaUniqueViolation(['email']);
+                }
+              }
+            }
+            if (data.nickname && data.nickname !== u.nickname) {
+              for (const other of memDb.users.values()) {
+                if (other.id !== u.id && other.nickname === data.nickname) {
+                  throw new PrismaUniqueViolation(['nickname']);
+                }
+              }
+            }
+            if (data.schoolEmail && data.schoolEmail !== u.schoolEmail) {
+              for (const other of memDb.users.values()) {
+                if (other.id !== u.id && other.schoolEmail === data.schoolEmail) {
+                  throw new PrismaUniqueViolation(['schoolEmail']);
                 }
               }
             }
@@ -117,6 +144,50 @@ class FakePrismaClient {
           }
         }
         throw new Error('User not found');
+      },
+    };
+
+    this.schoolVerifyToken = {
+      create: async ({ data }) => {
+        for (const t of memDb.schoolVerifyTokens.values()) {
+          if (t.tokenHash === data.tokenHash) throw new PrismaUniqueViolation(['tokenHash']);
+        }
+        const id = nextId('svt');
+        const row = {
+          id,
+          usedAt: null,
+          studentId: null,
+          createdAt: new Date(),
+          ...data,
+        };
+        memDb.schoolVerifyTokens.set(id, row);
+        return { ...row };
+      },
+      findUnique: async ({ where }) => {
+        for (const t of memDb.schoolVerifyTokens.values()) {
+          if (matchWhere(t, where)) return { ...t };
+        }
+        return null;
+      },
+      update: async ({ where, data }) => {
+        for (const [id, t] of memDb.schoolVerifyTokens) {
+          if (matchWhere(t, where)) {
+            const updated = { ...t, ...data };
+            memDb.schoolVerifyTokens.set(id, updated);
+            return { ...updated };
+          }
+        }
+        throw new Error('SchoolVerifyToken not found');
+      },
+      updateMany: async ({ where, data }) => {
+        let count = 0;
+        for (const [id, t] of memDb.schoolVerifyTokens) {
+          if (matchWhere(t, where)) {
+            memDb.schoolVerifyTokens.set(id, { ...t, ...data });
+            count++;
+          }
+        }
+        return { count };
       },
     };
 
@@ -254,6 +325,9 @@ vi.mock('../src/lib/mailer.js', () => {
     },
     sendVerifyEmail: async ({ to, verifyUrl }) => {
       sentMails.push({ to, subject: 'verify-email', text: verifyUrl });
+    },
+    sendSchoolVerifyEmail: async ({ to, verifyUrl }) => {
+      sentMails.push({ to, subject: 'school-verify', text: verifyUrl });
     },
   };
 });
