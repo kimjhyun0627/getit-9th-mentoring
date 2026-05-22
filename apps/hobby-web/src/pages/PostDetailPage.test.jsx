@@ -1,47 +1,10 @@
-import { ThemeProvider } from '@getit/theme';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
-import { PostDetailPage } from './PostDetailPage.jsx';
-
-const samplePost = (over = {}) => ({
-  id: over.id ?? 'p1',
-  ownerId: over.ownerId ?? 'u-owner',
-  title: over.title ?? '북문 마라탕 같이 갈 사람!',
-  body: over.body ?? '오늘 18시 라화방. 매운맛 가능한 사람 환영.',
-  meetAt: over.meetAt ?? new Date(Date.now() + 6 * 3600_000).toISOString(),
-  capacity: over.capacity ?? 4,
-  currentCapacity: over.currentCapacity ?? 2,
-  status: over.status ?? 'RECRUITING',
-  createdAt: '2026-05-19T08:00:00+09:00',
-  updatedAt: '2026-05-19T08:00:00+09:00',
-  tags: over.tags ?? [{ id: 't1', name: '마라탕' }],
-  applicationPolicy: over.applicationPolicy ?? 'FIRST_COME',
-  ...(over.openChatUrl !== undefined ? { openChatUrl: over.openChatUrl } : {}),
-  ...(over.myApplication !== undefined ? { myApplication: over.myApplication } : {}),
-});
-
-const renderAt = (postId = 'p1') => {
-  const qc = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  return render(
-    <QueryClientProvider client={qc}>
-      <ThemeProvider>
-        <MemoryRouter initialEntries={[`/posts/${postId}`]}>
-          <Routes>
-            <Route path="/posts/:id" element={<PostDetailPage />} />
-          </Routes>
-        </MemoryRouter>
-      </ThemeProvider>
-    </QueryClientProvider>,
-  );
-};
+import { renderAt, samplePost } from './PostDetailPage.test-helpers.jsx';
 
 describe('PostDetailPage', () => {
   beforeEach(() => {
@@ -310,35 +273,6 @@ describe('PostDetailPage', () => {
       expect(btn).toBeInTheDocument();
     });
 
-    it('학교 미인증 사용자 — 신청 버튼 disabled + 학교 인증 링크 (#541)', async () => {
-      vi.spyOn(api, 'getPost').mockResolvedValue({ post: samplePost() });
-      vi.spyOn(api, 'getMe').mockResolvedValue({
-        id: 'u-applicant',
-        email: 'a@get-it.cloud',
-        name: 'A',
-        schoolVerifiedAt: null,
-      });
-      renderAt();
-      const lockedBtn = await screen.findByTestId('apply-button-school-locked');
-      expect(lockedBtn).toBeDisabled();
-      expect(lockedBtn).toHaveAttribute('title', '학교 인증한 부원만 가능');
-      expect(screen.queryByRole('button', { name: /신청하기/ })).not.toBeInTheDocument();
-      const link = screen.getByRole('link', { name: /학교 인증하러 가기/ });
-      expect(link).toHaveAttribute('href', 'https://auth.get-it.cloud/me?focus=school-link');
-    });
-
-    it('학교 인증 완료 사용자 — 신청 버튼 정상 노출 (회귀, #541)', async () => {
-      vi.spyOn(api, 'getPost').mockResolvedValue({ post: samplePost() });
-      vi.spyOn(api, 'getMe').mockResolvedValue({
-        id: 'u-applicant',
-        email: 'a@get-it.cloud',
-        name: 'A',
-        schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
-      });
-      renderAt();
-      const btn = await screen.findByRole('button', { name: /신청하기/ });
-      expect(btn).toBeInTheDocument();
-      expect(screen.queryByTestId('apply-button-school-locked')).not.toBeInTheDocument();
-    });
+    // #541 학교 인증 가드 분기 테스트는 PostDetailPage.school.test.jsx 로 분리.
   });
 });

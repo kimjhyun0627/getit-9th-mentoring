@@ -5,6 +5,8 @@
  * 책임: 비로그인/CLOSED/방장/REJECTED/PENDING/APPROVED/신규신청 의 8가지 케이스를
  *   한 곳에서 처리. 로딩 placeholder 와 me query 미해소 케이스는 부모가 책임.
  */
+import { SCHOOL_AUTH_URL } from '../lib/constants.js';
+
 import { OwnerPanel } from './PostDetailPage.owner.jsx';
 
 /**
@@ -131,7 +133,7 @@ export const ApplySection = ({
           <span aria-hidden="true">🔒</span> 학교 인증 필요
         </button>
         <a
-          href="https://auth.get-it.cloud/me?focus=school-link"
+          href={SCHOOL_AUTH_URL}
           className="inline-flex items-center gap-1 text-sm font-round font-bold text-rose-600 dark:text-rose-300 hover:underline"
         >
           학교 인증하러 가기 <span aria-hidden="true">→</span>

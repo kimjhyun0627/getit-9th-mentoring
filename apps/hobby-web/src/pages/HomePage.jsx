@@ -42,10 +42,14 @@ export const HomePage = () => {
     retry: false,
     staleTime: 60_000,
   });
+  // Gemini review #549: me 가 해소되기 전엔 배너/disabled 상태 결정 X — flicker 방지.
+  // PostDetailPage 의 meSettled 패턴 재사용. 401 도 settled 로 본다 (비로그인 확정).
+  const meErrorStatus = meQuery.error?.response?.status;
+  const meSettled = !meQuery.isLoading || meQuery.data != null || meErrorStatus === 401;
   const isLoggedIn = Boolean(meQuery.data);
   const isSchoolVerified = Boolean(meQuery.data?.schoolVerifiedAt);
-  const showSchoolAuthBanner = isLoggedIn && !isSchoolVerified && !bannerDismissed;
-  const newMeetupDisabled = isLoggedIn && !isSchoolVerified;
+  const showSchoolAuthBanner = meSettled && isLoggedIn && !isSchoolVerified && !bannerDismissed;
+  const newMeetupDisabled = meSettled && isLoggedIn && !isSchoolVerified;
 
   // #229: 검색 입력은 250ms debounce. 빈 문자열은 서버 q 미전송.
   useEffect(() => {

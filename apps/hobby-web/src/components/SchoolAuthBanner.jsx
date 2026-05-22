@@ -16,8 +16,7 @@
  *  - PRD 결정: 세션 내 dismiss 만 (localStorage 영구 dismiss 금지 — 행동 유도가 목적).
  *  - 부모 컴포넌트가 useState 로 dismissed 상태 관리, 다음 마운트 시 다시 보임.
  */
-
-const SCHOOL_LINK_URL = 'https://auth.get-it.cloud/me?focus=school-link';
+import { SCHOOL_AUTH_URL } from '../lib/constants.js';
 
 /**
  * @param {{ onDismiss?: () => void }} props
@@ -47,7 +46,7 @@ export const SchoolAuthBanner = ({ onDismiss }) => (
 
       <div className="flex items-center gap-2 sm:shrink-0">
         <a
-          href={SCHOOL_LINK_URL}
+          href={SCHOOL_AUTH_URL}
           className="inline-flex items-center gap-2 rounded-full bg-slate-900 dark:bg-amber-300 text-white dark:text-slate-900 px-5 py-2.5 text-sm font-display font-extrabold shadow-sm whitespace-nowrap hover:scale-[1.03] transition"
         >
           학교 인증하러 가기

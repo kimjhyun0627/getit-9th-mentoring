@@ -164,7 +164,7 @@ describe('HomePage', () => {
       expect(screen.getByTestId('new-meetup-cta-disabled')).toBeInTheDocument();
     });
 
-    it('로그인 + 학교 인증 완료 → 배너 X + 일반 CTA Link', async () => {
+    it('로그인 + 학교 인증 완료 → 배너 X + 일반 CTA Link (/new)', async () => {
       vi.spyOn(api, 'getMe').mockResolvedValue({
         id: 'u1',
         email: 'u1@get-it.cloud',
@@ -176,6 +176,9 @@ describe('HomePage', () => {
       await screen.findByText(/오늘 누구랑/);
       expect(screen.queryByTestId('school-auth-banner')).not.toBeInTheDocument();
       expect(screen.queryByTestId('new-meetup-cta-disabled')).not.toBeInTheDocument();
+      // CR: disabled 부재만 보면 normal CTA 가 사라져도 통과 — href 까지 검증.
+      const cta = screen.getByRole('link', { name: /새 모임 만들기/ });
+      expect(cta).toHaveAttribute('href', '/new');
     });
 
     it('비로그인 → 배너 X (기존 흐름 유지)', async () => {

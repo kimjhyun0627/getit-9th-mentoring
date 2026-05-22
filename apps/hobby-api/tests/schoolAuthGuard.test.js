@@ -134,6 +134,57 @@ describe('school-auth guard — feature flag ON (#541)', () => {
   });
 });
 
+describe('school-auth guard — PUT + cookie auth (#541, CR)', () => {
+  /** @type {import('express').Express} */
+  let app;
+  beforeAll(() => {
+    app = createApp({ rateLimitMax: 100_000, schoolAuthGuardEnabled: true });
+  });
+
+  it('PUT — 미인증 사용자 → 403 (라우터 없는 path 여도 가드가 먼저 차단)', async () => {
+    const res = await request(app)
+      .put('/api/posts/x')
+      .set('Authorization', `Bearer ${tokenFor('unverified')}`);
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('SchoolVerificationRequired');
+  });
+
+  it('cookie 인증 — 미인증 사용자의 POST → 403', async () => {
+    const res = await request(app)
+      .post('/api/posts')
+      .set('Cookie', `getit_jwt=${tokenFor('unverified')}`)
+      .send(createPostBody());
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('SchoolVerificationRequired');
+  });
+
+  it('cookie 인증 — 인증 사용자의 POST → 201 (회귀)', async () => {
+    const verified = tokenFor('alice', { schoolVerifiedAt: '2026-05-21T10:00:00.000Z' });
+    const res = await request(app)
+      .post('/api/posts')
+      .set('Cookie', `getit_jwt=${verified}`)
+      .send(createPostBody());
+    expect(res.status).toBe(201);
+  });
+
+  it('schoolVerifiedAt 이 ISO 형식이 아닌 truthy 값 — 가드 차단 (방어층, CR #549)', async () => {
+    // verifyJwt 내부의 JwtPayload 스키마가 같은 검증을 하지만, 만약 통과해도
+    // guard 가 한 번 더 검증해서 권한 우회 차단. signJwt 가 schema 거치지 않으므로
+    // 'not-a-date' 같은 잘못된 값도 sign 가능 — 테스트는 verifyJwt 의 schema 검증을 통해
+    // 401 reject 됨을 확인 (가드는 통과, requireAuth 가 401).
+    const badToken = signJwt(
+      { sub: 'baduser', email: 'b@get-it.cloud', name: 'B', schoolVerifiedAt: 'not-a-date' },
+      SECRET,
+    );
+    const res = await request(app)
+      .post('/api/posts')
+      .set('Authorization', `Bearer ${badToken}`)
+      .send(createPostBody());
+    // verifyJwt 가 JwtPayload Zod 검증에서 실패 → 가드는 통과 → requireAuth 가 401.
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('school-auth guard — feature flag OFF (#541)', () => {
   /** @type {import('express').Express} */
   let app;

@@ -25,8 +25,14 @@
  *  - PRD 가 real-time 보장 요구하지 않으므로 허용.
  */
 import { COOKIE_NAME, verifyJwt } from '@getit/auth-utils/server';
+import { z } from 'zod';
 
 const MUTATING_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
+
+// CR #549: truthy 만으론 부족 — `'not-a-date'`, `1`, `{}` 같은 값도 통과해 권한 우회.
+// 권한 분기이므로 ISO datetime 형식까지 검증한다.
+// JwtPayload 스키마가 같은 검증을 하지만 verifyJwt 통과 후에도 명시 재검증으로 방어층 추가.
+const schoolVerifiedAtSchema = z.string().datetime();
 
 /**
  * 학교 인증 가드 미들웨어 팩토리.
@@ -60,7 +66,9 @@ export const schoolAuthGuard = ({ jwtSecret, enabled }) => {
       return next();
     }
 
-    if (payload.schoolVerifiedAt) return next();
+    if (schoolVerifiedAtSchema.safeParse(payload.schoolVerifiedAt).success) {
+      return next();
+    }
     return res.status(403).json({
       error: 'SchoolVerificationRequired',
       message: '학교 인증이 필요합니다.',
