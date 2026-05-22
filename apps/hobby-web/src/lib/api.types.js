@@ -59,6 +59,7 @@
  * @property {string} id - user id (= JWT sub)
  * @property {string} [email] - 이메일 (있을 수도)
  * @property {string} [name] - 이름 (있을 수도)
+ * @property {string | null} [schoolVerifiedAt] - 학교 인증 완료 시각 (ISO). 미인증이면 null. (#541)
  */
 
 export {};

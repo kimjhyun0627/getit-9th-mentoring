@@ -1,12 +1,15 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import { EmptyCard } from '../components/EmptyCard.jsx';
 import { FilterChips } from '../components/FilterChips.jsx';
 import { Header } from '../components/Header.jsx';
 import { MeetupCard } from '../components/MeetupCard.jsx';
+import { SchoolAuthBanner } from '../components/SchoolAuthBanner.jsx';
 import { api } from '../lib/api.js';
+
+import { NewMeetupCta } from './HomePage.cta.jsx';
 
 /**
  * 홈 — 모집 카드 리스트. 시안 (docs/design/hobby/playful.html) 1:1.
@@ -28,6 +31,21 @@ export const HomePage = () => {
   const [search, setSearch] = useState(initialQ);
   const [timeKey, setTimeKey] = useState(/** @type {'all'|'today'|'week'} */ ('all'));
   const [tagKey, setTagKey] = useState(/** @type {string|null} */ (null));
+  // #541: 학교 인증 안내 배너 dismiss — 세션 내만 (localStorage X — PRD 결정).
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // #541: 로그인 + 학교 미인증이면 배너/비활성 버튼 노출.
+  // staleTime 60s — Header 의 me query 와 동일 키 → 캐시 공유.
+  const meQuery = useQuery({
+    queryKey: ['me'],
+    queryFn: api.getMe,
+    retry: false,
+    staleTime: 60_000,
+  });
+  const isLoggedIn = Boolean(meQuery.data);
+  const isSchoolVerified = Boolean(meQuery.data?.schoolVerifiedAt);
+  const showSchoolAuthBanner = isLoggedIn && !isSchoolVerified && !bannerDismissed;
+  const newMeetupDisabled = isLoggedIn && !isSchoolVerified;
 
   // #229: 검색 입력은 250ms debounce. 빈 문자열은 서버 q 미전송.
   useEffect(() => {
@@ -143,20 +161,14 @@ export const HomePage = () => {
             </p>
           </div>
 
-          <Link
-            to="/new"
-            // #332 — 모바일에서도 한 줄로 (whitespace-nowrap) + 모바일 패딩 축소
-            className="group relative inline-flex items-center gap-2 sm:gap-3 rounded-full card-coral text-white px-5 sm:px-7 py-3 sm:py-4 font-display font-extrabold text-base sm:text-lg shadow-xl shadow-rose-400/40 hover:scale-[1.04] hover:-rotate-2 transition self-start whitespace-nowrap"
-          >
-            <span aria-hidden="true" className="text-xl sm:text-2xl emoji">
-              ＋
-            </span>
-            <span>새 모임 만들기</span>
-            <span aria-hidden="true" className="arrow">
-              →
-            </span>
-          </Link>
+          <NewMeetupCta disabled={newMeetupDisabled} />
         </div>
+
+        {showSchoolAuthBanner ? (
+          <div className="mt-8">
+            <SchoolAuthBanner onDismiss={() => setBannerDismissed(true)} />
+          </div>
+        ) : null}
 
         <FilterChips
           timeKey={timeKey}

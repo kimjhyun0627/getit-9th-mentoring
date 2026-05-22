@@ -99,6 +99,8 @@ export const PostDetailPage = () => {
   const post = postQuery.data.post;
   const me = meQuery.data ?? null;
   const isOwner = Boolean(me && me.id === post.ownerId);
+  // #541: 학교 인증 안 한 로그인 사용자 — 신청 버튼 비활성화 + 안내.
+  const isSchoolUnverified = Boolean(me && !me.schoolVerifiedAt);
   // #310 — FULL/CLOSED 분리: CLOSED 는 별도 안내 (모집 종료), FULL 은 정원 마감.
   const isCapacityReached = post.status === 'FULL';
   const isClosed = post.status === 'CLOSED';
@@ -243,6 +245,7 @@ export const PostDetailPage = () => {
               isInactive={isInactive}
               isPendingApplication={isPendingApplication}
               cancelDisabled={cancelDisabled}
+              isSchoolUnverified={isSchoolUnverified}
               applyMutation={applyMutation}
               cancelMutation={cancelMutation}
               closeMutation={closeMutation}

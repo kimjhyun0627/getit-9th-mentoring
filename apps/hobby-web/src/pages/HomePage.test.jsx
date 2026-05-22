@@ -149,4 +149,61 @@ describe('HomePage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('모집 목록을 불러오지 못했어');
     expect(screen.getByRole('button', { name: /다시 시도/ })).toBeInTheDocument();
   });
+
+  describe('학교 인증 안내 배너 (#541)', () => {
+    it('로그인 + 학교 미인증 → 배너 + disabled CTA 노출', async () => {
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u1',
+        email: 'u1@get-it.cloud',
+        name: 'U1',
+        schoolVerifiedAt: null,
+      });
+      vi.spyOn(api, 'listPosts').mockResolvedValue({ items: [], nextCursor: null });
+      renderPage();
+      expect(await screen.findByTestId('school-auth-banner')).toBeInTheDocument();
+      expect(screen.getByTestId('new-meetup-cta-disabled')).toBeInTheDocument();
+    });
+
+    it('로그인 + 학교 인증 완료 → 배너 X + 일반 CTA Link', async () => {
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u1',
+        email: 'u1@get-it.cloud',
+        name: 'U1',
+        schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+      });
+      vi.spyOn(api, 'listPosts').mockResolvedValue({ items: [], nextCursor: null });
+      renderPage();
+      await screen.findByText(/오늘 누구랑/);
+      expect(screen.queryByTestId('school-auth-banner')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('new-meetup-cta-disabled')).not.toBeInTheDocument();
+    });
+
+    it('비로그인 → 배너 X (기존 흐름 유지)', async () => {
+      // getMe 는 default beforeEach 에서 401 reject.
+      vi.spyOn(api, 'listPosts').mockResolvedValue({ items: [], nextCursor: null });
+      renderPage();
+      await screen.findByText(/오늘 누구랑/);
+      expect(screen.queryByTestId('school-auth-banner')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('new-meetup-cta-disabled')).not.toBeInTheDocument();
+    });
+
+    it('배너 dismiss 버튼 클릭 시 사라진다 (세션 내 dismiss)', async () => {
+      const user = userEvent.setup();
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u1',
+        email: 'u1@get-it.cloud',
+        name: 'U1',
+        schoolVerifiedAt: null,
+      });
+      vi.spyOn(api, 'listPosts').mockResolvedValue({ items: [], nextCursor: null });
+      renderPage();
+      await screen.findByTestId('school-auth-banner');
+      await user.click(screen.getByRole('button', { name: '안내 닫기' }));
+      await waitFor(() => {
+        expect(screen.queryByTestId('school-auth-banner')).not.toBeInTheDocument();
+      });
+      // CTA disabled 상태는 그대로 유지 — 배너만 닫힘.
+      expect(screen.getByTestId('new-meetup-cta-disabled')).toBeInTheDocument();
+    });
+  });
 });

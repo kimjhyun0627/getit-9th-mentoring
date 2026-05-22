@@ -115,7 +115,10 @@ describe('PostDetailPage', () => {
     vi.spyOn(api, 'getPost').mockResolvedValue({
       post: samplePost({ capacity: 4, currentCapacity: 2 }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     const applySpy = vi.spyOn(api, 'applyPost').mockResolvedValue({
       application: {
         id: 'app-1',
@@ -147,7 +150,10 @@ describe('PostDetailPage', () => {
     vi.spyOn(api, 'getPost').mockResolvedValue({
       post: samplePost({ capacity: 4, currentCapacity: 3 }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     vi.spyOn(api, 'applyPost').mockRejectedValue({
       response: { status: 422, data: { error: 'PostFull' } },
     });
@@ -166,7 +172,10 @@ describe('PostDetailPage', () => {
     vi.spyOn(api, 'getPost').mockResolvedValue({
       post: samplePost({ capacity: 4, currentCapacity: 2 }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     vi.spyOn(api, 'applyPost').mockResolvedValue({
       application: { id: 'app-1', postId: 'p1', userId: 'u-applicant', createdAt: '' },
     });
@@ -231,7 +240,10 @@ describe('PostDetailPage', () => {
     vi.spyOn(api, 'getPost').mockResolvedValue({
       post: samplePost({ status: 'FULL', currentCapacity: 4, capacity: 4 }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     renderAt();
 
     const fullBtn = await screen.findByRole('button', { name: /정원 마감/ });
@@ -289,10 +301,44 @@ describe('PostDetailPage', () => {
       vi.spyOn(api, 'getPost').mockResolvedValue({
         post: samplePost({ applicationPolicy: 'APPROVAL' }),
       });
-      vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u-applicant',
+        schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+      });
       renderAt();
       const btn = await screen.findByRole('button', { name: /승인 요청/ });
       expect(btn).toBeInTheDocument();
+    });
+
+    it('학교 미인증 사용자 — 신청 버튼 disabled + 학교 인증 링크 (#541)', async () => {
+      vi.spyOn(api, 'getPost').mockResolvedValue({ post: samplePost() });
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u-applicant',
+        email: 'a@get-it.cloud',
+        name: 'A',
+        schoolVerifiedAt: null,
+      });
+      renderAt();
+      const lockedBtn = await screen.findByTestId('apply-button-school-locked');
+      expect(lockedBtn).toBeDisabled();
+      expect(lockedBtn).toHaveAttribute('title', '학교 인증한 부원만 가능');
+      expect(screen.queryByRole('button', { name: /신청하기/ })).not.toBeInTheDocument();
+      const link = screen.getByRole('link', { name: /학교 인증하러 가기/ });
+      expect(link).toHaveAttribute('href', 'https://auth.get-it.cloud/me?focus=school-link');
+    });
+
+    it('학교 인증 완료 사용자 — 신청 버튼 정상 노출 (회귀, #541)', async () => {
+      vi.spyOn(api, 'getPost').mockResolvedValue({ post: samplePost() });
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u-applicant',
+        email: 'a@get-it.cloud',
+        name: 'A',
+        schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+      });
+      renderAt();
+      const btn = await screen.findByRole('button', { name: /신청하기/ });
+      expect(btn).toBeInTheDocument();
+      expect(screen.queryByTestId('apply-button-school-locked')).not.toBeInTheDocument();
     });
   });
 });

@@ -14,6 +14,10 @@ import { assertListShape } from './api.helpers.js';
  * auth-api `/me` 응답 shape. id/sub 중 하나는 반드시 비어있지 않은 문자열.
  * email/name 은 optional + null 허용 (BE 가 null 로 내려도 통과).
  * passthrough — 미래 필드 추가 시 forward-compatible.
+ *
+ * #541: 학교 인증 가드 — `schoolVerifiedAt` 도 받아서 FE 에 노출.
+ *   - ISO 문자열 또는 null. 미인증 사용자는 null.
+ *   - 키 누락도 허용 (이전 버전 BE 호환).
  */
 const meUserSchema = z
   .object({
@@ -21,6 +25,7 @@ const meUserSchema = z
     sub: z.string().min(1).optional(),
     email: z.string().nullish(),
     name: z.string().nullish(),
+    schoolVerifiedAt: z.string().datetime().nullish(),
   })
   .passthrough();
 
@@ -72,5 +77,10 @@ export const getMe = async () => {
   if (typeof rawId !== 'string' || rawId.length === 0) {
     throw new Error('invalid /me response: missing id');
   }
-  return { id: rawId, email: user.email ?? undefined, name: user.name ?? undefined };
+  return {
+    id: rawId,
+    email: user.email ?? undefined,
+    name: user.name ?? undefined,
+    schoolVerifiedAt: user.schoolVerifiedAt ?? null,
+  };
 };
