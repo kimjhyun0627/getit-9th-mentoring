@@ -87,4 +87,25 @@ describe('SchoolAuthGate (#562)', () => {
     });
     expect(screen.queryByTestId('school-auth-required')).not.toBeInTheDocument();
   });
+
+  it('서버 500 — children 차단 + 에러 안내 (CR #563 fail-closed)', async () => {
+    const err = /** @type {any} */ (new Error('Server error'));
+    err.response = { status: 500 };
+    vi.spyOn(api, 'getMe').mockRejectedValue(err);
+    renderGate();
+    await waitFor(() => {
+      expect(screen.getByTestId('school-auth-gate-error')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('protected-child')).not.toBeInTheDocument();
+  });
+
+  it('네트워크 오류 (response 없음) — children 차단 (CR #563 fail-closed)', async () => {
+    // axios network error: error.response 가 undefined.
+    vi.spyOn(api, 'getMe').mockRejectedValue(new Error('Network Error'));
+    renderGate();
+    await waitFor(() => {
+      expect(screen.getByTestId('school-auth-gate-error')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('protected-child')).not.toBeInTheDocument();
+  });
 });
