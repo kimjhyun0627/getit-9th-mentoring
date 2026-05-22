@@ -49,13 +49,41 @@ describe('SignupPage', () => {
     vi.restoreAllMocks();
   });
 
-  it('name + email + password + passwordConfirm 필드와 회원가입 버튼을 렌더한다', () => {
+  it('name + nickname + email + password + passwordConfirm 필드와 회원가입 버튼을 렌더한다', () => {
     renderSignup();
     expect(screen.getByLabelText('이름')).toBeInTheDocument();
+    expect(screen.getByLabelText('닉네임')).toBeInTheDocument();
     expect(screen.getByLabelText('이메일')).toBeInTheDocument();
     expect(screen.getByLabelText('비밀번호')).toBeInTheDocument();
     expect(screen.getByLabelText('비밀번호 확인')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '회원가입' })).toBeInTheDocument();
+  });
+
+  it('nickname 비어있으면 검증 에러를 보여준다 (#539)', async () => {
+    const user = userEvent.setup();
+    renderSignup();
+    await user.type(screen.getByLabelText('이름'), '김멘티');
+    // nickname 빈칸으로 두기
+    await user.type(screen.getByLabelText('이메일'), 'me@example.com');
+    await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
+    await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
+    await acceptTermsAndPrivacy(user);
+    await user.click(screen.getByRole('button', { name: '회원가입' }));
+    expect(await screen.findByText('닉네임을 입력해주세요')).toBeInTheDocument();
+  });
+
+  it('nickname 규칙 위반 시 메시지를 보여준다 (#539)', async () => {
+    const user = userEvent.setup();
+    renderSignup();
+    await user.type(screen.getByLabelText('이름'), '김멘티');
+    // 한 글자 → 2자 미만
+    await user.type(screen.getByLabelText('닉네임'), 'a');
+    await user.type(screen.getByLabelText('이메일'), 'me@example.com');
+    await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
+    await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
+    await acceptTermsAndPrivacy(user);
+    await user.click(screen.getByRole('button', { name: '회원가입' }));
+    expect(await screen.findByText(/닉네임은 2자 이상/)).toBeInTheDocument();
   });
 
   it('로그인 페이지로 가는 링크가 있다', () => {
@@ -76,6 +104,7 @@ describe('SignupPage', () => {
     const user = userEvent.setup();
     renderSignup();
     await user.type(screen.getByLabelText('이름'), '김멘티');
+    await user.type(screen.getByLabelText('닉네임'), '김멘티');
     await user.type(screen.getByLabelText('이메일'), 'me@example.com');
     await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
     await user.type(screen.getByLabelText('비밀번호 확인'), 'different456');
@@ -83,11 +112,12 @@ describe('SignupPage', () => {
     expect(await screen.findByText('비밀번호 확인이 일치하지 않습니다')).toBeInTheDocument();
   });
 
-  it('정상 입력 시 api.signup 을 호출한다', async () => {
+  it('정상 입력 시 api.signup 을 nickname 포함해서 호출한다', async () => {
     const user = userEvent.setup();
     const signupSpy = vi.spyOn(api, 'signup').mockResolvedValue({ data: { ok: true } });
     renderSignup();
     await user.type(screen.getByLabelText('이름'), '김멘티');
+    await user.type(screen.getByLabelText('닉네임'), '멘티9');
     await user.type(screen.getByLabelText('이메일'), 'me@example.com');
     await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
     await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
@@ -96,6 +126,7 @@ describe('SignupPage', () => {
     await waitFor(() => {
       expect(signupSpy).toHaveBeenCalledWith({
         name: '김멘티',
+        nickname: '멘티9',
         email: 'me@example.com',
         password: 'longenough123',
         passwordConfirm: 'longenough123',
@@ -109,16 +140,34 @@ describe('SignupPage', () => {
     const user = userEvent.setup();
     vi.spyOn(api, 'signup').mockRejectedValue({
       isAxiosError: true,
-      response: { status: 409, data: { error: 'EMAIL_TAKEN' } },
+      response: { status: 409, data: { error: 'EmailAlreadyInUse' } },
     });
     renderSignup();
     await user.type(screen.getByLabelText('이름'), '김멘티');
+    await user.type(screen.getByLabelText('닉네임'), '멘티9');
     await user.type(screen.getByLabelText('이메일'), 'taken@example.com');
     await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
     await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
     await acceptTermsAndPrivacy(user);
     await user.click(screen.getByRole('button', { name: '회원가입' }));
     expect(await screen.findByText('이미 가입된 이메일입니다')).toBeInTheDocument();
+  });
+
+  it('409 NicknameTaken 응답이면 닉네임 인라인 에러를 표시한다 (#539)', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'signup').mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 409, data: { error: 'NicknameTaken' } },
+    });
+    renderSignup();
+    await user.type(screen.getByLabelText('이름'), '김멘티');
+    await user.type(screen.getByLabelText('닉네임'), '멘티9');
+    await user.type(screen.getByLabelText('이메일'), 'me@example.com');
+    await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
+    await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
+    await acceptTermsAndPrivacy(user);
+    await user.click(screen.getByRole('button', { name: '회원가입' }));
+    expect(await screen.findByText('이미 사용 중인 닉네임이에요')).toBeInTheDocument();
   });
 
   it('회원가입 성공 시 ?redirect= 파라미터 URL로 이동한다', async () => {
@@ -135,6 +184,7 @@ describe('SignupPage', () => {
     });
     renderSignup('/signup?redirect=https%3A%2F%2Fshelf.get-it.cloud');
     await user.type(screen.getByLabelText('이름'), '김멘티');
+    await user.type(screen.getByLabelText('닉네임'), '멘티9');
     await user.type(screen.getByLabelText('이메일'), 'me@example.com');
     await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
     await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');

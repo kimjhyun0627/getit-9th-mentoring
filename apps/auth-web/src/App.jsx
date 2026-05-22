@@ -5,11 +5,13 @@ import { AuthLayout } from './components/AuthLayout.jsx';
 import { DeleteAccountPage } from './pages/DeleteAccountPage.jsx';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
+import { MePage } from './pages/MePage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
 import { ResetPasswordPage } from './pages/ResetPasswordPage.jsx';
 import { SessionsPage } from './pages/SessionsPage.jsx';
 import { SignupPage } from './pages/SignupPage.jsx';
 import { VerifyEmailPage } from './pages/VerifyEmailPage.jsx';
+import { VerifySchoolPage } from './pages/VerifySchoolPage.jsx';
 
 /**
  * auth-web 루트.
@@ -20,6 +22,8 @@ import { VerifyEmailPage } from './pages/VerifyEmailPage.jsx';
  *  - /forgot-password → ForgotPasswordPage (Issue #221)
  *  - /reset-password  → ResetPasswordPage  (Issue #221)
  *  - /verify-email    → VerifyEmailPage    (Issue #226)
+ *  - /verify-school   → VerifySchoolPage   (Issue #539 — 학교 메일 인증 토큰 처리)
+ *  - /me              → MePage             (Issue #539 — 마이페이지 + 학교 연동)
  *  - /profile         → ProfilePage        (Issue #235)
  *  - /delete-account  → DeleteAccountPage  (Issue #231)
  *  - /sessions        → SessionsPage       (Issue #321)
@@ -49,6 +53,8 @@ export const App = () => {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/verify-school" element={<VerifySchoolPage />} />
+        <Route path="/me" element={<MePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/delete-account" element={<DeleteAccountPage />} />
         <Route path="/sessions" element={<SessionsPage />} />
