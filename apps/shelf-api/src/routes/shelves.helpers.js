@@ -51,6 +51,25 @@ export const publicReadOnlyShelf = (row) => ({
 });
 
 /**
+ * BookShelf row 묶음에서 공개용 nickname 결정 — `GET /u/:userId` 헤더용 (#565).
+ *
+ * 정책 (PR #566 CR 코멘트):
+ * - 가장 최근 addedAt row 가 항상 진실. 과거 닉으로 fallback 안 함.
+ * - 최신 row 의 userNickname 이 null/공백 → nickname:null.
+ *
+ * @param {Array<{ userNickname?: string | null, addedAt?: Date }>} rows
+ * @returns {string | null}
+ */
+export const pickPublicNickname = (rows) => {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  const latest = [...rows].sort((a, b) => b.addedAt - a.addedAt)[0];
+  const raw = latest?.userNickname;
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+/**
  * 쿼리스트링에서 page/pageSize/sort 파싱 — /me 와 /u/:userId 가 공유.
  *
  * @param {Record<string, any>} query

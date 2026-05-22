@@ -161,7 +161,7 @@ describe('GET /api/shelves/u/:userId (#292 공개 서재)', () => {
     expect(res.body.nickname).toBe('앨리스');
   });
 
-  it('userNickname 가 모두 null/공백 이면 nickname=null', async () => {
+  it('가장 최근 row 의 userNickname 가 null 이면 nickname=null', async () => {
     const book = await seedBook({ isbn: '9788932917245', title: 'A' });
     memDb.bookShelves.set('bs_nick_null_1', {
       id: 'bs_nick_null_1',
@@ -170,6 +170,59 @@ describe('GET /api/shelves/u/:userId (#292 공개 서재)', () => {
       bookId: book.id,
       status: 'READ',
       addedAt: new Date('2026-05-01'),
+    });
+
+    const res = await request(app).get('/api/shelves/u/alice');
+    expect(res.status).toBe(200);
+    expect(res.body.nickname).toBeNull();
+  });
+
+  // CR #566 — 공백만 있는 nickname 도 fallback 처리 (snapshot 표준).
+  it('가장 최근 row 의 userNickname 가 공백 이면 nickname=null', async () => {
+    const book1 = await seedBook({ isbn: '9788932917245', title: 'A' });
+    const book2 = await seedBook({ isbn: '9788937473135', title: 'B' });
+    memDb.bookShelves.set('bs_nick_blank_1', {
+      id: 'bs_nick_blank_1',
+      userId: ALICE,
+      userNickname: '앨리스',
+      bookId: book1.id,
+      status: 'READ',
+      addedAt: new Date('2026-05-01'),
+    });
+    memDb.bookShelves.set('bs_nick_blank_2', {
+      id: 'bs_nick_blank_2',
+      userId: ALICE,
+      userNickname: '   ', // 공백
+      bookId: book2.id,
+      status: 'READ',
+      addedAt: new Date('2026-05-10'), // 더 최근
+    });
+
+    const res = await request(app).get('/api/shelves/u/alice');
+    expect(res.status).toBe(200);
+    // 최신 스냅샷이 공백 → 과거 비공백 닉네임으로 fallback 안 함.
+    expect(res.body.nickname).toBeNull();
+  });
+
+  // CR #566 — 최신 row 가 항상 진실. 과거 닉으로 stale fallback 금지.
+  it('최신 row userNickname=null 이면 과거 non-null nickname 으로 fallback 안 함', async () => {
+    const book1 = await seedBook({ isbn: '9788932917245', title: 'A' });
+    const book2 = await seedBook({ isbn: '9788937473135', title: 'B' });
+    memDb.bookShelves.set('bs_stale_1', {
+      id: 'bs_stale_1',
+      userId: ALICE,
+      userNickname: '옛닉',
+      bookId: book1.id,
+      status: 'READ',
+      addedAt: new Date('2026-05-01'),
+    });
+    memDb.bookShelves.set('bs_stale_2', {
+      id: 'bs_stale_2',
+      userId: ALICE,
+      userNickname: null,
+      bookId: book2.id,
+      status: 'READ',
+      addedAt: new Date('2026-05-10'), // 더 최근
     });
 
     const res = await request(app).get('/api/shelves/u/alice');
