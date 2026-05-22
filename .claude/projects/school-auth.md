@@ -134,7 +134,7 @@ model SchoolVerifyToken {
 | GET | (조회 계열) | 가드 X — 외부인도 hobby 둘러보기는 가능 |
 
 > 구현 가이드: 라우터 단위가 아니라 **HTTP method 기반 미들웨어** 로 일괄 적용해서 신규 mutation 라우터가 누락되지 않게 한다.
-
+>
 > PM 결정 필요: **조회 자체도 차단할지** — 본 PRD 디폴트는 "조회 OK, 모든 mutation 차단" (둘러보고 가입 동기 부여).
 
 ## 닉네임 정책
