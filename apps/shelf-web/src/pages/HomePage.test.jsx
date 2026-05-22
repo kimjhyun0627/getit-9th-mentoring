@@ -172,6 +172,17 @@ describe('HomePage', () => {
     expect(await screen.findByText(/지금은 서가를 펼칠 수 없습니다/)).toBeInTheDocument();
   });
 
+  it('401 응답 시 RequireSignIn 카드(로그인하러 가기 버튼) 노출 — #531', async () => {
+    vi.spyOn(api, 'listMyShelves').mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 401, data: { error: 'Unauthorized' } },
+    });
+    renderHome();
+    expect(await screen.findByRole('link', { name: /로그인하러 가기/ })).toBeInTheDocument();
+    // 기존 "로그인이 필요합니다." 빨간 텍스트는 401 케이스에서 더 이상 노출되지 않는다.
+    expect(screen.queryByText(/^로그인이 필요합니다\.$/)).not.toBeInTheDocument();
+  });
+
   it('SortControl 노출 + 변경 시 listMyShelves 가 새 sort 파라미터로 호출된다 (#196)', async () => {
     const user = userEvent.setup();
     const spy = vi.spyOn(api, 'listMyShelves').mockResolvedValue({
