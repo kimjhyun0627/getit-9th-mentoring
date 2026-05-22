@@ -5,46 +5,31 @@
  * - 닉네임 정규식 `^[A-Za-z0-9가-힣ㄱ-ㅎㅏ-ㅣ\-_]+$` 와 충돌 방지 위해 **공백 없이** 결합.
  *   사용자 요구 예시 "느긋한 너구리" 는 노출 표기일 뿐 저장은 `느긋한너구리`.
  * - BE/FE 공유 (signup BE auto-fill + auth-web placeholder).
+ *   `node:fs`/`node:url` 등 Node-only API 의존 X — 브라우저 번들 호환 (data.js 인라인).
  *
  * @module nickname-suggest
  */
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { ADJECTIVES, NOUNS } from './data.js';
 
-// JSON import attributes (`with { type: 'json' }`) 는 Node 20.10+ 만 지원 →
-// CI/로컬 Node 버전 편차 최소화하려 동기 fs read 로 통일. 모듈 첫 로드 시 1회.
-const adjPath = fileURLToPath(new URL('./adjectives.json', import.meta.url));
-const nounPath = fileURLToPath(new URL('./nouns.json', import.meta.url));
-
-/** @type {string[]} */
-const adjectives = JSON.parse(readFileSync(adjPath, 'utf-8'));
-/** @type {string[]} */
-const nouns = JSON.parse(readFileSync(nounPath, 'utf-8'));
-
-/**
- * 형용사 dataset (100개).
- *
- * @type {string[]}
- */
-export const ADJECTIVES = Object.freeze([...adjectives]);
-
-/**
- * 명사 dataset (100개).
- *
- * @type {string[]}
- */
-export const NOUNS = Object.freeze([...nouns]);
+export { ADJECTIVES, NOUNS };
 
 /**
  * 형용사 × 명사 random pick — 공백 없이 결합.
  *
  * 결정론적 테스트를 위해 `rng` 주입 가능 (`Math.random` 기본).
+ * 방어: `rng()` 가 NaN / 음수 / 1 이상이어도 안전한 인덱스로 clamp (CR 피드백 #557).
  *
  * @param {() => number} [rng]
  * @returns {string} 예: "느긋한너구리"
  */
 export const randomNicknameSuggestion = (rng = Math.random) => {
-  const a = ADJECTIVES[Math.floor(rng() * ADJECTIVES.length)];
-  const n = NOUNS[Math.floor(rng() * NOUNS.length)];
+  const toIndex = (len) => {
+    const raw = rng();
+    // NaN / Infinity 방어: 0. 음수: 0. 1 이상: just-under-1.
+    const normalized = Number.isFinite(raw) ? Math.min(0.9999999999, Math.max(0, raw)) : 0;
+    return Math.floor(normalized * len);
+  };
+  const a = ADJECTIVES[toIndex(ADJECTIVES.length)];
+  const n = NOUNS[toIndex(NOUNS.length)];
   return `${a}${n}`;
 };

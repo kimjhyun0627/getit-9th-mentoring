@@ -9,10 +9,14 @@ import { FormField } from '../components/FormField.jsx';
 import { SubmitButton } from '../components/SubmitButton.jsx';
 import { api } from '../lib/api.js';
 
-// #557: 빈 닉네임은 placeholder 추천을 그대로 사용 — `NicknameValue` 가 빈값을 거부하므로
-// 빈값/whitespace 도 통과시키는 union. onSubmit 에서 placeholder 로 fallback.
+// #557: 빈 닉네임은 placeholder 추천을 그대로 사용. `NicknameValue` 가 빈값을 거부하므로
+// `z.preprocess` 로 먼저 trim 한 뒤 union 검증 — 공백만 입력해도 빈 문자열로 정규화되어
+// `z.literal('')` 분기를 타고 onSubmit 의 placeholder fallback 까지 도달.
 const FormSchema = z.object({
-  nickname: z.union([NicknameValue, z.literal('')]),
+  nickname: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim() : value),
+    z.union([NicknameValue, z.literal('')]),
+  ),
 });
 
 /**

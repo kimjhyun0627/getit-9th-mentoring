@@ -145,7 +145,11 @@ export const SignupPage = () => {
             autoComplete="nickname"
             placeholder={suggestedNickname || '2-20자 · 한글/영문/숫자/-/_'}
             error={errors.nickname?.message}
-            {...register('nickname')}
+            {...register('nickname', {
+              // #557 CR: 공백만 입력하면 resolver 가 NicknameValue 에서 막혀 추천 fallback 까지
+              // 도달 못 함. setValueAs 로 trim 해서 zod 가 빈 문자열로 보고 통과시키게.
+              setValueAs: (v) => (typeof v === 'string' ? v.trim() : v),
+            })}
           />
           {/* #557: 자동추천 안내 + 새로고침 — 비워두면 추천이 적용됨. */}
           <div className="flex items-center justify-between font-mono text-[11px] text-zinc-600 dark:text-zinc-400">

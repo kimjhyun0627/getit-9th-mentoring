@@ -55,4 +55,19 @@ describe('randomNicknameSuggestion()', () => {
     expect(typeof r).toBe('string');
     expect(r.length).toBeGreaterThan(0);
   });
+
+  it('rng 가 NaN / 음수 / 1 이상이어도 인덱스 OOB 없이 동작 (CR 방어)', () => {
+    // NaN → 0 으로 clamp.
+    const nan = randomNicknameSuggestion(() => Number.NaN);
+    expect(nan).toBe(`${ADJECTIVES[0]}${NOUNS[0]}`);
+    // 음수 → 0.
+    const neg = randomNicknameSuggestion(() => -0.5);
+    expect(neg).toBe(`${ADJECTIVES[0]}${NOUNS[0]}`);
+    // 1 → just-under-1 → 마지막 인덱스.
+    const one = randomNicknameSuggestion(() => 1);
+    expect(one).toBe(`${ADJECTIVES[99]}${NOUNS[99]}`);
+    // Infinity → 0.
+    const inf = randomNicknameSuggestion(() => Number.POSITIVE_INFINITY);
+    expect(inf).toBe(`${ADJECTIVES[0]}${NOUNS[0]}`);
+  });
 });
