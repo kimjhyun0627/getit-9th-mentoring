@@ -53,6 +53,24 @@ const loadActiveUser = async (userId) => {
 };
 
 /**
+ * 현재 요청의 refresh 쿠키에 해당하는 활성 refresh token 을 revoke.
+ *
+ * 토큰 회전 (rotation) 보장 — issueTokensAndCookies 로 새 refresh token 을 발급할 때
+ * 기존 토큰을 명시적으로 죽이지 않으면 DB 에 활성 토큰이 누적되어 세션 위생이 깨진다.
+ * 쿠키가 없거나 이미 revoke 된 경우 no-op.
+ *
+ * @param {import('express').Request} req
+ */
+const revokeCurrentRefreshToken = async (req) => {
+  const raw = req.cookies?.[REFRESH_COOKIE];
+  if (!raw) return;
+  await prisma.refreshToken.updateMany({
+    where: { tokenHash: hashRefreshToken(raw), revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+};
+
+/**
  * /api/me/* 라우터.
  *
  * @returns {import('express').Router}
@@ -117,15 +135,20 @@ export const createMeRouter = () => {
 
       // 비밀번호 변경 시 모든 기존 refresh token 강제 revoke + 새 토큰 set (현재 세션 유지).
       // nickname / schoolVerifiedAt 도 새 payload 에 반영되도록 issueTokensAndCookies 사용.
+      const nameChanged = name !== user.name;
       if (newPassword) {
         await prisma.refreshToken.updateMany({
           where: { userId: user.id, revokedAt: null },
           data: { revokedAt: new Date() },
         });
         await issueTokensAndCookies(updated, res);
-      } else if (nicknameChanged) {
-        // letter 무한 redirect fix: 비밀번호 변경 없이 nickname 만 갱신해도 새 nickname 이
-        // 반영된 access token 을 즉시 발급해야 다음 BE 호출에서 stale payload 우회.
+      } else if (nicknameChanged || nameChanged || emailChanged) {
+        // letter 무한 redirect fix + JWT payload 일관성:
+        // JWT payload 에 들어가는 필드 (name/email/nickname) 가 하나라도 바뀌면
+        // 새 access token 을 즉시 발급해야 다른 BE 가 stale payload 를 보지 않는다.
+        // 동시에 기존 refresh token 도 rotate — 새 토큰만 추가 발급하면 DB 에 활성
+        // refresh token 이 누적되어 세션 위생이 깨짐 (CR/Gemini #560).
+        await revokeCurrentRefreshToken(req);
         await issueTokensAndCookies(updated, res);
       }
 
@@ -194,6 +217,8 @@ export const createMeRouter = () => {
         throw err;
       }
       // 새 nickname 반영된 access token + refresh token 즉시 발급.
+      // 기존 refresh token 도 rotate — 누적 방지 (CR/Gemini #560).
+      await revokeCurrentRefreshToken(req);
       await issueTokensAndCookies(updated, res);
       return res.status(200).json({ user: publicUser(updated) });
     } catch (err) {

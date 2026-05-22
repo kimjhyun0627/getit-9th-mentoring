@@ -229,28 +229,37 @@ describe('BoardPage', () => {
     vi.spyOn(api, 'listMessages').mockResolvedValue({ data: { items: [] } });
 
     // window.location.href setter 만 가로채서 redirect 감지. 다른 속성은 그대로 위임.
+    // CR #560: defineProperty 로 덮어쓴 window.location 은 vi.restoreAllMocks 로 원복되지
+    // 않으므로 try/finally 로 원본 location 을 직접 복구해 다음 테스트 오염 차단.
     const originalLocation = window.location;
     const originalHref = originalLocation.href;
     let assigned = '';
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: Object.create(originalLocation, {
-        pathname: { value: '/', writable: false, configurable: true },
-        href: {
-          configurable: true,
-          get: () => originalHref,
-          set: (v) => {
-            assigned = String(v);
+    try {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: Object.create(originalLocation, {
+          pathname: { value: '/', writable: false, configurable: true },
+          href: {
+            configurable: true,
+            get: () => originalHref,
+            set: (v) => {
+              assigned = String(v);
+            },
           },
-        },
-      }),
-    });
+        }),
+      });
 
-    renderPage();
-    // 보드 마운트 (loading 끝) 까지 대기.
-    expect(await screen.findByText(/아직 쪽지가 없어요/)).toBeInTheDocument();
-    // onboarding 페이지로 redirect 가 일어나지 않았는지.
-    expect(assigned).not.toMatch(/onboarding\/nickname/);
+      renderPage();
+      // 보드 마운트 (loading 끝) 까지 대기.
+      expect(await screen.findByText(/아직 쪽지가 없어요/)).toBeInTheDocument();
+      // onboarding 페이지로 redirect 가 일어나지 않았는지.
+      expect(assigned).not.toMatch(/onboarding\/nickname/);
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: originalLocation,
+      });
+    }
   });
 
   // #249 — 본인 메시지 삭제 mutation 연결
