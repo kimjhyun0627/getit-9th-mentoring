@@ -13,6 +13,8 @@ import {
 } from '../lib/external/kakao.js';
 import { prisma } from '../lib/prisma.js';
 
+import { normalizeNickname } from './shelves.browse.js';
+
 /**
  * 응답용 BookShelf 직렬화 (book 동봉 옵션).
  *
@@ -63,10 +65,7 @@ export const publicReadOnlyShelf = (row) => ({
 export const pickPublicNickname = (rows) => {
   if (!Array.isArray(rows) || rows.length === 0) return null;
   const latest = [...rows].sort((a, b) => b.addedAt - a.addedAt)[0];
-  const raw = latest?.userNickname;
-  if (typeof raw !== 'string') return null;
-  const trimmed = raw.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  return normalizeNickname(latest?.userNickname);
 };
 
 /**
