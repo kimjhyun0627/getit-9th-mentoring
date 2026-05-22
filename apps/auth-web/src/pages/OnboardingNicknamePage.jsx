@@ -9,7 +9,15 @@ import { FormField } from '../components/FormField.jsx';
 import { SubmitButton } from '../components/SubmitButton.jsx';
 import { api } from '../lib/api.js';
 
-const FormSchema = z.object({ nickname: NicknameValue });
+// #557: 빈 닉네임은 placeholder 추천을 그대로 사용. `NicknameValue` 가 빈값을 거부하므로
+// `z.preprocess` 로 먼저 trim 한 뒤 union 검증 — 공백만 입력해도 빈 문자열로 정규화되어
+// `z.literal('')` 분기를 타고 onSubmit 의 placeholder fallback 까지 도달.
+const FormSchema = z.object({
+  nickname: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim() : value),
+    z.union([NicknameValue, z.literal('')]),
+  ),
+});
 
 /**
  * `/onboarding/nickname` — 기존 계정 (nickname null) onboarding 강제 페이지.
@@ -28,6 +36,8 @@ export const OnboardingNicknamePage = () => {
   const rawRedirect = params.get('redirect');
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
   const [loading, setLoading] = useState(true);
+  // #557: 추천 닉네임 — mount 시 fetch. placeholder + 빈 submit fallback.
+  const [suggestedNickname, setSuggestedNickname] = useState(/** @type {string} */ (''));
   const inputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
 
   const {
@@ -46,6 +56,16 @@ export const OnboardingNicknamePage = () => {
     if (!loading) inputRef.current?.focus();
   }, [loading]);
 
+  // #557: 추천 fetch — 실패해도 swallow (placeholder 없으면 사용자가 직접 입력).
+  const refreshSuggestion = async () => {
+    try {
+      const { data } = await api.suggestNickname();
+      if (data?.suggested) setSuggestedNickname(String(data.suggested));
+    } catch {
+      // noop — 사용자가 직접 입력하면 됨.
+    }
+  };
+
   // 진입 시 me 로드 — 비로그인 / 이미 nickname 있음 케이스 처리.
   useEffect(() => {
     api
@@ -58,6 +78,7 @@ export const OnboardingNicknamePage = () => {
           return;
         }
         setLoading(false);
+        refreshSuggestion();
       })
       .catch(() => {
         const back = rawRedirect ? `?redirect=${encodeURIComponent(rawRedirect)}` : '';
@@ -67,13 +88,22 @@ export const OnboardingNicknamePage = () => {
 
   const onSubmit = async (values) => {
     setServerError(null);
+    // #557: 빈값/whitespace → placeholder 추천 사용 ("그걸로 되고").
+    const trimmed = String(values.nickname ?? '').trim();
+    const finalNickname = trimmed.length > 0 ? trimmed : suggestedNickname;
+    if (!finalNickname) {
+      setServerError('닉네임을 입력하거나 추천을 받아주세요.');
+      return;
+    }
     try {
-      await api.updateNickname({ nickname: values.nickname });
+      await api.updateNickname({ nickname: finalNickname });
       window.location.replace(safeBackTarget(rawRedirect));
     } catch (err) {
       const status = err?.response?.status;
       const reason = err?.response?.data?.error;
       if (status === 409 || reason === 'NicknameTaken') {
+        // 추천이 충돌난 케이스 → 새 추천 자동 갱신.
+        refreshSuggestion();
         setServerError('이미 사용 중인 닉네임이에요. 다른 닉네임을 골라주세요.');
         return;
       }
@@ -112,18 +142,38 @@ export const OnboardingNicknamePage = () => {
         className="flex flex-col gap-5"
         aria-label="닉네임 설정"
       >
-        <FormField
-          label="닉네임"
-          id="onboarding-nickname"
-          autoComplete="nickname"
-          placeholder="예: 길동이"
-          error={errors.nickname?.message}
-          {...registerRest}
-          ref={(el) => {
-            registerRef(el);
-            inputRef.current = el;
-          }}
-        />
+        <div className="flex flex-col gap-1">
+          <FormField
+            label="닉네임"
+            id="onboarding-nickname"
+            autoComplete="nickname"
+            placeholder={suggestedNickname || '예: 길동이'}
+            error={errors.nickname?.message}
+            {...registerRest}
+            ref={(el) => {
+              registerRef(el);
+              inputRef.current = el;
+            }}
+          />
+          {/* #557: 추천 안내 + 새로고침 — 비워두면 추천이 적용됨. */}
+          <div className="flex items-center justify-between font-mono text-[11px] text-zinc-600 dark:text-zinc-400">
+            <span>
+              비워두면{' '}
+              <span className="text-cyan-700 dark:text-cyan-neon">
+                {suggestedNickname || '추천 닉네임'}
+              </span>
+              으로 저장돼요
+            </span>
+            <button
+              type="button"
+              onClick={refreshSuggestion}
+              className="rounded border border-hairline px-2 py-0.5 text-cyan-700 hover:bg-cyan-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-700/40 dark:text-cyan-neon dark:hover:bg-cyan-neon/10"
+              aria-label="다른 닉네임 추천 받기"
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
 
         {serverError ? (
           <p role="alert" className="text-[13px] text-red-600 dark:text-red-400">

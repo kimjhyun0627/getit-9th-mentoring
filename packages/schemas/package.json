@@ -12,6 +12,9 @@
     "./errors": "./src/errors.js",
     "./hobby": "./src/hobby.js",
     "./letter": "./src/letter.js",
+    "./nickname-suggest": "./src/nickname-suggest/index.js",
+    "./nickname-suggest/adjectives.json": "./src/nickname-suggest/adjectives.json",
+    "./nickname-suggest/nouns.json": "./src/nickname-suggest/nouns.json",
     "./shelf": "./src/shelf.js"
   },
   "scripts": {

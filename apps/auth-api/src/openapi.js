@@ -59,6 +59,16 @@ export const buildOpenApiDoc = () =>
           responses: { 200: ok(z.object({ ok: z.boolean(), service: z.string() })) },
         },
       },
+      '/api/auth/nickname-suggest': {
+        get: {
+          summary: '닉네임 자동추천 (Issue #557)',
+          description:
+            '형용사 × 명사 = 10,000 조합 random pick. DB unique 충돌 시 숫자 suffix 적용. 인증/CSRF 미적용 (공개).',
+          responses: {
+            200: ok(z.object({ suggested: z.string() })),
+          },
+        },
+      },
       '/api/signup': {
         post: {
           summary: '회원가입',

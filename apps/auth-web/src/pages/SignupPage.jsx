@@ -1,9 +1,8 @@
 import { SignupInput } from '@getit/schemas/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
-import { z } from 'zod';
 
 import { FormField } from '../components/FormField.jsx';
 import { PasswordField } from '../components/PasswordField.jsx';
@@ -19,25 +18,19 @@ import { redirectAfterAuth } from '../lib/redirect.js';
  *
  * - SignupInput: 이름/닉네임/이메일/비번/비번확인 + acceptTerms / acceptPrivacy.
  * - 자동 로그인 + 이메일 인증 토큰 발급 (BE 가 메일 발송 — stub or SMTP).
- * - #539: 신규 가입은 nickname required (BE 스키마는 마이그레이션 단계 optional 이지만
- *   FE 만 강제). NicknameTaken 409 → 닉네임 인라인 에러로 분기.
+ * - #539: 가입 시 nickname 권장 (BE 마이그레이션 단계 optional).
+ *   NicknameTaken 409 → 닉네임 인라인 에러로 분기.
+ * - #557: nickname 자동추천 — mount 시 `/auth/nickname-suggest` 호출 → placeholder.
+ *   비워두고 submit 하면 placeholder 가 적용된다 ("그걸로 되고"). 새로고침 버튼 옵션.
+ * BE 도 빈값이면 같은 함수로 자동 추천 (double safety) — FE 가 추천 호출 실패해도 가입 가능.
  */
-// FE 전용 — 신규 가입에선 nickname required 강제 (PRD §사용자 시나리오 1).
-// BE SignupInput 은 마이그레이션 단계 optional (NicknameOptional) — 같은 메시지로 통일.
-const SignupFormInput = SignupInput.superRefine((d, ctx) => {
-  if (!d.nickname || String(d.nickname).trim().length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['nickname'],
-      message: '닉네임을 입력해주세요',
-    });
-  }
-});
 
 export const SignupPage = () => {
   const [searchParams] = useSearchParams();
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
   const [toast, setToast] = useState(/** @type {string|null} */ (null));
+  // #557: 추천 닉네임 — mount 시 fetch, 사용자가 입력 안 하면 그대로 placeholder 값 전송.
+  const [suggestedNickname, setSuggestedNickname] = useState(/** @type {string} */ (''));
 
   const {
     register,
@@ -46,7 +39,7 @@ export const SignupPage = () => {
     watch,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(SignupFormInput),
+    resolver: zodResolver(SignupInput),
     mode: 'onSubmit',
     defaultValues: {
       name: '',
@@ -61,10 +54,29 @@ export const SignupPage = () => {
 
   const passwordValue = watch('password');
 
+  // #557: 추천 한 번 fetch (mount). 실패해도 swallow — BE 가 빈값 시 자동 추천 적용.
+  const refreshSuggestion = async () => {
+    try {
+      const { data } = await api.suggestNickname();
+      if (data?.suggested) setSuggestedNickname(String(data.suggested));
+    } catch {
+      // BE 가 빈값에서 자동 추천하므로 FE 호출 실패는 가입 흐름을 막지 않는다.
+    }
+  };
+  useEffect(() => {
+    refreshSuggestion();
+  }, []);
+
   const onSubmit = async (values) => {
     setServerError(null);
+    // #557: 사용자가 닉네임을 비워두면 placeholder 값을 그대로 전송.
+    //   BE 도 빈값을 자동 추천으로 대체하지만, FE 가 보낸 값과 일치시켜
+    //   "보인 추천" = "저장된 nickname" 약속을 지킨다.
+    const trimmedNickname = String(values.nickname ?? '').trim();
+    const finalNickname = trimmedNickname.length > 0 ? trimmedNickname : suggestedNickname;
+    const payload = { ...values, nickname: finalNickname };
     try {
-      await api.signup(values);
+      await api.signup(payload);
       setToast('가입 완료 · 잠시 후 이동합니다');
       setTimeout(() => {
         redirectAfterAuth(searchParams, 'https://get-it.cloud');
@@ -74,9 +86,11 @@ export const SignupPage = () => {
       const code = err?.response?.data?.error;
       // #539: NicknameTaken (409) 는 닉네임 인라인 에러로 분기.
       if (status === 409 && code === 'NicknameTaken') {
+        // 추천 닉네임 충돌이면 새 추천 자동 갱신 — UX 끊김 0.
+        refreshSuggestion();
         setError('nickname', {
           type: 'server',
-          message: '이미 사용 중인 닉네임이에요',
+          message: '이미 사용 중인 닉네임이에요. 새 추천을 적용했어요.',
         });
         return;
       }
@@ -125,13 +139,37 @@ export const SignupPage = () => {
           error={errors.name?.message}
           {...register('name')}
         />
-        <FormField
-          label="닉네임"
-          autoComplete="nickname"
-          placeholder="2-20자 · 한글/영문/숫자/-/_"
-          error={errors.nickname?.message}
-          {...register('nickname')}
-        />
+        <div className="flex flex-col gap-1">
+          <FormField
+            label="닉네임"
+            autoComplete="nickname"
+            placeholder={suggestedNickname || '2-20자 · 한글/영문/숫자/-/_'}
+            error={errors.nickname?.message}
+            {...register('nickname', {
+              // #557 CR: 공백만 입력하면 resolver 가 NicknameValue 에서 막혀 추천 fallback 까지
+              // 도달 못 함. setValueAs 로 trim 해서 zod 가 빈 문자열로 보고 통과시키게.
+              setValueAs: (v) => (typeof v === 'string' ? v.trim() : v),
+            })}
+          />
+          {/* #557: 자동추천 안내 + 새로고침 — 비워두면 추천이 적용됨. */}
+          <div className="flex items-center justify-between font-mono text-[11px] text-zinc-600 dark:text-zinc-400">
+            <span>
+              비워두면{' '}
+              <span className="text-cyan-700 dark:text-cyan-neon">
+                {suggestedNickname || '추천 닉네임'}
+              </span>
+              으로 가입돼요
+            </span>
+            <button
+              type="button"
+              onClick={refreshSuggestion}
+              className="rounded border border-hairline px-2 py-0.5 text-cyan-700 hover:bg-cyan-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-700/40 dark:text-cyan-neon dark:hover:bg-cyan-neon/10"
+              aria-label="다른 닉네임 추천 받기"
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
         <FormField
           label="이메일"
           type="email"

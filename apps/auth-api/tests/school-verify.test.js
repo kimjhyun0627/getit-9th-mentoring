@@ -274,11 +274,14 @@ describe('GET /api/me — #538 응답 확장', () => {
     expect(me.body.user).toMatchObject({
       email: SIGNUP.email,
       name: SIGNUP.name,
-      nickname: null,
+      // #557: SIGNUP fixture 에 nickname 미지정 → BE 가 자동 추천을 채운다.
+      //   기존 spec 은 null 이었으나 자동추천 도입으로 항상 string.
       studentId: null,
       schoolEmail: null,
       schoolVerifiedAt: null,
     });
+    expect(typeof me.body.user.nickname).toBe('string');
+    expect(me.body.user.nickname.length).toBeGreaterThanOrEqual(2);
     expect(me.body.user.createdAt).toBeTruthy();
   });
 });

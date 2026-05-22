@@ -85,6 +85,20 @@ class FakePrismaClient {
         for (const u of memDb.users.values()) if (matchWhere(u, where)) return { ...u };
         return null;
       },
+      // `findAvailableNickname` 가 base 충돌 검사용으로 사용 (#557).
+      // 현재는 `nickname.startsWith` 만 지원하면 충분.
+      findMany: async ({ where = {} } = {}) => {
+        const rows = [];
+        for (const u of memDb.users.values()) {
+          const cond = where.nickname;
+          if (cond && typeof cond === 'object' && typeof cond.startsWith === 'string') {
+            if (u.nickname && u.nickname.startsWith(cond.startsWith)) rows.push({ ...u });
+          } else if (matchWhere(u, where)) {
+            rows.push({ ...u });
+          }
+        }
+        return rows;
+      },
       create: async ({ data }) => {
         // email/nickname/schoolEmail unique constraint 시뮬레이션 → P2002 race 케이스 검증.
         // `!= null` 로 검사 — '' 도 실제 DB unique 충돌과 동일 취급 (CR #546).

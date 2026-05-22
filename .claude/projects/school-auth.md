@@ -180,6 +180,27 @@ model SchoolVerifyToken {
 > - 변경 cooldown — 무제한? 30일? 시즌제?
 > - 금칙어 목록 확정
 
+### 자동추천 (#557)
+
+회원가입 / 닉네임 onboarding 진입장벽을 낮추기 위한 자동추천 — `A하는B` 패턴 (예: 느긋한너구리, 춤추는로봇).
+
+| 항목 | 정책 |
+| :--- | :--- |
+| 패턴 | `형용사 + 명사` (공백 없이 결합) — 닉네임 정규식 통과 |
+| 데이터셋 | 형용사 100 × 명사 100 = 10,000 조합 |
+| 데이터셋 위치 | `packages/schemas/src/nickname-suggest/{adjectives.json,nouns.json}` |
+| 생성 함수 | `randomNicknameSuggestion(rng?: () => number): string` (export from `@getit/schemas/nickname-suggest`) |
+| BE API | `GET /api/auth/nickname-suggest` → `{ suggested: string }` · 인증/CSRF 미적용 · `Cache-Control: no-store` |
+| 중복 처리 | DB unique 충돌 시 `${base}2`, `${base}3` … 숫자 suffix (max 100). 더 충돌하면 새 base 재추첨 (max 5회). 모두 실패 시 `${base}${ts4}` fallback. |
+| BE signup | `POST /api/signup` 요청에 `nickname` 누락 / 빈 문자열이면 BE 가 `findAvailableNickname` 으로 채워서 가입 처리 — `publicUser` 응답에 적용된 닉네임 노출 |
+| FE 흐름 (SignupPage) | mount 시 `api.suggestNickname()` → placeholder. 비워두면 placeholder 가 그대로 payload 에 들어감. 새로고침 버튼 옵션. |
+| FE 흐름 (OnboardingNicknamePage) | 동일 패턴. 빈 submit → placeholder 사용. 새로고침 버튼. |
+| 데이터셋 톤 | 친근/긍정 단어만. 부정/공격/정치/금칙어 제외. 학회 톤 유지. |
+
+> 사용자(PM) 요구 원문: "회원가입 시 닉네임 자동추천도 해주세요! A 하는 B 느낌으로 (느긋한 너구리, 춤추는 로봇 처럼) 100×100 데이터셋 쓰고 placeholder로 두고 사용자가 그냥 넘어가면 그걸로 되고 (중복이면 뒤에 숫자 붙이고), 사용자가 개인적으로 만들수도 있고"
+>
+> 표기는 "느긋한 너구리" 처럼 띄어쓰기 노출도 가능하지만, **저장값은 정규식 호환을 위해 공백 없이** (`느긋한너구리`). 사용자가 직접 입력하는 경우엔 기존 정규식 그대로 — 공백 비허용 정책 유지.
+
 ## 학번 정책
 
 | 항목 | 정책 |

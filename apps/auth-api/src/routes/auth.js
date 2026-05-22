@@ -21,6 +21,7 @@ import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
 import { sendVerifyEmail } from '../lib/mailer.js';
+import { findAvailableNickname } from '../lib/nickname.js';
 import { prisma } from '../lib/prisma.js';
 import {
   ACCESS_COOKIE,
@@ -105,6 +106,23 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter, refreshLimiter }
   const router = Router();
   const cfg = readAuthEnv();
 
+  // GET /api/auth/nickname-suggest — 공개 (auth 불필요).
+  //
+  // 회원가입 폼 placeholder + onboarding 추천. DB unique 보장된 nickname 1개 반환.
+  // CSRF 미적용 (GET + read-only + 부작용 0). 일반 burst 차단은 글로벌 cors/rate-limit 가
+  // 라우터 외부에서 처리 — 별도 limiter 불필요 (사용자가 새로고침 버튼 누른 만큼만 호출).
+  //
+  // 응답: `{ suggested: "느긋한너구리" }` (200).
+  router.get('/auth/nickname-suggest', async (req, res, next) => {
+    try {
+      const suggested = await findAvailableNickname(prisma);
+      res.set('Cache-Control', 'no-store');
+      return res.status(200).json({ suggested });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
   // POST /api/signup
   router.post('/signup', signupLimiter, async (req, res, next) => {
     try {
@@ -116,9 +134,14 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter, refreshLimiter }
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) return res.status(409).json({ error: 'EmailAlreadyInUse' });
 
+      // #557: nickname 누락 / 빈 문자열 → 자동 추천 (DB unique 보장).
+      //  사용자가 SignupPage placeholder 를 그대로 전송 (정상 흐름) 한 경우엔 값이 박혀
+      //  여기 분기 안 탄다. 진짜 비어있으면 BE 가 책임지고 채운다 — UX 끊김 0.
       // #538: nickname 사전 unique 검사 (race 는 P2002 catch 로 백업).
-      if (nickname) {
-        const dup = await prisma.user.findUnique({ where: { nickname } });
+      const hasUserNickname = Boolean(nickname && String(nickname).length > 0);
+      let resolvedNickname = hasUserNickname ? nickname : await findAvailableNickname(prisma);
+      if (hasUserNickname) {
+        const dup = await prisma.user.findUnique({ where: { nickname: resolvedNickname } });
         if (dup) return res.status(409).json({ error: 'NicknameTaken' });
       }
 
@@ -126,27 +149,47 @@ export const createAuthRouter = ({ signupLimiter, loginLimiter, refreshLimiter }
 
       // user.create + refreshToken.create 를 한 트랜잭션으로 묶어
       // 토큰 발급 실패 시 사용자 레코드도 롤백 → 가입 프로세스 일관성.
-      const userData = { email, name, passwordHash };
-      if (nickname) userData.nickname = nickname;
-
+      // #557 CR: 자동 추천이 race 로 P2002 충돌 → 새 추천 재할당 후 재시도 (max 3회).
+      //  사용자가 직접 입력한 닉네임은 재시도 X — 그대로 409 NicknameTaken.
+      const AUTO_NICK_RETRY = 3;
       let user;
-      try {
-        user = await prisma.$transaction(async (tx) => {
-          const created = await tx.user.create({ data: userData });
-          await issueTokensAndCookies(created, res, tx);
-          return created;
-        });
-      } catch (err) {
-        if (err?.code === PRISMA_UNIQUE_VIOLATION) {
-          // P2002 의 meta.target 에 따라 정확한 충돌 필드 응답.
-          const target = err?.meta?.target;
-          const targets = Array.isArray(target) ? target : target ? [target] : [];
-          if (targets.includes('nickname')) {
-            return res.status(409).json({ error: 'NicknameTaken' });
+      let lastErr;
+      for (let attempt = 0; attempt < AUTO_NICK_RETRY; attempt += 1) {
+        const userData = { email, name, passwordHash, nickname: resolvedNickname };
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          user = await prisma.$transaction(async (tx) => {
+            const created = await tx.user.create({ data: userData });
+            await issueTokensAndCookies(created, res, tx);
+            return created;
+          });
+          break;
+        } catch (err) {
+          lastErr = err;
+          if (err?.code === PRISMA_UNIQUE_VIOLATION) {
+            const target = err?.meta?.target;
+            const targets = Array.isArray(target) ? target : target ? [target] : [];
+            if (targets.includes('nickname') && !hasUserNickname) {
+              // 자동 추천 race — 새 추천 받고 재시도.
+              // eslint-disable-next-line no-await-in-loop
+              resolvedNickname = await findAvailableNickname(prisma);
+              continue;
+            }
+            if (targets.includes('nickname')) {
+              return res.status(409).json({ error: 'NicknameTaken' });
+            }
+            return res.status(409).json({ error: 'EmailAlreadyInUse' });
           }
-          return res.status(409).json({ error: 'EmailAlreadyInUse' });
+          throw err;
         }
-        throw err;
+      }
+      if (!user) {
+        // AUTO_NICK_RETRY 모두 race 충돌. 매우 비현실적이지만 안전.
+        req.log?.warn?.(
+          { err: String(lastErr) },
+          'signup nickname auto-recommend exhausted retries',
+        );
+        return res.status(409).json({ error: 'NicknameTaken' });
       }
 
       // Issue #226: 이메일 인증 토큰 발급 + 발송 (fire-and-forget).
