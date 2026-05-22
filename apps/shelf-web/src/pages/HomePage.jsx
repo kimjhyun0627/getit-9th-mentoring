@@ -11,7 +11,7 @@ import { RequireSignIn } from '../components/RequireSignIn.jsx';
 import { SortControl } from '../components/SortControl.jsx';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll.js';
 import { useInfiniteMyShelves, useRemoveShelf, useUpdateShelf } from '../hooks/useShelves.js';
-import { shelfError } from '../lib/error-messages.js';
+import { shelfError, statusOf } from '../lib/error-messages.js';
 
 // 한 페이지당 책 수 — 무한 스크롤(#525) 전환 후 첫 페이지로 grid 한 화면 + 약간 여유 채우는
 // 균형점. 30 이면 4-col grid 기준 7-8 행, 모바일 2-col 기준 ~15 행으로 첫 fetch ~6KB.
@@ -98,7 +98,7 @@ export const HomePage = () => {
   const nextPageError = isFetchNextPageError ? shelfError(error) : null;
   // 비로그인(401) — 텍스트 한 줄 대신 "로그인하러 가기" CTA 카드로 분기 (#531).
   // 다른 5xx/4xx 는 기존 pageError 텍스트 유지.
-  const is401 = /** @type {{ response?: { status?: number } }} */ (error)?.response?.status === 401;
+  const is401 = statusOf(error) === 401;
 
   const closeModal = () => {
     setEditing(null);

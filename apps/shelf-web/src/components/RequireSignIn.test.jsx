@@ -73,9 +73,21 @@ describe('RequireSignIn', () => {
     );
   });
 
-  it('role="status" + aria-live="polite" 로 비파괴 알림 처리', () => {
+  it('role="status" + aria-labelledby 로 비파괴 알림 처리 (role=status 가 polite 암시)', () => {
     render(<RequireSignIn />);
     const section = screen.getByRole('status');
-    expect(section).toHaveAttribute('aria-live', 'polite');
+    // role=status 가 암시적으로 polite live region 이므로 명시 aria-live 는 중복.
+    expect(section).not.toHaveAttribute('aria-live');
+    expect(section).toHaveAttribute('aria-labelledby', 'signin-card-title');
+    expect(document.getElementById('signin-card-title')).not.toBeNull();
+  });
+
+  it('VITE_AUTH_URL 끝의 슬래시는 제거된다 (// 방지)', () => {
+    vi.stubEnv('VITE_AUTH_URL', 'https://auth.get-it.cloud/');
+    render(<RequireSignIn />);
+    const link = screen.getByRole('link', { name: /로그인하러 가기/ });
+    const href = link.getAttribute('href') ?? '';
+    expect(href.startsWith('https://auth.get-it.cloud/login?')).toBe(true);
+    expect(href).not.toContain('.cloud//login');
   });
 });

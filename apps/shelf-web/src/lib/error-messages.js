@@ -12,10 +12,12 @@
 /**
  * Axios 스타일 에러 객체에서 status 코드만 안전하게 뽑아낸다.
  *
+ * 외부에서도 401 분기 등에 재사용하기 위해 export (#531).
+ *
  * @param {unknown} err
  * @returns {number | undefined}
  */
-const statusOf = (err) => {
+export const statusOf = (err) => {
   const candidate = /** @type {{ response?: { status?: number } }} */ (err);
   const status = candidate?.response?.status;
   return typeof status === 'number' ? status : undefined;
