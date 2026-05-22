@@ -94,9 +94,11 @@ describe('MePage 로그인 + nickname null (onboarding 카드)', () => {
       'href',
       expect.stringContaining(`${AUTH_ORIGIN}/onboarding/nickname`),
     );
-    // landing 도메인으로 돌아오는 redirect 쿼리.
+    // landing 도메인으로 돌아오는 redirect 쿼리. Gemini (#551): origin 동적 사용 →
+    // 테스트는 jsdom 의 location.origin (http://localhost) 를 받는다.
     expect(cta).toHaveAttribute('href', expect.stringContaining('redirect='));
-    expect(decodeURIComponent(cta.getAttribute('href') ?? '')).toContain('https://get-it.cloud/me');
+    const decoded = decodeURIComponent(cta.getAttribute('href') ?? '');
+    expect(decoded).toContain(`${window.location.origin}/me`);
   });
 
   it('nickname 이 빈 문자열이어도 onboarding 카드를 노출한다 (정규화)', async () => {
@@ -222,6 +224,22 @@ describe('MePage 학교 인증 상태', () => {
     expect(status.textContent).toContain('학교 미인증');
     const verifyCta = screen.getByRole('link', { name: /학교 인증하기/ });
     expect(verifyCta).toHaveAttribute('href', `${AUTH_ORIGIN}/me?focus=school-link`);
+  });
+
+  it('인증됨 + studentId 가 빈 문자열이면 학번이 em dash 로 폴백 (CR Minor #551)', async () => {
+    mockFetchMe(200, {
+      user: {
+        sub: 'u1',
+        nickname: '길동이',
+        schoolVerifiedAt: '2026-05-21T10:00:00Z',
+        studentId: '   ', // 공백 — useSession 정규화를 우회한 케이스 가드.
+        createdAt: '2026-05-01T09:00:00Z',
+      },
+    });
+    renderMe();
+    const status = await screen.findByTestId('me-school-status');
+    expect(status.textContent).toContain('학교 인증 완료');
+    expect(status.textContent).toContain('—');
   });
 });
 
