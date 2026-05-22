@@ -121,7 +121,7 @@ model SchoolVerifyToken {
 }
 ```
 
-> **publicUser 헬퍼**: auth-api 의 `publicUser` 헬퍼에 `createdAt, nickname, studentId, schoolEmail, schoolVerifiedAt` 5개 필드 추가 필요 (현재 누락).
+> **publicUser 헬퍼**: auth-api 의 `publicUser` 헬퍼 최종 반환 필드 = `{ id, email, name, emailVerifiedAt, createdAt, nickname, studentId, schoolEmail, schoolVerifiedAt }` (기존 4필드 + 신규 5필드). 신규 5필드 (`createdAt, nickname, studentId, schoolEmail, schoolVerifiedAt`) 가 현재 누락 — 추가 필요. 기존 필드 누락 금지.
 
 ### hobby-api 가드
 
@@ -264,8 +264,10 @@ model SchoolVerifyToken {
 - `useSession` 훅 응답에 nickname / schoolVerifiedAt / studentId / **createdAt** 포함되도록 확장 (landing `/me` 가입 일자 표시가 의존 — 단일 출처 보장. 같은 5필드를 `/api/me` 응답 + `publicUser` 헬퍼도 그대로 노출)
 - nickname null 감지 → `auth.get-it.cloud/onboarding/nickname?redirect=<현재URL>` 강제 redirect (기존 auth-web `?redirect=` 파라미터 컨벤션과 일치 — `ProfilePage.jsx` 참고)
 - **`?redirect=` 보안 정책 (모든 webs 공통, auth-web `/login` / `onboarding/nickname` 포함)**:
-  - 허용 도메인 allowlist: `get-it.cloud` + `*.get-it.cloud` (즉 `auth.get-it.cloud`, `hobby.get-it.cloud`, `shelf.get-it.cloud`, `board.get-it.cloud`, `letter.get-it.cloud`, `get-it.cloud` 자체)
-  - 처리 절차: (1) URL 디코딩 → (2) `new URL(...)` 파싱 (parse 실패 시 reject) → (3) `host` 가 allowlist 매치 확인 → (4) 매치 안 되면 안전 기본 경로(`https://get-it.cloud`)로 폴백
+  - 허용 도메인 allowlist: `get-it.cloud` (정확 매치) + **1레벨 서브도메인만** `*.get-it.cloud` (정규식 `^[a-z0-9-]+\.get-it\.cloud$` — 소문자/숫자/하이픈 허용, 다중 레벨 서브도메인 `a.b.get-it.cloud` 제외)
+  - 매치 대상 호스트 예시 (OK): `get-it.cloud`, `auth.get-it.cloud`, `hobby.get-it.cloud`, `shelf.get-it.cloud`, `board.get-it.cloud`, `letter.get-it.cloud`
+  - 매치 거부 예시 (FAIL): `evil.com`, `get-it.cloud.evil.com`, `a.b.get-it.cloud` (다중 레벨), `GET-IT.CLOUD` (대문자 — 비교 전 lowercase 정규화 필수)
+  - 처리 절차: (1) URL 디코딩 → (2) `new URL(...)` 파싱 (parse 실패 시 reject) → (3) `host.toLowerCase()` 가 정규식 매치 또는 `=== "get-it.cloud"` 확인 → (4) 매치 안 되면 안전 기본 경로(`https://get-it.cloud`)로 폴백
   - 오픈 리다이렉트 방어 목적 — 구현자 재량 금지, 위 절차 그대로 따름
 - 사용자명 표시는 `user.nickname ?? user.name` 헬퍼로 통일
 - (hobby 만) 모집글 작성 / 신청 버튼 — `schoolVerifiedAt == null` 이면 disabled + tooltip "학교 인증한 부원만 가능"
@@ -289,7 +291,7 @@ GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고
 | 항목 | 출처 | 상세 |
 | :--- | :--- | :--- |
 | 닉네임 | `useSession().user.nickname` | null 이면 "닉네임을 설정해주세요" + onboarding 유도 (nickname onboarding 강제 흐름과 통합 — sub-issue #540) |
-| 가입 일자 | `useSession().user.createdAt` (없으면 `/api/me` 응답에 추가) | YYYY-MM-DD 한국어 |
+| 가입 일자 | `useSession().user.createdAt` (`useSession` 확장에서 보장 — 위 "전 webs" 섹션 참조, 단일 출처) | YYYY-MM-DD 한국어 |
 | 학교 인증 상태 | `useSession().user.schoolVerifiedAt` / `studentId` | **인증됨**: "학교 인증 완료 · 학번 20241234" / **미인증**: "학교 미인증" + **"학교 인증하기"** 버튼 |
 | 학교 인증하기 버튼 | — | 클릭 시 `https://auth.get-it.cloud/profile?focus=school-link` 로 redirect. `focus` 쿼리로 auth-web 마이페이지에서 학교 연동 카드 자동 강조 (위 "hobby 안내 카피 — `?focus=school-link` 쿼리 처리" 참고) |
 
