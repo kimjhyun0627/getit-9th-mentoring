@@ -13,6 +13,8 @@
  */
 import pino from 'pino';
 
+import { renderSchoolVerifyEmail } from './templates/school-verify.js';
+
 const log = pino({ name: 'auth-mailer' });
 
 /**
@@ -187,33 +189,22 @@ export const sendVerifyEmail = async ({ to, verifyUrl }) => {
 };
 
 /**
- * 학교 메일 인증 메일 발송 (Issue #538).
+ * 학교 메일 인증 메일 발송 (Issue #538, #542).
  *
- * - 30분 TTL.
+ * - 30분 TTL (호출자가 override 가능 — 예: 테스트, 운영 정책 변경).
  * - 클릭 → `auth-web/verify-school?token=...` 페이지에서 학번 입력.
+ * - 본문/HTML 은 `templates/school-verify.js` 에서 렌더링 — 톤/내용 한 곳에서 관리.
  *
  * 운영 SMTP 미설정 시 disabled 모드로 동작 — 에러 안 던지고 콘솔만.
  *
- * @param {{ to: string, verifyUrl: string }} args
+ * @param {{ to: string, verifyUrl: string, expiresInMinutes?: number }} args
  * @returns {Promise<void>}
  */
-export const sendSchoolVerifyEmail = async ({ to, verifyUrl }) => {
+export const sendSchoolVerifyEmail = async ({ to, verifyUrl, expiresInMinutes = 30 }) => {
   try {
+    const { subject, text, html } = renderSchoolVerifyEmail({ verifyUrl, expiresInMinutes });
     const t = await getTransport();
-    await t.send({
-      to,
-      subject: '[GETIT/9] 학교 인증 메일',
-      text: [
-        '안녕하세요, GETIT 9기입니다.',
-        '',
-        '아래 링크를 눌러 학교 인증을 완료해주세요. (30분 후 만료)',
-        verifyUrl,
-        '',
-        '학번 8자리 입력까지 마쳐야 인증이 완료됩니다.',
-        '',
-        '본인이 요청하지 않았다면 이 메일을 무시해주세요.',
-      ].join('\n'),
-    });
+    await t.send({ to, subject, text, html });
   } catch (err) {
     log.error({ err: String(err) }, 'school verify email send failed');
   }
