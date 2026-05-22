@@ -227,6 +227,33 @@ describe('Header status + a11y (#261)', () => {
   });
 });
 
+describe('Header 마이페이지 링크 (school-auth #547)', () => {
+  let originalFetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  it('비로그인이면 "마이페이지" 링크가 노출되지 않는다', async () => {
+    mockFetchMe(401, { error: 'Unauthorized' });
+    renderHeader();
+    await screen.findByTestId('session-signin');
+    expect(screen.queryByRole('link', { name: /마이페이지/ })).toBeNull();
+  });
+
+  it('로그인이면 "마이페이지" 링크가 노출되고 /me 로 이동한다', async () => {
+    mockFetchMe(200, { user: { sub: 'u1', name: '홍길동' } });
+    renderHeader();
+    const link = await screen.findByRole('link', { name: /마이페이지/ });
+    expect(link).toHaveAttribute('href', '/me');
+  });
+});
+
 describe('CodeTerminalToggle (#363)', () => {
   beforeEach(() => {
     mockFetchMe(401, { error: 'Unauthorized' });

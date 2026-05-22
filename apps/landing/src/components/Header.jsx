@@ -124,6 +124,18 @@ const SessionCta = ({ user, loading, focusMono }) => {
           <span className="text-zinc-400 dark:text-zinc-500">~/</span>
           {displayName}
         </span>
+        {/* school-auth #547 — 로그인 시에만 노출되는 마이페이지 진입 링크. */}
+        <a
+          href="/me"
+          aria-label="마이페이지"
+          data-testid="header-me-link"
+          className={`inline-flex items-center gap-1.5 rounded-md border border-hairline bg-white/70 px-3 py-1.5 font-mono text-xs font-medium text-zinc-800 transition hover:border-cyan-700 hover:text-cyan-700 dark:bg-ink-900/70 dark:text-zinc-200 dark:hover:border-cyan-neon dark:hover:text-cyan-neon ${focusMono}`}
+        >
+          <span className="opacity-60" aria-hidden="true">
+            $
+          </span>{' '}
+          <span aria-hidden="true">마이페이지</span>
+        </a>
         <button
           type="button"
           aria-label="로그아웃"
