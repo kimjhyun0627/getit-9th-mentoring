@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { z } from 'zod';
 
 /**
- * landing 헤더 SSO 세션 상태 hook (#343 / #246).
+ * landing 헤더 SSO 세션 상태 hook (#343 / #246, school-auth #540 확장).
  *
  * 동작:
  *  - mount 시 `auth.get-it.cloud/api/me` 를 fetch (credentials: 'include').
@@ -20,18 +20,54 @@ import { z } from 'zod';
  *  - AbortController + 3s 타임아웃 → fetch hang 시 loading=true 영구 잠금 차단.
  *  - zod safeParse → 수기 typeof 체크 대신 schema-based 검증으로 일관성.
  *
+ * school-auth (#540) 확장:
+ *  - `nickname / studentId / schoolEmail / schoolVerifiedAt / createdAt` 노출.
+ *  - landing `/me` 마이페이지 (가입일 표시) 가 이 필드들에 의존 — 단일 출처 유지.
+ *  - 모두 optional (구버전 BE 호환). null/undefined 가 들어와도 schema 통과.
+ *  - 강제 nickname onboarding redirect 는 **landing 에서 미적용** (PRD 명시).
+ *    landing 자체 `/me` 에서 onboarding 카드로 자연스럽게 유도.
+ *
  * @returns {{
- *   user: { sub: string; email?: string; name?: string } | null,
+ *   user: {
+ *     sub: string;
+ *     email?: string;
+ *     name?: string;
+ *     nickname?: string | null;
+ *     studentId?: string | null;
+ *     schoolEmail?: string | null;
+ *     schoolVerifiedAt?: string | null;
+ *     createdAt?: string;
+ *   } | null,
  *   loading: boolean,
  * }}
  */
 const AUTH_ORIGIN = import.meta.env.VITE_AUTH_ORIGIN || 'https://auth.get-it.cloud';
 const ME_TIMEOUT_MS = 3000;
 
+/**
+ * trim 후 비어있지 않은 string 을 trim 된 값으로 반환. 그 외는 null —
+ * 공백/빈 문자열 정규화 (CR Major #550). CR nitpick #550: trim 결과를 반환해
+ * surrounding whitespace 도 제거 (예: `'  abc  '` → `'abc'`).
+ *
+ * @param {unknown} v
+ * @returns {string | null}
+ */
+const orNullableNonEmpty = (v) => {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  return t.length > 0 ? t : null;
+};
+
 const SessionUserSchema = z.object({
   sub: z.string().min(1),
   email: z.string().optional(),
   name: z.string().optional(),
+  // school-auth (#540) — 모두 nullable + optional. BE 가 안 보내거나 null 이어도 통과.
+  nickname: z.string().nullish(),
+  studentId: z.string().nullish(),
+  schoolEmail: z.string().nullish(),
+  schoolVerifiedAt: z.string().nullish(),
+  createdAt: z.string().optional(),
 });
 
 export const useSession = () => {
@@ -62,8 +98,29 @@ export const useSession = () => {
         if (cancelled) return;
         const parsed = SessionUserSchema.safeParse(body?.user);
         if (parsed.success) {
-          const { sub, email, name } = parsed.data;
-          setUser({ sub, email, name });
+          // school-auth (#540) — 신규 필드도 그대로 전달. null/undefined 정규화는
+          // 호출자 (landing /me 등) 가 displayName / safeRedirect 헬퍼로 처리.
+          const {
+            sub,
+            email,
+            name,
+            nickname,
+            studentId,
+            schoolEmail,
+            schoolVerifiedAt,
+            createdAt,
+          } = parsed.data;
+          setUser({
+            sub,
+            email,
+            name,
+            // CR Major #550 — 공백/빈 문자열도 null 정규화로 통일.
+            nickname: orNullableNonEmpty(nickname),
+            studentId: orNullableNonEmpty(studentId),
+            schoolEmail: orNullableNonEmpty(schoolEmail),
+            schoolVerifiedAt: orNullableNonEmpty(schoolVerifiedAt),
+            createdAt,
+          });
         } else {
           setUser(null);
         }

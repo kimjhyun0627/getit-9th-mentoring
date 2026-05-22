@@ -1,3 +1,4 @@
+import { buildNicknameOnboardingUrl, shouldEnforceNicknameOnboarding } from '@getit/auth-utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -44,6 +45,30 @@ export const BoardPage = () => {
     staleTime: 5 * 60_000,
   });
   const isAuthed = meQuery.isSuccess;
+
+  // school-auth (#540) — 로그인 됐는데 nickname null 이면 onboarding 강제 redirect.
+  // 비로그인은 401 → setUnauthorizedHandler 가 별도 처리. 5xx/네트워크는 ErrorState 로.
+  // 정책은 `shouldEnforceNicknameOnboarding` 으로 일원화 (Gemini medium #550).
+  // PRD 롤백: VITE_NICKNAME_ONBOARDING_ENFORCED='false' 면 강제 모드 OFF (CR Major #550).
+  useEffect(() => {
+    if (!isAuthed) return;
+    if (typeof window === 'undefined') return;
+    const enforced = import.meta.env?.VITE_NICKNAME_ONBOARDING_ENFORCED !== 'false';
+    const user = meQuery.data?.user ?? null;
+    if (
+      !shouldEnforceNicknameOnboarding({
+        user,
+        currentPath: window.location.pathname,
+        enforced,
+      })
+    ) {
+      return;
+    }
+    window.location.href = buildNicknameOnboardingUrl({
+      authOrigin: import.meta.env?.VITE_AUTH_URL ?? 'https://auth.get-it.cloud',
+      currentUrl: window.location.href,
+    });
+  }, [isAuthed, meQuery.data]);
 
   // #279 — 30초 polling + window focus refetch. 부원 ~50명 + GET limit 60/min 안전.
   // #486 — 429 자동 backoff. 정당 사용자가 다중 탭 + focus refetch 누적으로 429 받으면

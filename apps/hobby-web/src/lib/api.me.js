@@ -15,8 +15,9 @@ import { assertListShape } from './api.helpers.js';
  * email/name 은 optional + null 허용 (BE 가 null 로 내려도 통과).
  * passthrough — 미래 필드 추가 시 forward-compatible.
  *
- * #541: 학교 인증 가드 — `schoolVerifiedAt` 도 받아서 FE 에 노출.
- *   - ISO 문자열 또는 null. 미인증 사용자는 null.
+ * school-auth (#540) — nickname / studentId / schoolEmail / schoolVerifiedAt / createdAt
+ * 도 nullish 로 받아 normalize 단계에서 일관된 shape 로 노출.
+ * #541: 학교 인증 가드 — `schoolVerifiedAt` 은 ISO datetime 또는 null 허용.
  *   - 키 누락도 허용 (이전 버전 BE 호환).
  */
 const meUserSchema = z
@@ -25,7 +26,11 @@ const meUserSchema = z
     sub: z.string().min(1).optional(),
     email: z.string().nullish(),
     name: z.string().nullish(),
+    nickname: z.string().nullish(),
+    studentId: z.string().nullish(),
+    schoolEmail: z.string().nullish(),
     schoolVerifiedAt: z.string().datetime().nullish(),
+    createdAt: z.string().nullish(),
   })
   .passthrough();
 
@@ -77,10 +82,16 @@ export const getMe = async () => {
   if (typeof rawId !== 'string' || rawId.length === 0) {
     throw new Error('invalid /me response: missing id');
   }
+  // school-auth (#540) — 신규 필드는 null 정규화. createdAt 만 string|undefined 유지
+  // (가입일은 표시 의무가 있는 곳에서만 사용 — 미수신을 빈 문자열로 오해하지 않게).
   return {
     id: rawId,
     email: user.email ?? undefined,
     name: user.name ?? undefined,
+    nickname: user.nickname ?? null,
+    studentId: user.studentId ?? null,
+    schoolEmail: user.schoolEmail ?? null,
     schoolVerifiedAt: user.schoolVerifiedAt ?? null,
+    createdAt: user.createdAt ?? undefined,
   };
 };

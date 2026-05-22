@@ -55,11 +55,20 @@
 /**
  * 현재 로그인 사용자 응답. 비로그인이면 401.
  *
+ * school-auth (#540) 확장:
+ *   - nickname / studentId / schoolEmail / schoolVerifiedAt 는 모두 null 가능 (학교 인증 전).
+ *   - createdAt 은 가입일 (ISO 8601). landing /me 가입일 표시가 의존.
+ *   - 모두 optional — 구버전 BE 호환을 위해 누락도 허용.
+ *
  * @typedef {object} MeResponse
  * @property {string} id - user id (= JWT sub)
  * @property {string} [email] - 이메일 (있을 수도)
  * @property {string} [name] - 이름 (있을 수도)
- * @property {string | null} [schoolVerifiedAt] - 학교 인증 완료 시각 (ISO). 미인증이면 null. (#541)
+ * @property {string | null} [nickname] - 닉네임 (학교 인증 전이거나 미설정 시 null)
+ * @property {string | null} [studentId] - 학번 (학교 인증 전 null)
+ * @property {string | null} [schoolEmail] - 학교 메일 (학교 인증 전 null)
+ * @property {string | null} [schoolVerifiedAt] - 학교 인증 시각 (ISO 8601, 미인증 시 null). (#541)
+ * @property {string} [createdAt] - 가입일 (ISO 8601)
  */
 
 export {};

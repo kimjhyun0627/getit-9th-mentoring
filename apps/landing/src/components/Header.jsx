@@ -1,3 +1,4 @@
+import { displayName as resolveDisplayName } from '@getit/auth-utils';
 import { CodeTerminalToggle } from '@getit/theme';
 
 import { buildLoginUrl } from '../lib/auth-redirect.js';
@@ -110,7 +111,9 @@ const SessionCta = ({ user, loading, focusMono }) => {
   }
 
   if (user) {
-    const displayName = user.name || user.email || 'me';
+    // school-auth (#540): nickname > name > email > 'me' 우선순위. displayName 헬퍼는
+    // nickname/name 둘 다 비면 fallback (여기선 email/'me') 사용 — 한 곳에 모은 정책.
+    const displayName = resolveDisplayName(user, user.email || 'me');
     return (
       <div className="flex items-center gap-2" data-testid="session-cta-signed-in">
         <span
