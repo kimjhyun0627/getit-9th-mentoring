@@ -136,6 +136,15 @@ describe('renderSchoolVerifyEmail (#542)', () => {
     });
     expect(r.html).toContain('https://auth.get-it.cloud/verify-school?token=abc');
   });
+
+  it('trims surrounding whitespace before rendering (CR #548 positive path)', () => {
+    // trim → url → refine 체인의 성공 경로 — leading/trailing 공백 제거 후 정상 렌더.
+    const trimmed = 'https://auth.get-it.cloud/verify-school?token=abc';
+    const r = renderSchoolVerifyEmail({ verifyUrl: `  ${trimmed}  ` });
+    expect(r.text).toContain(trimmed);
+    expect(r.text).not.toContain(`  ${trimmed}  `);
+    expect(r.html).toContain(`href="${trimmed}"`);
+  });
 });
 
 describe('escapeHtml (#542)', () => {
