@@ -94,6 +94,8 @@ export const api = {
   verifyEmail: (body) => client.post('/verify-email', body),
   resendVerifyEmail: () => client.post('/verify-email/resend'),
   updateProfile: (body) => client.patch('/me/profile', body),
+  // #555: 닉네임 onboarding 전용 — currentPassword 재인증 없이 nickname 만 변경.
+  updateNickname: (body) => client.patch('/me/nickname', body),
   deleteAccount: (body) => client.post('/me/delete', body),
   sessions: () => client.get('/me/sessions'),
   revokeOtherSessions: () => client.post('/me/sessions/revoke-others'),

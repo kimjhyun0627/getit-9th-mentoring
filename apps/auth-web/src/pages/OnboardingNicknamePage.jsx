@@ -68,7 +68,7 @@ export const OnboardingNicknamePage = () => {
   const onSubmit = async (values) => {
     setServerError(null);
     try {
-      await api.updateProfile({ nickname: values.nickname });
+      await api.updateNickname({ nickname: values.nickname });
       window.location.replace(safeBackTarget(rawRedirect));
     } catch (err) {
       const status = err?.response?.status;
