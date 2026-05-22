@@ -59,17 +59,29 @@ describe('SignupPage', () => {
     expect(screen.getByRole('button', { name: '회원가입' })).toBeInTheDocument();
   });
 
-  it('nickname 비어있으면 검증 에러를 보여준다 (#539)', async () => {
+  // #557: nickname 비워두면 자동 추천 placeholder 값이 가입에 적용된다.
+  //   기존 #539 "비워두면 검증 에러" 정책은 자동추천 도입으로 폐기 (UX 끊김 0).
+  it('#557 nickname 비워두면 자동 추천이 placeholder + signup payload 에 반영된다', async () => {
     const user = userEvent.setup();
+    vi.spyOn(api, 'suggestNickname').mockResolvedValue({
+      data: { suggested: '느긋한너구리' },
+    });
+    const signupSpy = vi.spyOn(api, 'signup').mockResolvedValue({ data: { ok: true } });
     renderSignup();
+    // 추천 fetch 완료 → placeholder 가 채워질 때까지 대기.
+    await waitFor(() => {
+      expect(screen.getByLabelText('닉네임')).toHaveAttribute('placeholder', '느긋한너구리');
+    });
     await user.type(screen.getByLabelText('이름'), '김멘티');
-    // nickname 빈칸으로 두기
+    // nickname 빈칸으로 두기 (= placeholder 추천을 사용)
     await user.type(screen.getByLabelText('이메일'), 'me@example.com');
     await user.type(screen.getByLabelText('비밀번호'), 'longenough123');
     await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
     await acceptTermsAndPrivacy(user);
     await user.click(screen.getByRole('button', { name: '회원가입' }));
-    expect(await screen.findByText('닉네임을 입력해주세요')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(signupSpy).toHaveBeenCalledWith(expect.objectContaining({ nickname: '느긋한너구리' }));
+    });
   });
 
   it('nickname 규칙 위반 시 메시지를 보여준다 (#539)', async () => {
@@ -167,7 +179,9 @@ describe('SignupPage', () => {
     await user.type(screen.getByLabelText('비밀번호 확인'), 'longenough123');
     await acceptTermsAndPrivacy(user);
     await user.click(screen.getByRole('button', { name: '회원가입' }));
-    expect(await screen.findByText('이미 사용 중인 닉네임이에요')).toBeInTheDocument();
+    expect(
+      await screen.findByText('이미 사용 중인 닉네임이에요. 새 추천을 적용했어요.'),
+    ).toBeInTheDocument();
   });
 
   it('회원가입 성공 시 ?redirect= 파라미터 URL로 이동한다', async () => {

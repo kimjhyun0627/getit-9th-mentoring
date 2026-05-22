@@ -84,10 +84,23 @@ describe('auth-api signup / login', () => {
       expect(res.status).toBe(400);
     });
 
-    it('#538 nickname 빈 문자열은 허용 (마이그레이션 단계 nullable)', async () => {
+    // #557: nickname 빈 문자열은 BE 가 자동 추천을 적용한다 (마이그레이션 단계 동안 nullable
+    // 컬럼이지만 가입 흐름에서는 항상 채운다 — UX/onboarding 강제 우회 차단).
+    it('#557 nickname 빈 문자열 → BE 가 자동 추천을 채워 응답 (NicknameValue 정규식 통과)', async () => {
       const res = await signupOk(app, { nickname: '' });
       expect(res.status).toBe(201);
-      expect(res.body.user.nickname).toBeNull();
+      expect(typeof res.body.user.nickname).toBe('string');
+      expect(res.body.user.nickname.length).toBeGreaterThanOrEqual(2);
+      expect(res.body.user.nickname).toMatch(/^[A-Za-z0-9가-힣ㄱ-ㅎㅏ-ㅣ\-_]+$/u);
+    });
+
+    it('#557 nickname 키 누락 → BE 가 자동 추천을 채워 응답', async () => {
+      const body = { ...VALID_SIGNUP };
+      delete body.nickname;
+      const res = await request(app).post('/api/signup').send(body);
+      expect(res.status).toBe(201);
+      expect(typeof res.body.user.nickname).toBe('string');
+      expect(res.body.user.nickname.length).toBeGreaterThanOrEqual(2);
     });
   });
 
