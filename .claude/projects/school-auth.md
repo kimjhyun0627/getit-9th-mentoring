@@ -262,12 +262,12 @@ model SchoolVerifyToken {
 ### 전 webs (landing / hobby / shelf / board / letter)
 
 - `useSession` 훅 응답에 nickname / schoolVerifiedAt / studentId / **createdAt** 포함되도록 확장 (landing `/me` 가입 일자 표시가 의존 — 단일 출처 보장. 같은 5필드를 `/api/me` 응답 + `publicUser` 헬퍼도 그대로 노출)
-- nickname null 감지 → `auth.get-it.cloud/onboarding/nickname?redirect=<현재URL>` 강제 redirect (기존 auth-web `?redirect=` 파라미터 컨벤션과 일치 — `MePage.jsx` 참고)
+- nickname null 감지 → `auth.get-it.cloud/onboarding/nickname?redirect=<현재URL>` 강제 redirect — **landing 제외 (전 webs = hobby / shelf / board / letter)**. landing은 자체 `/me` 페이지에서 "닉네임을 설정해주세요" + onboarding 진입 카드로 처리하므로 강제 redirect X.
 - **`?redirect=` 보안 정책 (모든 webs 공통, auth-web `/login` / `onboarding/nickname` 포함)**:
-  - 허용 도메인 allowlist: `get-it.cloud` (정확 매치) + **1레벨 서브도메인만** `*.get-it.cloud` (정규식 `^[a-z0-9-]+\.get-it\.cloud$` — 소문자/숫자/하이픈 허용, 다중 레벨 서브도메인 `a.b.get-it.cloud` 제외)
+  - 허용 도메인 allowlist: `get-it.cloud` (정확 매치) + **1레벨 서브도메인만** `*.get-it.cloud` (DNS-compliant label: 시작/끝은 alphanumeric, 중간만 hyphen 허용, label 길이 1-63자. 정규식: `^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.get-it\.cloud$`. 다중 레벨 서브도메인 `a.b.get-it.cloud` 제외)
   - 매치 대상 호스트 예시 (OK): `get-it.cloud`, `auth.get-it.cloud`, `hobby.get-it.cloud`, `shelf.get-it.cloud`, `board.get-it.cloud`, `letter.get-it.cloud` (host는 비교 전 lowercase 정규화되므로 `GET-IT.CLOUD` 같은 대문자 입력도 동일 통과)
-  - 매치 거부 예시 (FAIL): `evil.com`, `get-it.cloud.evil.com`, `a.b.get-it.cloud` (다중 레벨 서브도메인)
-  - 처리 절차: (1) URL 디코딩 → (2) `new URL(...)` 파싱 (parse 실패 시 reject) → (3) `host.toLowerCase()` 가 정규식 매치 또는 `=== "get-it.cloud"` 확인 → (4) 매치 안 되면 안전 기본 경로(`https://get-it.cloud`)로 폴백
+  - 매치 거부 예시 (FAIL): `evil.com`, `get-it.cloud.evil.com`, `a.b.get-it.cloud` (다중 레벨 서브도메인), `-foo.get-it.cloud` / `foo-.get-it.cloud` (label 시작/끝 hyphen)
+  - 처리 절차: (1) URL 디코딩 → (2) **`new URL(redirect_value)` 파싱 (base 인자 없음)** — relative URL은 throw → reject 처리. 절대 URL만 허용해서 implicit fallback 차단 → (3) `host.toLowerCase()` 가 위 정규식 매치 또는 `=== "get-it.cloud"` 확인 → (4) 매치 안 되면 안전 기본 경로(`https://get-it.cloud`)로 폴백
   - 오픈 리다이렉트 방어 목적 — 구현자 재량 금지, 위 절차 그대로 따름
 - 사용자명 표시는 `user.nickname ?? user.name` 헬퍼로 통일
 - (hobby 만) 모집글 작성 / 신청 버튼 — `schoolVerifiedAt == null` 이면 disabled + tooltip "학교 인증한 부원만 가능"
