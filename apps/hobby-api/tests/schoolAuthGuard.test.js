@@ -167,11 +167,12 @@ describe('school-auth guard — PUT + cookie auth (#541, CR)', () => {
     expect(res.status).toBe(201);
   });
 
-  it('schoolVerifiedAt 이 ISO 형식이 아닌 truthy 값 — 가드 차단 (방어층, CR #549)', async () => {
-    // verifyJwt 내부의 JwtPayload 스키마가 같은 검증을 하지만, 만약 통과해도
-    // guard 가 한 번 더 검증해서 권한 우회 차단. signJwt 가 schema 거치지 않으므로
-    // 'not-a-date' 같은 잘못된 값도 sign 가능 — 테스트는 verifyJwt 의 schema 검증을 통해
-    // 401 reject 됨을 확인 (가드는 통과, requireAuth 가 401).
+  it('schoolVerifiedAt 이 ISO 형식이 아닌 truthy 값 — verifyJwt 가 401 reject (#549)', async () => {
+    // signJwt 는 JwtPayload Zod 스키마를 거치지 않으므로 'not-a-date' 같은 잘못된 값도
+    // 토큰에 박힐 수 있다. 하지만 검증 경로 (verifyJwt) 에서 JwtPayload schema 검사로
+    // 폐기 → 가드 미들웨어는 통과 → 라우터의 requireAuth 가 401 응답.
+    // 즉 이 케이스는 "가드 차단" 이 아니라 "JWT payload 검증 단계에서 401" 이 정확한 의도.
+    // 가드의 Zod 재검증 (방어층) 자체는 verifyJwt 가 통과시킨 ISO-truthy 값에만 영향.
     const badToken = signJwt(
       { sub: 'baduser', email: 'b@get-it.cloud', name: 'B', schoolVerifiedAt: 'not-a-date' },
       SECRET,
@@ -180,7 +181,6 @@ describe('school-auth guard — PUT + cookie auth (#541, CR)', () => {
       .post('/api/posts')
       .set('Authorization', `Bearer ${badToken}`)
       .send(createPostBody());
-    // verifyJwt 가 JwtPayload Zod 검증에서 실패 → 가드는 통과 → requireAuth 가 401.
     expect(res.status).toBe(401);
   });
 });

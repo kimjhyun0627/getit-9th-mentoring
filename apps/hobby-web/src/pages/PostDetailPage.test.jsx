@@ -169,7 +169,11 @@ describe('PostDetailPage', () => {
         myApplication: { id: 'app-existing', createdAt: '2026-05-19T08:00:00.000Z' },
       }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    // #549 CR: 신청 가능했던 사용자 = 학교 인증 완료 상태가 전제.
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     renderAt();
     expect(await screen.findByRole('button', { name: /신청 취소/ })).toBeInTheDocument();
   });
@@ -236,7 +240,11 @@ describe('PostDetailPage', () => {
           },
         }),
       });
-      vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+      // #549 CR: 신청한 상태인 사용자는 학교 인증 통과 전제.
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u-applicant',
+        schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+      });
       renderAt();
       expect(await screen.findByTestId('apply-section-pending')).toBeInTheDocument();
       expect(screen.getByText(/방장 승인 대기 중/)).toBeInTheDocument();
@@ -254,7 +262,11 @@ describe('PostDetailPage', () => {
           },
         }),
       });
-      vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+      // #549 CR: 신청 이력이 있는 사용자 = 학교 인증 통과 전제.
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u-applicant',
+        schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+      });
       renderAt();
       expect(await screen.findByTestId('apply-section-rejected')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /신청하기/ })).not.toBeInTheDocument();
