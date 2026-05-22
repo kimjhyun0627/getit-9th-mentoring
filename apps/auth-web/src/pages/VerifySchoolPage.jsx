@@ -64,7 +64,8 @@ export const VerifySchoolPage = () => {
         // BE ValidationError (zodErrorBody) → studentId 인라인 매핑.
         setError('studentId', {
           type: 'server',
-          message: '학번이 올바르지 않아요 · 10자리 숫자로 입력해주세요',
+          // schema 메시지와 통일 — 사용자에게 일관된 피드백 (Gemini #568).
+          message: '학번은 10자리 숫자입니다',
         });
         return;
       }
@@ -108,7 +109,8 @@ export const VerifySchoolPage = () => {
             type="text"
             inputMode="numeric"
             autoComplete="off"
-            maxLength={10}
+            // Gemini #568: paste 시 앞뒤 공백 잘림 방지 — schema 가 trim 처리.
+            maxLength={12}
             placeholder="2024111234"
             error={errors.studentId?.message}
             {...register('studentId')}

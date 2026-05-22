@@ -208,7 +208,12 @@ export const SchoolLinkInput = z.object({
 // VerifyEmailInput 과 일관성 — generateRefreshToken 은 32+ hex 를 만든다.
 export const VerifySchoolInput = z.object({
   token: z.string().min(32, '유효하지 않은 토큰입니다'),
-  studentId: z.string().regex(/^\d{10}$/, '학번은 10자리 숫자입니다'),
+  // Gemini #568: 다른 필드(nickname/email) 와 일관되게 trim 후 검증.
+  // FE maxLength 가 약간 여유 있어서 (12) paste 앞뒤 공백도 처리.
+  studentId: z
+    .string()
+    .transform((v) => v.trim())
+    .pipe(z.string().regex(/^\d{10}$/, '학번은 10자리 숫자입니다')),
 });
 
 /**

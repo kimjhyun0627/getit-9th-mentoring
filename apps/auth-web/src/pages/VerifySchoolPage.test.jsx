@@ -125,6 +125,6 @@ describe('VerifySchoolPage', () => {
     renderVerify();
     await user.type(screen.getByLabelText('학번 (10자리)'), '2024111234');
     await user.click(screen.getByRole('button', { name: '학교 인증 완료' }));
-    expect(await screen.findByText(/학번이 올바르지 않아요/)).toBeInTheDocument();
+    expect(await screen.findByText('학번은 10자리 숫자입니다')).toBeInTheDocument();
   });
 });
