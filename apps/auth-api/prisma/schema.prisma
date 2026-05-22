@@ -99,18 +99,19 @@ model EmailVerifyToken {
 /// - tokenHash: 평문 토큰의 SHA-256 해시. 평문은 절대 저장 X.
 /// - studentId: 학번 — token 검증 후 verify-school 페이지 단계 2 에서 채움.
 /// - expiresAt: 발급 시점 + TTL (BE 에서 결정, #538).
-/// - consumedAt: 사용된 시점 (null이면 미사용). 사용 후엔 재사용 불가.
+/// - usedAt: 사용된 시점 (null이면 미사용). 사용 후엔 재사용 불가.
+///   기존 EmailVerifyToken / PasswordResetToken 과 일관된 필드명 (Gemini 리뷰 반영).
 /// - 사용 시 User.schoolEmail / studentId / schoolVerifiedAt 채워줌.
 model SchoolVerifyToken {
-  id         String    @id @default(cuid())
-  userId     String
-  email      String
-  tokenHash  String    @unique
-  studentId  String?
-  expiresAt  DateTime
-  consumedAt DateTime?
-  createdAt  DateTime  @default(now())
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  userId    String
+  email     String
+  tokenHash String    @unique
+  studentId String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([email])

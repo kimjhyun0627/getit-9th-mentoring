@@ -21,7 +21,7 @@ CREATE TABLE `SchoolVerifyToken` (
     `tokenHash`  VARCHAR(191) NOT NULL,
     `studentId`  VARCHAR(191) NULL,
     `expiresAt`  DATETIME(3)  NOT NULL,
-    `consumedAt` DATETIME(3)  NULL,
+    `usedAt`     DATETIME(3)  NULL,
     `createdAt`  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     UNIQUE INDEX `SchoolVerifyToken_tokenHash_key`(`tokenHash`),
