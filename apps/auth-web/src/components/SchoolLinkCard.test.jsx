@@ -26,8 +26,16 @@ const verifiedUser = {
 };
 
 describe('SchoolLinkCard', () => {
+  // CR minor: prototype 오염 막기. jsdom 은 scrollIntoView 미정의 → 한번 정의해서
+  // vi.spyOn 이 자동 원복할 수 있게 한다. afterEach 에서 restoreAllMocks 가 spy 만 원복하고
+  // 원본 정의는 유지하지만, suite 격리는 충분 (다른 suite 에선 본인 spy 등록 패턴 동일).
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
+  let scrollSpy;
   beforeEach(() => {
     vi.restoreAllMocks();
+    scrollSpy = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -129,9 +137,6 @@ describe('SchoolLinkCard', () => {
   });
 
   it('focus=true 면 scrollIntoView 호출 + highlight 클래스 적용', async () => {
-    const scrollSpy = vi.fn();
-    // jsdom 은 scrollIntoView 미구현 — 명시적 prototype mock.
-    Element.prototype.scrollIntoView = scrollSpy;
     render(wrap(<SchoolLinkCard user={unverifiedUser} focus />));
     await waitFor(() => {
       expect(scrollSpy).toHaveBeenCalled();
@@ -142,8 +147,6 @@ describe('SchoolLinkCard', () => {
   });
 
   it('focus 가 false 면 scrollIntoView 미호출', () => {
-    const scrollSpy = vi.fn();
-    Element.prototype.scrollIntoView = scrollSpy;
     render(wrap(<SchoolLinkCard user={unverifiedUser} focus={false} />));
     expect(scrollSpy).not.toHaveBeenCalled();
   });

@@ -94,7 +94,6 @@ const ProfileSummary = ({ user }) => {
   const name = typeof user.name === 'string' ? user.name : '';
   const email = typeof user.email === 'string' ? user.email : '';
   const nickname = typeof user.nickname === 'string' ? user.nickname : null;
-  const display = nickname || name;
   return (
     <section
       aria-labelledby="me-profile-heading"
@@ -106,8 +105,9 @@ const ProfileSummary = ({ user }) => {
       >
         프로필
       </h2>
+      {/* Gemini medium: "이름" 자리는 실제 name, "닉네임" 은 별도 row 로 분리해서 정보 중복 X. */}
       <dl className="flex flex-col gap-1.5 font-mono text-[12px] text-zinc-700 dark:text-zinc-300">
-        <Row label="이름" value={display} />
+        <Row label="이름" value={name} />
         {nickname ? <Row label="닉네임" value={nickname} /> : null}
         <Row label="이메일" value={email} />
       </dl>

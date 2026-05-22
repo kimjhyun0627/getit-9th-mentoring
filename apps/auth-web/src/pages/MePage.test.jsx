@@ -48,8 +48,15 @@ const unverifiedMe = {
 };
 
 describe('MePage', () => {
+  // CR minor: prototype 오염 막기. jsdom 은 scrollIntoView 미정의 → 한번 정의해서
+  // vi.spyOn 이 자동 원복할 수 있게 한다.
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
+  let scrollSpy;
   beforeEach(() => {
     vi.restoreAllMocks();
+    scrollSpy = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -77,8 +84,6 @@ describe('MePage', () => {
   });
 
   it('?focus=school-link 쿼리 진입 시 scrollIntoView 가 호출된다', async () => {
-    const scrollSpy = vi.fn();
-    Element.prototype.scrollIntoView = scrollSpy;
     vi.spyOn(api, 'me').mockResolvedValue({ data: { user: unverifiedMe } });
     renderMe('/me?focus=school-link');
     await screen.findByLabelText('학교 메일 (@knu.ac.kr)');
@@ -88,22 +93,18 @@ describe('MePage', () => {
   });
 
   it('?focus 없을 때 scrollIntoView 미호출', async () => {
-    const scrollSpy = vi.fn();
-    Element.prototype.scrollIntoView = scrollSpy;
     vi.spyOn(api, 'me').mockResolvedValue({ data: { user: unverifiedMe } });
     renderMe('/me');
     await screen.findByLabelText('학교 메일 (@knu.ac.kr)');
     expect(scrollSpy).not.toHaveBeenCalled();
   });
 
-  it('프로필 요약: 닉네임이 있으면 닉네임을 우선 표시한다', async () => {
+  it('프로필 요약: 이름과 닉네임을 분리해서 표시한다 (Gemini medium)', async () => {
     vi.spyOn(api, 'me').mockResolvedValue({ data: { user: verifiedMe } });
     renderMe();
-    // 이름 row + 닉네임 row 두 군데에 멘티9 가 노출됨
-    await waitFor(() => {
-      const all = screen.getAllByText('멘티9');
-      expect(all.length).toBeGreaterThanOrEqual(1);
-    });
+    // 이름 row 는 name (김멘티), 닉네임 row 는 nickname (멘티9) — 정보 중복 X.
+    await screen.findByText('김멘티');
+    expect(screen.getByText('멘티9')).toBeInTheDocument();
     // 닉네임 라벨 row 존재
     expect(screen.getByText('닉네임')).toBeInTheDocument();
   });
