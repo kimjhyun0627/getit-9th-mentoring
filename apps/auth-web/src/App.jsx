@@ -24,6 +24,7 @@ import { VerifySchoolPage } from './pages/VerifySchoolPage.jsx';
  *  - /reset-password  → ResetPasswordPage  (Issue #221)
  *  - /verify-email    → VerifyEmailPage    (Issue #226)
  *  - /verify-school   → VerifySchoolPage   (Issue #539 — 학교 메일 인증 토큰 처리)
+ *  - /onboarding/nickname → OnboardingNicknamePage (Issue #555 — 기존 계정 nickname 강제 onboarding)
  *  - /me              → MePage             (Issue #539 — 마이페이지 + 학교 연동)
  *  - /profile         → ProfilePage        (Issue #235)
  *  - /delete-account  → DeleteAccountPage  (Issue #231)

@@ -1,6 +1,6 @@
 import { NicknameValue } from '@getit/schemas/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -28,6 +28,7 @@ export const OnboardingNicknamePage = () => {
   const rawRedirect = params.get('redirect');
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
   const [loading, setLoading] = useState(true);
+  const inputRef = useRef(/** @type {HTMLInputElement | null} */ (null));
 
   const {
     register,
@@ -38,6 +39,12 @@ export const OnboardingNicknamePage = () => {
     mode: 'onSubmit',
     defaultValues: { nickname: '' },
   });
+  const { ref: registerRef, ...registerRest } = register('nickname');
+
+  // 로딩 끝나면 키보드 초기 focus — autoFocus prop a11y 이슈 (모바일 / SR) 회피.
+  useEffect(() => {
+    if (!loading) inputRef.current?.focus();
+  }, [loading]);
 
   // 진입 시 me 로드 — 비로그인 / 이미 nickname 있음 케이스 처리.
   useEffect(() => {
@@ -71,7 +78,7 @@ export const OnboardingNicknamePage = () => {
         return;
       }
       if (status === 401) {
-        navigate('/login?redirect=/onboarding/nickname', { replace: true });
+        navigate(`/login${redirectBackToOnboarding(rawRedirect)}`, { replace: true });
         return;
       }
       setServerError('닉네임을 저장하지 못했어요. 잠시 후 다시 시도해주세요.');
@@ -81,6 +88,9 @@ export const OnboardingNicknamePage = () => {
   if (loading) {
     return <p className="font-mono text-[12px] text-zinc-500">불러오는 중…</p>;
   }
+
+  // ref 와 useEffect 로 명시적 focus — autoFocus prop a11y 이슈 회피.
+  // (CR: autoFocus 는 모바일 키보드 강제 + screen reader UX 저하)
 
   return (
     <div className="flex flex-col gap-7">
@@ -106,10 +116,13 @@ export const OnboardingNicknamePage = () => {
           label="닉네임"
           id="onboarding-nickname"
           autoComplete="nickname"
-          autoFocus
           placeholder="예: 길동이"
           error={errors.nickname?.message}
-          {...register('nickname')}
+          {...registerRest}
+          ref={(el) => {
+            registerRef(el);
+            inputRef.current = el;
+          }}
         />
 
         {serverError ? (
@@ -122,6 +135,21 @@ export const OnboardingNicknamePage = () => {
       </form>
     </div>
   );
+};
+
+/**
+ * 401 발생 시 /login 으로 보낼 때 원래 onboarding redirect 를 보존.
+ * 사용자가 로그인 후 onboarding 으로 돌아오고, 거기서 nickname 설정 후
+ * 다시 rawRedirect (원래 가려던 URL) 로 이어가도록.
+ *
+ * @param {string | null} rawRedirect
+ * @returns {string}
+ */
+const redirectBackToOnboarding = (rawRedirect) => {
+  const onboardingPath = rawRedirect
+    ? `/onboarding/nickname?redirect=${encodeURIComponent(rawRedirect)}`
+    : '/onboarding/nickname';
+  return `?redirect=${encodeURIComponent(onboardingPath)}`;
 };
 
 /**
