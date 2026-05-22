@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AppLayout } from './components/AppLayout.jsx';
+import { NicknameOnboardingGuard } from './components/NicknameOnboardingGuard.jsx';
 import { BoardsPage } from './pages/BoardsPage.jsx';
 import { BoardViewPage } from './pages/BoardViewPage.jsx';
 
@@ -15,6 +16,8 @@ import { BoardViewPage } from './pages/BoardViewPage.jsx';
 export const App = () => {
   return (
     <AppLayout>
+      {/* school-auth (#540) — 로그인 사용자가 nickname null 이면 onboarding 강제 redirect */}
+      <NicknameOnboardingGuard />
       <Routes>
         <Route path="/boards" element={<BoardsPage />} />
         <Route path="/boards/:id" element={<BoardViewPage />} />

@@ -61,8 +61,20 @@ client.interceptors.response.use((res) => res, onError);
 authClient.interceptors.response.use((res) => res, onError);
 
 /**
+ * `/api/me` 응답. school-auth (#540) 로 nickname / studentId / schoolEmail /
+ * schoolVerifiedAt / createdAt 추가 — 모두 null 가능 (학교 인증 전).
+ *
  * @typedef {object} MeResponse
- * @property {{ sub: string; email?: string; name?: string }} user - JWT payload
+ * @property {{
+ *   sub: string;
+ *   email?: string;
+ *   name?: string;
+ *   nickname?: string | null;
+ *   studentId?: string | null;
+ *   schoolEmail?: string | null;
+ *   schoolVerifiedAt?: string | null;
+ *   createdAt?: string;
+ * }} user - JWT payload + school-auth 필드
  */
 
 /**

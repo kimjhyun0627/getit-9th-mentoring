@@ -1,3 +1,4 @@
+import { displayName } from '@getit/auth-utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -108,7 +109,7 @@ export const MePage = () => {
           내 모임 <span aria-hidden="true">🤝</span>
         </h1>
         <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 font-round">
-          {me.name ?? me.email ?? '익명'} 님이 만든·신청한 모임을 한 곳에서.
+          {displayName(me, me.email ?? '익명')} 님이 만든·신청한 모임을 한 곳에서.
         </p>
 
         <div role="tablist" aria-label="마이페이지 탭" className="mt-7 flex items-center gap-2">

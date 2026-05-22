@@ -69,7 +69,50 @@ describe('useSession (#343 / #246)', () => {
     const { result } = renderHook(() => useSession());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.user).toEqual({ sub: 'u1', email: 'a@b.com', name: '홍길동' });
+    // school-auth (#540) — 신규 필드가 BE 응답에 없으면 null (createdAt 만 undefined).
+    expect(result.current.user).toEqual({
+      sub: 'u1',
+      email: 'a@b.com',
+      name: '홍길동',
+      nickname: null,
+      studentId: null,
+      schoolEmail: null,
+      schoolVerifiedAt: null,
+      createdAt: undefined,
+    });
+  });
+
+  it('school-auth (#540) — nickname / studentId / schoolEmail / schoolVerifiedAt / createdAt 노출', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        user: {
+          sub: 'u1',
+          email: 'a@b.com',
+          name: '홍길동',
+          nickname: '길동이',
+          studentId: '20241234',
+          schoolEmail: 'user@knu.ac.kr',
+          schoolVerifiedAt: '2026-05-21T10:00:00Z',
+          createdAt: '2026-05-01T09:00:00Z',
+        },
+      }),
+    });
+
+    const { result } = renderHook(() => useSession());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.user).toEqual({
+      sub: 'u1',
+      email: 'a@b.com',
+      name: '홍길동',
+      nickname: '길동이',
+      studentId: '20241234',
+      schoolEmail: 'user@knu.ac.kr',
+      schoolVerifiedAt: '2026-05-21T10:00:00Z',
+      createdAt: '2026-05-01T09:00:00Z',
+    });
   });
 
   it('401 응답이면 user=null + loading=false (비로그인)', async () => {

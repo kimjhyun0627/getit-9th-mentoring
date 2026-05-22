@@ -1,3 +1,4 @@
+import { buildNicknameOnboardingUrl } from '@getit/auth-utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -44,6 +45,23 @@ export const BoardPage = () => {
     staleTime: 5 * 60_000,
   });
   const isAuthed = meQuery.isSuccess;
+
+  // school-auth (#540) — 로그인 됐는데 nickname null 이면 onboarding 강제 redirect.
+  // 비로그인은 401 → setUnauthorizedHandler 가 별도 처리. 5xx/네트워크는 ErrorState 로.
+  useEffect(() => {
+    if (!isAuthed) return;
+    if (typeof window === 'undefined') return;
+    const user = meQuery.data?.user;
+    if (!user) return;
+    const nickname = user.nickname;
+    const hasNickname = typeof nickname === 'string' && nickname.trim().length > 0;
+    if (hasNickname) return;
+    if (window.location.pathname.startsWith('/onboarding/nickname')) return;
+    window.location.href = buildNicknameOnboardingUrl({
+      authOrigin: import.meta.env?.VITE_AUTH_URL ?? 'https://auth.get-it.cloud',
+      currentUrl: window.location.href,
+    });
+  }, [isAuthed, meQuery.data]);
 
   // #279 — 30초 polling + window focus refetch. 부원 ~50명 + GET limit 60/min 안전.
   // #486 — 429 자동 backoff. 정당 사용자가 다중 탭 + focus refetch 누적으로 429 받으면

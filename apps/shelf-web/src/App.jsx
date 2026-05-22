@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { NicknameOnboardingGuard } from './components/NicknameOnboardingGuard.jsx';
 import { ShelfLayout } from './components/ShelfLayout.jsx';
 import { BookDetailPage } from './pages/BookDetailPage.jsx';
 import { HomePage } from './pages/HomePage.jsx';
@@ -18,6 +19,8 @@ import { UserShelfPage } from './pages/UserShelfPage.jsx';
 export const App = () => {
   return (
     <ShelfLayout>
+      {/* school-auth (#540) — 로그인 사용자가 nickname null 이면 onboarding 강제 redirect */}
+      <NicknameOnboardingGuard />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/search" element={<SearchPage />} />
