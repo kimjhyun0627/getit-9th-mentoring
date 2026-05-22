@@ -62,7 +62,10 @@ authClient.interceptors.response.use((res) => res, onError);
 
 /**
  * `/api/me` 응답. school-auth (#540) 로 nickname / studentId / schoolEmail /
- * schoolVerifiedAt / createdAt 추가 — 모두 null 가능 (학교 인증 전).
+ * schoolVerifiedAt 추가 — 학교 인증 전엔 null 가능.
+ *
+ * createdAt 은 가입일 (ISO 8601) — 보통 항상 존재하지만 구버전 BE 가 안 보낼 수도
+ * 있어 optional. PRD `auth-api/publicUser` 헬퍼 반환 형태와 일치.
  *
  * @typedef {object} MeResponse
  * @property {{

@@ -34,13 +34,18 @@ export const buildNicknameOnboardingUrl = ({ authOrigin, currentUrl }) => {
 };
 
 /**
+ * `enforced` 플래그 (PRD `NICKNAME_ONBOARDING_ENFORCED` 결함 시 OFF — 데이터는
+ * 보존하고 동작만 비활성화) 가 false 면 가드 자체를 skip. 기본 true.
+ *
  * @param {{
  *   user: { nickname?: string | null } | null | undefined;
  *   currentPath: string;
+ *   enforced?: boolean;
  * }} opts
  * @returns {boolean}
  */
-export const shouldEnforceNicknameOnboarding = ({ user, currentPath }) => {
+export const shouldEnforceNicknameOnboarding = ({ user, currentPath, enforced = true }) => {
+  if (!enforced) return false;
   if (!user) return false;
   const nickname = /** @type {{ nickname?: unknown }} */ (user).nickname;
   const hasNickname = typeof nickname === 'string' && nickname.trim().length > 0;

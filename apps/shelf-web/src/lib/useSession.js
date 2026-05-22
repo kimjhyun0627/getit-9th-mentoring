@@ -36,6 +36,14 @@ import { z } from 'zod';
 const AUTH_ORIGIN = import.meta.env?.VITE_AUTH_URL || 'https://auth.get-it.cloud';
 const ME_TIMEOUT_MS = 3000;
 
+/**
+ * trim 후 비어있지 않은 string 만 반환. 그 외는 null (CR Major #550).
+ *
+ * @param {unknown} v
+ * @returns {string | null}
+ */
+const orNullableNonEmpty = (v) => (typeof v === 'string' && v.trim().length > 0 ? v : null);
+
 const SessionUserSchema = z
   .object({
     sub: z.string().min(1),
@@ -80,10 +88,11 @@ export const useSession = () => {
             sub: d.sub,
             email: d.email,
             name: d.name,
-            nickname: d.nickname ?? null,
-            studentId: d.studentId ?? null,
-            schoolEmail: d.schoolEmail ?? null,
-            schoolVerifiedAt: d.schoolVerifiedAt ?? null,
+            // CR Major #550 — 공백/빈 문자열도 null 정규화 (orNullableNonEmpty).
+            nickname: orNullableNonEmpty(d.nickname),
+            studentId: orNullableNonEmpty(d.studentId),
+            schoolEmail: orNullableNonEmpty(d.schoolEmail),
+            schoolVerifiedAt: orNullableNonEmpty(d.schoolVerifiedAt),
             createdAt: d.createdAt,
           });
         } else {

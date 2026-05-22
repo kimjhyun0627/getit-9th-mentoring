@@ -92,4 +92,24 @@ describe('shouldEnforceNicknameOnboarding', () => {
       }),
     ).toBe(false);
   });
+
+  it('enforced=false → 항상 false (PRD feature flag OFF 시나리오)', () => {
+    expect(
+      mod.shouldEnforceNicknameOnboarding({
+        user: { nickname: null },
+        currentPath: '/',
+        enforced: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('enforced=true (default) → 정상 동작', () => {
+    expect(
+      mod.shouldEnforceNicknameOnboarding({
+        user: { nickname: null },
+        currentPath: '/',
+        enforced: true,
+      }),
+    ).toBe(true);
+  });
 });

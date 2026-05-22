@@ -28,6 +28,8 @@ describe('safeRedirect', () => {
       ['https://shelf.get-it.cloud/', 'https://shelf.get-it.cloud/'],
       ['https://board.get-it.cloud/', 'https://board.get-it.cloud/'],
       ['https://letter.get-it.cloud/', 'https://letter.get-it.cloud/'],
+      // RFC 1035 single-char label 도 통과 (CR Minor #550 — 주석/regex 일치 확인).
+      ['https://a.get-it.cloud/', 'https://a.get-it.cloud/'],
     ])('allowlist host 그대로 통과: %s', (input, expected) => {
       expect(safeRedirect(input)).toBe(expected);
     });

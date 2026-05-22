@@ -6,6 +6,8 @@ import { api } from './api.js';
 
 // dev / preview / prod 분기 — 다른 web 들과 동일하게 import.meta.env 우선.
 const AUTH_ORIGIN = import.meta.env?.VITE_AUTH_URL || 'https://auth.get-it.cloud';
+// PRD 롤백 시나리오: NICKNAME_ONBOARDING_ENFORCED 플래그 OFF 가능.
+const ENFORCED = import.meta.env?.VITE_NICKNAME_ONBOARDING_ENFORCED !== 'false';
 
 /**
  * hobby-web 공용 인증 훅 (#331, school-auth #540 확장).
@@ -56,7 +58,13 @@ export const useRequireAuth = () => {
 
     // 로그인 됐는데 nickname null → onboarding 강제 redirect (#540).
     // 공용 가드 `shouldEnforceNicknameOnboarding` 으로 정책 일원화 (Gemini medium #550).
-    if (shouldEnforceNicknameOnboarding({ user: me, currentPath: window.location.pathname })) {
+    if (
+      shouldEnforceNicknameOnboarding({
+        user: me,
+        currentPath: window.location.pathname,
+        enforced: ENFORCED,
+      })
+    ) {
       window.location.href = buildNicknameOnboardingUrl({
         authOrigin: AUTH_ORIGIN,
         currentUrl: window.location.href,

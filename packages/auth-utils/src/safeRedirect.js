@@ -14,8 +14,8 @@
  *      - `get-it.cloud` (정확 매치)
  *      - `^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.get-it\.cloud$` (1레벨 서브도메인,
  *         DNS-compliant label).
- *      label 길이 2자 이상 — `[a-z0-9](?:...{0,61}[a-z0-9])?` 가 single-char 도 허용하지만
- *      RFC 1035 컨벤션 따라 양 끝 alphanumeric 강제.
+ *      label 길이 1~63자 (RFC 1035 컨벤션) — optional group 덕에 1글자 라벨도 OK
+ *      (`a.get-it.cloud`). 양 끝 alphanumeric 강제, 중간만 hyphen 허용.
  *   5. 매치 실패 시 `safeDefault` (호출자 인자) 또는 `https://get-it.cloud` 로 폴백.
  *      safeDefault 자체가 invalid 면 hard-coded `https://get-it.cloud`.
  *

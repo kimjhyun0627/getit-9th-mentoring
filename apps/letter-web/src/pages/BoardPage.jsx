@@ -49,11 +49,19 @@ export const BoardPage = () => {
   // school-auth (#540) — 로그인 됐는데 nickname null 이면 onboarding 강제 redirect.
   // 비로그인은 401 → setUnauthorizedHandler 가 별도 처리. 5xx/네트워크는 ErrorState 로.
   // 정책은 `shouldEnforceNicknameOnboarding` 으로 일원화 (Gemini medium #550).
+  // PRD 롤백: VITE_NICKNAME_ONBOARDING_ENFORCED='false' 면 강제 모드 OFF (CR Major #550).
   useEffect(() => {
     if (!isAuthed) return;
     if (typeof window === 'undefined') return;
+    const enforced = import.meta.env?.VITE_NICKNAME_ONBOARDING_ENFORCED !== 'false';
     const user = meQuery.data?.user ?? null;
-    if (!shouldEnforceNicknameOnboarding({ user, currentPath: window.location.pathname })) {
+    if (
+      !shouldEnforceNicknameOnboarding({
+        user,
+        currentPath: window.location.pathname,
+        enforced,
+      })
+    ) {
       return;
     }
     window.location.href = buildNicknameOnboardingUrl({

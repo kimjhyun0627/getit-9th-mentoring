@@ -82,6 +82,28 @@ describe('useSession (#343 / #246)', () => {
     });
   });
 
+  it('school-auth (#540) — 공백/빈 문자열 필드는 null 정규화 (CR Major)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        user: {
+          sub: 'u1',
+          nickname: '   ', // 공백만
+          studentId: '', // 빈 문자열
+          schoolEmail: null,
+        },
+      }),
+    });
+
+    const { result } = renderHook(() => useSession());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.user?.nickname).toBeNull();
+    expect(result.current.user?.studentId).toBeNull();
+    expect(result.current.user?.schoolEmail).toBeNull();
+  });
+
   it('school-auth (#540) — nickname / studentId / schoolEmail / schoolVerifiedAt / createdAt 노출', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
