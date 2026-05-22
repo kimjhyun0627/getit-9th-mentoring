@@ -6,10 +6,16 @@
  *    letter-api 로 보냄 → 라우터 없으면 404 → FE 401 핸들러 안 탐 → SSO redirect 누락.
  *  - 이 테스트는 letter-api 가 `/me` 를 항상 제공한다는 invariant 를 락한다.
  *
+ * 무한 redirect fix 회귀:
+ *  - JWT payload 의 nickname / schoolVerifiedAt 를 응답에 echo 해야 한다.
+ *  - nickname 누락 시 FE NicknameOnboardingGuard 가 onboarding 으로 redirect → 사용자가
+ *    nickname 설정 → letter 복귀 → 또 누락 → 무한 루프. 응답 키가 있으면 끊긴다.
+ *
  * 커버리지:
  *  - Authorization 헤더 없음 → 401 (FE 401 핸들러가 SSO redirect 트리거할 수 있게)
  *  - 잘못된 JWT → 401
- *  - 유효 JWT → 200 + `{ user: { sub, email, name } }` (auth-api 컨트랙트와 동일)
+ *  - 유효 JWT → 200 + user echo (nickname / schoolVerifiedAt 포함, 없을 땐 null)
+ *  - JWT 가 nickname 가지면 응답에도 그 값 그대로
  *  - 응답 모양: 추가 키 없음 (passwordHash 등 안전한 echo)
  */
 import { signJwt } from '@getit/auth-utils/server';
@@ -21,8 +27,8 @@ import './setup.js';
 
 const SECRET = process.env.JWT_SECRET;
 
-const tokenFor = (sub, email = `${sub}@get-it.cloud`, name = sub) =>
-  signJwt({ sub, email, name }, SECRET);
+const tokenFor = (sub, email = `${sub}@get-it.cloud`, name = sub, extras = {}) =>
+  signJwt({ sub, email, name, ...extras }, SECRET);
 
 describe('letter-api GET /api/me', () => {
   /** @type {import('express').Express} */
@@ -51,6 +57,30 @@ describe('letter-api GET /api/me', () => {
     expect(res.body).toMatchObject({
       user: { sub: 'user-1', email: 'user1@get-it.cloud', name: 'User One' },
     });
+  });
+
+  // 무한 redirect fix — 무 nickname 토큰도 응답에 명시적 null 동봉.
+  it('JWT 에 nickname 없음 → 응답 user.nickname = null (명시적)', async () => {
+    const token = tokenFor('user-3');
+    const res = await request(app).get('/api/me').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.nickname).toBeNull();
+    expect(res.body.user.schoolVerifiedAt).toBeNull();
+  });
+
+  it('JWT 에 nickname 박힘 → 응답에도 그대로 echo', async () => {
+    const token = tokenFor('user-4', 'u4@get-it.cloud', 'U4', { nickname: '길동이' });
+    const res = await request(app).get('/api/me').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.nickname).toBe('길동이');
+  });
+
+  it('JWT 에 schoolVerifiedAt 박힘 → 응답에도 그대로 echo', async () => {
+    const iso = '2026-05-21T03:00:00.000Z';
+    const token = tokenFor('user-5', 'u5@get-it.cloud', 'U5', { schoolVerifiedAt: iso });
+    const res = await request(app).get('/api/me').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.schoolVerifiedAt).toBe(iso);
   });
 
   it('응답 모양 — user 외 추가 top-level 키 없음', async () => {

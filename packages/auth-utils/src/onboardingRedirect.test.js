@@ -67,8 +67,8 @@ describe('shouldEnforceNicknameOnboarding', () => {
     );
   });
 
-  it('user.nickname undefined → true', () => {
-    expect(shouldEnforceNicknameOnboarding({ user: {}, currentPath: '/' })).toBe(true);
+  it('user.nickname undefined → false (legacy BE 호환 — 정보 부족이면 redirect skip, 무한 루프 방어)', () => {
+    expect(shouldEnforceNicknameOnboarding({ user: {}, currentPath: '/' })).toBe(false);
   });
 
   it('user.nickname 빈 문자열 → true', () => {

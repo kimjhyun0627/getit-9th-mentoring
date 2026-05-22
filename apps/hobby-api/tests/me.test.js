@@ -238,7 +238,7 @@ describe('hobby-api P1 새 동작', () => {
       expect(res.status).toBe(401);
     });
 
-    it('인증 → 200 + user 페이로드', async () => {
+    it('인증 → 200 + user 페이로드 (nickname / schoolVerifiedAt 명시적 null 포함)', async () => {
       const res = await request(app)
         .get('/api/me')
         .set('Authorization', `Bearer ${tokenFor('alice-id', 'Alice K')}`);
@@ -248,6 +248,20 @@ describe('hobby-api P1 새 동작', () => {
         email: 'alice-id@x.com',
         name: 'Alice K',
       });
+      // 무한 redirect fix — nickname 키가 명시적 null 로 응답되어야 NicknameOnboardingGuard
+      // 가 안정적으로 판정 (undefined → 가드가 skip 했었음).
+      expect(res.body.user.nickname).toBeNull();
+      expect(res.body.user.schoolVerifiedAt).toBeNull();
+    });
+
+    it('JWT 에 nickname 박힘 → 응답에도 그대로 echo', async () => {
+      const token = signJwt(
+        { sub: 'bob-id', email: 'bob-id@x.com', name: 'Bob', nickname: '쾌활한사슴' },
+        SECRET,
+      );
+      const res = await request(app).get('/api/me').set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.user.nickname).toBe('쾌활한사슴');
     });
   });
 
