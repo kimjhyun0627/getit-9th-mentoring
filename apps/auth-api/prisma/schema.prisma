@@ -19,6 +19,12 @@ datasource db {
 /// - emailVerifiedAt: 이메일 인증 완료 시각 (null = 미인증). Phase 6c (#226).
 /// - deletedAt: 회원 탈퇴(soft-delete) 시각. null = 활성. 탈퇴 시 email 은
 ///   `deleted+<id>@deleted.local` 로 치환해 unique 충돌 회피 (#231).
+/// - nickname: 표시용 닉네임. 가입 후 변경 가능. unique (#536/#537 학교 인증 epic).
+///   기존 row 는 NULL — BE 라우터에서 신규 가입 required 강제는 #538 에서 처리.
+/// - studentId: 학번. 학교 인증 완료한 사람만 채워짐 (#536/#537).
+/// - schoolEmail: 학교 메일 (`@knu.ac.kr` 도메인). unique — 한 학교 메일은 한 계정에만.
+///   도메인 검증은 BE 라우터에서 (#538).
+/// - schoolVerifiedAt: 학교 인증 완료 시각. null = 미인증.
 model User {
   id                  String               @id @default(cuid())
   email               String               @unique
@@ -26,11 +32,16 @@ model User {
   name                String
   emailVerifiedAt     DateTime?
   deletedAt           DateTime?
+  nickname            String?              @unique
+  studentId           String?
+  schoolEmail         String?              @unique
+  schoolVerifiedAt    DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   emailVerifyTokens   EmailVerifyToken[]
+  schoolVerifyTokens  SchoolVerifyToken[]
 }
 
 /// Refresh token 회전용 저장소.
@@ -81,4 +92,27 @@ model EmailVerifyToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// 학교 메일 인증 1회용 토큰 (Issue #536/#537 — KNU 학생 인증).
+/// - email: 인증 시도한 학교 메일 (대소문자 정규화 후 저장).
+/// - tokenHash: 평문 토큰의 SHA-256 해시. 평문은 절대 저장 X.
+/// - studentId: 학번 — token 검증 후 verify-school 페이지 단계 2 에서 채움.
+/// - expiresAt: 발급 시점 + TTL (BE 에서 결정, #538).
+/// - usedAt: 사용된 시점 (null이면 미사용). 사용 후엔 재사용 불가.
+///   기존 EmailVerifyToken / PasswordResetToken 과 일관된 필드명 (Gemini 리뷰 반영).
+/// - 사용 시 User.schoolEmail / studentId / schoolVerifiedAt 채워줌.
+model SchoolVerifyToken {
+  id        String    @id @default(cuid())
+  userId    String
+  email     String
+  tokenHash String    @unique
+  studentId String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([email])
 }
