@@ -188,8 +188,9 @@ export const SchoolLinkInput = z.object({
  *
  * - studentId: 정확히 8자리 숫자.
  */
+// VerifyEmailInput 과 일관성 — generateRefreshToken 은 32+ hex 를 만든다.
 export const VerifySchoolInput = z.object({
-  token: z.string().min(16, '유효하지 않은 토큰입니다'),
+  token: z.string().min(32, '유효하지 않은 토큰입니다'),
   studentId: z.string().regex(/^\d{8}$/, '학번은 8자리 숫자입니다'),
 });
 

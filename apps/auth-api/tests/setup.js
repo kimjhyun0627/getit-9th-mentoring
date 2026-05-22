@@ -87,12 +87,13 @@ class FakePrismaClient {
       },
       create: async ({ data }) => {
         // email/nickname/schoolEmail unique constraint 시뮬레이션 → P2002 race 케이스 검증.
+        // `!= null` 로 검사 — '' 도 실제 DB unique 충돌과 동일 취급 (CR #546).
         for (const u of memDb.users.values()) {
           if (u.email === data.email) throw new PrismaUniqueViolation(['email']);
-          if (data.nickname && u.nickname === data.nickname) {
+          if (data.nickname != null && u.nickname === data.nickname) {
             throw new PrismaUniqueViolation(['nickname']);
           }
-          if (data.schoolEmail && u.schoolEmail === data.schoolEmail) {
+          if (data.schoolEmail != null && u.schoolEmail === data.schoolEmail) {
             throw new PrismaUniqueViolation(['schoolEmail']);
           }
         }
@@ -124,14 +125,14 @@ class FakePrismaClient {
                 }
               }
             }
-            if (data.nickname && data.nickname !== u.nickname) {
+            if (data.nickname != null && data.nickname !== u.nickname) {
               for (const other of memDb.users.values()) {
                 if (other.id !== u.id && other.nickname === data.nickname) {
                   throw new PrismaUniqueViolation(['nickname']);
                 }
               }
             }
-            if (data.schoolEmail && data.schoolEmail !== u.schoolEmail) {
+            if (data.schoolEmail != null && data.schoolEmail !== u.schoolEmail) {
               for (const other of memDb.users.values()) {
                 if (other.id !== u.id && other.schoolEmail === data.schoolEmail) {
                   throw new PrismaUniqueViolation(['schoolEmail']);

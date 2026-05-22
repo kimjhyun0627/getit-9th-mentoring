@@ -100,7 +100,23 @@ const getTransport = async () => {
 };
 
 /**
- * Disabled transport — console.log 로 메일 내용 dump + ready=false.
+ * 메일 본문에서 verify/reset 토큰을 마스킹한다.
+ * - `?token=<...>` / `&token=<...>` 쿼리값 → `****` 로 치환.
+ * - URL path 의 마지막 segment 가 hex 토큰처럼 보이면 → `****`.
+ * disabled transport 로그에 raw 토큰이 흘러나가는 사고 방지 (CR #546).
+ *
+ * @param {string} body
+ * @returns {string}
+ */
+const redactTokenInBody = (body) => {
+  if (typeof body !== 'string') return body;
+  return body
+    .replace(/([?&](?:token|t|verifyToken|resetToken)=)[^\s&]+/gi, '$1****')
+    .replace(/\/(verify|reset)[^?\s]*\/[A-Za-z0-9_-]{16,}/g, '/$1.../****');
+};
+
+/**
+ * Disabled transport — 본문은 마스킹해서 로그에 남긴다 (token leak 방지).
  *
  * @param {string} reason
  * @returns {{ ready: false, send: (m: Mail) => Promise<void> }}
@@ -109,7 +125,7 @@ const disabledTransport = (reason) => ({
   ready: false,
   send: async (m) => {
     log.warn(
-      { reason, to: m.to, subject: m.subject, body: m.text },
+      { reason, to: m.to, subject: m.subject, body: redactTokenInBody(m.text) },
       '[mailer DISABLED] would send',
     );
   },

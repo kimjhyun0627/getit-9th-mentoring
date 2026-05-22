@@ -143,8 +143,9 @@ describe('school verify routes (#538)', () => {
       });
       expect(res.body.user.schoolVerifiedAt).toBeTruthy();
 
-      // DB 검증.
-      const u = [...memDb.users.values()][0];
+      // DB 검증 — fixture 가 추가되면 첫 원소가 흔들리므로 email 기반으로 찾는다 (CR #546).
+      const u = [...memDb.users.values()].find((x) => x.email === SIGNUP.email);
+      expect(u).toBeTruthy();
       expect(u.studentId).toBe('20251234');
       expect(u.schoolEmail).toBe(SCHOOL_EMAIL);
       expect(u.schoolVerifiedAt).toBeInstanceOf(Date);

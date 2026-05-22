@@ -178,21 +178,41 @@ export const createSchoolVerifyRouter = (opts = {}) => {
         return res.status(409).json({ error: 'SchoolEmailTaken' });
       }
 
-      // 트랜잭션 — User 업데이트 + 토큰 consume.
+      // 트랜잭션 — 토큰 1회 소비 보장 + 탈퇴 유저 차단 + User 업데이트.
+      // 1) 토큰 consume 를 conditional updateMany 로 먼저 시도 → race-safe (CR #546).
+      //    동일 토큰 동시 요청이 둘 다 성공하는 케이스를 막는다.
+      // 2) 유저가 탈퇴 (deletedAt) 상태면 InvalidToken 으로 폐기.
       const updated = await prisma.$transaction(async (tx) => {
-        const u = await tx.user.update({
+        const consumed = await tx.schoolVerifyToken.updateMany({
+          where: { tokenHash, usedAt: null, expiresAt: { gt: now } },
+          data: { usedAt: now, studentId },
+        });
+        if (consumed.count !== 1) {
+          const e = new Error('InvalidToken');
+          e.status = 400;
+          e.code = 'InvalidToken';
+          throw e;
+        }
+        // 토큰 소비 직후 유저 상태 재확인 — 탈퇴/삭제 케이스 차단.
+        const target = await tx.user.findUnique({ where: { id: row.userId } });
+        if (!target || target.deletedAt) {
+          const e = new Error('InvalidToken');
+          e.status = 400;
+          e.code = 'InvalidToken';
+          throw e;
+        }
+        return tx.user.update({
           where: { id: row.userId },
           data: { studentId, schoolEmail: row.email, schoolVerifiedAt: now },
         });
-        await tx.schoolVerifyToken.update({
-          where: { tokenHash },
-          data: { usedAt: now, studentId },
-        });
-        return u;
       });
 
       return res.status(200).json({ ok: true, user: publicUser(updated) });
     } catch (err) {
+      // InvalidToken — 트랜잭션 내부 race / 탈퇴 유저로 throw 된 케이스.
+      if (err?.code === 'InvalidToken') {
+        return res.status(400).json({ error: 'InvalidToken' });
+      }
       // P2002 — schoolEmail unique 충돌 (race 발생). 409 매핑.
       if (err?.code === 'P2002') {
         return res.status(409).json({ error: 'SchoolEmailTaken' });

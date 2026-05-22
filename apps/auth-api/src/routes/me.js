@@ -77,21 +77,22 @@ export const createMeRouter = () => {
       if (!ok) return res.status(401).json({ error: 'InvalidCurrentPassword' });
 
       const emailChanged = email !== user.email;
-      // #538: nickname 변경 — 같으면 무시. 새 값이면 사전 unique check (race 는 P2002 catch).
-      const nicknameChanged = nickname !== undefined && nickname !== user.nickname;
+      // #538: nickname 변경 — 빈 문자열은 null 로 정규화 (DB unique 충돌 방지, signup 과 일관).
+      const normalizedNickname = nickname === '' || nickname == null ? null : nickname;
+      const nicknameChanged = nickname !== undefined && normalizedNickname !== user.nickname;
       const data = { name };
       if (emailChanged) {
         data.email = email;
         data.emailVerifiedAt = null;
       }
       if (nicknameChanged) {
-        if (nickname) {
-          const dup = await prisma.user.findUnique({ where: { nickname } });
+        if (normalizedNickname) {
+          const dup = await prisma.user.findUnique({ where: { nickname: normalizedNickname } });
           if (dup && dup.id !== user.id) {
             return res.status(409).json({ error: 'NicknameTaken' });
           }
         }
-        data.nickname = nickname;
+        data.nickname = normalizedNickname;
       }
       if (newPassword) {
         data.passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
