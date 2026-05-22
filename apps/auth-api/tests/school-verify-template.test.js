@@ -54,6 +54,19 @@ describe('renderSchoolVerifyEmail (#542)', () => {
     expect(r.text).toMatch(/30분/);
   });
 
+  it('falls back to 30분 for 0 < m < 1 (Gemini #548)', () => {
+    // Math.floor(0.5) === 0 → "0분" 으로 새지 않도록 30분 fallback.
+    const r = renderSchoolVerifyEmail({ verifyUrl: URL_OK, expiresInMinutes: 0.5 });
+    expect(r.text).toMatch(/30분/);
+    // "0분" 단독 토큰이 본문에 새지 않음 (앞뒤 숫자 없는 "0분" 매치 금지).
+    expect(r.text).not.toMatch(/(^|[^0-9])0분/);
+  });
+
+  it('falls back to 30분 on NaN', () => {
+    const r = renderSchoolVerifyEmail({ verifyUrl: URL_OK, expiresInMinutes: Number.NaN });
+    expect(r.text).toMatch(/30분/);
+  });
+
   it('includes "ignore if not you" notice (한국어 반말)', () => {
     const r = renderSchoolVerifyEmail({ verifyUrl: URL_OK });
     // strict 카피 일치 (regression 방지).

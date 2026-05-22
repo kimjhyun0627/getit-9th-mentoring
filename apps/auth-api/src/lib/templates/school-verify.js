@@ -14,13 +14,16 @@
  */
 
 /**
- * 신뢰 가능한 정수만 사용해서 분/시간 문자열을 만든다. NaN/음수/소수 방어.
+ * 신뢰 가능한 정수만 사용해서 분/시간 문자열을 만든다. NaN/음수/0~1 소수 방어.
+ *
+ * - `m >= 1` 인 finite number → Math.floor(m) 사용
+ * - 그 외 (NaN, 0, 음수, 0 < m < 1) → 기본 30분 fallback (Gemini #548 권고)
  *
  * @param {number} m
  * @returns {string} "30분" / "1시간 30분" 형식.
  */
 const formatDuration = (m) => {
-  const n = Number.isFinite(m) && m > 0 ? Math.floor(m) : 30;
+  const n = Number.isFinite(m) && m >= 1 ? Math.floor(m) : 30;
   if (n < 60) return `${n}분`;
   const h = Math.floor(n / 60);
   const rest = n % 60;
@@ -77,10 +80,15 @@ export const renderSchoolVerifyEmail = ({ verifyUrl, expiresInMinutes = 30 }) =>
 
   // HTML — 모든 style 은 inline. Outlook 호환 위해 <table> wrapping 도 가능하지만
   // 본 템플릿은 기존 메일(평문 위주) 톤과 맞추기 위해 가벼운 div 구조만 사용.
+  //
+  // <body> 태그 스타일은 Gmail / Outlook.com 가 무시/제거하는 경우가 많아서
+  // (Gemini #548 지적) 모든 스타일을 outer wrapper <div> 로 옮겼다.
+  // <body> 는 reset 정도만 — 클라이언트가 태그를 떼어내도 wrapper 가 살아남게.
   const html = [
     '<!DOCTYPE html>',
     '<html lang="ko">',
-    "<body style=\"margin:0;padding:0;background:#f7f7f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;\">",
+    '<body style="margin:0;padding:0;">',
+    "<div style=\"width:100%;background:#f7f7f8;padding:24px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;\">",
     '<div style="max-width:560px;margin:0 auto;padding:32px 24px;background:#ffffff;color:#111111;line-height:1.6;">',
     '<h1 style="margin:0 0 16px 0;font-size:20px;font-weight:700;color:#111111;">학교 인증 메일</h1>',
     '<p style="margin:0 0 12px 0;font-size:15px;color:#222222;">안녕, GETIT 9기야.</p>',
@@ -94,6 +102,7 @@ export const renderSchoolVerifyEmail = ({ verifyUrl, expiresInMinutes = 30 }) =>
     '<hr style="margin:24px 0;border:none;border-top:1px solid #e5e5e7;" />',
     '<p style="margin:0;font-size:12px;color:#888888;">본인이 요청하지 않았다면 이 메일은 그냥 무시하면 돼.</p>',
     '<p style="margin:8px 0 0 0;font-size:12px;color:#888888;">— GETIT/9</p>',
+    '</div>',
     '</div>',
     '</body>',
     '</html>',
