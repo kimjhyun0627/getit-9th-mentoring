@@ -53,4 +53,12 @@ describe('displayName', () => {
     // nickname 자체에 공백이 있어도 표시 시점에선 원본 보존.
     expect(displayName({ nickname: ' 길동 ' })).toBe(' 길동 ');
   });
+
+  it('name 도 공백만 → fallback (Gemini medium #550)', () => {
+    expect(displayName({ name: '   ' }, '익명')).toBe('익명');
+  });
+
+  it('name 도 trim 후 비어있지 않으면 원본 보존', () => {
+    expect(displayName({ name: ' 홍길동 ' })).toBe(' 홍길동 ');
+  });
 });

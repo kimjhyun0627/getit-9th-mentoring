@@ -39,8 +39,8 @@ const normalizeUser = (raw) => {
   const r = /** @type {Record<string, unknown>} */ (raw);
   const sub = typeof r.sub === 'string' ? r.sub : null;
   if (!sub) return null;
-  /** @type {(v: unknown) => string | null} */
-  const orNull = (v) => (typeof v === 'string' && v.length > 0 ? v : null);
+  /** @type {(v: unknown) => string | null} — trim 후 비어있지 않은 string 만 통과 (Gemini medium #550) */
+  const orNull = (v) => (typeof v === 'string' && v.trim().length > 0 ? v : null);
   return {
     sub,
     email: typeof r.email === 'string' ? r.email : '',

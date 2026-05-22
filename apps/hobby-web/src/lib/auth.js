@@ -1,11 +1,11 @@
-import { buildNicknameOnboardingUrl } from '@getit/auth-utils';
+import { buildNicknameOnboardingUrl, shouldEnforceNicknameOnboarding } from '@getit/auth-utils';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import { api } from './api.js';
 
-const AUTH_ORIGIN = 'https://auth.get-it.cloud';
-const ONBOARDING_PATH = '/onboarding/nickname';
+// dev / preview / prod 분기 — 다른 web 들과 동일하게 import.meta.env 우선.
+const AUTH_ORIGIN = import.meta.env?.VITE_AUTH_URL || 'https://auth.get-it.cloud';
 
 /**
  * hobby-web 공용 인증 훅 (#331, school-auth #540 확장).
@@ -55,12 +55,8 @@ export const useRequireAuth = () => {
     }
 
     // 로그인 됐는데 nickname null → onboarding 강제 redirect (#540).
-    // 이미 onboarding path 위에 있으면 (hobby-web 에는 라우트 없지만 방어) skip.
-    if (
-      me &&
-      (typeof me.nickname !== 'string' || me.nickname.trim().length === 0) &&
-      !window.location.pathname.startsWith(ONBOARDING_PATH)
-    ) {
+    // 공용 가드 `shouldEnforceNicknameOnboarding` 으로 정책 일원화 (Gemini medium #550).
+    if (shouldEnforceNicknameOnboarding({ user: me, currentPath: window.location.pathname })) {
       window.location.href = buildNicknameOnboardingUrl({
         authOrigin: AUTH_ORIGIN,
         currentUrl: window.location.href,

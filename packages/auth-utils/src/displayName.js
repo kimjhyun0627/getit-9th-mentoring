@@ -24,7 +24,10 @@ export const displayName = (user, fallback = '') => {
     return nickname;
   }
   const name = /** @type {{ name?: unknown }} */ (user).name;
-  if (typeof name === 'string' && name.length > 0) {
+  // nickname 과 동일하게 trim 후 비어있지 않은지 검사 (Gemini medium #550) —
+  // 공백만 있는 이름이 들어와도 UI 가 빈 영역으로 보이지 않게 fallback 으로 전환.
+  // 단 표시는 원본 보존 (디자인 의도 공백 유지).
+  if (typeof name === 'string' && name.trim().length > 0) {
     return name;
   }
   return fallback;

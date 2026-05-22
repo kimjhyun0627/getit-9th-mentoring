@@ -1,4 +1,4 @@
-import { buildNicknameOnboardingUrl } from '@getit/auth-utils';
+import { buildNicknameOnboardingUrl, shouldEnforceNicknameOnboarding } from '@getit/auth-utils';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -48,15 +48,14 @@ export const BoardPage = () => {
 
   // school-auth (#540) — 로그인 됐는데 nickname null 이면 onboarding 강제 redirect.
   // 비로그인은 401 → setUnauthorizedHandler 가 별도 처리. 5xx/네트워크는 ErrorState 로.
+  // 정책은 `shouldEnforceNicknameOnboarding` 으로 일원화 (Gemini medium #550).
   useEffect(() => {
     if (!isAuthed) return;
     if (typeof window === 'undefined') return;
-    const user = meQuery.data?.user;
-    if (!user) return;
-    const nickname = user.nickname;
-    const hasNickname = typeof nickname === 'string' && nickname.trim().length > 0;
-    if (hasNickname) return;
-    if (window.location.pathname.startsWith('/onboarding/nickname')) return;
+    const user = meQuery.data?.user ?? null;
+    if (!shouldEnforceNicknameOnboarding({ user, currentPath: window.location.pathname })) {
+      return;
+    }
     window.location.href = buildNicknameOnboardingUrl({
       authOrigin: import.meta.env?.VITE_AUTH_URL ?? 'https://auth.get-it.cloud',
       currentUrl: window.location.href,
