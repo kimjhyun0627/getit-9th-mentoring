@@ -33,6 +33,7 @@ import {
   handleContainsLookup,
   isUniqueViolation,
   parseListQuery,
+  pickPublicNickname,
   publicReadOnlyShelf,
   publicShelf,
 } from './shelves.helpers.js';
@@ -121,8 +122,11 @@ export const createShelvesRouter = () => {
       });
       const sorted = [...all].sort(compareBy(parsed.sort));
       const paged = sorted.slice(parsed.skip, parsed.skip + parsed.pageSize);
+      // #565 — userNickname 스냅샷 (#564) 최신 row. 정책: pickPublicNickname.
+      const nickname = pickPublicNickname(all);
       return res.status(200).json({
         userId,
+        nickname,
         shelves: paged.map(publicReadOnlyShelf),
         pagination: {
           page: parsed.page,

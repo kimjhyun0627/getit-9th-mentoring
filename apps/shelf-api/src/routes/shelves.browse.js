@@ -41,7 +41,7 @@ const BrowseQuerySchema = z.object({
  * @param {string | null | undefined} v
  * @returns {string | null} trim 후 비어있지 않으면 trim 결과, 아니면 null.
  */
-const normalizeNickname = (v) => {
+export const normalizeNickname = (v) => {
   if (typeof v !== 'string') return null;
   const trimmed = v.trim();
   return trimmed.length > 0 ? trimmed : null;

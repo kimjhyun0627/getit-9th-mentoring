@@ -86,6 +86,9 @@ const recsResponseSchema = z.object({
 });
 const userShelvesResponseSchema = z.object({
   userId: z.string(),
+  // #565 — 헤더가 `@cuid` 대신 닉네임 표시. BookShelf.userNickname 스냅샷.
+  // BE 가 못 채워주는 케이스(스냅샷 없음/빈 서재) → null. 누락 시 호환 위해 default null.
+  nickname: z.string().nullable().default(null),
   shelves: z.array(shelfRowSchema).default([]),
   pagination: paginationSchema,
 });
