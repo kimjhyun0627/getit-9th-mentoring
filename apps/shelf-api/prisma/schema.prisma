@@ -35,6 +35,9 @@ model Book {
 
 /// 사용자별 책 보관 상태.
 /// - userId: 통합 SSO User.id(cuid). cross-DB FK 미사용, 앱 레벨 검증.
+/// - userNickname: 작성 시점 JWT nickname/name 스냅샷 (#561, hobby Post.ownerName 패턴).
+///   browse 부원 디렉토리 (`GET /api/shelves/browse`) 가 auth-api DB 에 join 없이
+///   nickname 표시 가능. null 인 row 는 browse 에서 제외.
 /// - status: WANT(읽고 싶음) | READING(읽는 중) | READ(완독)
 /// - rating: 1~5 별점 (애플리케이션 레벨 검증). 완독 전엔 null 권장.
 /// - review: 감상평 본문 (긴 글 대응 Text).
@@ -44,18 +47,23 @@ model Book {
 ///   composite unique가 userId 선행 인덱스 역할 자동 수행 → 단일 @@index([userId]) 불필요.
 /// - @@index([bookId]): bookId 단독 조회용(역방향 lookup).
 model BookShelf {
-  id          String    @id @default(cuid())
-  userId      String
-  bookId      String
-  status      BookStatus
-  rating      Int?
-  review      String?   @db.Text
-  addedAt     DateTime  @default(now())
-  completedAt DateTime?
-  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  id           String    @id @default(cuid())
+  userId       String
+  userNickname String?
+  bookId       String
+  status       BookStatus
+  rating       Int?
+  review       String?   @db.Text
+  addedAt      DateTime  @default(now())
+  completedAt  DateTime?
+  book         Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@unique([userId, bookId])
   @@index([bookId])
+  // #561 — browse 디렉토리가 `userNickname IS NOT NULL` 로 필터. 인덱스 안 타면
+  // 전체 BookShelf 스캔. 카디널리티 낮은 nullable 컬럼이지만 NULL 비율이 시간 따라
+  // 줄어들수록 효과 ↑. groupBy 마이그레이션 시 (`userId, userNickname` 복합) 재고.
+  @@index([userNickname])
 }
 
 enum BookStatus {

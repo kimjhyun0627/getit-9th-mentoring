@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 import { BookFlipToggle } from './BookFlipToggle.jsx';
 import { BrandMark } from './BrandMark.jsx';
 
@@ -14,22 +16,27 @@ export const ShelfLayout = ({ children }) => {
   return (
     <div className="paper-grain bg-paper-1 flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 pb-5 pt-7 md:px-10">
-        <a href="/" className="flex shrink-0 items-center gap-2.5" aria-label="스마트 서재 홈">
+        {/* #564 (CR) — Link 로 클라이언트 라우팅. <a href> 는 풀 리로드. */}
+        <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label="스마트 서재 홈">
           <BrandMark className="h-6 w-6 text-ink-strong" />
           <span className="font-display text-xl font-black tracking-tightest leading-none text-ink-strong">
             Shelf
           </span>
           <span className="font-serif text-sm text-meta">/</span>
           <span className="smallcaps hidden text-[11px] sm:inline">a quiet library</span>
-        </a>
+        </Link>
 
         <nav className="flex items-center gap-6 text-[13px] md:gap-8">
-          <a href="/" className="ink-link hidden sm:inline">
+          <Link to="/" className="ink-link hidden sm:inline">
             Library
-          </a>
-          <a href="/search" className="ink-link hidden sm:inline">
+          </Link>
+          <Link to="/search" className="ink-link hidden sm:inline">
             Search
-          </a>
+          </Link>
+          {/* #561 — 부원 서재 디렉토리 진입점. UserShelfPage 가 라이브였으나 진입경로 없었음. */}
+          <Link to="/browse" className="ink-link hidden sm:inline">
+            Discover
+          </Link>
           <BookFlipToggle />
         </nav>
       </header>

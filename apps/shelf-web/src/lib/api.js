@@ -90,6 +90,17 @@ const userShelvesResponseSchema = z.object({
   pagination: paginationSchema,
 });
 
+// #561 — 부원 디렉토리. 책 권 수만 노출, 책 목록 미노출.
+const browseUserSchema = z.object({
+  userId: z.string(),
+  nickname: z.string(),
+  bookCount: z.number().int().min(0),
+});
+const browseUsersResponseSchema = z.object({
+  users: z.array(browseUserSchema).default([]),
+  pagination: paginationSchema,
+});
+
 /**
  * 서재 API — 페이지에서 axios 직접 노출 X.
  *
@@ -199,6 +210,23 @@ export const api = {
       params: { page: opts.page, pageSize: opts.pageSize, sort: opts.sort },
     });
     return { ...res, data: userShelvesResponseSchema.parse(res.data ?? {}) };
+  },
+
+  /**
+   * 부원 서재 디렉토리 — #561.
+   * 다른 사용자 서재 발견 경로. 책 권 수만 노출, 책 목록은 `/u/:userId` 에서.
+   *
+   * @param {{ page?: number; pageSize?: number; sort?: 'bookCount' | 'recent' }} [opts]
+   * @returns {Promise<{ data: {
+   *   users: Array<{ userId: string; nickname: string; bookCount: number }>;
+   *   pagination: { page: number; pageSize: number; total: number; sort?: string };
+   * } }>}
+   */
+  listBrowseUsers: async (opts = {}) => {
+    const res = await client.get('/shelves/browse', {
+      params: { page: opts.page, pageSize: opts.pageSize, sort: opts.sort },
+    });
+    return { ...res, data: browseUsersResponseSchema.parse(res.data ?? {}) };
   },
 
   /**

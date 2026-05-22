@@ -23,6 +23,12 @@ import { prisma } from '../lib/prisma.js';
 import { compareBy } from '../lib/shelf-sort.js';
 
 import {
+  aggregateByUser,
+  parseBrowseQuery,
+  publicBrowseUser,
+  sortUsers,
+} from './shelves.browse.js';
+import {
   findOrFetchBookByIsbn,
   handleContainsLookup,
   isUniqueViolation,
@@ -30,6 +36,23 @@ import {
   publicReadOnlyShelf,
   publicShelf,
 } from './shelves.helpers.js';
+
+/**
+ * JWT payload 에서 nickname 스냅샷 값 결정 (#561).
+ * - nickname > name 우선.
+ * - trim 후 비어있으면 null (BookShelf.userNickname 이 nullable).
+ *
+ * @param {{ nickname?: string | null, name?: string | null } | null | undefined} user
+ * @returns {string | null}
+ */
+const snapshotNickname = (user) => {
+  if (!user || typeof user !== 'object') return null;
+  const candidates = [user.nickname, user.name];
+  for (const v of candidates) {
+    if (typeof v === 'string' && v.trim().length > 0) return v.trim();
+  }
+  return null;
+};
 
 /**
  * Shelves 라우터.
@@ -42,6 +65,41 @@ export const createShelvesRouter = () => {
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) throw new Error('JWT_SECRET env required');
   const auth = requireAuth({ secret: jwtSecret });
+
+  // GET /browse — 부원 서재 디렉토리 (#561)
+  // - 공개. UserShelfPage 와 동일 트러스트.
+  // - userNickname 스냅샷 있는 user 만 노출 + 책 1권 이상 필터 자동.
+  // - sort = bookCount (default) / recent.
+  // - 페이지네이션: page/pageSize (max 100).
+  router.get('/browse', async (req, res, next) => {
+    try {
+      const parsed = parseBrowseQuery(req.query);
+      if (!parsed.ok) return res.status(400).json(parsed.body);
+
+      // userNickname 비어있지 않은 row 만 가져와서 그룹 집계.
+      // 전체 row 수 = 부원 수 × 평균 책 권 수 (수천 건 이내 가정).
+      // 행수 폭증 시 SQL group-by + having 으로 옮길 후속 PR (#561 코멘트).
+      const rows = await prisma.bookShelf.findMany({
+        where: { userNickname: { not: null } },
+        select: { userId: true, userNickname: true, addedAt: true },
+      });
+      const aggregated = aggregateByUser(rows);
+      const sorted = sortUsers(aggregated, parsed.sort);
+      const paged = sorted.slice(parsed.skip, parsed.skip + parsed.pageSize);
+
+      return res.status(200).json({
+        users: paged.map(publicBrowseUser),
+        pagination: {
+          page: parsed.page,
+          pageSize: parsed.pageSize,
+          total: sorted.length,
+          sort: parsed.sort,
+        },
+      });
+    } catch (err) {
+      return next(err);
+    }
+  });
 
   // GET /u/:userId — 다른 유저 서재 공개 조회 (#292)
   // - 공개·읽기 전용. 별점/리뷰/상태 모두 노출 (현 단계 정책: 모두 공개).
@@ -145,6 +203,8 @@ export const createShelvesRouter = () => {
         const created = await prisma.bookShelf.create({
           data: {
             userId: req.user.sub,
+            // #561 — JWT nickname/name 스냅샷. browse 디렉토리 진입 자격.
+            userNickname: snapshotNickname(req.user),
             bookId: book.id,
             status,
             rating: rating ?? null,
@@ -188,12 +248,20 @@ export const createShelvesRouter = () => {
             ? null
             : existing.completedAt;
 
+      // #561 — userNickname null/빈 row 면 PATCH 기회에 JWT 값으로 backfill.
+      // 이미 있으면 덮어쓰지 X (사용자가 닉 바꿨을 때 자동 동기화는 별도 PR).
+      const existingNickname =
+        typeof existing.userNickname === 'string' ? existing.userNickname.trim() : '';
+      const backfillNickname =
+        existingNickname.length === 0 ? snapshotNickname(req.user) : undefined;
+
       const updated = await prisma.bookShelf.update({
         where: { userId_bookId: { userId, bookId } },
         data: {
           ...parsed.data,
           status: nextStatus,
           completedAt,
+          ...(backfillNickname ? { userNickname: backfillNickname } : {}),
         },
         include: { book: true },
       });

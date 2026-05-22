@@ -118,6 +118,7 @@ const makeBookShelfDelegate = () => ({
       review: null,
       completedAt: null,
       addedAt: new Date(),
+      userNickname: null,
       ...data,
     };
     memDb.bookShelves.set(id, row);
