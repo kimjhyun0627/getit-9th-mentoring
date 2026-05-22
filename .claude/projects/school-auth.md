@@ -2,11 +2,11 @@
 
 [← CLAUDE.md](../../CLAUDE.md)
 
-- **스코프**: 전 앱 공통 (auth-api / auth-web 주역, hobby 가드 적용)
-- **대상 도메인**: `auth.get-it.cloud`, `hobby.get-it.cloud`
-- **연관 앱**: `apps/auth-api`, `apps/auth-web`, `apps/hobby-api`, `apps/hobby-web`, 기타 `*-web` (nickname onboarding)
+- **스코프**: 전 앱 공통 (auth-api / auth-web 주역, hobby 가드 적용, landing /me 진입점)
+- **대상 도메인**: `auth.get-it.cloud`, `hobby.get-it.cloud`, `get-it.cloud` (landing /me)
+- **연관 앱**: `apps/auth-api`, `apps/auth-web`, `apps/hobby-api`, `apps/hobby-web`, `apps/landing` (/me 마이페이지), 기타 `*-web` (nickname onboarding)
 - **난이도**: ⭐⭐⭐⭐
-- **추천 디자이너 페르소나**: Tech-Dark (auth 통일), Playful (hobby 가드 안내)
+- **추천 디자이너 페르소나**: Tech-Dark (auth + landing 통일), Playful (hobby 가드 안내)
 
 ## 배경 / 목표
 
@@ -137,6 +137,28 @@ model SchoolVerifyToken {
 >
 > PM 결정 필요: **조회 자체도 차단할지** — 본 PRD 디폴트는 "조회 OK, 모든 mutation 차단" (둘러보고 가입 동기 부여).
 
+### hobby 안내 카피 (미인증 사용자 진입 시)
+
+미인증 사용자가 hobby 에 들어왔을 때 "왜 안 되는지 + 어디로 가야 하는지" 가 0.5초 안에 보여야 한다. **403 토스트만으로는 부족** — 진입 시점에 명확한 안내가 필요.
+
+#### hobby home 진입 시 안내 카드
+
+- **위치**: `apps/hobby-web` home (`/`) 페이지 상단 — 모집글 리스트 위
+- **노출 조건**: 로그인 + `schoolVerifiedAt == null` (비로그인은 기존 RequireSignIn 패턴 그대로)
+- **형태**: dismissible 안내 카드 (또는 page top banner — 디자이너 페르소나 판단). 닫아도 세션 내에서만 닫힘 (localStorage 영구 dismiss 금지 — 행동 유도가 목적).
+- **카피 (strict, 변경 금지)**:
+  - 제목: **"hobby 서비스를 사용하려면 학교 인증이 필요해요"**
+  - 보조: "모집글 작성 / 신청은 학교 인증한 부원만 가능해요. 학교 메일(@knu.ac.kr) 한 통이면 끝나요."
+  - CTA 버튼: **"학교 인증하러 가기"** → `https://auth.get-it.cloud/me?focus=school-link`
+- **톤**: Playful 페르소나 (hobby 의 기존 톤 유지) — 반말 OK, 위협적이지 않게.
+- **a11y**: `role="status"` + 키보드 접근 가능한 dismiss 버튼.
+
+#### `?focus=school-link` 쿼리 처리
+
+- auth-web `/me` 페이지가 `focus=school-link` 쿼리를 받으면 **학교 계정 연동 카드를 자동 스크롤 + 시각 강조** (예: 카드 border 1초 highlight, focus ring).
+- 같은 패턴을 landing `/me` 에서도 재사용 (아래 "landing /me 마이페이지" 섹션 참고).
+- 쿼리 미존재 시 평상시 마이페이지.
+
 ## 닉네임 정책
 
 | 항목 | 정책 |
@@ -236,10 +258,46 @@ model SchoolVerifyToken {
 
 ### 전 webs (landing / hobby / shelf / board / letter)
 
-- `useSession` 훅 응답에 nickname / schoolVerifiedAt 포함되도록 확장
+- `useSession` 훅 응답에 nickname / schoolVerifiedAt / studentId 포함되도록 확장
 - nickname null 감지 → `auth.get-it.cloud/onboarding/nickname?return=<현재URL>` 강제 redirect
 - 사용자명 표시는 `user.nickname ?? user.name` 헬퍼로 통일
 - (hobby 만) 모집글 작성 / 신청 버튼 — `schoolVerifiedAt == null` 이면 disabled + tooltip "학교 인증한 부원만 가능"
+
+### landing `/me` 마이페이지 (신규)
+
+GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고 학교 인증으로 진입할 수 있게 한다. auth-web `/me` 와 별개로 **landing 도메인 (`get-it.cloud`) 안에서** 가벼운 마이페이지 제공 — 다른 서비스 카드들 옆에서 자연스럽게 마이페이지 진입.
+
+#### 라우트 / 진입
+
+- 라우트: `apps/landing` 의 `/me` (신규)
+- landing 헤더에 **"마이페이지"** 링크 추가 — **로그인 시에만 노출** (비로그인 시는 기존 "로그인" CTA 그대로)
+
+#### 비로그인 처리
+
+- `shelf` 의 `RequireSignIn` 컴포넌트 패턴 참고 (`apps/shelf-web/...RequireSignIn...`)
+- 비로그인 시 "로그인이 필요해요" + "로그인하러 가기" CTA (auth-web `/login?return=https://get-it.cloud/me`)
+
+#### 로그인 시 표시 항목
+
+| 항목 | 출처 | 상세 |
+| :--- | :--- | :--- |
+| 닉네임 | `useSession().user.nickname` | null 이면 "닉네임을 설정해주세요" + onboarding 유도 (nickname onboarding 강제 흐름과 통합 — sub-issue #540) |
+| 가입 일자 | `useSession().user.createdAt` (없으면 `/api/me` 응답에 추가) | YYYY-MM-DD 한국어 |
+| 학교 인증 상태 | `useSession().user.schoolVerifiedAt` / `studentId` | **인증됨**: "학교 인증 완료 · 학번 20241234" / **미인증**: "학교 미인증" + **"학교 인증하기"** 버튼 |
+| 학교 인증하기 버튼 | — | 클릭 시 `https://auth.get-it.cloud/me?focus=school-link` 로 redirect. `focus` 쿼리로 auth-web 마이페이지에서 학교 연동 카드 자동 강조 (위 "hobby 안내 카피 — `?focus=school-link` 쿼리 처리" 참고) |
+
+#### 디자인 톤
+
+- **Tech-Dark 페르소나** (landing 전체 톤과 통일 — PR #177 auth-web 도 동일 페르소나)
+- 다크모드 우선 / 라이트모드 대응
+- 키보드 접근성 (tab order, focus ring), 스크린리더 친화 (`aria-label`)
+
+#### Out of scope (landing /me)
+
+- 닉네임 변경 / 비밀번호 변경 등 mutation — auth-web `/me` 로 위임
+- 학교 인증 폼 자체 — landing /me 에는 진입 버튼만, 실제 입력은 auth-web `/verify-school` 흐름
+
+> 의도: landing /me 는 **상태 확인 + 행동 진입점** 역할. 본격적인 계정 관리는 auth-web 으로 일임.
 
 ## 마이그레이션 정책 (라이브 리스크)
 
@@ -252,7 +310,8 @@ model SchoolVerifyToken {
 ### 공지 / 안내
 
 - 배포 전 학회 부원 단톡방 사전 공지 (학교 인증 가이드 + lockout 외부인 안내)
-- hobby home 상단 배너: "학교 인증한 부원만 모집/신청 가능. [지금 인증하기]"
+- hobby home 상단 안내 카드 (strict 카피): "hobby 서비스를 사용하려면 학교 인증이 필요해요" + "학교 인증하러 가기" → `auth.get-it.cloud/me?focus=school-link` (상세: "hobby 안내 카피" 섹션)
+- landing `/me` 마이페이지에서도 학교 인증 미인증자에게 "학교 인증하기" 버튼 노출 — 같은 redirect 경로
 
 ### 롤백 시나리오
 
@@ -270,9 +329,10 @@ model SchoolVerifyToken {
 
 - [ ] DB: `User.{nickname, studentId, schoolEmail, schoolVerifiedAt}` + `SchoolVerifyToken` 테이블 마이그레이션 적용 (dev / prod)
 - [ ] auth-api: 닉네임 signup + school link / verify / resend 라우터 + Zod 스키마 + 단위/통합 테스트
-- [ ] auth-web: 회원가입 nickname 필드 + 마이페이지 학교 연동 + verify-school 페이지 + nickname onboarding
-- [ ] 전 webs: nickname onboarding 강제 redirect + `useSession` 확장 + 표시 helper 적용
-- [ ] hobby: 모집글 / 신청 가드 + FE 비인증 사용자 disabled + 안내 카피
+- [ ] auth-web: 회원가입 nickname 필드 + 마이페이지 학교 연동 + verify-school 페이지 + nickname onboarding + `?focus=school-link` 쿼리 강조
+- [ ] 전 webs: nickname onboarding 강제 redirect + `useSession` 확장 (nickname / schoolVerifiedAt / studentId) + 표시 helper 적용
+- [ ] hobby: 모집글 / 신청 가드 + FE 비인증 사용자 disabled + **hobby home 안내 카드 (strict 카피)** + 토스트
+- [ ] landing: `/me` 마이페이지 (닉네임 / 가입일 / 학교 인증 상태 / "학교 인증하기" 버튼) + 헤더 "마이페이지" 링크 (로그인 시만)
 - [ ] 이메일 템플릿: Gmail SMTP 발송 동작 확인 (실제 메일 수신 테스트)
 - [ ] QA: 신규 가입 / 기존 외부인 / 기존 부원 3 시나리오 검증
 - [ ] 노션 / CLAUDE.md 메모리: Phase 10 entry 갱신
