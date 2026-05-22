@@ -134,11 +134,11 @@ describe('school verify routes (#538)', () => {
       const { token } = await linkAndExtractToken(jwt);
       const res = await request(app)
         .post('/api/auth/verify-school')
-        .send({ token, studentId: '20251234' });
+        .send({ token, studentId: '2024111234' });
       expect(res.status).toBe(200);
       expect(res.body.user).toMatchObject({
         email: SIGNUP.email,
-        studentId: '20251234',
+        studentId: '2024111234',
         schoolEmail: SCHOOL_EMAIL,
       });
       expect(res.body.user.schoolVerifiedAt).toBeTruthy();
@@ -146,7 +146,7 @@ describe('school verify routes (#538)', () => {
       // DB 검증 — fixture 가 추가되면 첫 원소가 흔들리므로 email 기반으로 찾는다 (CR #546).
       const u = [...memDb.users.values()].find((x) => x.email === SIGNUP.email);
       expect(u).toBeTruthy();
-      expect(u.studentId).toBe('20251234');
+      expect(u.studentId).toBe('2024111234');
       expect(u.schoolEmail).toBe(SCHOOL_EMAIL);
       expect(u.schoolVerifiedAt).toBeInstanceOf(Date);
     });
@@ -154,7 +154,7 @@ describe('school verify routes (#538)', () => {
     it('잘못된 토큰 → 400 InvalidToken', async () => {
       const res = await request(app)
         .post('/api/auth/verify-school')
-        .send({ token: 'a'.repeat(48), studentId: '20251234' });
+        .send({ token: 'a'.repeat(48), studentId: '2024111234' });
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('InvalidToken');
     });
@@ -171,7 +171,7 @@ describe('school verify routes (#538)', () => {
       }
       const res = await request(app)
         .post('/api/auth/verify-school')
-        .send({ token, studentId: '20251234' });
+        .send({ token, studentId: '2024111234' });
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('InvalidToken');
     });
@@ -181,16 +181,16 @@ describe('school verify routes (#538)', () => {
       const { token } = await linkAndExtractToken(jwt);
       const ok = await request(app)
         .post('/api/auth/verify-school')
-        .send({ token, studentId: '20251234' });
+        .send({ token, studentId: '2024111234' });
       expect(ok.status).toBe(200);
       const again = await request(app)
         .post('/api/auth/verify-school')
-        .send({ token, studentId: '20259999' });
+        .send({ token, studentId: '2024999999' });
       expect(again.status).toBe(400);
       expect(again.body.error).toBe('InvalidToken');
     });
 
-    it('학번이 8자리 숫자 아니면 400 ValidationError', async () => {
+    it('학번이 10자리 숫자 아니면 400 ValidationError', async () => {
       const { jwt } = await signup();
       const { token } = await linkAndExtractToken(jwt);
       const res = await request(app)
@@ -200,10 +200,20 @@ describe('school verify routes (#538)', () => {
       expect(res.body.error).toBe('ValidationError');
     });
 
+    it('학번이 8자리(구 정책)면 400 ValidationError — 회귀 방지', async () => {
+      const { jwt } = await signup();
+      const { token } = await linkAndExtractToken(jwt);
+      const res = await request(app)
+        .post('/api/auth/verify-school')
+        .send({ token, studentId: '20241234' });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
+    });
+
     it('짧은 토큰 → 400 InvalidToken (스키마 단계)', async () => {
       const res = await request(app)
         .post('/api/auth/verify-school')
-        .send({ token: 'short', studentId: '20251234' });
+        .send({ token: 'short', studentId: '2024111234' });
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('InvalidToken');
     });
@@ -227,13 +237,13 @@ describe('school verify routes (#538)', () => {
       // 기존 토큰은 invalidated.
       const reuseOld = await request(app)
         .post('/api/auth/verify-school')
-        .send({ token: first.token, studentId: '20251234' });
+        .send({ token: first.token, studentId: '2024111234' });
       expect(reuseOld.status).toBe(400);
 
       // 새 토큰은 동작.
       const useNew = await request(app)
         .post('/api/auth/verify-school')
-        .send({ token: newToken, studentId: '20251234' });
+        .send({ token: newToken, studentId: '2024111234' });
       expect(useNew.status).toBe(200);
     });
 

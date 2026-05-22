@@ -33,7 +33,7 @@ const verifiedMe = {
   name: '김멘티',
   nickname: '멘티9',
   schoolEmail: 'me@knu.ac.kr',
-  studentId: '20241234',
+  studentId: '2024111234',
   schoolVerifiedAt: '2026-05-21T10:00:00Z',
 };
 
@@ -79,7 +79,7 @@ describe('MePage', () => {
     vi.spyOn(api, 'me').mockResolvedValue({ data: { user: verifiedMe } });
     renderMe();
     expect(await screen.findByText(/학교 인증됨/)).toBeInTheDocument();
-    expect(screen.getByText(/학번 20241234/)).toBeInTheDocument();
+    expect(screen.getByText(/학번 2024111234/)).toBeInTheDocument();
     expect(screen.getByText(/me@knu\.ac\.kr/)).toBeInTheDocument();
   });
 

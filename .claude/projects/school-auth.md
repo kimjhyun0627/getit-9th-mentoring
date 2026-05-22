@@ -31,7 +31,7 @@ hobby PRD (`projects/hobby.md`) 와 ERD에 명시된 "학번 / 학교 이메일 
 
 1. 회원가입 폼 → email + password + name + **nickname (required)** → 가입 완료 + 이메일 인증 메일 발송 (기존 흐름)
 2. 로그인 → 마이페이지 → "학교 계정 연동" 카드 → 학교 메일 (`@knu.ac.kr`) 입력 → 인증 메일 발송
-3. 메일 링크 클릭 → `/verify-school?token=...` → **학번 8자리 입력 폼** → 검증 + 저장 → `schoolVerifiedAt` 셋 → 학교 인증 뱃지 표시
+3. 메일 링크 클릭 → `/verify-school?token=...` → **학번 10자리 입력 폼** → 검증 + 저장 → `schoolVerifiedAt` 셋 → 학교 인증 뱃지 표시
 4. hobby 모집글 작성 / 신청 가능
 
 ### 2) 기존 외부인 가입자 (이미 운영 중인 가입자)
@@ -56,7 +56,7 @@ hobby PRD (`projects/hobby.md`) 와 ERD에 명시된 "학번 / 학교 이메일 
 model User {
   // ... 기존 필드
   nickname          String?    @unique  // 마이그레이션 단계에선 nullable, 강제 onboarding 후 not-null 화 (Phase 10.5)
-  studentId         String?              // 8자리 숫자, 학교 인증 흐름 안에서만 채워짐
+  studentId         String?              // 10자리 숫자 (KNU 학번 형식), 학교 인증 흐름 안에서만 채워짐
   schoolEmail       String?    @unique   // @knu.ac.kr 도메인 강제, 검증 후 저장
   schoolVerifiedAt  DateTime?            // 학교 인증 완료 시각
   schoolVerifyTokens SchoolVerifyToken[]
@@ -113,7 +113,7 @@ model SchoolVerifyToken {
   "email": "user@gmail.com",
   "name": "홍길동",
   "nickname": "길동이",
-  "studentId": "20241234",
+  "studentId": "2021111873",
   "schoolEmail": "user@knu.ac.kr",
   "schoolVerifiedAt": "2026-05-21T10:00:00Z",
   "emailVerifiedAt": "2026-05-19T12:00:00Z",
@@ -229,7 +229,7 @@ model SchoolVerifyToken {
 
 | 항목 | 정책 |
 | :--- | :--- |
-| 형식 | 8자리 숫자 `^\d{8}$` (예: `20241234`) |
+| 형식 | 10자리 숫자 `^\d{10}$` (예: `2021111873` — 입학년도 4자리 + 학과/순번 6자리, KNU 학번 형식) |
 | 유일성 | unique 강제 **X** (재입학 / 복수 학번 케이스) |
 | 입력 시점 | 학교 메일 인증 흐름의 학번 입력 폼에서만 |
 | 변경 가능 여부 | 학교 인증 다시 받으면 갱신 (단순 PATCH X) |
@@ -250,7 +250,7 @@ model SchoolVerifyToken {
 [/verify-school?token=XYZ]  ← auth-web 페이지
     ├─ 토큰 유효성 즉시 확인 (만료/소진/없음 → 에러 페이지)
     └─ 학번 입력 폼 노출
-        ↓ (학번 8자리 입력 + 제출)
+        ↓ (학번 10자리 입력 + 제출)
 [POST /api/auth/verify-school]
     ├─ tokenHash 검증
     ├─ studentId regex 검증
@@ -265,7 +265,7 @@ model SchoolVerifyToken {
 | HTTP | error code | 발생 조건 | FE 처리 |
 | :--- | :--- | :--- | :--- |
 | 400 | `InvalidSchoolEmailDomain` | `@knu.ac.kr` 아닌 도메인 | 폼 인라인 에러 |
-| 400 | `InvalidStudentId` | 8자리 숫자 아님 | 폼 인라인 에러 |
+| 400 | `InvalidStudentId` | 10자리 숫자 아님 | 폼 인라인 에러 |
 | 401 | `TokenInvalidOrExpired` | 토큰 없음 / 만료 / 사용됨 | 재발송 CTA |
 | 409 | `SchoolEmailAlreadyInUse` | 다른 유저가 이미 인증한 학교 메일 | 운영자 문의 안내 |
 | 429 | `RateLimited` | 분당 3건 초과 | "잠시 후 재시도" 토스트 |
@@ -337,7 +337,7 @@ GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고
 | :--- | :--- | :--- |
 | 닉네임 | `useSession().user.nickname` | null 이면 "닉네임을 설정해주세요" + onboarding 유도 (nickname onboarding 강제 흐름과 통합 — sub-issue #540) |
 | 가입 일자 | `useSession().user.createdAt` (`useSession` 확장에서 보장 — 위 "전 webs" 섹션 참조, 단일 출처) | YYYY-MM-DD 한국어 |
-| 학교 인증 상태 | `useSession().user.schoolVerifiedAt` / `studentId` | **인증됨**: "학교 인증 완료 · 학번 20241234" / **미인증**: "학교 미인증" + **"학교 인증하기"** 버튼 |
+| 학교 인증 상태 | `useSession().user.schoolVerifiedAt` / `studentId` | **인증됨**: "학교 인증 완료 · 학번 2021111873" / **미인증**: "학교 미인증" + **"학교 인증하기"** 버튼 |
 | 학교 인증하기 버튼 | — | 클릭 시 `https://auth.get-it.cloud/me?focus=school-link` 로 redirect. `focus` 쿼리로 auth-web 마이페이지에서 학교 연동 카드 자동 강조 (위 "hobby 안내 카피 — `?focus=school-link` 쿼리 처리" 참고) |
 
 #### 디자인 톤

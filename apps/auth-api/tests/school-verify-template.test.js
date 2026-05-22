@@ -80,10 +80,10 @@ describe('renderSchoolVerifyEmail (#542)', () => {
     expect(r.text).toMatch(/눌러줘|줘\./); // 줘 패턴
   });
 
-  it('mentions student ID 8자리 입력 안내', () => {
+  it('mentions student ID 10자리 입력 안내', () => {
     const r = renderSchoolVerifyEmail({ verifyUrl: URL_OK });
-    expect(r.text).toMatch(/학번 8자리/);
-    expect(r.html).toMatch(/학번 8자리/);
+    expect(r.text).toMatch(/학번 10자리/);
+    expect(r.html).toMatch(/학번 10자리/);
   });
 
   it('does NOT leak plaintext token outside the URL', () => {

@@ -105,7 +105,7 @@ export const api = {
   // school-auth #539 — 학교 메일 인증 (PRD `.claude/projects/school-auth.md`).
   //  - schoolLink: 최초 학교 메일 입력 + 인증 메일 발송.
   //  - schoolLinkResend: 같은 메일에 새 토큰 재발송 (분당 1건 rate limit).
-  //  - verifySchool: 토큰 + 학번 8자리 → 인증 확정.
+  //  - verifySchool: 토큰 + 학번 10자리 → 인증 확정.
   schoolLink: (body) => client.post('/me/school-link', body),
   schoolLinkResend: (body) => client.post('/me/school-link/resend', body),
   verifySchool: (body) => client.post('/auth/verify-school', body),

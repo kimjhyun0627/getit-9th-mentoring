@@ -3,7 +3,7 @@
  *
  * 흐름:
  *   1) POST /api/me/school-link         — 학교 메일 입력 → 1회용 토큰 메일 발송
- *   2) POST /api/auth/verify-school     — 토큰 + 학번 8자리 → 인증 확정
+ *   2) POST /api/auth/verify-school     — 토큰 + 학번 10자리 → 인증 확정
  *   3) POST /api/me/school-link/resend  — 같은 메일에 새 토큰 재발송
  *
  * 정책:

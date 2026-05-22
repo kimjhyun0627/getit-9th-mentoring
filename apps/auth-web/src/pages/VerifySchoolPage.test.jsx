@@ -13,7 +13,7 @@ import { VerifySchoolPage } from './VerifySchoolPage.jsx';
  * VerifySchoolPage TDD (Issue #539) — 학번 검증 + 4 응답 코드 처리.
  */
 
-// 32자 + 8자리 학번 길이 가 BE Zod 의 통과 기준. 테스트는 BE 응답만 mock — request body 는 그대로 전달.
+// 32자 + 10자리 학번 길이 가 BE Zod 의 통과 기준. 테스트는 BE 응답만 mock — request body 는 그대로 전달.
 const VALID_TOKEN = 'a'.repeat(40);
 
 const renderVerify = (initialEntry = `/verify-school?token=${VALID_TOKEN}`) => {
@@ -44,7 +44,7 @@ describe('VerifySchoolPage', () => {
 
   it('정상 토큰: 학번 입력 폼이 보인다', () => {
     renderVerify();
-    expect(screen.getByLabelText('학번 (8자리)')).toBeInTheDocument();
+    expect(screen.getByLabelText('학번 (10자리)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '학교 인증 완료' })).toBeInTheDocument();
   });
 
@@ -54,13 +54,23 @@ describe('VerifySchoolPage', () => {
     expect(screen.getByRole('link', { name: /마이페이지로 가서 다시 받기/ })).toBeInTheDocument();
   });
 
-  it('학번 형식 불일치 (7자리)는 폼 인라인 에러로 차단 (BE 호출 X)', async () => {
+  it('학번 형식 불일치 (9자리)는 폼 인라인 에러로 차단 (BE 호출 X)', async () => {
     const user = userEvent.setup();
     const spy = vi.spyOn(api, 'verifySchool');
     renderVerify();
-    await user.type(screen.getByLabelText('학번 (8자리)'), '1234567');
+    await user.type(screen.getByLabelText('학번 (10자리)'), '123456789');
     await user.click(screen.getByRole('button', { name: '학교 인증 완료' }));
-    expect(await screen.findByText('학번은 8자리 숫자입니다')).toBeInTheDocument();
+    expect(await screen.findByText('학번은 10자리 숫자입니다')).toBeInTheDocument();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('학번 (8자리, 구 정책)도 폼 인라인 에러로 차단 — 회귀 방지', async () => {
+    const user = userEvent.setup();
+    const spy = vi.spyOn(api, 'verifySchool');
+    renderVerify();
+    await user.type(screen.getByLabelText('학번 (10자리)'), '20241234');
+    await user.click(screen.getByRole('button', { name: '학교 인증 완료' }));
+    expect(await screen.findByText('학번은 10자리 숫자입니다')).toBeInTheDocument();
     expect(spy).not.toHaveBeenCalled();
   });
 
@@ -68,10 +78,10 @@ describe('VerifySchoolPage', () => {
     const user = userEvent.setup();
     const spy = vi.spyOn(api, 'verifySchool').mockResolvedValue({ data: { ok: true } });
     renderVerify();
-    await user.type(screen.getByLabelText('학번 (8자리)'), '20241234');
+    await user.type(screen.getByLabelText('학번 (10자리)'), '2024111234');
     await user.click(screen.getByRole('button', { name: '학교 인증 완료' }));
     await waitFor(() => {
-      expect(spy).toHaveBeenCalledWith({ token: VALID_TOKEN, studentId: '20241234' });
+      expect(spy).toHaveBeenCalledWith({ token: VALID_TOKEN, studentId: '2024111234' });
     });
     await waitFor(
       () => {
@@ -88,7 +98,7 @@ describe('VerifySchoolPage', () => {
       response: { status: 400, data: { error: 'InvalidToken' } },
     });
     renderVerify();
-    await user.type(screen.getByLabelText('학번 (8자리)'), '20241234');
+    await user.type(screen.getByLabelText('학번 (10자리)'), '2024111234');
     await user.click(screen.getByRole('button', { name: '학교 인증 완료' }));
     expect(await screen.findByText(/만료됐거나 이미 사용된 토큰/)).toBeInTheDocument();
   });
@@ -100,7 +110,7 @@ describe('VerifySchoolPage', () => {
       response: { status: 409, data: { error: 'SchoolEmailTaken' } },
     });
     renderVerify();
-    await user.type(screen.getByLabelText('학번 (8자리)'), '20241234');
+    await user.type(screen.getByLabelText('학번 (10자리)'), '2024111234');
     await user.click(screen.getByRole('button', { name: '학교 인증 완료' }));
     expect(await screen.findByText(/다른 계정이 이미 인증한/)).toBeInTheDocument();
     expect(screen.getByText(/운영자에게 문의/)).toBeInTheDocument();
@@ -113,7 +123,7 @@ describe('VerifySchoolPage', () => {
       response: { status: 400, data: { error: 'ValidationError' } },
     });
     renderVerify();
-    await user.type(screen.getByLabelText('학번 (8자리)'), '20241234');
+    await user.type(screen.getByLabelText('학번 (10자리)'), '2024111234');
     await user.click(screen.getByRole('button', { name: '학교 인증 완료' }));
     expect(await screen.findByText(/학번이 올바르지 않아요/)).toBeInTheDocument();
   });
