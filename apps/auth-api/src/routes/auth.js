@@ -55,18 +55,30 @@ const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex
  * `tx` 가 주어지면 그 트랜잭션 컨텍스트에서 refresh token 을 생성한다.
  * (signup/login 등에서 사용자 생성과 같이 묶을 수 있도록.)
  *
- * @param {{ id: string, email: string, name: string }} user
+ * #541: `schoolVerifiedAt` 도 JWT payload 에 박는다 — hobby-api 가드가
+ * cross-service DB join 없이 사용하기 위함. 미인증 사용자는 키 누락.
+ *
+ * @param {{
+ *   id: string,
+ *   email: string,
+ *   name: string,
+ *   schoolVerifiedAt?: Date | string | null,
+ * }} user
  * @param {import('express').Response} res
  * @param {{ refreshToken: { create: typeof prisma.refreshToken.create } }} [tx]
  */
 const issueTokensAndCookies = async (user, res, tx) => {
   const cfg = readAuthEnv();
   const client = tx ?? prisma;
-  const accessToken = generateAccessToken(
-    { sub: user.id, email: user.email, name: user.name },
-    cfg.jwtSecret,
-    cfg.accessTtl,
-  );
+  // schoolVerifiedAt 정규화: Date → ISO, string → 그대로, falsy → 키 생략.
+  const tokenPayload = { sub: user.id, email: user.email, name: user.name };
+  if (user.schoolVerifiedAt) {
+    tokenPayload.schoolVerifiedAt =
+      user.schoolVerifiedAt instanceof Date
+        ? user.schoolVerifiedAt.toISOString()
+        : String(user.schoolVerifiedAt);
+  }
+  const accessToken = generateAccessToken(tokenPayload, cfg.jwtSecret, cfg.accessTtl);
   const refreshToken = generateRefreshToken();
   const expiresAt = new Date(Date.now() + cfg.refreshTtlDays * 24 * 60 * 60 * 1000);
   await client.refreshToken.create({

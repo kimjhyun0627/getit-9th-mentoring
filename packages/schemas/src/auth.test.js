@@ -167,4 +167,51 @@ describe('JwtPayload', () => {
     });
     expect(r.success).toBe(true);
   });
+
+  it('schoolVerifiedAt 이 ISO 문자열이면 통과 (#541)', () => {
+    const r = JwtPayload.safeParse({
+      sub: 'u_123',
+      email: 'a@b.com',
+      name: '홍길동',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+      iat: 1700000000,
+      exp: 1700003600,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('schoolVerifiedAt 이 null/undefined 면 통과 — 미인증 사용자 (#541)', () => {
+    const r1 = JwtPayload.safeParse({
+      sub: 'u_123',
+      email: 'a@b.com',
+      name: '홍길동',
+      schoolVerifiedAt: null,
+      iat: 1700000000,
+      exp: 1700003600,
+    });
+    expect(r1.success).toBe(true);
+
+    // #549 CR: undefined 도 명시 케이스로 고정 — null/undefined 둘 다 보장.
+    const r2 = JwtPayload.safeParse({
+      sub: 'u_123',
+      email: 'a@b.com',
+      name: '홍길동',
+      schoolVerifiedAt: undefined,
+      iat: 1700000000,
+      exp: 1700003600,
+    });
+    expect(r2.success).toBe(true);
+  });
+
+  it('schoolVerifiedAt 이 ISO 형식이 아니면 거부 (#541)', () => {
+    const r = JwtPayload.safeParse({
+      sub: 'u_123',
+      email: 'a@b.com',
+      name: '홍길동',
+      schoolVerifiedAt: 'not-a-date',
+      iat: 1700000000,
+      exp: 1700003600,
+    });
+    expect(r.success).toBe(false);
+  });
 });

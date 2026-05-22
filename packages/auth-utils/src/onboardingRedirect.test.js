@@ -10,9 +10,13 @@
  *     safe default 로 떨어짐 (dev 환경의 localhost 는 통과 X, prod 만 정상 동작).
  *   - `URLSearchParams` 로 안전하게 인코딩.
  */
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { buildNicknameOnboardingUrl } from './onboardingRedirect.js';
+// CR nitpick #550 — static import 로 통일 (이전 beforeAll 동적 import 제거).
+import {
+  buildNicknameOnboardingUrl,
+  shouldEnforceNicknameOnboarding,
+} from './onboardingRedirect.js';
 
 describe('buildNicknameOnboardingUrl', () => {
   it('현재 URL 을 ?redirect= 로 부착해서 auth onboarding 으로 보냄', () => {
@@ -47,46 +51,41 @@ describe('buildNicknameOnboardingUrl', () => {
 });
 
 describe('shouldEnforceNicknameOnboarding', () => {
-  let mod;
-  beforeAll(async () => {
-    mod = await import('./onboardingRedirect.js');
-  });
-
   it('user 없음 → false (비로그인은 redirect 안 함)', () => {
-    expect(mod.shouldEnforceNicknameOnboarding({ user: null, currentPath: '/' })).toBe(false);
+    expect(shouldEnforceNicknameOnboarding({ user: null, currentPath: '/' })).toBe(false);
   });
 
   it('user.nickname truthy → false (이미 nickname 있음)', () => {
     expect(
-      mod.shouldEnforceNicknameOnboarding({ user: { nickname: '길동이' }, currentPath: '/' }),
+      shouldEnforceNicknameOnboarding({ user: { nickname: '길동이' }, currentPath: '/' }),
     ).toBe(false);
   });
 
   it('user.nickname null → true', () => {
-    expect(
-      mod.shouldEnforceNicknameOnboarding({ user: { nickname: null }, currentPath: '/' }),
-    ).toBe(true);
+    expect(shouldEnforceNicknameOnboarding({ user: { nickname: null }, currentPath: '/' })).toBe(
+      true,
+    );
   });
 
   it('user.nickname undefined → true', () => {
-    expect(mod.shouldEnforceNicknameOnboarding({ user: {}, currentPath: '/' })).toBe(true);
+    expect(shouldEnforceNicknameOnboarding({ user: {}, currentPath: '/' })).toBe(true);
   });
 
   it('user.nickname 빈 문자열 → true', () => {
-    expect(mod.shouldEnforceNicknameOnboarding({ user: { nickname: '' }, currentPath: '/' })).toBe(
+    expect(shouldEnforceNicknameOnboarding({ user: { nickname: '' }, currentPath: '/' })).toBe(
       true,
     );
   });
 
   it('user.nickname 공백만 → true', () => {
-    expect(
-      mod.shouldEnforceNicknameOnboarding({ user: { nickname: '   ' }, currentPath: '/' }),
-    ).toBe(true);
+    expect(shouldEnforceNicknameOnboarding({ user: { nickname: '   ' }, currentPath: '/' })).toBe(
+      true,
+    );
   });
 
   it('user 있음 + nickname 없음 + currentPath 가 onboarding 자체 → false (무한 루프 방지)', () => {
     expect(
-      mod.shouldEnforceNicknameOnboarding({
+      shouldEnforceNicknameOnboarding({
         user: { nickname: null },
         currentPath: '/onboarding/nickname',
       }),
@@ -95,7 +94,7 @@ describe('shouldEnforceNicknameOnboarding', () => {
 
   it('enforced=false → 항상 false (PRD feature flag OFF 시나리오)', () => {
     expect(
-      mod.shouldEnforceNicknameOnboarding({
+      shouldEnforceNicknameOnboarding({
         user: { nickname: null },
         currentPath: '/',
         enforced: false,
@@ -105,7 +104,7 @@ describe('shouldEnforceNicknameOnboarding', () => {
 
   it('enforced=true (default) → 정상 동작', () => {
     expect(
-      mod.shouldEnforceNicknameOnboarding({
+      shouldEnforceNicknameOnboarding({
         user: { nickname: null },
         currentPath: '/',
         enforced: true,

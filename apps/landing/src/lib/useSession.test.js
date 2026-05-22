@@ -82,6 +82,29 @@ describe('useSession (#343 / #246)', () => {
     });
   });
 
+  it('school-auth (#540) — surrounding whitespace 는 trim 정규화 (CR nitpick)', async () => {
+    // CR nitpick #550 — orNullableNonEmpty 가 trim 된 값을 반환하는지 회귀 가드.
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        user: {
+          sub: 'u1',
+          nickname: '  abc  ',
+          studentId: ' 20241234 ',
+          schoolEmail: ' user@knu.ac.kr ',
+        },
+      }),
+    });
+
+    const { result } = renderHook(() => useSession());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.user?.nickname).toBe('abc');
+    expect(result.current.user?.studentId).toBe('20241234');
+    expect(result.current.user?.schoolEmail).toBe('user@knu.ac.kr');
+  });
+
   it('school-auth (#540) — 공백/빈 문자열 필드는 null 정규화 (CR Major)', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

@@ -5,6 +5,8 @@
  * 책임: 비로그인/CLOSED/방장/REJECTED/PENDING/APPROVED/신규신청 의 8가지 케이스를
  *   한 곳에서 처리. 로딩 placeholder 와 me query 미해소 케이스는 부모가 책임.
  */
+import { SCHOOL_AUTH_URL } from '../lib/constants.js';
+
 import { OwnerPanel } from './PostDetailPage.owner.jsx';
 
 /**
@@ -19,6 +21,7 @@ import { OwnerPanel } from './PostDetailPage.owner.jsx';
  *   isInactive: boolean;
  *   isPendingApplication: boolean;
  *   cancelDisabled: boolean;
+ *   isSchoolUnverified?: boolean;
  *   applyMutation: any;
  *   cancelMutation: any;
  *   closeMutation: any;
@@ -35,6 +38,7 @@ export const ApplySection = ({
   isInactive,
   isPendingApplication,
   cancelDisabled,
+  isSchoolUnverified = false,
   applyMutation,
   cancelMutation,
   closeMutation,
@@ -58,6 +62,32 @@ export const ApplySection = ({
       >
         로그인하고 신청하기 →
       </a>
+    );
+  }
+  // #549 CR: 학교 미인증 분기를 모든 mutation 진입보다 먼저 평가.
+  // 이전엔 isRejected/isPendingApproval/isApplied 뒤에 있어서 미인증 사용자가
+  // 상태에 따라 취소/마감 같은 mutation 버튼에 그대로 진입 가능했음.
+  // 서버 가드가 403 으로 막더라도 UX 가 깨지므로 mutation 컨트롤 자체를 mount 안 함.
+  if (isSchoolUnverified) {
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          disabled
+          aria-disabled="true"
+          title="학교 인증한 부원만 가능"
+          data-testid="apply-button-school-locked"
+          className="inline-flex items-center gap-2 rounded-full bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-7 py-3 font-display font-extrabold text-base shadow-none cursor-not-allowed"
+        >
+          <span aria-hidden="true">🔒</span> 학교 인증 필요
+        </button>
+        <a
+          href={SCHOOL_AUTH_URL}
+          className="inline-flex items-center gap-1 text-sm font-round font-bold text-rose-600 dark:text-rose-300 hover:underline"
+        >
+          학교 인증하러 가기 <span aria-hidden="true">→</span>
+        </a>
+      </div>
     );
   }
   if (isRejected) {

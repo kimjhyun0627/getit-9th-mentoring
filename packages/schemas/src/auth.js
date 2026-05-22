@@ -93,11 +93,20 @@ export const SignupInput = z
 
 /**
  * JWT payload 스키마 — 모든 BE에서 검증.
+ *
+ * #541 (학교 인증 epic): `schoolVerifiedAt` 옵션 필드 추가.
+ *  - 학교 인증 완료한 사용자는 access token 발급/회전 시 ISO 8601 문자열로 박힘.
+ *  - 미인증 / 옛 토큰은 키 자체가 없거나 null → guard 가 null treatment.
+ *  - 다른 BE 앱은 DB 가 분리돼 있어 (auth-api 만 User 테이블 보유) JWT payload 로
+ *    학교 인증 상태를 전파해야 함. cross-service DB join / HTTP roundtrip 회피.
+ *  - access TTL (기본 15m) 동안은 stale 일 수 있으나, 학교 인증 후 verify-school
+ *    이 새 토큰 재발급 / refresh 흐름이 갱신을 보장.
  */
 export const JwtPayload = z.object({
   sub: z.string(),
   email: z.string().email(),
   name: z.string(),
+  schoolVerifiedAt: z.string().datetime().nullish(),
   iat: z.number(),
   exp: z.number(),
 });

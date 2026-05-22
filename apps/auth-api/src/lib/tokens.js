@@ -69,7 +69,14 @@ export const parseTtlToMs = (v) => {
 /**
  * JWT access token 발급.
  *
- * @param {{ sub: string, email: string, name: string }} payload
+ * #541: `schoolVerifiedAt` 도 payload 에 포함 (있을 때만).
+ *  - hobby-api 등 다른 BE 가 학교 인증 가드 적용 시 cross-service DB lookup 없이
+ *    JWT 만으로 학교 인증 상태를 확인할 수 있게 한다.
+ *  - 호출자가 ISO 문자열로 normalize 해서 넘긴다 (Date 객체는 jwt.sign 으로
+ *    serialize 시 형식이 일관되지 않아 명시 변환).
+ *  - 미인증 사용자는 키 자체를 빼서 payload 작아지게 (optional 필드).
+ *
+ * @param {{ sub: string, email: string, name: string, schoolVerifiedAt?: string | null }} payload
  * @param {string} secret
  * @param {string | number} expiresIn
  * @returns {string}

@@ -17,6 +17,8 @@ import { assertListShape } from './api.helpers.js';
  *
  * school-auth (#540) — nickname / studentId / schoolEmail / schoolVerifiedAt / createdAt
  * 도 nullish 로 받아 normalize 단계에서 일관된 shape 로 노출.
+ * #541: 학교 인증 가드 — `schoolVerifiedAt` 은 ISO datetime 또는 null 허용.
+ *   - 키 누락도 허용 (이전 버전 BE 호환).
  */
 const meUserSchema = z
   .object({
@@ -27,7 +29,7 @@ const meUserSchema = z
     nickname: z.string().nullish(),
     studentId: z.string().nullish(),
     schoolEmail: z.string().nullish(),
-    schoolVerifiedAt: z.string().nullish(),
+    schoolVerifiedAt: z.string().datetime().nullish(),
     createdAt: z.string().nullish(),
   })
   .passthrough();

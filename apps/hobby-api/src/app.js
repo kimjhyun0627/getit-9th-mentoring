@@ -17,6 +17,7 @@ import pinoHttp from 'pino-http';
 import swaggerUi from 'swagger-ui-express';
 
 import { prisma } from './lib/prisma.js';
+import { schoolAuthGuard } from './middleware/schoolAuthGuard.js';
 import { buildOpenApiDoc } from './openapi.js';
 import { createApplicationsRouter } from './routes/applications.js';
 import { createMeRouter } from './routes/me.js';
@@ -40,7 +41,14 @@ const readJwtSecret = () => {
 /**
  * Express 앱 인스턴스 생성.
  *
- * @param {{ trustProxy?: boolean, rateLimitMax?: number, rateLimitWindowMs?: number }} [opts]
+ * @param {{
+ *   trustProxy?: boolean,
+ *   rateLimitMax?: number,
+ *   rateLimitWindowMs?: number,
+ *   schoolAuthGuardEnabled?: boolean,
+ * }} [opts]
+ *   - `schoolAuthGuardEnabled`: 명시 지정 시 env 무시. 테스트에서 토글 용.
+ *     생략 시 `SCHOOL_AUTH_GUARD_ENABLED` env 로 결정.
  * @returns {import('express').Express}
  */
 export const createApp = (opts = {}) => {
@@ -114,6 +122,20 @@ export const createApp = (opts = {}) => {
   });
 
   const jwtSecret = readJwtSecret();
+
+  // #541: 학교 인증 가드. method 기반이라 mutation 추가 시 누락 안 남.
+  // requireAuth 보다 먼저 mount — guard 안에서 JWT 자체 파싱 후 schoolVerifiedAt 확인.
+  // 라우터 단위가 아닌 /api prefix 전역에 깔되, GET 은 미들웨어 안에서 통과.
+  app.use(
+    '/api',
+    schoolAuthGuard({
+      jwtSecret,
+      ...(opts.schoolAuthGuardEnabled !== undefined
+        ? { enabled: opts.schoolAuthGuardEnabled }
+        : {}),
+    }),
+  );
+
   app.use('/api', createPostsRouter({ jwtSecret, mutationLimiter }));
   app.use('/api', createApplicationsRouter({ jwtSecret, mutationLimiter }));
   app.use('/api', createNotificationsRouter({ jwtSecret, mutationLimiter }));

@@ -67,7 +67,7 @@
  * @property {string | null} [nickname] - 닉네임 (학교 인증 전이거나 미설정 시 null)
  * @property {string | null} [studentId] - 학번 (학교 인증 전 null)
  * @property {string | null} [schoolEmail] - 학교 메일 (학교 인증 전 null)
- * @property {string | null} [schoolVerifiedAt] - 학교 인증 시각 (ISO 8601, 미인증 시 null)
+ * @property {string | null} [schoolVerifiedAt] - 학교 인증 시각 (ISO 8601, 미인증 시 null). (#541)
  * @property {string} [createdAt] - 가입일 (ISO 8601)
  */
 

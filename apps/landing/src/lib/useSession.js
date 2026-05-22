@@ -45,12 +45,18 @@ const AUTH_ORIGIN = import.meta.env.VITE_AUTH_ORIGIN || 'https://auth.get-it.clo
 const ME_TIMEOUT_MS = 3000;
 
 /**
- * trim 후 비어있지 않은 string 만 반환. 그 외는 null — 공백/빈 문자열 정규화 (CR Major #550).
+ * trim 후 비어있지 않은 string 을 trim 된 값으로 반환. 그 외는 null —
+ * 공백/빈 문자열 정규화 (CR Major #550). CR nitpick #550: trim 결과를 반환해
+ * surrounding whitespace 도 제거 (예: `'  abc  '` → `'abc'`).
  *
  * @param {unknown} v
  * @returns {string | null}
  */
-const orNullableNonEmpty = (v) => (typeof v === 'string' && v.trim().length > 0 ? v : null);
+const orNullableNonEmpty = (v) => {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  return t.length > 0 ? t : null;
+};
 
 const SessionUserSchema = z.object({
   sub: z.string().min(1),
