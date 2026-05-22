@@ -261,8 +261,12 @@ model SchoolVerifyToken {
 
 ### 전 webs (landing / hobby / shelf / board / letter)
 
-- `useSession` 훅 응답에 nickname / schoolVerifiedAt / studentId 포함되도록 확장
+- `useSession` 훅 응답에 nickname / schoolVerifiedAt / studentId / **createdAt** 포함되도록 확장 (landing `/me` 가입 일자 표시가 의존 — 단일 출처 보장. 같은 5필드를 `/api/me` 응답 + `publicUser` 헬퍼도 그대로 노출)
 - nickname null 감지 → `auth.get-it.cloud/onboarding/nickname?redirect=<현재URL>` 강제 redirect (기존 auth-web `?redirect=` 파라미터 컨벤션과 일치 — `ProfilePage.jsx` 참고)
+- **`?redirect=` 보안 정책 (모든 webs 공통, auth-web `/login` / `onboarding/nickname` 포함)**:
+  - 허용 도메인 allowlist: `get-it.cloud` + `*.get-it.cloud` (즉 `auth.get-it.cloud`, `hobby.get-it.cloud`, `shelf.get-it.cloud`, `board.get-it.cloud`, `letter.get-it.cloud`, `get-it.cloud` 자체)
+  - 처리 절차: (1) URL 디코딩 → (2) `new URL(...)` 파싱 (parse 실패 시 reject) → (3) `host` 가 allowlist 매치 확인 → (4) 매치 안 되면 안전 기본 경로(`https://get-it.cloud`)로 폴백
+  - 오픈 리다이렉트 방어 목적 — 구현자 재량 금지, 위 절차 그대로 따름
 - 사용자명 표시는 `user.nickname ?? user.name` 헬퍼로 통일
 - (hobby 만) 모집글 작성 / 신청 버튼 — `schoolVerifiedAt == null` 이면 disabled + tooltip "학교 인증한 부원만 가능"
 
@@ -333,7 +337,7 @@ GETIT 9기 허브(landing)에서 사용자가 자기 상태를 한 눈에 보고
 - [ ] DB: `User.{nickname, studentId, schoolEmail, schoolVerifiedAt}` + `SchoolVerifyToken` 테이블 마이그레이션 적용 (dev / prod)
 - [ ] auth-api: 닉네임 signup + school link / verify / resend 라우터 + Zod 스키마 + 단위/통합 테스트
 - [ ] auth-web: 회원가입 nickname 필드 + 마이페이지 학교 연동 + verify-school 페이지 + nickname onboarding + `?focus=school-link` 쿼리 강조
-- [ ] 전 webs: nickname onboarding 강제 redirect + `useSession` 확장 (nickname / schoolVerifiedAt / studentId) + 표시 helper 적용
+- [ ] 전 webs: nickname onboarding 강제 redirect + `useSession` 확장 (nickname / schoolVerifiedAt / studentId / **createdAt**) + 표시 helper 적용 + `?redirect=` allowlist 검증 (`get-it.cloud` + `*.get-it.cloud`)
 - [ ] hobby: 모집글 / 신청 가드 + FE 비인증 사용자 disabled + **hobby home 안내 카드 (strict 카피)** + 토스트
 - [ ] landing: `/me` 마이페이지 (닉네임 / 가입일 / 학교 인증 상태 / "학교 인증하기" 버튼) + 헤더 "마이페이지" 링크 (로그인 시만)
 - [ ] landing `/me` "학교 인증하기" 버튼 **동작 검증**: 클릭 시 `https://auth.get-it.cloud/profile?focus=school-link` 로 redirect + auth-web `/profile` 가 `focus=school-link` 쿼리 받아 학교 연동 카드 자동 스크롤 + 시각 강조까지 end-to-end 확인 (스크린샷 첨부)
