@@ -32,10 +32,18 @@ export const createPost = async (req, res, next) => {
         }
       : undefined;
 
+    // #562: ownerName 스냅샷에 nickname 우선 — 라이브 신고 ("취미메이트는 사용자 이름
+    // 말고 닉네임으로 뜨게"). JWT payload 의 nickname 은 trim 후 비어있지 않을 때만
+    // 실리므로 (`buildAccessTokenPayload` 정책) 빈/공백 케이스는 자동으로 name 폴백.
+    // 모임은 단기성이라 닉네임 변경 시 stale 허용 (#212 동일 논리).
+    const ownerSnapshot =
+      typeof req.user.nickname === 'string' && req.user.nickname.length > 0
+        ? req.user.nickname
+        : (req.user.name ?? null);
     const created = await prisma.post.create({
       data: {
         ownerId: req.user.sub,
-        ownerName: req.user.name ?? null,
+        ownerName: ownerSnapshot,
         title,
         body,
         meetAt,

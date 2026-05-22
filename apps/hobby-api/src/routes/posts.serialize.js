@@ -7,6 +7,7 @@
  *  - 본문 필드 (id/ownerId/title/body/...)
  *  - tags: include.tags 평탄화 → [{ id, name }]
  *  - owner: ownerName 이 있으면 { nickname } 형태로 노출 (#210). null/빈문자열이면 키 자체 생략.
+ *    스냅샷 컬럼은 #562 부터 nickname 우선 채워 (JWT.nickname ?? JWT.name) — FE 는 owner.nickname 만 보고 displayName 적용.
  *  - openChatUrl: opts.exposeOpenChat 일 때만 (#36 privacy).
  *  - myApplication: opts.myApplication 가 있으면 { id, createdAt } 포함 (#212).
  */

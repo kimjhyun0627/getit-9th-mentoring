@@ -86,6 +86,31 @@ describe('hobby-api posts', () => {
       expect(res.status).toBe(400);
     });
 
+    it('#562 owner.nickname — JWT.nickname 이 있으면 nickname 스냅샷 우선', async () => {
+      // 작성 시점 JWT 에 nickname 이 실리면 ownerName 에 nickname 이 박혀야 한다.
+      const token = signJwt(
+        { sub: 'alice', email: 'alice@get-it.cloud', name: 'A 본명', nickname: '에이짱' },
+        SECRET,
+      );
+      const res = await request(app)
+        .post('/api/posts')
+        .set('Authorization', `Bearer ${token}`)
+        .send(validBody());
+      expect(res.status).toBe(201);
+      expect(res.body.post.owner).toEqual({ nickname: '에이짱' });
+    });
+
+    it('#562 owner.nickname — JWT.nickname 없으면 name 으로 폴백', async () => {
+      // 신규/구버전 사용자 (nickname 미설정) 호환.
+      const token = signJwt({ sub: 'bob', email: 'bob@get-it.cloud', name: 'B 본명' }, SECRET);
+      const res = await request(app)
+        .post('/api/posts')
+        .set('Authorization', `Bearer ${token}`)
+        .send(validBody());
+      expect(res.status).toBe(201);
+      expect(res.body.post.owner).toEqual({ nickname: 'B 본명' });
+    });
+
     it('태그 중복 입력해도 한 번만 연결됨 (trim + 대소문자 무시)', async () => {
       const token = tokenFor('alice');
       const res = await request(app)
