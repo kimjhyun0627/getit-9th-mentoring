@@ -30,6 +30,10 @@ export const ShelfLayout = ({ children }) => {
           <a href="/search" className="ink-link hidden sm:inline">
             Search
           </a>
+          {/* #561 — 부원 서재 디렉토리 진입점. UserShelfPage 가 라이브였으나 진입경로 없었음. */}
+          <a href="/browse" className="ink-link hidden sm:inline">
+            Discover
+          </a>
           <BookFlipToggle />
         </nav>
       </header>
