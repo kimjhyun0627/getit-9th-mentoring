@@ -125,17 +125,13 @@ export const createShelvesRouter = () => {
       // #565 — UserShelfPage 헤더가 `@cuid` 대신 닉네임 표시할 수 있게
       // BookShelf.userNickname 스냅샷 (#564) 중 가장 최근 row 값을 노출.
       // BookShelf 에 updatedAt 컬럼 없음 → addedAt desc 로 최근 row 선택.
-      // null/공백 row 는 제외 (`{ not: null }` + JS trim 가드).
-      const nicknameRow = await prisma.bookShelf.findFirst({
-        where: { userId, userNickname: { not: null } },
-        orderBy: { addedAt: 'desc' },
-        select: { userNickname: true },
-      });
-      const rawNickname = nicknameRow?.userNickname;
+      // null/공백 row 는 제외. `all` 에 이미 해당 유저의 모든 row 가 있으니
+      // 메모리에서 추출 (PR #566 Gemini 코멘트 — DB 라운드트립 절약).
       const nickname =
-        typeof rawNickname === 'string' && rawNickname.trim().length > 0
-          ? rawNickname.trim()
-          : null;
+        [...all]
+          .sort((a, b) => b.addedAt - a.addedAt)
+          .find((r) => typeof r.userNickname === 'string' && r.userNickname.trim().length > 0)
+          ?.userNickname?.trim() ?? null;
 
       return res.status(200).json({
         userId,
