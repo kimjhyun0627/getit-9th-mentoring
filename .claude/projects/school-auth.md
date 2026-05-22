@@ -122,21 +122,28 @@ model SchoolVerifyToken {
 
 ### hobby-api 가드
 
+**원칙**: hobby 의 **모든 mutation** (POST / PATCH / PUT / DELETE) 에 학교 인증 가드 적용. 조회(GET) 는 미인증자도 허용.
+
 | Method | Path | 가드 동작 |
 | :--- | :--- | :--- |
 | POST | `/api/posts` | `schoolVerifiedAt == null` 이면 403 `{ error: 'SchoolVerificationRequired', message: '학교 인증이 필요합니다.' }` |
+| PATCH / DELETE | `/api/posts/:id` | 같은 가드 (작성자 본인이어도 인증 풀리면 차단) |
 | POST | `/api/applications` | 같은 가드 |
+| PATCH / DELETE | `/api/applications/:id` (취소 / 상태 변경) | 같은 가드 |
+| POST | `/api/reports` (노쇼 신고 등) | 같은 가드 |
 | GET | (조회 계열) | 가드 X — 외부인도 hobby 둘러보기는 가능 |
 
-> PM 결정 필요: **조회 자체도 차단할지** — 본 PRD 디폴트는 "조회 OK, 액션만 차단" (둘러보고 가입 동기 부여).
+> 구현 가이드: 라우터 단위가 아니라 **HTTP method 기반 미들웨어** 로 일괄 적용해서 신규 mutation 라우터가 누락되지 않게 한다.
+
+> PM 결정 필요: **조회 자체도 차단할지** — 본 PRD 디폴트는 "조회 OK, 모든 mutation 차단" (둘러보고 가입 동기 부여).
 
 ## 닉네임 정책
 
 | 항목 | 정책 |
 | :--- | :--- |
 | 길이 | 2 ~ 20 자 |
-| 허용 문자 | 한글 / 영문 / 숫자 / `-` / `_` |
-| 정규식 | `^[가-힣a-zA-Z0-9_-]{2,20}$` |
+| 허용 문자 | 한글 (완성형 + 자음/모음) / 영문 / 숫자 / `-` / `_` |
+| 정규식 | `^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9_-]{2,20}$` (자모 단독 닉네임 — 예: `ㅋㅋ`, `ㅎㅎ` — 허용) |
 | 유일성 | **case-insensitive unique** (DB 저장 시 원본 보존 + `nicknameLower` 인덱스 필요 시 추가 — PM 결정) |
 | 변경 가능 여부 | 가능 — cooldown 정책은 옵션 (PM 결정) |
 | 표시 우선순위 | `nickname` > `name` (fallback) |
@@ -161,7 +168,7 @@ model SchoolVerifyToken {
 
 ## 학교 인증 흐름
 
-```
+```text
 [마이페이지] 학교 계정 연동 카드
     ↓ (학교 메일 입력: foo@knu.ac.kr)
 [POST /api/me/school-link]
@@ -178,8 +185,20 @@ model SchoolVerifyToken {
     ├─ tokenHash 검증
     ├─ studentId regex 검증
     ├─ 트랜잭션: User.schoolEmail + studentId + schoolVerifiedAt 셋, token consumedAt 마킹
+    │   └─ schoolEmail unique 충돌 시 (다른 유저가 이미 인증한 메일) → 409 `{ error: 'SchoolEmailAlreadyInUse' }`
+    │       FE: "다른 계정에서 이미 사용 중인 학교 메일이야. 본인 계정이 맞으면 운영자에게 문의." 안내
     └─ 성공 응답 → "학교 인증 완료" 화면 + 마이페이지 리다이렉트
 ```
+
+### 에러 응답 사전
+
+| HTTP | error code | 발생 조건 | FE 처리 |
+| :--- | :--- | :--- | :--- |
+| 400 | `InvalidSchoolEmailDomain` | `@knu.ac.kr` 아닌 도메인 | 폼 인라인 에러 |
+| 400 | `InvalidStudentId` | 8자리 숫자 아님 | 폼 인라인 에러 |
+| 401 | `TokenInvalidOrExpired` | 토큰 없음 / 만료 / 사용됨 | 재발송 CTA |
+| 409 | `SchoolEmailAlreadyInUse` | 다른 유저가 이미 인증한 학교 메일 | 운영자 문의 안내 |
+| 429 | `RateLimited` | 분당 3건 초과 | "잠시 후 재시도" 토스트 |
 
 ### 이메일 템플릿 (Gmail SMTP)
 
@@ -202,6 +221,7 @@ model SchoolVerifyToken {
 - **Enumeration 방어**: `/api/me/school-link` 는 항상 200 (이미 인증된 메일 / 다른 유저 메일 / 신규 메일 구분 X)
 - **CSRF**: 기존 SSO 쿠키 정책 그대로 (`SameSite=Lax`, `Secure`)
 - **PII**: 학번 / 학교메일은 로그에 절대 노출 X. Sentry 마스킹 룰 확인.
+- **Feature flag**: `SCHOOL_AUTH_GUARD_ENABLED` (hobby mutation 가드), `NICKNAME_ONBOARDING_ENFORCED` (nickname 강제 모드) — env 기반. 결함 시 데이터는 보존하고 동작만 비활성화 가능.
 
 ## 프론트엔드 (auth-web / 전 webs)
 
@@ -236,9 +256,15 @@ model SchoolVerifyToken {
 
 ### 롤백 시나리오
 
-- 인프라 장애로 메일 발송 실패 시: `/api/me/school-link` 가 항상 200 응답이라 UX 영향 X, 사용자에게 "메일 안 오면 재발송" CTA
-- DB 마이그레이션 실패 시: nullable 컬럼 추가만 한 1단계 마이그레이션이라 롤백 시 `DROP COLUMN` 으로 즉시 복구
-- hobby 가드 false positive (학교 인증한 부원이 403 받음): 핫픽스 → `schoolVerifiedAt` 직접 SQL 보정 가능
+**원칙**: 운영 중 사용자가 이미 입력한 `nickname / studentId / schoolEmail / schoolVerifiedAt` 값은 **데이터 자산**. 롤백 시 `DROP COLUMN` 금지 — 데이터 소실 위험이 있어 별도 백업 절차를 통과한 deprecation 단계에서만 컬럼 제거.
+
+| 장애 유형 | 롤백 전략 |
+| :--- | :--- |
+| 인프라: Gmail SMTP 발송 실패 | `/api/me/school-link` 는 항상 200 응답이라 UX 영향 X. 사용자에게 "메일 안 오면 재발송" CTA 노출. SMTP 복구 시점부터 신규 토큰 메일 정상 발송. |
+| FE/BE 결함: hobby 가드 false positive (학교 인증한 부원이 403) | feature flag (`SCHOOL_AUTH_GUARD_ENABLED`) 로 가드 미들웨어 **즉시 OFF**. 데이터는 보존. 결함 수정 후 다시 ON. |
+| nickname 강제 onboarding 결함 (무한 리다이렉트 등) | feature flag (`NICKNAME_ONBOARDING_ENFORCED`) 로 강제 모드 OFF → 모달은 노출하되 skip 허용 모드로 강등. 데이터는 보존. |
+| DB 마이그레이션 자체가 실패 | Prisma migrate 자체가 트랜잭션이라 partial state 가능성 낮음. 만약 partial 상태면 dump → restore 절차. **`DROP COLUMN` 으로 즉시 롤백은 절대 금지** (이미 입력된 row 있을 경우 데이터 유실). |
+| 전체 feature 회수 결정 (오래 운영 후) | (1) 코드 경로 비활성화 → (2) 최소 30일 모니터링 + 백업 → (3) 별도 PR 로 컬럼 제거 마이그레이션 (별도 PM 승인 필요) |
 
 ## DoD (전체 작업 종료 기준)
 
