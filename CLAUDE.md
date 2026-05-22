@@ -76,6 +76,7 @@ CLAUDE.md만 매 세션 자동 로드된다. 아래 문서들은 **해당 작업
 - **[`.claude/projects/board.md`](.claude/projects/board.md)** — 칸반
 - **[`.claude/projects/letter.md`](.claude/projects/letter.md)** — 익명 롤링페이퍼
 - **[`.claude/projects/infra.md`](.claude/projects/infra.md)** — 공통 인프라
+- **[`.claude/projects/school-auth.md`](.claude/projects/school-auth.md)** — 학교 인증 + 닉네임 + 학번 (전 앱 공통)
 
 ### Read 가이드
 
