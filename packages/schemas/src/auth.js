@@ -101,11 +101,19 @@ export const SignupInput = z
  *    학교 인증 상태를 전파해야 함. cross-service DB join / HTTP roundtrip 회피.
  *  - access TTL (기본 15m) 동안은 stale 일 수 있으나, 학교 인증 후 verify-school
  *    이 새 토큰 재발급 / refresh 흐름이 갱신을 보장.
+ *
+ * letter 무한 redirect fix: `nickname` 옵션 필드 추가.
+ *  - auth-api 외 BE (letter/hobby) 는 자체 User 테이블이 없어 JWT 만으로 nickname
+ *    상태를 안다. `/api/me` echo 라우터가 nickname 까지 응답해야 NicknameOnboardingGuard
+ *    가 무한 루프에 빠지지 않는다.
+ *  - schoolVerifiedAt 과 동일한 정책: 없으면 키 누락, 빈 닉네임은 null.
+ *  - access TTL 동안 stale 가능 — PATCH /api/me/nickname 이 즉시 새 토큰 발급해서 보완.
  */
 export const JwtPayload = z.object({
   sub: z.string(),
   email: z.string().email(),
   name: z.string(),
+  nickname: z.string().nullish(),
   schoolVerifiedAt: z.string().datetime().nullish(),
   iat: z.number(),
   exp: z.number(),

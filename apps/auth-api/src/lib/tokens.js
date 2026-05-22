@@ -76,7 +76,18 @@ export const parseTtlToMs = (v) => {
  *    serialize 시 형식이 일관되지 않아 명시 변환).
  *  - 미인증 사용자는 키 자체를 빼서 payload 작아지게 (optional 필드).
  *
- * @param {{ sub: string, email: string, name: string, schoolVerifiedAt?: string | null }} payload
+ * letter 무한 redirect fix: `nickname` 도 동일 정책으로 포함 (있을 때만).
+ *  - letter-api/hobby-api 의 `/api/me` 가 JWT 만 echo 해도 nickname 이 응답에 박혀
+ *    NicknameOnboardingGuard 가 무한 redirect 루프에 빠지지 않는다.
+ *  - 빈 문자열 / null 은 키 누락으로 정규화 (signup/login 핸들러 책임).
+ *
+ * @param {{
+ *   sub: string,
+ *   email: string,
+ *   name: string,
+ *   nickname?: string | null,
+ *   schoolVerifiedAt?: string | null,
+ * }} payload
  * @param {string} secret
  * @param {string | number} expiresIn
  * @returns {string}

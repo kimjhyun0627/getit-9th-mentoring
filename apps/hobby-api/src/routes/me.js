@@ -38,9 +38,20 @@ export const createMeRouter = ({ jwtSecret }) => {
   // FE 의 `getMe()` 가 `/api/me` 를 치는데 hobby-api 는 `/me/posts`, `/me/applications`
   // 만 있어서 404 가 떨어졌음. auth-api 와 동일하게 자기 토큰 정보를 반환한다.
   // OpenAPI 스펙(sub/email/name)과 일치 + JWT 표준 메타(iat/exp) 노출 차단.
+  //
+  // 무한 redirect fix: nickname / schoolVerifiedAt 도 echo. JWT payload 에 있을 때만
+  // 키 값 채움 — FE 의 NicknameOnboardingGuard 가 onboarding 페이지로 보낼지 결정.
   router.get('/me', auth, (req, res) => {
-    const { sub, email, name } = req.user;
-    return res.status(200).json({ user: { sub, email, name } });
+    const { sub, email, name, nickname, schoolVerifiedAt } = req.user;
+    return res.status(200).json({
+      user: {
+        sub,
+        email,
+        name,
+        nickname: nickname ?? null,
+        schoolVerifiedAt: schoolVerifiedAt ?? null,
+      },
+    });
   });
 
   // GET /api/me/posts — 본인 게시글. status 미지정 시 CLOSED 포함 전부.

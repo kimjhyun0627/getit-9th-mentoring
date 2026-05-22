@@ -25,16 +25,15 @@ import { zodErrorBody } from '@getit/schemas/errors';
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
+import { issueTokensAndCookies } from '../lib/issueTokens.js';
 import { sendVerifyEmail } from '../lib/mailer.js';
 import { prisma } from '../lib/prisma.js';
 import {
   clearAuthCookies,
-  generateAccessToken,
   generateRefreshToken,
   hashRefreshToken,
   readAuthEnv,
   REFRESH_COOKIE,
-  setAuthCookies,
 } from '../lib/tokens.js';
 
 import { publicUser } from './userSerialize.js';
@@ -117,22 +116,17 @@ export const createMeRouter = () => {
       }
 
       // 비밀번호 변경 시 모든 기존 refresh token 강제 revoke + 새 토큰 set (현재 세션 유지).
+      // nickname / schoolVerifiedAt 도 새 payload 에 반영되도록 issueTokensAndCookies 사용.
       if (newPassword) {
         await prisma.refreshToken.updateMany({
           where: { userId: user.id, revokedAt: null },
           data: { revokedAt: new Date() },
         });
-        const accessToken = generateAccessToken(
-          { sub: updated.id, email: updated.email, name: updated.name },
-          cfg.jwtSecret,
-          cfg.accessTtl,
-        );
-        const refreshToken = generateRefreshToken();
-        const expiresAt = new Date(Date.now() + cfg.refreshTtlDays * 24 * 60 * 60 * 1000);
-        await prisma.refreshToken.create({
-          data: { userId: updated.id, tokenHash: hashRefreshToken(refreshToken), expiresAt },
-        });
-        setAuthCookies(res, { accessToken, refreshToken }, cfg);
+        await issueTokensAndCookies(updated, res);
+      } else if (nicknameChanged) {
+        // letter 무한 redirect fix: 비밀번호 변경 없이 nickname 만 갱신해도 새 nickname 이
+        // 반영된 access token 을 즉시 발급해야 다음 BE 호출에서 stale payload 우회.
+        await issueTokensAndCookies(updated, res);
       }
 
       // 이메일 변경 시 새 verify token + 발송 (fire-and-forget).
@@ -166,6 +160,11 @@ export const createMeRouter = () => {
   // PATCH /api/me/nickname — 닉네임만 변경 (#555 onboarding 흐름 전용).
   // /profile 라우트와 달리 currentPassword 재인증 X — auth + CSRF + DB unique 검증만.
   // 비밀번호 / 이메일 / 이름 변경은 여전히 /me/profile 에서 재인증 필요.
+  //
+  // letter 무한 redirect fix: 새 nickname 이 박힌 access token 을 즉시 재발급한다.
+  // stale JWT 에 nickname 누락이면 다른 BE (letter-api/hobby-api) 의 `/api/me` 가
+  // nickname 키 없이 응답 → FE NicknameOnboardingGuard 가 다시 onboarding 으로
+  // 보내는 무한 루프 발화. 토큰 재발급으로 한 번에 cleared.
   router.patch('/me/nickname', auth, async (req, res, next) => {
     try {
       const parsed = UpdateNicknameInput.safeParse(req.body);
@@ -194,6 +193,8 @@ export const createMeRouter = () => {
         }
         throw err;
       }
+      // 새 nickname 반영된 access token + refresh token 즉시 발급.
+      await issueTokensAndCookies(updated, res);
       return res.status(200).json({ user: publicUser(updated) });
     } catch (err) {
       return next(err);

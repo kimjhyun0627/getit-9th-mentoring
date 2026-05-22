@@ -219,6 +219,40 @@ describe('BoardPage', () => {
     expect(screen.getByRole('radiogroup', { name: /쪽지 배치/ })).toBeInTheDocument();
   });
 
+  // 무한 redirect fix 회귀 — getMe 응답에 nickname 키 자체가 없는 경우
+  // (legacy BE 또는 토큰 stale) NicknameOnboardingGuard 가 redirect 발화하지 않아야.
+  // 같은 nickname 누락이 onboarding → 복귀 → 또 누락 → 무한 루프를 만들었던 시나리오.
+  it('getMe 응답에 nickname 키 누락 시 onboarding 으로 redirect 하지 않는다 (무한 루프 방지)', async () => {
+    vi.restoreAllMocks();
+    // nickname 키 자체 누락 — letter-api 가 옛 응답 모양일 때.
+    vi.spyOn(api, 'getMe').mockResolvedValue({ user: { sub: 'me-sub', email: 'a@x.com' } });
+    vi.spyOn(api, 'listMessages').mockResolvedValue({ data: { items: [] } });
+
+    // window.location.href setter 만 가로채서 redirect 감지. 다른 속성은 그대로 위임.
+    const originalLocation = window.location;
+    const originalHref = originalLocation.href;
+    let assigned = '';
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: Object.create(originalLocation, {
+        pathname: { value: '/', writable: false, configurable: true },
+        href: {
+          configurable: true,
+          get: () => originalHref,
+          set: (v) => {
+            assigned = String(v);
+          },
+        },
+      }),
+    });
+
+    renderPage();
+    // 보드 마운트 (loading 끝) 까지 대기.
+    expect(await screen.findByText(/아직 쪽지가 없어요/)).toBeInTheDocument();
+    // onboarding 페이지로 redirect 가 일어나지 않았는지.
+    expect(assigned).not.toMatch(/onboarding\/nickname/);
+  });
+
   // #249 — 본인 메시지 삭제 mutation 연결
   it('본인 메시지 삭제 클릭 시 deleteMessage 호출되고 카드가 사라진다 (#249)', async () => {
     const user = userEvent.setup();

@@ -37,6 +37,12 @@ export const buildNicknameOnboardingUrl = ({ authOrigin, currentUrl }) => {
  * `enforced` 플래그 (PRD `NICKNAME_ONBOARDING_ENFORCED` 결함 시 OFF — 데이터는
  * 보존하고 동작만 비활성화) 가 false 면 가드 자체를 skip. 기본 true.
  *
+ * 정책 (letter 무한 redirect fix 후 강화):
+ *  - `nickname === undefined` (키 자체 누락) → false. 정보 부족 — 옛 BE 응답 호환.
+ *    onboarding 강제는 BE 가 명시적으로 nickname null 을 응답할 때만 발화한다.
+ *  - `nickname === null` 또는 빈 문자열 → true. 사용자가 아직 nickname 설정 안 함.
+ *  - `nickname` 이 string + trim 후 비어있지 않음 → false.
+ *
  * @param {{
  *   user: { nickname?: string | null } | null | undefined;
  *   currentPath: string;
@@ -48,6 +54,10 @@ export const shouldEnforceNicknameOnboarding = ({ user, currentPath, enforced = 
   if (!enforced) return false;
   if (!user) return false;
   const nickname = /** @type {{ nickname?: unknown }} */ (user).nickname;
+  // 명시 `null` 또는 string 만 의미 있는 신호. undefined / 다른 타입은 BE 가 정보를
+  // 안 줬다고 보고 skip — 무한 redirect 루프 방어선.
+  const isMissing = nickname === undefined;
+  if (isMissing) return false;
   const hasNickname = typeof nickname === 'string' && nickname.trim().length > 0;
   if (hasNickname) return false;
   // onboarding 자체 페이지면 무한 루프 방지.

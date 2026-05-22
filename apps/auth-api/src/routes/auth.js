@@ -20,6 +20,7 @@ import { zodErrorBody } from '@getit/schemas/errors';
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
 
+import { issueTokensAndCookies } from '../lib/issueTokens.js';
 import { sendVerifyEmail } from '../lib/mailer.js';
 import { findAvailableNickname } from '../lib/nickname.js';
 import { prisma } from '../lib/prisma.js';
@@ -27,11 +28,9 @@ import {
   ACCESS_COOKIE,
   REFRESH_COOKIE,
   clearAuthCookies,
-  generateAccessToken,
   generateRefreshToken,
   hashRefreshToken,
   readAuthEnv,
-  setAuthCookies,
 } from '../lib/tokens.js';
 
 import { publicUser } from './userSerialize.js';
@@ -49,45 +48,6 @@ const BCRYPT_COST = Number.parseInt(process.env.BCRYPT_COST ?? '12', 10);
  * (cost=12 기준) 추가되지만 1회뿐이라 허용.
  */
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), BCRYPT_COST);
-
-/**
- * access + refresh 토큰 발급 + DB 저장 + 쿠키 set 까지 한 번에.
- *
- * `tx` 가 주어지면 그 트랜잭션 컨텍스트에서 refresh token 을 생성한다.
- * (signup/login 등에서 사용자 생성과 같이 묶을 수 있도록.)
- *
- * #541: `schoolVerifiedAt` 도 JWT payload 에 박는다 — hobby-api 가드가
- * cross-service DB join 없이 사용하기 위함. 미인증 사용자는 키 누락.
- *
- * @param {{
- *   id: string,
- *   email: string,
- *   name: string,
- *   schoolVerifiedAt?: Date | string | null,
- * }} user
- * @param {import('express').Response} res
- * @param {{ refreshToken: { create: typeof prisma.refreshToken.create } }} [tx]
- */
-const issueTokensAndCookies = async (user, res, tx) => {
-  const cfg = readAuthEnv();
-  const client = tx ?? prisma;
-  // schoolVerifiedAt 정규화: Date → ISO, string → 그대로, falsy → 키 생략.
-  const tokenPayload = { sub: user.id, email: user.email, name: user.name };
-  if (user.schoolVerifiedAt) {
-    tokenPayload.schoolVerifiedAt =
-      user.schoolVerifiedAt instanceof Date
-        ? user.schoolVerifiedAt.toISOString()
-        : String(user.schoolVerifiedAt);
-  }
-  const accessToken = generateAccessToken(tokenPayload, cfg.jwtSecret, cfg.accessTtl);
-  const refreshToken = generateRefreshToken();
-  const expiresAt = new Date(Date.now() + cfg.refreshTtlDays * 24 * 60 * 60 * 1000);
-  await client.refreshToken.create({
-    data: { userId: user.id, tokenHash: hashRefreshToken(refreshToken), expiresAt },
-  });
-  setAuthCookies(res, { accessToken, refreshToken }, cfg);
-  return { accessToken, refreshToken };
-};
 
 // Prisma unique constraint violation code.
 const PRISMA_UNIQUE_VIOLATION = 'P2002';

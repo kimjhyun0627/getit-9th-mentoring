@@ -13,7 +13,13 @@
  *  - JWT 가 없거나 invalid → 401 (FE 의 401 핸들러가 SSO redirect 처리).
  *  - JWT 가 valid → 200 + `{ user: req.user }` (auth-api 와 동일한 응답 모양).
  *
- * 다른 BE (hobby-api, board-api 등) 도 같은 fallback 의 잠재 희생자라 패턴 통일 가치.
+ * 무한 redirect fix:
+ *  - JWT payload 가 nickname / schoolVerifiedAt 를 포함하므로 응답에도 echo 한다.
+ *  - 키 누락 시 FE NicknameOnboardingGuard 가 onboarding 페이지로 redirect → 사용자가
+ *    nickname 설정 → letter 복귀 → 또 누락 → 무한 루프. 명시적 null 로 응답해서
+ *    `shouldEnforceNicknameOnboarding` 가 정확한 판정 가능.
+ *
+ * 다른 BE (hobby-api, board-api 등) 도 같은 fallback 의 잠재 희생자라 패턴 통일.
  */
 import { requireAuth } from '@getit/auth-utils/server';
 import { Router } from 'express';
@@ -30,9 +36,19 @@ export const createMeRouter = ({ jwtSecret }) => {
 
   // GET /api/me — 현재 사용자 정보 echo (auth-api 와 동일한 컨트랙트).
   // JWT 표준 메타데이터(iat, exp 등) 가 외부로 누출되지 않도록 명시적 화이트리스트.
+  // nickname/schoolVerifiedAt 는 JWT payload 에 있을 때만 키 동봉, 없으면 null 로
+  // 일관성 확보 (FE auth-utils 의 shouldEnforceNicknameOnboarding 와 컨트랙트 일치).
   router.get('/me', auth, (req, res) => {
-    const { sub, email, name } = req.user;
-    return res.status(200).json({ user: { sub, email, name } });
+    const { sub, email, name, nickname, schoolVerifiedAt } = req.user;
+    return res.status(200).json({
+      user: {
+        sub,
+        email,
+        name,
+        nickname: nickname ?? null,
+        schoolVerifiedAt: schoolVerifiedAt ?? null,
+      },
+    });
   });
 
   return router;
