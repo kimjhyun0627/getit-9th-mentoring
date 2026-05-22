@@ -10,17 +10,25 @@
     `apps/board-web/src/components/BrandMark.jsx` 의 칸반 3-컬럼 카드 모티프를
     standalone SVG 로 추출.
 
-    Tailwind `fill-foreground` (라이트 #09090b, 다크 #fafafa) 토큰을
-    favicon 은 단일 SVG 이므로 라이트 기준 (#09090b) 으로 인쇄.
-    브라우저 탭은 다크 배경에서도 외곽 라운드 박스가 충분히 식별됨.
+    Gemini-code-assist #534 피드백 반영: BrandMark 가 라이트/다크에서
+    fill-foreground 토큰으로 색을 자동 반전하듯, favicon 도 @media
+    (prefers-color-scheme: dark) 로 box/card 톤 invert.
 
     팔레트:
-    - #09090b  foreground (외곽 박스)
-    - #fafafa  background (안쪽 카드)
+    - light  box #09090b foreground / card #fafafa background
+    - dark   box #fafafa foreground / card #09090b background
   -->
-  <rect x="2" y="2" width="24" height="24" rx="6" fill="#09090b" />
-  <rect x="6" y="7" width="4.5" height="3" rx="0.6" fill="#fafafa" />
-  <rect x="11.75" y="7" width="4.5" height="3" rx="0.6" fill="#fafafa" fill-opacity="0.7" />
-  <rect x="11.75" y="11.5" width="4.5" height="3" rx="0.6" fill="#fafafa" fill-opacity="0.5" />
-  <rect x="17.5" y="7" width="4.5" height="3" rx="0.6" fill="#fafafa" fill-opacity="0.3" />
+  <style>
+    .bg { fill: #09090b; }
+    .card { fill: #fafafa; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #fafafa; }
+      .card { fill: #09090b; }
+    }
+  </style>
+  <rect class="bg" x="2" y="2" width="24" height="24" rx="6" />
+  <rect class="card" x="6" y="7" width="4.5" height="3" rx="0.6" />
+  <rect class="card" x="11.75" y="7" width="4.5" height="3" rx="0.6" fill-opacity="0.7" />
+  <rect class="card" x="11.75" y="11.5" width="4.5" height="3" rx="0.6" fill-opacity="0.5" />
+  <rect class="card" x="17.5" y="7" width="4.5" height="3" rx="0.6" fill-opacity="0.3" />
 </svg>

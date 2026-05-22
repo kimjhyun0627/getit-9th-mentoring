@@ -8,34 +8,41 @@
   <!--
     letter-web favicon — Warm 페르소나 (#533).
     `apps/letter-web/src/components/BrandMark.jsx` 의 종이비행기 모티프를
-    standalone SVG 로 추출. Tailwind `peachDk / rose` 토큰 → 명시 hex.
-
-    favicon 은 라이트/다크 분기 없는 단일 SVG → 라이트(peachDk #E8B89F) 기준.
-    탭에서는 짧은 노출이라 종이비행기 실루엣이 어느 톤에서도 식별됨.
+    standalone SVG 로 추출. BrandMark 가 light=peachDk / dark=rose 로 분기
+    하듯 favicon 도 @media (prefers-color-scheme: dark) 적용
+    (Gemini-code-assist #534 피드백 반영).
 
     팔레트:
-    - #E8B89F  peachDk (stroke + fill 15% 합성을 위해 fill 도 같은 톤 흐리게)
+    - light peachDk  #E8B89F
+    - dark  rose     #D9A892 (BrandMark 다크 분기와 동일)
   -->
+  <style>
+    .plane { stroke: #E8B89F; fill: #E8B89F; }
+    .plane-line { stroke: #E8B89F; }
+    @media (prefers-color-scheme: dark) {
+      .plane { stroke: #D9A892; fill: #D9A892; }
+      .plane-line { stroke: #D9A892; }
+    }
+  </style>
   <path
+    class="plane"
     d="M27 5 5 14l8 3.5 2.5 8z"
-    fill="#E8B89F"
     fill-opacity="0.18"
-    stroke="#E8B89F"
     stroke-width="1.6"
     stroke-linejoin="round"
     stroke-linecap="round"
   />
   <path
+    class="plane-line"
     d="M27 5 13 17.5"
     fill="none"
-    stroke="#E8B89F"
     stroke-width="1.4"
     stroke-linecap="round"
   />
   <path
+    class="plane-line"
     d="M13 17.5 15.5 25.5"
     fill="none"
-    stroke="#E8B89F"
     stroke-opacity="0.7"
     stroke-width="1.4"
     stroke-linecap="round"

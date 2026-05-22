@@ -8,17 +8,26 @@
   <!--
     GETIT 9기 favicon — Tech-Dark 페르소나 (#533).
     `apps/landing/src/components/BrandMark.jsx` 의 `< | >` bracket + caret 모티프를
-    standalone SVG 로 추출. Tailwind 토큰 → 명시 hex inline 으로 치환
-    (favicon 은 다크모드 분기 없이 단일 SVG).
+    standalone SVG 로 추출.
 
     이전 G9 텍스트 모노그램은 16×16 렌더 시 가독성이 떨어져 BrandMark 와 통일.
 
+    Gemini-code-assist #534 피드백 반영: 다크 모드 브라우저 탭 배경이
+    ink-950 box (#08090b) 와 비슷한 톤이라 윤곽이 묻힘 → @media
+    (prefers-color-scheme: dark) 로 box 톤을 한 단계 lift (cyan-neon 톤 차용).
+
     팔레트:
-    - ink-950  #08090b   box fill
-    - ink-900  #0c0d10   box border
-    - cyan-neon #22d3ee  brackets + caret
+    - light box  #08090b ink-950 fill + #0c0d10 ink-900 stroke
+    - dark box   #0e3a44 cyan-neon/10 fill + #155e6b stroke (BrandMark 다크 분기와 동일 톤)
+    - accent     #22d3ee cyan-neon
   -->
-  <rect x="1.5" y="1.5" width="29" height="29" rx="6" fill="#08090b" stroke="#0c0d10" stroke-width="1" />
+  <style>
+    .bg { fill: #08090b; stroke: #0c0d10; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0e3a44; stroke: #155e6b; }
+    }
+  </style>
+  <rect class="bg" x="1.5" y="1.5" width="29" height="29" rx="6" stroke-width="1" />
   <path
     d="M12 10 L7.5 16 L12 22"
     fill="none"

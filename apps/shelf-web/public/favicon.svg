@@ -8,43 +8,54 @@
   <!--
     shelf-web favicon — Editorial 페르소나 (#533).
     `apps/shelf-web/src/components/BrandMark.jsx` 의 책 더미 + 책갈피 모티프를
-    standalone SVG 로 추출. Tailwind `stroke-current` → 명시 hex (#0a0a0a) 로 치환.
+    standalone SVG 로 추출. BrandMark 가 `stroke-current` 로 ink-strong /
+    paper 톤을 자동 반전하듯, favicon 도 @media (prefers-color-scheme: dark)
+    로 stroke 톤 invert (Gemini-code-assist #534 피드백 반영).
 
     팔레트:
-    - #0a0a0a  ink (charcoal stroke)
-    - #7c1d1d  wine (책갈피)
+    - light stroke  #0a0a0a ink (charcoal)
+    - dark stroke   #f0e6d2 paper (다크 mode foreground 톤)
+    - wine          #7c1d1d 책갈피 (light)
+    - mustard       #d4a651 책갈피 (dark — wine 다크 분기)
   -->
+  <style>
+    .book { stroke: #0a0a0a; }
+    .accent { fill: #7c1d1d; stroke: #7c1d1d; }
+    @media (prefers-color-scheme: dark) {
+      .book { stroke: #f0e6d2; }
+      .accent { fill: #d4a651; stroke: #d4a651; }
+    }
+  </style>
   <rect
+    class="book"
     x="3.5"
     y="5"
     width="3.5"
     height="14"
     rx="0.6"
     fill="none"
-    stroke="#0a0a0a"
     stroke-width="1.4"
   />
   <path
+    class="book"
     d="M8.4 5.5 11.6 5 13 18.6l-3.2.5z"
     fill="none"
-    stroke="#0a0a0a"
     stroke-width="1.4"
     stroke-linejoin="round"
   />
   <rect
+    class="book"
     x="14.5"
     y="5"
     width="6"
     height="14"
     rx="0.6"
     fill="none"
-    stroke="#0a0a0a"
     stroke-width="1.4"
   />
   <path
+    class="accent"
     d="M16.4 5v6l1.1-1 1.1 1V5"
-    fill="#7c1d1d"
-    stroke="#7c1d1d"
     stroke-width="0.8"
     stroke-linejoin="round"
   />

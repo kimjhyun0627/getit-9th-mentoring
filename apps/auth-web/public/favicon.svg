@@ -8,14 +8,22 @@
   <!--
     auth-web favicon — Tech-Dark + lock 모티프 (#533).
     `apps/auth-web/src/components/BrandMark.jsx` 를 standalone SVG 로 추출.
-    Tailwind 토큰 → 명시 hex inline. 다크모드 분기 없이 단일 색조 사용.
+
+    Gemini-code-assist #534 피드백 반영: 다크 모드 브라우저 탭에서 box 톤이
+    묻히지 않도록 @media (prefers-color-scheme: dark) 로 fill 한 단계 lift.
 
     팔레트:
-    - ink-950  #08090b   box fill
-    - ink-900  #0c0d10   box border
-    - cyan-neon #22d3ee  자물쇠 stroke + 키홀
+    - light box  #08090b ink-950 fill + #0c0d10 ink-900 stroke
+    - dark box   #0e3a44 cyan-neon/10 fill + #155e6b stroke (BrandMark 다크 분기 톤)
+    - accent     #22d3ee cyan-neon
   -->
-  <rect x="1.5" y="1.5" width="29" height="29" rx="6" fill="#08090b" stroke="#0c0d10" stroke-width="1" />
+  <style>
+    .bg { fill: #08090b; stroke: #0c0d10; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0e3a44; stroke: #155e6b; }
+    }
+  </style>
+  <rect class="bg" x="1.5" y="1.5" width="29" height="29" rx="6" stroke-width="1" />
   <path
     d="M11.5 14V11.5a4.5 4.5 0 0 1 9 0V14"
     fill="none"
