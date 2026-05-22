@@ -1,47 +1,10 @@
-import { ThemeProvider } from '@getit/theme';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
-import { PostDetailPage } from './PostDetailPage.jsx';
-
-const samplePost = (over = {}) => ({
-  id: over.id ?? 'p1',
-  ownerId: over.ownerId ?? 'u-owner',
-  title: over.title ?? '북문 마라탕 같이 갈 사람!',
-  body: over.body ?? '오늘 18시 라화방. 매운맛 가능한 사람 환영.',
-  meetAt: over.meetAt ?? new Date(Date.now() + 6 * 3600_000).toISOString(),
-  capacity: over.capacity ?? 4,
-  currentCapacity: over.currentCapacity ?? 2,
-  status: over.status ?? 'RECRUITING',
-  createdAt: '2026-05-19T08:00:00+09:00',
-  updatedAt: '2026-05-19T08:00:00+09:00',
-  tags: over.tags ?? [{ id: 't1', name: '마라탕' }],
-  applicationPolicy: over.applicationPolicy ?? 'FIRST_COME',
-  ...(over.openChatUrl !== undefined ? { openChatUrl: over.openChatUrl } : {}),
-  ...(over.myApplication !== undefined ? { myApplication: over.myApplication } : {}),
-});
-
-const renderAt = (postId = 'p1') => {
-  const qc = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  return render(
-    <QueryClientProvider client={qc}>
-      <ThemeProvider>
-        <MemoryRouter initialEntries={[`/posts/${postId}`]}>
-          <Routes>
-            <Route path="/posts/:id" element={<PostDetailPage />} />
-          </Routes>
-        </MemoryRouter>
-      </ThemeProvider>
-    </QueryClientProvider>,
-  );
-};
+import { renderAt, samplePost } from './PostDetailPage.test-helpers.jsx';
 
 describe('PostDetailPage', () => {
   beforeEach(() => {
@@ -115,7 +78,10 @@ describe('PostDetailPage', () => {
     vi.spyOn(api, 'getPost').mockResolvedValue({
       post: samplePost({ capacity: 4, currentCapacity: 2 }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     const applySpy = vi.spyOn(api, 'applyPost').mockResolvedValue({
       application: {
         id: 'app-1',
@@ -147,7 +113,10 @@ describe('PostDetailPage', () => {
     vi.spyOn(api, 'getPost').mockResolvedValue({
       post: samplePost({ capacity: 4, currentCapacity: 3 }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     vi.spyOn(api, 'applyPost').mockRejectedValue({
       response: { status: 422, data: { error: 'PostFull' } },
     });
@@ -166,7 +135,10 @@ describe('PostDetailPage', () => {
     vi.spyOn(api, 'getPost').mockResolvedValue({
       post: samplePost({ capacity: 4, currentCapacity: 2 }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     vi.spyOn(api, 'applyPost').mockResolvedValue({
       application: { id: 'app-1', postId: 'p1', userId: 'u-applicant', createdAt: '' },
     });
@@ -197,7 +169,11 @@ describe('PostDetailPage', () => {
         myApplication: { id: 'app-existing', createdAt: '2026-05-19T08:00:00.000Z' },
       }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    // #549 CR: 신청 가능했던 사용자 = 학교 인증 완료 상태가 전제.
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     renderAt();
     expect(await screen.findByRole('button', { name: /신청 취소/ })).toBeInTheDocument();
   });
@@ -231,7 +207,10 @@ describe('PostDetailPage', () => {
     vi.spyOn(api, 'getPost').mockResolvedValue({
       post: samplePost({ status: 'FULL', currentCapacity: 4, capacity: 4 }),
     });
-    vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      id: 'u-applicant',
+      schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+    });
     renderAt();
 
     const fullBtn = await screen.findByRole('button', { name: /정원 마감/ });
@@ -261,7 +240,11 @@ describe('PostDetailPage', () => {
           },
         }),
       });
-      vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+      // #549 CR: 신청한 상태인 사용자는 학교 인증 통과 전제.
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u-applicant',
+        schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+      });
       renderAt();
       expect(await screen.findByTestId('apply-section-pending')).toBeInTheDocument();
       expect(screen.getByText(/방장 승인 대기 중/)).toBeInTheDocument();
@@ -279,7 +262,11 @@ describe('PostDetailPage', () => {
           },
         }),
       });
-      vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+      // #549 CR: 신청 이력이 있는 사용자 = 학교 인증 통과 전제.
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u-applicant',
+        schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+      });
       renderAt();
       expect(await screen.findByTestId('apply-section-rejected')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /신청하기/ })).not.toBeInTheDocument();
@@ -289,10 +276,15 @@ describe('PostDetailPage', () => {
       vi.spyOn(api, 'getPost').mockResolvedValue({
         post: samplePost({ applicationPolicy: 'APPROVAL' }),
       });
-      vi.spyOn(api, 'getMe').mockResolvedValue({ id: 'u-applicant' });
+      vi.spyOn(api, 'getMe').mockResolvedValue({
+        id: 'u-applicant',
+        schoolVerifiedAt: '2026-05-21T10:00:00.000Z',
+      });
       renderAt();
       const btn = await screen.findByRole('button', { name: /승인 요청/ });
       expect(btn).toBeInTheDocument();
     });
+
+    // #541 학교 인증 가드 분기 테스트는 PostDetailPage.school.test.jsx 로 분리.
   });
 });
