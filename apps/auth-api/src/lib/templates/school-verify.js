@@ -10,8 +10,28 @@
  *  - HTML 은 inline style only — Gmail / Outlook / iOS Mail 호환. <head> / <style> 블록 금지.
  *  - 다크모드 지원은 클라이언트 측 자동 반전에 위임 (#fff/#111 대비만 보장).
  *
- * 의존성 0 — pure 함수. 테스트 가능.
+ * 의존성: zod 하나 (입력 검증). pure 함수, 외부 I/O 없음.
  */
+import { z } from 'zod';
+
+/**
+ * 학교 인증 메일 렌더 입력 스키마 (CR #548 권고).
+ *
+ * - `verifyUrl`: trim → URL 형식 → https:// 강제. 공백/문자열 비-URL/http:// 차단.
+ * - `expiresInMinutes`: optional number (NaN/음수/0~1 fallback 은 formatDuration 책임).
+ *
+ * 빈 문자열/null/잘못된 URL/평문 토큰 단독값이 메일 본문에 새는 회귀 차단.
+ */
+const RenderInputSchema = z.object({
+  verifyUrl: z
+    .string()
+    .trim()
+    .url('verifyUrl must be a valid URL')
+    .refine((v) => v.startsWith('https://'), 'verifyUrl must use https://'),
+  // NaN/음수/소수 모두 허용 — formatDuration 이 fallback 처리.
+  // z.number() 는 NaN 을 reject 하므로 union 으로 NaN 허용.
+  expiresInMinutes: z.union([z.number(), z.nan()]).optional(),
+});
 
 /**
  * 신뢰 가능한 정수만 사용해서 분/시간 문자열을 만든다. NaN/음수/0~1 소수 방어.
@@ -54,10 +74,11 @@ export const escapeHtml = (s) =>
  * @param {number} [args.expiresInMinutes] - 토큰 유효 시간(분). 기본 30.
  * @returns {{ subject: string, text: string, html: string }}
  */
-export const renderSchoolVerifyEmail = ({ verifyUrl, expiresInMinutes = 30 }) => {
-  if (typeof verifyUrl !== 'string' || verifyUrl.length === 0) {
-    throw new TypeError('verifyUrl is required');
-  }
+export const renderSchoolVerifyEmail = (args) => {
+  // zod parse — 빈 문자열/잘못된 URL/http:// → ZodError throw.
+  const parsed = RenderInputSchema.parse(args);
+  const verifyUrl = parsed.verifyUrl;
+  const expiresInMinutes = parsed.expiresInMinutes ?? 30;
   const duration = formatDuration(expiresInMinutes);
   const safeUrl = escapeHtml(verifyUrl);
 

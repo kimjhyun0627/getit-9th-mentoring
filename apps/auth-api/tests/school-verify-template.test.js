@@ -112,6 +112,30 @@ describe('renderSchoolVerifyEmail (#542)', () => {
     expect(() => renderSchoolVerifyEmail({ verifyUrl: '' })).toThrow();
     expect(() => renderSchoolVerifyEmail({})).toThrow();
   });
+
+  it('throws if verifyUrl is whitespace-only (CR #548 zod trim)', () => {
+    expect(() => renderSchoolVerifyEmail({ verifyUrl: '   ' })).toThrow();
+  });
+
+  it('throws if verifyUrl is not a URL (CR #548 zod url)', () => {
+    expect(() => renderSchoolVerifyEmail({ verifyUrl: 'not a url' })).toThrow();
+    expect(() => renderSchoolVerifyEmail({ verifyUrl: 'auth.get-it.cloud/verify' })).toThrow();
+  });
+
+  it('rejects http:// (CR #548 force https)', () => {
+    expect(() =>
+      renderSchoolVerifyEmail({
+        verifyUrl: 'http://auth.get-it.cloud/verify-school?token=abc',
+      }),
+    ).toThrow();
+  });
+
+  it('accepts https:// (CR #548 zod refine)', () => {
+    const r = renderSchoolVerifyEmail({
+      verifyUrl: 'https://auth.get-it.cloud/verify-school?token=abc',
+    });
+    expect(r.html).toContain('https://auth.get-it.cloud/verify-school?token=abc');
+  });
 });
 
 describe('escapeHtml (#542)', () => {

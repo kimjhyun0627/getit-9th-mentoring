@@ -68,28 +68,32 @@ describe('mailer real module (#542)', () => {
       },
     }));
 
-    process.env.SMTP_HOST = 'smtp.test.local';
-    process.env.SMTP_PORT = '587';
+    // CR #548 — 중간 실패해도 다음 테스트가 nodemailer mock 으로 오염되지 않도록
+    // unmock + resetModules 를 finally 로 고정.
+    try {
+      process.env.SMTP_HOST = 'smtp.test.local';
+      process.env.SMTP_PORT = '587';
 
-    // mock 적용된 상태로 mailer 모듈 재로드.
-    vi.resetModules();
-    const m = await vi.importActual('../src/lib/mailer.js');
-    m.__resetMailerForTests();
+      // mock 적용된 상태로 mailer 모듈 재로드.
+      vi.resetModules();
+      const m = await vi.importActual('../src/lib/mailer.js');
+      m.__resetMailerForTests();
 
-    const verifyUrl =
-      'https://auth.get-it.cloud/verify-school?token=plaintext_token_should_only_be_in_url';
-    await m.sendSchoolVerifyEmail({ to: 'student@knu.ac.kr', verifyUrl });
+      const verifyUrl =
+        'https://auth.get-it.cloud/verify-school?token=plaintext_token_should_only_be_in_url';
+      await m.sendSchoolVerifyEmail({ to: 'student@knu.ac.kr', verifyUrl });
 
-    expect(sendMailSpy).toHaveBeenCalledTimes(1);
-    const mailArg = sendMailSpy.mock.calls[0][0];
-    expect(mailArg.to).toBe('student@knu.ac.kr');
-    expect(mailArg.subject).toBe('[GETIT/9] 학교 인증 메일');
-    expect(mailArg.text).toContain(verifyUrl);
-    expect(mailArg.html).toContain(verifyUrl);
-    // HTML 인지 sanity check.
-    expect(mailArg.html).toMatch(/<a [^>]*href=/i);
-
-    vi.doUnmock('nodemailer');
-    vi.resetModules();
+      expect(sendMailSpy).toHaveBeenCalledTimes(1);
+      const mailArg = sendMailSpy.mock.calls[0][0];
+      expect(mailArg.to).toBe('student@knu.ac.kr');
+      expect(mailArg.subject).toBe('[GETIT/9] 학교 인증 메일');
+      expect(mailArg.text).toContain(verifyUrl);
+      expect(mailArg.html).toContain(verifyUrl);
+      // HTML 인지 sanity check.
+      expect(mailArg.html).toMatch(/<a [^>]*href=/i);
+    } finally {
+      vi.doUnmock('nodemailer');
+      vi.resetModules();
+    }
   });
 });
