@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
+import { z } from 'zod';
 
 import { FormField } from '../components/FormField.jsx';
 import { PasswordField } from '../components/PasswordField.jsx';
@@ -16,9 +17,23 @@ import { redirectAfterAuth } from '../lib/redirect.js';
  * 회원가입 페이지 — Tech-Dark 페르소나 + Phase 6c UX (Issue #237 약관 / #259 토글 / #262 capslock
  * / #265 강도 / #272 토스트 / #275 16px / #285 컨트라스트 / #287 aria 자연화 / #255 카피 정리).
  *
- * - SignupInput: 이름/이메일/비번/비번확인 + acceptTerms / acceptPrivacy.
+ * - SignupInput: 이름/닉네임/이메일/비번/비번확인 + acceptTerms / acceptPrivacy.
  * - 자동 로그인 + 이메일 인증 토큰 발급 (BE 가 메일 발송 — stub or SMTP).
+ * - #539: 신규 가입은 nickname required (BE 스키마는 마이그레이션 단계 optional 이지만
+ *   FE 만 강제). NicknameTaken 409 → 닉네임 인라인 에러로 분기.
  */
+// FE 전용 — 신규 가입에선 nickname required 강제 (PRD §사용자 시나리오 1).
+// BE SignupInput 은 마이그레이션 단계 optional (NicknameOptional) — 같은 메시지로 통일.
+const SignupFormInput = SignupInput.superRefine((d, ctx) => {
+  if (!d.nickname || String(d.nickname).trim().length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['nickname'],
+      message: '닉네임을 입력해주세요',
+    });
+  }
+});
+
 export const SignupPage = () => {
   const [searchParams] = useSearchParams();
   const [serverError, setServerError] = useState(/** @type {string|null} */ (null));
@@ -27,13 +42,15 @@ export const SignupPage = () => {
   const {
     register,
     handleSubmit,
+    setError,
     watch,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(SignupInput),
+    resolver: zodResolver(SignupFormInput),
     mode: 'onSubmit',
     defaultValues: {
       name: '',
+      nickname: '',
       email: '',
       password: '',
       passwordConfirm: '',
@@ -53,6 +70,16 @@ export const SignupPage = () => {
         redirectAfterAuth(searchParams, 'https://get-it.cloud');
       }, 500);
     } catch (err) {
+      const status = err?.response?.status;
+      const code = err?.response?.data?.error;
+      // #539: NicknameTaken (409) 는 닉네임 인라인 에러로 분기.
+      if (status === 409 && code === 'NicknameTaken') {
+        setError('nickname', {
+          type: 'server',
+          message: '이미 사용 중인 닉네임이에요',
+        });
+        return;
+      }
       setServerError(toFriendlyError(err));
     }
   };
@@ -97,6 +124,13 @@ export const SignupPage = () => {
           placeholder="이름"
           error={errors.name?.message}
           {...register('name')}
+        />
+        <FormField
+          label="닉네임"
+          autoComplete="nickname"
+          placeholder="2-20자 · 한글/영문/숫자/-/_"
+          error={errors.nickname?.message}
+          {...register('nickname')}
         />
         <FormField
           label="이메일"
