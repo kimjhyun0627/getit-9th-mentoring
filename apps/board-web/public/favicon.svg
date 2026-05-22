@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 28 28"
+  role="img"
+  aria-label="팀 칸반"
+>
+  <!--
+    board-web favicon — Minimalist 페르소나 (#533).
+    `apps/board-web/src/components/BrandMark.jsx` 의 칸반 3-컬럼 카드 모티프를
+    standalone SVG 로 추출.
+
+    Gemini-code-assist #534 피드백 반영: BrandMark 가 라이트/다크에서
+    fill-foreground 토큰으로 색을 자동 반전하듯, favicon 도 @media
+    (prefers-color-scheme: dark) 로 box/card 톤 invert.
+
+    팔레트:
+    - light  box #09090b foreground / card #fafafa background
+    - dark   box #fafafa foreground / card #09090b background
+  -->
+  <style>
+    .bg { fill: #09090b; }
+    .card { fill: #fafafa; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #fafafa; }
+      .card { fill: #09090b; }
+    }
+  </style>
+  <rect class="bg" x="2" y="2" width="24" height="24" rx="6" />
+  <rect class="card" x="6" y="7" width="4.5" height="3" rx="0.6" />
+  <rect class="card" x="11.75" y="7" width="4.5" height="3" rx="0.6" fill-opacity="0.7" />
+  <rect class="card" x="11.75" y="11.5" width="4.5" height="3" rx="0.6" fill-opacity="0.5" />
+  <rect class="card" x="17.5" y="7" width="4.5" height="3" rx="0.6" fill-opacity="0.3" />
+</svg>

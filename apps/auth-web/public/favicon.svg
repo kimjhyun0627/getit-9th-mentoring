@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 32 32"
+  role="img"
+  aria-label="GETIT — 로그인"
+>
+  <!--
+    auth-web favicon — Tech-Dark + lock 모티프 (#533).
+    `apps/auth-web/src/components/BrandMark.jsx` 를 standalone SVG 로 추출.
+
+    Gemini-code-assist #534 피드백 반영: 다크 모드 브라우저 탭에서 box 톤이
+    묻히지 않도록 @media (prefers-color-scheme: dark) 로 fill 한 단계 lift.
+
+    팔레트:
+    - light box  #08090b ink-950 fill + #0c0d10 ink-900 stroke
+    - dark box   #0e3a44 cyan-neon/10 fill + #155e6b stroke (BrandMark 다크 분기 톤)
+    - accent     #22d3ee cyan-neon
+  -->
+  <style>
+    .bg { fill: #08090b; stroke: #0c0d10; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0e3a44; stroke: #155e6b; }
+    }
+  </style>
+  <rect class="bg" x="1.5" y="1.5" width="29" height="29" rx="6" stroke-width="1" />
+  <path
+    d="M11.5 14V11.5a4.5 4.5 0 0 1 9 0V14"
+    fill="none"
+    stroke="#22d3ee"
+    stroke-width="1.8"
+    stroke-linecap="round"
+  />
+  <rect
+    x="9"
+    y="14"
+    width="14"
+    height="10"
+    rx="2"
+    fill="none"
+    stroke="#22d3ee"
+    stroke-width="1.8"
+  />
+  <circle cx="16" cy="18.5" r="1.4" fill="#22d3ee" />
+  <line x1="16" y1="19.5" x2="16" y2="21.5" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round" />
+</svg>
