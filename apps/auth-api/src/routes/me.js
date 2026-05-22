@@ -17,7 +17,10 @@
 import crypto from 'node:crypto';
 
 import { requireAuth } from '@getit/auth-utils/server';
-import { DeleteAccountInput, UpdateProfileInput } from '@getit/schemas/auth';
+import { DeleteAccountInput, NicknameValue, UpdateProfileInput } from '@getit/schemas/auth';
+import { z } from 'zod';
+
+const UpdateNicknameInput = z.object({ nickname: NicknameValue });
 import { zodErrorBody } from '@getit/schemas/errors';
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
@@ -154,6 +157,43 @@ export const createMeRouter = () => {
         }
       }
 
+      return res.status(200).json({ user: publicUser(updated) });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // PATCH /api/me/nickname — 닉네임만 변경 (#555 onboarding 흐름 전용).
+  // /profile 라우트와 달리 currentPassword 재인증 X — auth + CSRF + DB unique 검증만.
+  // 비밀번호 / 이메일 / 이름 변경은 여전히 /me/profile 에서 재인증 필요.
+  router.patch('/me/nickname', auth, async (req, res, next) => {
+    try {
+      const parsed = UpdateNicknameInput.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json(zodErrorBody(parsed.error));
+      const { nickname } = parsed.data;
+
+      const user = await loadActiveUser(req.user.sub);
+      if (!user) {
+        clearAuthCookies(res, cfg);
+        return res.status(401).json({ error: 'UserNotFound' });
+      }
+
+      if (nickname !== user.nickname) {
+        const dup = await prisma.user.findUnique({ where: { nickname } });
+        if (dup && dup.id !== user.id) {
+          return res.status(409).json({ error: 'NicknameTaken' });
+        }
+      }
+
+      let updated;
+      try {
+        updated = await prisma.user.update({ where: { id: user.id }, data: { nickname } });
+      } catch (err) {
+        if (err?.code === PRISMA_UNIQUE_VIOLATION) {
+          return res.status(409).json({ error: 'NicknameTaken' });
+        }
+        throw err;
+      }
       return res.status(200).json({ user: publicUser(updated) });
     } catch (err) {
       return next(err);

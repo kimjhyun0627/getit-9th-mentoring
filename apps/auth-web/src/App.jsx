@@ -6,6 +6,7 @@ import { DeleteAccountPage } from './pages/DeleteAccountPage.jsx';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { MePage } from './pages/MePage.jsx';
+import { OnboardingNicknamePage } from './pages/OnboardingNicknamePage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
 import { ResetPasswordPage } from './pages/ResetPasswordPage.jsx';
 import { SessionsPage } from './pages/SessionsPage.jsx';
@@ -23,6 +24,7 @@ import { VerifySchoolPage } from './pages/VerifySchoolPage.jsx';
  *  - /reset-password  → ResetPasswordPage  (Issue #221)
  *  - /verify-email    → VerifyEmailPage    (Issue #226)
  *  - /verify-school   → VerifySchoolPage   (Issue #539 — 학교 메일 인증 토큰 처리)
+ *  - /onboarding/nickname → OnboardingNicknamePage (Issue #555 — 기존 계정 nickname 강제 onboarding)
  *  - /me              → MePage             (Issue #539 — 마이페이지 + 학교 연동)
  *  - /profile         → ProfilePage        (Issue #235)
  *  - /delete-account  → DeleteAccountPage  (Issue #231)
@@ -54,6 +56,7 @@ export const App = () => {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/verify-school" element={<VerifySchoolPage />} />
+        <Route path="/onboarding/nickname" element={<OnboardingNicknamePage />} />
         <Route path="/me" element={<MePage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/delete-account" element={<DeleteAccountPage />} />
