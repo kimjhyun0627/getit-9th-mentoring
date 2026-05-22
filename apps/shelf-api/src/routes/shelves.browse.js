@@ -13,6 +13,27 @@
  *  - sort: bookCount desc (default) / recent (latest addedAt) desc.
  *  - 페이지네이션: page/pageSize (max 100) + total/page/pageSize 메타.
  */
+import { z } from 'zod';
+
+/**
+ * 쿼리 파라미터 Zod 스키마 — page/pageSize/sort.
+ *  - page: ≥1, default 1. 비정수/<1 은 1 로 폴백.
+ *  - pageSize: 1-100, default 20. >100 은 100 으로 클램프 (구 API 동작 보존).
+ *  - sort: 'bookCount' | 'recent', default 'bookCount'. 다른 값은 400.
+ *
+ * coerce: querystring 은 항상 문자열 → 숫자 강제. 정수만.
+ * `pipe` + transform: max 위반 시 throw 대신 100 으로 클램프해 기존 클라이언트 깨짐 방지.
+ */
+const BrowseQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).catch(1).default(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .catch(20)
+    .default(20)
+    .transform((v) => Math.min(Math.max(v, 1), 100)),
+  sort: z.enum(['bookCount', 'recent']).default('bookCount'),
+});
 
 /**
  * BookShelf row 들에서 noisy 한 userNickname 을 정규화.
@@ -121,36 +142,28 @@ export const sortUsers = (users, sort) => {
  */
 
 /**
- * 페이지/페이지사이즈/sort 파싱. /me 와 다른 sort key 라 별도 파서.
+ * 페이지/페이지사이즈/sort 파싱. /me 와 다른 sort key 라 별도 Zod 스키마.
+ * page/pageSize 는 무효값(<1, 비정수) 시 default 로 폴백, sort 는 명시 실패만 400.
  *
  * @param {Record<string, any>} query
  * @returns {BrowseQueryParseResult}
  */
 export const parseBrowseQuery = (query) => {
-  const pageRaw = Number.parseInt(query.page, 10);
-  const pageSizeRaw = Number.parseInt(query.pageSize, 10);
-  const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1;
-  const pageSize =
-    Number.isFinite(pageSizeRaw) && pageSizeRaw >= 1 ? Math.min(pageSizeRaw, 100) : 20;
-  const skip = (page - 1) * pageSize;
-
-  const sortParam = query.sort;
-  /** @type {'bookCount' | 'recent'} */
-  let sort = 'bookCount';
-  if (sortParam !== undefined) {
-    if (sortParam === 'bookCount' || sortParam === 'recent') {
-      sort = sortParam;
-    } else {
-      return {
-        ok: false,
-        body: {
-          error: 'ValidationError',
-          issues: [{ path: 'sort', message: 'sort must be bookCount or recent' }],
-        },
-      };
-    }
+  const parsed = BrowseQuerySchema.safeParse(query);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      body: {
+        error: 'ValidationError',
+        issues: parsed.error.issues.map((i) => ({
+          path: i.path.join('.'),
+          message: i.message,
+        })),
+      },
+    };
   }
-  return { ok: true, page, pageSize, skip, sort };
+  const { page, pageSize, sort } = parsed.data;
+  return { ok: true, page, pageSize, skip: (page - 1) * pageSize, sort };
 };
 
 /**

@@ -155,6 +155,45 @@ describe('GET /api/shelves/browse (#561 부원 서재 디렉토리)', () => {
     expect(res.body.error).toBe('ValidationError');
   });
 
+  it('동률 시 userId asc tiebreaker (deterministic 페이지네이션)', async () => {
+    const b1 = await seedBook({ isbn: '9788932917245', title: 'A' });
+    const b2 = await seedBook({ isbn: '9788937473135', title: 'B' });
+    // 같은 bookCount(2) + 같은 latestAddedAt → userId asc 로 결정.
+    seedShelf({
+      id: 'bs1a',
+      userId: 'zeta',
+      bookId: b1.id,
+      userNickname: 'Z',
+      addedAt: new Date('2026-05-20'),
+    });
+    seedShelf({
+      id: 'bs1b',
+      userId: 'zeta',
+      bookId: b2.id,
+      userNickname: 'Z',
+      addedAt: new Date('2026-05-21'),
+    });
+    seedShelf({
+      id: 'bs2a',
+      userId: 'alpha',
+      bookId: b1.id,
+      userNickname: 'A',
+      addedAt: new Date('2026-05-20'),
+    });
+    seedShelf({
+      id: 'bs2b',
+      userId: 'alpha',
+      bookId: b2.id,
+      userNickname: 'A',
+      addedAt: new Date('2026-05-21'),
+    });
+
+    const byCount = await request(app).get('/api/shelves/browse');
+    expect(byCount.body.users.map((u) => u.userId)).toEqual(['alpha', 'zeta']);
+    const byRecent = await request(app).get('/api/shelves/browse?sort=recent');
+    expect(byRecent.body.users.map((u) => u.userId)).toEqual(['alpha', 'zeta']);
+  });
+
   it('응답에 책 목록(books) 없음 — privacy (책 권 수만 노출)', async () => {
     const b = await seedBook({ isbn: '9788932917245', title: 'A' });
     seedShelf({ id: 'bs1', userId: 'alice', bookId: b.id, userNickname: '앨리스' });

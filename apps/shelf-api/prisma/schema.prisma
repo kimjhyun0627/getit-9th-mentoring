@@ -60,6 +60,10 @@ model BookShelf {
 
   @@unique([userId, bookId])
   @@index([bookId])
+  // #561 — browse 디렉토리가 `userNickname IS NOT NULL` 로 필터. 인덱스 안 타면
+  // 전체 BookShelf 스캔. 카디널리티 낮은 nullable 컬럼이지만 NULL 비율이 시간 따라
+  // 줄어들수록 효과 ↑. groupBy 마이그레이션 시 (`userId, userNickname` 복합) 재고.
+  @@index([userNickname])
 }
 
 enum BookStatus {

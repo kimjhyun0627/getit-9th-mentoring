@@ -89,6 +89,38 @@ describe('PATCH /api/shelves/:bookId → userNickname backfill', () => {
     expect(row.userNickname).toBe('앨리스');
   });
 
+  it('row 의 userNickname 이 빈 문자열/공백 이어도 backfill (trim 후 빈 판정)', async () => {
+    const empty = await seedBook({ isbn: '9788932917245', title: 'E' });
+    const spaces = await seedBook({ isbn: '9788937473135', title: 'S' });
+    await prisma.bookShelf.create({
+      data: { userId: ALICE, bookId: empty.id, status: 'READING', userNickname: '' },
+    });
+    await prisma.bookShelf.create({
+      data: { userId: ALICE, bookId: spaces.id, status: 'READING', userNickname: '   ' },
+    });
+
+    const res1 = await request(app)
+      .patch(`/api/shelves/${empty.id}`)
+      .set(authHeader(ALICE, { nickname: '앨리스' }))
+      .send({ status: 'READ' });
+    expect(res1.status).toBe(200);
+
+    const res2 = await request(app)
+      .patch(`/api/shelves/${spaces.id}`)
+      .set(authHeader(ALICE, { nickname: '앨리스' }))
+      .send({ status: 'READ' });
+    expect(res2.status).toBe(200);
+
+    const emptyRow = await prisma.bookShelf.findUnique({
+      where: { userId_bookId: { userId: ALICE, bookId: empty.id } },
+    });
+    const spacesRow = await prisma.bookShelf.findUnique({
+      where: { userId_bookId: { userId: ALICE, bookId: spaces.id } },
+    });
+    expect(emptyRow.userNickname).toBe('앨리스');
+    expect(spacesRow.userNickname).toBe('앨리스');
+  });
+
   it('row 의 userNickname 이미 있으면 덮어쓰지 X (별도 PR 책임)', async () => {
     const book = await seedBook();
     await prisma.bookShelf.create({
