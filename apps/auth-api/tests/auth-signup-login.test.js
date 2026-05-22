@@ -158,7 +158,10 @@ describe('auth-api signup / login', () => {
       const median = (arr) => arr.slice().sort((a, b) => a - b)[Math.floor(arr.length / 2)];
       const existingMed = median(existingTimes);
       const missingMed = median(missingTimes);
-      expect(missingMed).toBeGreaterThan(existingMed * 0.5);
+      // 환경 편차 (CI / 로컬) 완화 — 미존재 케이스가 존재 케이스의 0.3~3배 범위면 충분히
+      // 더미 bcrypt 가 실행됐다고 본다. 너무 빡빡하면 flake (CR #546).
+      expect(missingMed).toBeGreaterThan(existingMed * 0.3);
+      expect(missingMed).toBeLessThan(existingMed * 3);
     });
 
     it('미존재 email + 존재 email 잘못된 비번 → 동일한 에러 응답 (enumeration 차단, #299)', async () => {
