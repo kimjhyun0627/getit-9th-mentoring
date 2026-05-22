@@ -121,8 +121,25 @@ export const createShelvesRouter = () => {
       });
       const sorted = [...all].sort(compareBy(parsed.sort));
       const paged = sorted.slice(parsed.skip, parsed.skip + parsed.pageSize);
+
+      // #565 — UserShelfPage 헤더가 `@cuid` 대신 닉네임 표시할 수 있게
+      // BookShelf.userNickname 스냅샷 (#564) 중 가장 최근 row 값을 노출.
+      // BookShelf 에 updatedAt 컬럼 없음 → addedAt desc 로 최근 row 선택.
+      // null/공백 row 는 제외 (`{ not: null }` + JS trim 가드).
+      const nicknameRow = await prisma.bookShelf.findFirst({
+        where: { userId, userNickname: { not: null } },
+        orderBy: { addedAt: 'desc' },
+        select: { userNickname: true },
+      });
+      const rawNickname = nicknameRow?.userNickname;
+      const nickname =
+        typeof rawNickname === 'string' && rawNickname.trim().length > 0
+          ? rawNickname.trim()
+          : null;
+
       return res.status(200).json({
         userId,
+        nickname,
         shelves: paged.map(publicReadOnlyShelf),
         pagination: {
           page: parsed.page,

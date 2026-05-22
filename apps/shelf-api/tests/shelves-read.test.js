@@ -119,6 +119,7 @@ describe('GET /api/shelves/u/:userId (#292 공개 서재)', () => {
     memDb.bookShelves.set('bs_public_1', {
       id: 'bs_public_1',
       userId: ALICE,
+      userNickname: '앨리스',
       bookId: book.id,
       status: 'READ',
       rating: 5,
@@ -140,6 +141,47 @@ describe('GET /api/shelves/u/:userId (#292 공개 서재)', () => {
     // 공개 응답은 userId/i_added 미노출.
     expect(res.body.shelves[0].userId).toBeUndefined();
     expect(res.body.shelves[0].i_added).toBeUndefined();
+  });
+
+  // #565 — UserShelfPage 헤더가 `@cuid` 대신 닉네임 보이려면
+  // BE 응답에 nickname 필드 필요. BookShelf.userNickname 스냅샷 (#564) 활용.
+  it('nickname 스냅샷 있으면 응답에 nickname 포함', async () => {
+    const book = await seedBook({ isbn: '9788932917245', title: 'A' });
+    memDb.bookShelves.set('bs_nick_1', {
+      id: 'bs_nick_1',
+      userId: ALICE,
+      userNickname: '앨리스',
+      bookId: book.id,
+      status: 'READ',
+      addedAt: new Date('2026-05-01'),
+    });
+
+    const res = await request(app).get('/api/shelves/u/alice');
+    expect(res.status).toBe(200);
+    expect(res.body.nickname).toBe('앨리스');
+  });
+
+  it('userNickname 가 모두 null/공백 이면 nickname=null', async () => {
+    const book = await seedBook({ isbn: '9788932917245', title: 'A' });
+    memDb.bookShelves.set('bs_nick_null_1', {
+      id: 'bs_nick_null_1',
+      userId: ALICE,
+      userNickname: null,
+      bookId: book.id,
+      status: 'READ',
+      addedAt: new Date('2026-05-01'),
+    });
+
+    const res = await request(app).get('/api/shelves/u/alice');
+    expect(res.status).toBe(200);
+    expect(res.body.nickname).toBeNull();
+  });
+
+  it('빈 서재 → nickname=null', async () => {
+    const res = await request(app).get('/api/shelves/u/ghost');
+    expect(res.status).toBe(200);
+    expect(res.body.shelves).toEqual([]);
+    expect(res.body.nickname).toBeNull();
   });
 
   it('다른 유저 서재 row 는 노출 X', async () => {

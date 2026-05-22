@@ -45,6 +45,12 @@ export const UserShelfPage = () => {
 
   const shelves = shelvesQuery.data?.shelves ?? [];
   const total = shelvesQuery.data?.pagination?.total ?? 0;
+  // #565 — BE 가 BookShelf.userNickname 스냅샷 (#564) 을 nickname 으로 노출.
+  // 누락/공백 이면 userId 앞 8자 + 말줄임 으로 fallback (CUID 전체 노출 회피).
+  const rawNickname = shelvesQuery.data?.nickname;
+  const nickname =
+    typeof rawNickname === 'string' && rawNickname.trim().length > 0 ? rawNickname.trim() : null;
+  const displayName = nickname ?? `@${userId.slice(0, 8)}…`;
 
   return (
     <article
@@ -57,7 +63,7 @@ export const UserShelfPage = () => {
           id="user-shelf-title"
           className="font-display text-[10vw] font-black leading-[1.02] tracking-tightest md:text-[4rem]"
         >
-          @{userId}
+          {displayName}
           <span className="text-wine">.</span>
         </h1>
         <p className="essay-kr text-body mt-4 max-w-[40ch] text-[14px]">
