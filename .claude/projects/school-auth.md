@@ -123,14 +123,20 @@ model SchoolVerifyToken {
 
 > **publicUser 헬퍼**: auth-api 의 `publicUser` 헬퍼 최종 반환 필드 = `{ id, email, name, emailVerifiedAt, createdAt, nickname, studentId, schoolEmail, schoolVerifiedAt }` (기존 4필드 + 신규 5필드). 신규 5필드 (`createdAt, nickname, studentId, schoolEmail, schoolVerifiedAt`) 가 현재 누락 — 추가 필요. 기존 필드 누락 금지.
 
-### hobby 가드 — 페이지 진입 + 모든 API 학교 인증 필수 (#562 갱신)
+### hobby 가드 — 페이지 진입 + mutation API 학교 인증 필수 (#562 갱신)
 
 **PM 결정 (2026-05-22, 라이브 신고)**: 기존 "조회 OK + mutation 차단" 정책을 폐기하고
-**hobby 사용 자체 (페이지 진입 + 모든 API) 학교 인증 필수** 로 강화한다.
+**hobby 사용 자체 (페이지 진입 + mutation API) 학교 인증 필수** 로 강화한다.
 
-> 사용자(PM) 신고 원문 (#562): "학교 인증도 안 되어있는데 들어가지면 안되겠죠?"
+> 정책 표현 정확성 (CR #563): 현재 구현은 FE 라우터 가드 + BE mutation 가드 까지.
+> BE GET 조회 차단은 후속 ticket — 정상 사용자 흐름은 FE 가드가 막아 정책 의도를
+> 충족하지만, API 직접 호출자는 여전히 조회 가능. 학회 행사 정보의 민감도가 그 정도
+> 노출을 허용하지 않으면 별도 ticket 로 GET 차단 추가 (수용 가능 리스크 판단 —
+> `apps/hobby-api/src/middleware/schoolAuthGuard.js` 확장).
 >
-> 둘러보고 가입 동기 부여 효과보다 "외부인이 모집글을 읽는 것 자체"가 학회 행사 성격에 어긋난다는 판단.
+> 사용자(PM) 신고 원문 (#562): "학교 인증도 안 되어있는데 들어가지면 안되겠죠?"
+> 둘러보고 가입 동기 부여 효과보다 "외부인이 모집글을 읽는 것 자체"가 학회 행사
+> 성격에 어긋난다는 판단.
 
 #### FE — 라우터 가드 (hobby-web)
 

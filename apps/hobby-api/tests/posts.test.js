@@ -111,6 +111,34 @@ describe('hobby-api posts', () => {
       expect(res.body.post.owner).toEqual({ nickname: 'B 본명' });
     });
 
+    it('#562 owner.nickname — JWT.nickname 빈 문자열이면 name 폴백 (CR #563)', async () => {
+      // buildAccessTokenPayload 는 빈 nickname 을 제외하지만 외부/구버전 토큰 방어.
+      const token = signJwt(
+        { sub: 'charlie', email: 'c@get-it.cloud', name: 'C 본명', nickname: '' },
+        SECRET,
+      );
+      const res = await request(app)
+        .post('/api/posts')
+        .set('Authorization', `Bearer ${token}`)
+        .send(validBody());
+      expect(res.status).toBe(201);
+      expect(res.body.post.owner).toEqual({ nickname: 'C 본명' });
+    });
+
+    it('#562 owner.nickname — JWT.nickname 공백만이면 name 폴백 (Gemini medium #563)', async () => {
+      // ownerName 에 공백만 박혀 serialize.js 의 truthy 분기로 빈 nickname 이 UI 에 노출되는 일 방지.
+      const token = signJwt(
+        { sub: 'dana', email: 'd@get-it.cloud', name: 'D 본명', nickname: '   ' },
+        SECRET,
+      );
+      const res = await request(app)
+        .post('/api/posts')
+        .set('Authorization', `Bearer ${token}`)
+        .send(validBody());
+      expect(res.status).toBe(201);
+      expect(res.body.post.owner).toEqual({ nickname: 'D 본명' });
+    });
+
     it('태그 중복 입력해도 한 번만 연결됨 (trim + 대소문자 무시)', async () => {
       const token = tokenFor('alice');
       const res = await request(app)

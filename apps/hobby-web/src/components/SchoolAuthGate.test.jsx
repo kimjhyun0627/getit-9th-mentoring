@@ -9,7 +9,7 @@
 import { ThemeProvider } from '@getit/theme';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '../lib/api.js';
 
@@ -31,6 +31,22 @@ const renderGate = () => {
 };
 
 describe('SchoolAuthGate (#562)', () => {
+  // CR nitpick #563: mock cleanup — 다른 테스트 영향 차단.
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('fail-closed: me 미정인 동안엔 children 차단 + 로딩 placeholder (Gemini #563)', () => {
+    // getMe 가 영원히 pending → meSettled=false → children 노출 X.
+    vi.spyOn(api, 'getMe').mockReturnValue(new Promise(() => {}));
+    renderGate();
+    expect(screen.queryByTestId('protected-child')).not.toBeInTheDocument();
+    expect(screen.getByTestId('school-auth-gate-loading')).toBeInTheDocument();
+  });
+
   it('로그인 + 학교 미인증 — children 차단 + 안내 화면 노출', async () => {
     vi.spyOn(api, 'getMe').mockResolvedValue({
       id: 'u-1',

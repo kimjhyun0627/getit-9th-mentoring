@@ -35,11 +35,12 @@ export const createPost = async (req, res, next) => {
     // #562: ownerName 스냅샷에 nickname 우선 — 라이브 신고 ("취미메이트는 사용자 이름
     // 말고 닉네임으로 뜨게"). JWT payload 의 nickname 은 trim 후 비어있지 않을 때만
     // 실리므로 (`buildAccessTokenPayload` 정책) 빈/공백 케이스는 자동으로 name 폴백.
-    // 모임은 단기성이라 닉네임 변경 시 stale 허용 (#212 동일 논리).
-    const ownerSnapshot =
-      typeof req.user.nickname === 'string' && req.user.nickname.length > 0
-        ? req.user.nickname
-        : (req.user.name ?? null);
+    // 추가 방어: 직접 trim — 구버전 JWT 또는 외부 토큰 발급기가 trim 정책을 어겨도
+    // ownerName 컬럼에 공백 문자열이 박혀 `if (post.ownerName)` 가 truthy 되는 일 방지
+    // (Gemini medium #563). 모임은 단기성이라 닉네임 변경 시 stale 허용 (#212 동일 논리).
+    const trimmedNickname = typeof req.user.nickname === 'string' ? req.user.nickname.trim() : '';
+    const trimmedName = typeof req.user.name === 'string' ? req.user.name.trim() : '';
+    const ownerSnapshot = trimmedNickname || trimmedName || null;
     const created = await prisma.post.create({
       data: {
         ownerId: req.user.sub,
