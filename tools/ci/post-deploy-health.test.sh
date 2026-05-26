@@ -14,7 +14,9 @@
 # 실행: bash tools/ci/post-deploy-health.test.sh
 #       PASS / FAIL 출력. 실패 시 exit 1.
 
-set -uo pipefail
+# set -e 도입 (CR #591). 단 PROBE 호출은 실패가 정상 케이스이므로 `run_probe`
+# 헬퍼로 명시적으로 RC 캡처 후 set -e 우회.
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROBE="$SCRIPT_DIR/post-deploy-health.sh"
@@ -138,6 +140,17 @@ report() {
   fi
 }
 
+# run_probe <log-path> <KEY=VAL>... → echoes the exit code (PROBE 가 nonzero
+# 종료해도 set -e 가 발화하지 않도록 명시적으로 RC 캡처).
+# 마지막 인자 외 인자들은 env override (HEALTH_ENDPOINTS, PATH 등).
+run_probe() {
+  local log="$1"
+  shift
+  local rc=0
+  env "$@" "$PROBE" >"$log" 2>&1 || rc=$?
+  echo "$rc"
+}
+
 start_mock_server || exit 1
 
 # Common short retry/interval for tests.
@@ -147,72 +160,82 @@ export HEALTH_TIMEOUT=2
 
 BASE="http://127.0.0.1:$PORT"
 
+# 모든 test 로그 경로를 LOGS 에 모아 fail 시 통째로 출력 (CR #591).
+LOGS=()
+
 # ── Test 1: 모두 healthy → 0 ─────────────────────────────────────────────
-HEALTH_ENDPOINTS="api1|$BASE/healthy-api|api;web1|$BASE/healthy-web|web" \
-  "$PROBE" >/tmp/probe-test-1.log 2>&1
-report "all healthy" "$?" "0"
+LOG=/tmp/probe-test-1.log
+LOGS+=("$LOG")
+RC="$(run_probe "$LOG" "HEALTH_ENDPOINTS=api1|$BASE/healthy-api|api;web1|$BASE/healthy-web|web")"
+report "all healthy" "$RC" "0"
 
 # ── Test 2: api HTTP 500 → 1 ────────────────────────────────────────────
-HEALTH_ENDPOINTS="api1|$BASE/healthy-api|api;bad|$BASE/bad-api-500|api" \
-  "$PROBE" >/tmp/probe-test-2.log 2>&1
-RC=$?
+LOG=/tmp/probe-test-2.log
+LOGS+=("$LOG")
+RC="$(run_probe "$LOG" "HEALTH_ENDPOINTS=api1|$BASE/healthy-api|api;bad|$BASE/bad-api-500|api")"
 report "api HTTP 500 fails" "$RC" "1"
-if ! grep -q "bad" /tmp/probe-test-2.log; then
+if ! grep -q "bad" "$LOG"; then
   echo "  FAIL  api HTTP 500 fails: endpoint name not in log" >&2
   FAIL=$((FAIL + 1))
 fi
-if ! grep -q "HTTP=500" /tmp/probe-test-2.log; then
+if ! grep -q "HTTP=500" "$LOG"; then
   echo "  FAIL  api HTTP 500 fails: HTTP=500 not reported" >&2
   FAIL=$((FAIL + 1))
 fi
 
 # ── Test 3: api 200 + ok:false → 1 ──────────────────────────────────────
-HEALTH_ENDPOINTS="bad|$BASE/bad-api-okfalse|api" \
-  "$PROBE" >/tmp/probe-test-3.log 2>&1
-RC=$?
+LOG=/tmp/probe-test-3.log
+LOGS+=("$LOG")
+RC="$(run_probe "$LOG" "HEALTH_ENDPOINTS=bad|$BASE/bad-api-okfalse|api")"
 report "api ok:false fails" "$RC" "1"
-if ! grep -q "BODY_OK=false" /tmp/probe-test-3.log; then
+if ! grep -q "BODY_OK=false" "$LOG"; then
   echo "  FAIL  api ok:false: BODY_OK=false not reported" >&2
   FAIL=$((FAIL + 1))
 fi
 
 # ── Test 3b: grep fallback false-positive 방지 (jq disabled) ───────────
 # `{"not_ok":true, "ok":false}` 응답이 substring 매칭으로 통과되지 않는지 확인.
-# jq 우회용으로 PATH 에서 jq 안 보이게 한다.
+# PATH 에서 jq 안 보이게 차단.
 PATH_NO_JQ="$(echo "$PATH" | tr ':' '\n' | grep -v '/jq' | tr '\n' ':' | sed 's/:$//')"
-HEALTH_ENDPOINTS="bad|$BASE/bad-api-notok|api" \
-  PATH="$PATH_NO_JQ" \
-  env -i HOME="$HOME" PATH="$PATH_NO_JQ" \
-    HEALTH_RETRIES="$HEALTH_RETRIES" HEALTH_INTERVAL="$HEALTH_INTERVAL" HEALTH_TIMEOUT="$HEALTH_TIMEOUT" \
-    HEALTH_ENDPOINTS="bad|$BASE/bad-api-notok|api" \
-    "$PROBE" >/tmp/probe-test-3b.log 2>&1
-RC=$?
+LOG=/tmp/probe-test-3b.log
+LOGS+=("$LOG")
+RC="$(run_probe "$LOG" \
+  "PATH=$PATH_NO_JQ" \
+  "HEALTH_RETRIES=$HEALTH_RETRIES" \
+  "HEALTH_INTERVAL=$HEALTH_INTERVAL" \
+  "HEALTH_TIMEOUT=$HEALTH_TIMEOUT" \
+  "HEALTH_ENDPOINTS=bad|$BASE/bad-api-notok|api")"
 report "grep fallback rejects not_ok:true" "$RC" "1"
 
 # ── Test 4: web HTTP 502 → 1 ────────────────────────────────────────────
-HEALTH_ENDPOINTS="web1|$BASE/healthy-web|web;bad|$BASE/bad-web-502|web" \
-  "$PROBE" >/tmp/probe-test-4.log 2>&1
-RC=$?
+LOG=/tmp/probe-test-4.log
+LOGS+=("$LOG")
+RC="$(run_probe "$LOG" "HEALTH_ENDPOINTS=web1|$BASE/healthy-web|web;bad|$BASE/bad-web-502|web")"
 report "web HTTP 502 fails" "$RC" "1"
-if ! grep -q "HTTP=502" /tmp/probe-test-4.log; then
+if ! grep -q "HTTP=502" "$LOG"; then
   echo "  FAIL  web HTTP 502: HTTP=502 not reported" >&2
   FAIL=$((FAIL + 1))
 fi
 
 # ── Test 5: Retry 동작 — 첫 2회 502, 3회 200 → 0 ────────────────────────
 # mock state 는 처음 호출 시 2 로 초기화됨. 위 테스트들이 flaky 를 안 건드렸으므로 그대로.
-HEALTH_ENDPOINTS="flaky|$BASE/flaky-api|api" \
-  "$PROBE" >/tmp/probe-test-5.log 2>&1
-report "retry recovers after 2 failures" "$?" "0"
-if ! grep -q "attempt=3" /tmp/probe-test-5.log; then
+LOG=/tmp/probe-test-5.log
+LOGS+=("$LOG")
+RC="$(run_probe "$LOG" "HEALTH_ENDPOINTS=flaky|$BASE/flaky-api|api")"
+report "retry recovers after 2 failures" "$RC" "0"
+if ! grep -q "attempt=3" "$LOG"; then
   echo "  WARN  retry test: expected attempt=3 in log" >&2
 fi
 
 echo
 echo "Result: $PASS passed, $FAIL failed."
 if ((FAIL > 0)); then
-  echo "--- Test 2 log ---" >&2
-  cat /tmp/probe-test-2.log >&2
+  # 모든 테스트 로그 덤프 (어느 케이스가 실패해도 진단 가능) (CR #591).
+  for log in "${LOGS[@]}"; do
+    [[ -f "$log" ]] || continue
+    echo "--- $log ---" >&2
+    cat "$log" >&2
+  done
   exit 1
 fi
 exit 0
