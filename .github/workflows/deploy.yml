@@ -127,6 +127,22 @@ jobs:
             export IMAGE_TAG="${IMAGE_TAG:-latest}"
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             docker compose --env-file .env.prod -f docker-compose.prod.yml pull
+
+            # ─── Prisma migrate (Issue #587) ────────────────────────────────
+            # 5 BE 모두 분리된 DB schema. 새 컨테이너 up 전에 schema 갱신해야
+            # 옛 schema 위에서 boot 하다 죽는 사고 방지. mysql 을 먼저 띄워서
+            # migrate 컨테이너가 DB 에 connect 가능하게.
+            # `run --rm` = 1회 실행 후 자동 정리. pending migration 없으면
+            # `prisma migrate deploy` 는 silent OK (no-op).
+            # migrate 실패 시 `set -e` 로 abort → 이전 컨테이너 그대로 (rollback).
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d mysql
+            for svc in auth-api hobby-api shelf-api board-api letter-api; do
+              echo "── prisma migrate deploy: $svc ──"
+              docker compose --env-file .env.prod -f docker-compose.prod.yml \
+                run --rm --entrypoint /app/node_modules/.bin/prisma "$svc" \
+                migrate deploy --schema=prisma/schema.prisma
+            done
+
             docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
 
