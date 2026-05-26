@@ -60,3 +60,13 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      # 6 web 의 VITE_* env 가 src ↔ Dockerfile ARG ↔ deploy.yml build-args
+      # 사이에 동기화돼 있는지 검사. 새 VITE_* env 추가 시 한쪽만 깜박해서
+      # incident #585 (hobby-web 학번 모달 PATCH 404) 패턴이 재발하는 걸 막는다.
+      - name: Vite build args drift
+        run: node tools/ci/check-vite-build-args.mjs
+
+      # 가드 자체 unit test (fixture 기반). zero-dep — node --test 내장 사용.
+      - name: Vite build args drift — guard unit test
+        run: node --test tools/ci/check-vite-build-args.test.mjs
