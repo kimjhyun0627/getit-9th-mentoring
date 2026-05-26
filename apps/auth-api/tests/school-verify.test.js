@@ -9,6 +9,7 @@
  */
 import crypto from 'node:crypto';
 
+import { verifyJwt } from '@getit/auth-utils/server';
 import request from 'supertest';
 import { describe, it, expect, beforeAll } from 'vitest';
 
@@ -216,6 +217,58 @@ describe('school verify routes (#538)', () => {
         .send({ token: 'short', studentId: '2024111234' });
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('InvalidToken');
+    });
+
+    // #569: verify-school 후 access token 미갱신 → hobby 가드 stale → 재인증 요구 버그.
+    //   PATCH /me/nickname (#560) 과 같은 패턴 — 트랜잭션 직후 새 토큰 + 쿠키 발급.
+    it('성공 시 새 access/refresh 쿠키 발급 + JWT payload 에 schoolVerifiedAt 박힘 (#569)', async () => {
+      const { jwt: oldJwt } = await signup();
+      // 로그인 직후 토큰엔 schoolVerifiedAt 없음 (회귀 baseline).
+      const oldPayload = verifyJwt(oldJwt, process.env.JWT_SECRET);
+      expect(oldPayload.schoolVerifiedAt).toBeUndefined();
+
+      const { token } = await linkAndExtractToken(oldJwt);
+      const res = await request(app)
+        .post('/api/auth/verify-school')
+        .set('Cookie', `getit_jwt=${oldJwt}`)
+        .send({ token, studentId: '2024111234' });
+      expect(res.status).toBe(200);
+
+      // Set-Cookie 에 새 access/refresh 둘 다 박혀야 함.
+      const setCookies = res.headers['set-cookie'] ?? [];
+      const newJwt = cookie(setCookies, 'getit_jwt');
+      const newRefresh = cookie(setCookies, 'getit_refresh');
+      expect(newJwt).toBeTruthy();
+      expect(newRefresh).toBeTruthy();
+      expect(newJwt).not.toBe(oldJwt);
+
+      // 새 JWT payload 에 schoolVerifiedAt 박힘 → 다음 요청부터 hobby 가드 통과.
+      const newPayload = verifyJwt(newJwt, process.env.JWT_SECRET);
+      expect(typeof newPayload.schoolVerifiedAt).toBe('string');
+      expect(new Date(newPayload.schoolVerifiedAt).getTime()).not.toBeNaN();
+      expect(newPayload.sub).toBe(oldPayload.sub);
+    });
+
+    it('성공 시 기존 refresh token 은 revoke 됨 (rotation, #569)', async () => {
+      const signupRes = await request(app).post('/api/signup').send(SIGNUP);
+      const oldRefresh = cookie(signupRes.headers['set-cookie'], 'getit_refresh');
+      const jwt = cookie(signupRes.headers['set-cookie'], 'getit_jwt');
+      expect(oldRefresh).toBeTruthy();
+
+      const oldHash = crypto.createHash('sha256').update(oldRefresh).digest('hex');
+      const beforeRow = [...memDb.refreshTokens.values()].find((r) => r.tokenHash === oldHash);
+      expect(beforeRow?.revokedAt).toBeFalsy();
+
+      const { token } = await linkAndExtractToken(jwt);
+      const res = await request(app)
+        .post('/api/auth/verify-school')
+        .set('Cookie', [`getit_jwt=${jwt}`, `getit_refresh=${oldRefresh}`].join('; '))
+        .send({ token, studentId: '2024111234' });
+      expect(res.status).toBe(200);
+
+      // 기존 refresh token row 가 revoke 되어야 한다.
+      const afterRow = [...memDb.refreshTokens.values()].find((r) => r.tokenHash === oldHash);
+      expect(afterRow?.revokedAt).toBeInstanceOf(Date);
     });
   });
 

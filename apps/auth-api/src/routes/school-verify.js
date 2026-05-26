@@ -25,13 +25,37 @@ import { zodErrorBody } from '@getit/schemas/errors';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 
+import { issueTokensAndCookies } from '../lib/issueTokens.js';
 import { sendSchoolVerifyEmail } from '../lib/mailer.js';
 import { prisma } from '../lib/prisma.js';
-import { generateRefreshToken, readAuthEnv } from '../lib/tokens.js';
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+  readAuthEnv,
+  REFRESH_COOKIE,
+} from '../lib/tokens.js';
 
 import { publicUser } from './userSerialize.js';
 
 const SCHOOL_TOKEN_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * 현재 요청의 refresh 쿠키에 해당하는 활성 refresh token 을 revoke.
+ *
+ * #569: verify-school 직후 새 토큰을 발급하면서 기존 refresh token 을 함께
+ * rotate 하지 않으면 DB 에 활성 토큰이 누적되어 세션 위생이 깨진다.
+ * PATCH /me/nickname (#560) 와 동일한 패턴.
+ *
+ * @param {import('express').Request} req
+ */
+const revokeCurrentRefreshToken = async (req) => {
+  const raw = req.cookies?.[REFRESH_COOKIE];
+  if (!raw) return;
+  await prisma.refreshToken.updateMany({
+    where: { tokenHash: hashRefreshToken(raw), revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+};
 
 /**
  * 학교 메일 마스킹 — 로컬파트 첫 2글자 + `***` + `@knu.ac.kr`.
@@ -206,6 +230,15 @@ export const createSchoolVerifyRouter = (opts = {}) => {
           data: { studentId, schoolEmail: row.email, schoolVerifiedAt: now },
         });
       });
+
+      // #569: 학교 인증 직후 새 access/refresh 토큰 즉시 발급.
+      // 기존 JWT payload 엔 `schoolVerifiedAt` 키 자체가 없으므로,
+      // 인증 완료 후에도 access TTL (기본 15분) 동안 hobby/letter 가드가
+      // stale payload 만 보고 403 을 던져 "재인증 필요" 무한 루프 발생.
+      // 트랜잭션 끝난 후 새 토큰을 박아 다음 요청부터 바로 통과시킨다.
+      // 기존 refresh token 도 rotate — 누적 방지 (CR/Gemini #560 와 동일 패턴).
+      await revokeCurrentRefreshToken(req);
+      await issueTokensAndCookies(updated, res);
 
       return res.status(200).json({ ok: true, user: publicUser(updated) });
     } catch (err) {
