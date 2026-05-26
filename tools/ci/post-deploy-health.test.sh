@@ -82,6 +82,13 @@ start_mock_server() {
         res.end(JSON.stringify({ok: false}));
         return;
       }
+      if (url === '/bad-api-notok') {
+        // grep fallback false-positive 회귀 방지 (gemini #591).
+        // \`\"not_ok\":true\` 가 단순 substring 매칭으로 통과되면 안 됨.
+        res.writeHead(200, {'content-type': 'application/json'});
+        res.end(JSON.stringify({not_ok: true, ok: false}));
+        return;
+      }
       if (url === '/bad-web-502') {
         res.writeHead(502);
         res.end('');
@@ -168,6 +175,19 @@ if ! grep -q "BODY_OK=false" /tmp/probe-test-3.log; then
   echo "  FAIL  api ok:false: BODY_OK=false not reported" >&2
   FAIL=$((FAIL + 1))
 fi
+
+# ── Test 3b: grep fallback false-positive 방지 (jq disabled) ───────────
+# `{"not_ok":true, "ok":false}` 응답이 substring 매칭으로 통과되지 않는지 확인.
+# jq 우회용으로 PATH 에서 jq 안 보이게 한다.
+PATH_NO_JQ="$(echo "$PATH" | tr ':' '\n' | grep -v '/jq' | tr '\n' ':' | sed 's/:$//')"
+HEALTH_ENDPOINTS="bad|$BASE/bad-api-notok|api" \
+  PATH="$PATH_NO_JQ" \
+  env -i HOME="$HOME" PATH="$PATH_NO_JQ" \
+    HEALTH_RETRIES="$HEALTH_RETRIES" HEALTH_INTERVAL="$HEALTH_INTERVAL" HEALTH_TIMEOUT="$HEALTH_TIMEOUT" \
+    HEALTH_ENDPOINTS="bad|$BASE/bad-api-notok|api" \
+    "$PROBE" >/tmp/probe-test-3b.log 2>&1
+RC=$?
+report "grep fallback rejects not_ok:true" "$RC" "1"
 
 # ── Test 4: web HTTP 502 → 1 ────────────────────────────────────────────
 HEALTH_ENDPOINTS="web1|$BASE/healthy-web|web;bad|$BASE/bad-web-502|web" \

@@ -71,7 +71,8 @@ probe_once() {
         body_ok="false"
       fi
     else
-      if grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' "$tmp"; then
+      # JSON 키 경계 명시 — `"not_ok": true` 나 `"book": true` 같은 부분매칭 false positive 방지 (gemini #591).
+      if grep -Eq '(^|[[:space:],{])"ok"[[:space:]]*:[[:space:]]*true' "$tmp"; then
         body_ok="true"
       else
         body_ok="false"
@@ -92,12 +93,17 @@ probe_once() {
 }
 
 # probe_endpoint <name> <url> <kind> → 통과 시 0, 실패 시 1 + 마지막 결과 echo.
+# 루프 안에서 마지막 시도 결과를 변수에 유지 — 추가 호출 없이 실패 사유 보고 (gemini #591).
+# 추가 호출 방식은 (a) 불필요한 13번째 요청 + (b) 12회 fail 후 13회 success 시 잘못된 FAIL 보고
+# 라는 correctness bug 가 있었다.
 probe_endpoint() {
   local name="$1" url="$2" kind="$3"
   local attempt result rc
 
   for ((attempt = 1; attempt <= RETRIES; attempt++)); do
-    if result="$(probe_once "$url" "$kind")"; then
+    rc=0
+    result="$(probe_once "$url" "$kind")" || rc=$?
+    if ((rc == 0)); then
       echo "  ok  $name  attempt=$attempt  $result"
       return 0
     fi
@@ -106,9 +112,6 @@ probe_endpoint() {
     fi
   done
 
-  # 마지막 시도 결과 한 번 더 (실패 사유 명확하게).
-  rc=0
-  result="$(probe_once "$url" "$kind")" || rc=$?
   local elapsed=$((RETRIES * INTERVAL))
   echo "  FAIL $name  url=$url  ${result}  retries=$RETRIES  elapsed=${elapsed}s" >&2
   return 1
