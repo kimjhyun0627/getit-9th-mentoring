@@ -76,8 +76,12 @@ export const validateJwtSecret = (value, opts = {}) => {
   }
 
   if (trimmed.length < 32) {
-    // 길이는 비밀에 비례하므로 항상 throw — 32 미만이면 dev 라도 brute force 위험.
-    throw new Error('JWT_SECRET must be at least 32 characters.');
+    const msg = 'JWT_SECRET must be at least 32 characters.';
+    // dev/test 는 warn (gemini #579: dev 편의를 위해 짧은 secret 허용 — 빈 값과의
+    // 비일관성 해소). production 은 throw — brute force 방어.
+    if (isProd) throw new Error(msg);
+    warnings.push(msg);
+    return warnings;
   }
 
   if (looksLikePlaceholder(trimmed)) {

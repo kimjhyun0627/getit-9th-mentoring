@@ -25,7 +25,7 @@ describe('validateJwtSecret', () => {
       expect(() => validateJwtSecret('   ', { env: 'production' })).toThrow(/JWT_SECRET/);
     });
 
-    it('32자 미만 → throw', () => {
+    it('32자 미만 → throw (production)', () => {
       expect(() => validateJwtSecret('short-secret', { env: 'production' })).toThrow(/at least 32/);
     });
 
@@ -97,8 +97,14 @@ describe('validateJwtSecret', () => {
       expect(warnings).toEqual(expect.arrayContaining([expect.stringMatching(/required/)]));
     });
 
-    it('test env + 32자 미만 → throw (길이는 환경 무관)', () => {
-      expect(() => validateJwtSecret('short', { env: 'test' })).toThrow(/at least 32/);
+    it('test env + 32자 미만 → warn (dev 편의, gemini #579)', () => {
+      const warnings = validateJwtSecret('short', { env: 'test' });
+      expect(warnings).toEqual(expect.arrayContaining([expect.stringMatching(/at least 32/)]));
+    });
+
+    it('development env + 32자 미만 → warn (throw 안 함)', () => {
+      const warnings = validateJwtSecret('dev-short', { env: 'development' });
+      expect(warnings).toEqual(expect.arrayContaining([expect.stringMatching(/at least 32/)]));
     });
 
     it('test env + 32+ random → no warnings', () => {
