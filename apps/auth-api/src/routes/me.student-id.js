@@ -32,14 +32,16 @@ import { publicUser } from './userSerialize.js';
  * 현재 요청의 refresh 쿠키에 해당하는 활성 refresh token 을 revoke.
  *
  * verify-school (#569) / nickname (#560) 와 동일 패턴 — 새 refresh 발급 직전 기존
- * 토큰 rotate 해서 DB 누적 방지.
+ * 토큰 rotate 해서 DB 누적 방지. tx 가 주어지면 그 트랜잭션 컨텍스트에서 실행.
  *
  * @param {import('express').Request} req
+ * @param {{ refreshToken: { updateMany: typeof prisma.refreshToken.updateMany } }} [tx]
  */
-const revokeCurrentRefreshToken = async (req) => {
+const revokeCurrentRefreshToken = async (req, tx) => {
   const raw = req.cookies?.[REFRESH_COOKIE];
   if (!raw) return;
-  await prisma.refreshToken.updateMany({
+  const client = tx ?? prisma;
+  await client.refreshToken.updateMany({
     where: { tokenHash: hashRefreshToken(raw), revokedAt: null },
     data: { revokedAt: new Date() },
   });
@@ -72,15 +74,26 @@ export const createMeStudentIdRouter = () => {
         return res.status(403).json({ error: 'SchoolNotVerified' });
       }
 
-      const updated = await prisma.user.update({
-        where: { id: user.id },
-        data: { studentId },
-      });
+      // 이미 10자리(또는 8자리가 아닌) 학번을 가진 사용자는 본 마이그레이션 API 대상 아님.
+      // 정상 사용자가 학번을 임의로 변조하는 vector 차단. Gemini #578 1/3.
+      if (!user.studentId || user.studentId.length !== 8) {
+        return res.status(403).json({ error: 'NotLegacyStudentId' });
+      }
 
-      // 새 토큰 발급 — JWT payload 에 studentIdLegacy 가 빠지면서 hobby 가드 해제.
-      // 기존 refresh 도 rotate (CR #560 / #569 패턴).
-      await revokeCurrentRefreshToken(req);
-      await issueTokensAndCookies(updated, res);
+      // DB 업데이트 + refresh rotate + 새 토큰 발급을 단일 트랜잭션으로 묶어 원자성 보장.
+      // 학번만 10자리로 바뀌고 토큰 발급 실패 시 다음 가드에서 NotLegacyStudentId 로
+      // 영구 잠금되는 사고 차단. Gemini #578 2/3 + 3/3.
+      const updated = await prisma.$transaction(async (tx) => {
+        const u = await tx.user.update({
+          where: { id: user.id },
+          data: { studentId },
+        });
+        // 새 토큰 발급 — JWT payload 에 studentIdLegacy 가 빠지면서 hobby 가드 해제.
+        // 기존 refresh 도 rotate (CR #560 / #569 패턴).
+        await revokeCurrentRefreshToken(req, tx);
+        await issueTokensAndCookies(u, res, tx);
+        return u;
+      });
 
       return res.status(200).json({ user: publicUser(updated) });
     } catch (err) {
