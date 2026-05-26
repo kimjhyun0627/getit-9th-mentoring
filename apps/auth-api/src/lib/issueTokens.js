@@ -29,6 +29,7 @@ import {
  *   email: string,
  *   name: string,
  *   nickname?: string | null,
+ *   studentId?: string | null,
  *   schoolVerifiedAt?: Date | string | null,
  * }} user
  * @returns {{
@@ -37,6 +38,7 @@ import {
  *   name: string,
  *   nickname?: string,
  *   schoolVerifiedAt?: string,
+ *   studentIdLegacy?: boolean,
  * }}
  */
 export const buildAccessTokenPayload = (user) => {
@@ -50,6 +52,13 @@ export const buildAccessTokenPayload = (user) => {
         ? user.schoolVerifiedAt.toISOString()
         : String(user.schoolVerifiedAt);
   }
+  // #571: 8자리 → 10자리 학번 마이그레이션. studentId 가 정확히 8자리이면 legacy=true,
+  // 그 외 (10자리 / null / undefined) 는 키 누락 (false 와 동치). hobby/letter BE 가
+  // 자체 User 테이블 없어 JWT echo 로만 알 수 있음 — nickname / schoolVerifiedAt 과
+  // 동일 패턴. PATCH /api/me/student-id 후 새 토큰 발급 시 키 누락 → 가드 해제.
+  if (typeof user.studentId === 'string' && user.studentId.length === 8) {
+    tokenPayload.studentIdLegacy = true;
+  }
   return tokenPayload;
 };
 
@@ -61,6 +70,7 @@ export const buildAccessTokenPayload = (user) => {
  *   email: string,
  *   name: string,
  *   nickname?: string | null,
+ *   studentId?: string | null,
  *   schoolVerifiedAt?: Date | string | null,
  * }} user
  * @param {import('express').Response} res

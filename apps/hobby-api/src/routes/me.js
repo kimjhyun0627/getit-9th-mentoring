@@ -41,8 +41,11 @@ export const createMeRouter = ({ jwtSecret }) => {
   //
   // 무한 redirect fix: nickname / schoolVerifiedAt 도 echo. JWT payload 에 있을 때만
   // 키 값 채움 — FE 의 NicknameOnboardingGuard 가 onboarding 페이지로 보낼지 결정.
+  //
+  // #571: studentIdLegacy 도 echo. JWT payload 에 박혀 있으면 (DB studentId 8자리)
+  // true. hobby 진입 가드가 이 플래그로 blocking 모달 노출 여부 판단.
   router.get('/me', auth, (req, res) => {
-    const { sub, email, name, nickname, schoolVerifiedAt } = req.user;
+    const { sub, email, name, nickname, schoolVerifiedAt, studentIdLegacy } = req.user;
     return res.status(200).json({
       user: {
         sub,
@@ -50,6 +53,7 @@ export const createMeRouter = ({ jwtSecret }) => {
         name,
         nickname: nickname ?? null,
         schoolVerifiedAt: schoolVerifiedAt ?? null,
+        studentIdLegacy: studentIdLegacy === true,
       },
     });
   });

@@ -263,6 +263,26 @@ describe('hobby-api P1 새 동작', () => {
       expect(res.status).toBe(200);
       expect(res.body.user.nickname).toBe('쾌활한사슴');
     });
+
+    // #571: studentIdLegacy 가 JWT 에 박혀 있으면 응답에도 그대로 echo.
+    // FE 의 hobby 진입 가드가 이 플래그로 blocking 모달 노출 여부 판단.
+    it('#571 JWT 에 studentIdLegacy=true → 응답에 그대로 echo', async () => {
+      const token = signJwt(
+        { sub: 'legacy-id', email: 'legacy@x.com', name: 'L', studentIdLegacy: true },
+        SECRET,
+      );
+      const res = await request(app).get('/api/me').set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(200);
+      expect(res.body.user.studentIdLegacy).toBe(true);
+    });
+
+    it('#571 JWT 에 studentIdLegacy 없음 → 응답은 false (명시적 boolean)', async () => {
+      const res = await request(app)
+        .get('/api/me')
+        .set('Authorization', `Bearer ${tokenFor('clean-id', 'Clean')}`);
+      expect(res.status).toBe(200);
+      expect(res.body.user.studentIdLegacy).toBe(false);
+    });
   });
 
   describe('GET /api/me/* (#228)', () => {
