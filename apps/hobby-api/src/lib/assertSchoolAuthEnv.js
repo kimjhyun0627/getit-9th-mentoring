@@ -15,7 +15,8 @@
  * @throws {Error} prod 에서 미정의/잘못된 값일 때.
  */
 export const assertSchoolAuthEnvDeclared = (env = process.env) => {
-  if (env.NODE_ENV !== 'production') return;
+  // Gemini #577: 호출자가 명시적으로 null/undefined 를 넘기는 케이스 방어 — defensive.
+  if (!env || env.NODE_ENV !== 'production') return;
   if (env.SCHOOL_AUTH_GUARD_ENABLED === 'true') return;
 
   const present = Object.prototype.hasOwnProperty.call(env, 'SCHOOL_AUTH_GUARD_ENABLED');

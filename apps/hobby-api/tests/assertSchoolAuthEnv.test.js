@@ -19,6 +19,16 @@ describe('assertSchoolAuthEnvDeclared (#572)', () => {
       );
     });
 
+    it('SCHOOL_AUTH_GUARD_ENABLED=undefined (키 존재) → throw (CR #577)', () => {
+      // 키는 있지만 값이 undefined — hasOwnProperty 분기 커버.
+      expect(() =>
+        assertSchoolAuthEnvDeclared({
+          NODE_ENV: 'production',
+          SCHOOL_AUTH_GUARD_ENABLED: undefined,
+        }),
+      ).toThrow(/must be exactly "true"/);
+    });
+
     it("SCHOOL_AUTH_GUARD_ENABLED='true' → 정상 통과", () => {
       expect(() =>
         assertSchoolAuthEnvDeclared({
@@ -87,6 +97,17 @@ describe('assertSchoolAuthEnvDeclared (#572)', () => {
           SCHOOL_AUTH_GUARD_ENABLED: 'false',
         }),
       ).not.toThrow();
+    });
+  });
+
+  describe('env null/undefined 방어 (Gemini #577)', () => {
+    it('env=null → 통과 (defensive — TypeError 안 던짐)', () => {
+      expect(() => assertSchoolAuthEnvDeclared(null)).not.toThrow();
+    });
+
+    it('env=undefined → 통과 (defensive — TypeError 안 던짐)', () => {
+      // 명시적 undefined 는 default param 인 process.env 가 잡음. 그래도 가드 검증.
+      expect(() => assertSchoolAuthEnvDeclared(undefined)).not.toThrow();
     });
   });
 

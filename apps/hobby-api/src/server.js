@@ -26,10 +26,20 @@ const initSentry = async () => {
 };
 
 const main = async () => {
-  // #572: prod 에서 SCHOOL_AUTH_GUARD_ENABLED 미정의/잘못된 값이면 즉시 throw.
+  // #572: prod 에서 SCHOOL_AUTH_GUARD_ENABLED 미정의/잘못된 값이면 즉시 종료.
   // PRD 정책상 학교 인증 가드는 prod 에서 반드시 켜져 있어야 함 — silent disable 방지.
   // dev/test 환경은 통과 (createApp 직접 호출하는 테스트도 영향 없음).
-  assertSchoolAuthEnvDeclared();
+  // Gemini #577: process.exitCode 만 설정하면 active handle 잡힌 상태에서 hang 가능 →
+  // 운영 컨테이너가 restart loop 으로 못 들어감. process.exit(1) 로 즉시 종료.
+  try {
+    assertSchoolAuthEnvDeclared();
+  } catch (err) {
+    log.error({ err }, 'fatal configuration error during startup');
+    // letter-api 와 동일 패턴 — process.exitCode 만 세팅하면 active handle 잡힌 상태에서
+    // 컨테이너가 hang. restart loop 으로 즉시 빠지려면 exit(1) 명시.
+    // eslint-disable-next-line n/no-process-exit
+    process.exit(1);
+  }
 
   await initSentry();
 
