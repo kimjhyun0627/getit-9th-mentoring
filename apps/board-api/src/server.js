@@ -10,8 +10,12 @@ try {
   if (process.env.NODE_ENV !== 'production') {
     await import('dotenv/config');
   }
-} catch {
-  /* dotenv 미설치 — 환경변수가 다른 메커니즘으로 주입됐다고 가정. */
+} catch (err) {
+  // ERR_MODULE_NOT_FOUND (dotenv 미설치 — prod image 등) 만 swallow.
+  // 그 외 (모듈 평가 에러 등) 는 부팅 실패로 표면화시켜야 안전.
+  const isMissingDotenv =
+    err?.code === 'ERR_MODULE_NOT_FOUND' && String(err?.message ?? '').includes('dotenv');
+  if (!isMissingDotenv) throw err;
 }
 
 import pino from 'pino';
