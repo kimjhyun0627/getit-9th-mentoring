@@ -38,6 +38,9 @@ const CSRF_PROTECTED_PATHS = [
   // #571: 학번 정정 (8 → 10자리 마이그레이션). 인증된 유저 상태 변경 + 새 토큰 발급
   // 부수효과까지 동반 → cross-site forge 차단 필수.
   '/api/me/student-id',
+  // #574: nickname onboarding 라우트 — 주석상 CSRF 보호 표기였으나 목록 누락. cross-site
+  // 닉네임 변조 차단. /profile 과 동일 정책 (auth + CSRF + DB unique).
+  '/api/me/nickname',
 ];
 
 /**

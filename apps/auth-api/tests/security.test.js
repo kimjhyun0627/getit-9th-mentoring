@@ -78,6 +78,64 @@ describe('#312 CSRF guard', () => {
     expect(res.status).toBe(401);
   });
 
+  // #574 — /api/me/nickname CSRF 보호 회귀 (주석상 보호 표기였으나 목록 누락).
+  it('#574 protected /api/me/nickname — 유효 JWT + CSRF 미동봉 → 403 CsrfTokenMismatch', async () => {
+    const app = createApp({ rateLimitMax: 1000 });
+    const jwt = signJwtForTest({ sub: 'u-nick', email: 'n@x.com', name: 'N' });
+    const res = await request(app)
+      .patch('/api/me/nickname')
+      .set('Cookie', `getit_jwt=${jwt}`)
+      .send({ nickname: '닉네임' });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('CsrfTokenMismatch');
+  });
+
+  it('#574 protected /api/me/nickname — 유효 JWT + 헤더/쿠키 불일치 → 403 CsrfTokenMismatch', async () => {
+    // 헤더와 쿠키가 서로 다른 토큰 → double-submit mismatch.
+    const app = createApp({ rateLimitMax: 1000 });
+    const jwt = signJwtForTest({ sub: 'u-nick', email: 'n@x.com', name: 'N' });
+    const headerToken = issueCsrfToken();
+    const cookieToken = issueCsrfToken();
+    const res = await request(app)
+      .patch('/api/me/nickname')
+      .set('Cookie', [`getit_jwt=${jwt}`, `getit_csrf=${cookieToken}`].join('; '))
+      .set('X-CSRF-Token', headerToken)
+      .send({ nickname: '닉네임' });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('CsrfTokenMismatch');
+  });
+
+  it('#574 protected /api/me/nickname — 유효 JWT + 위조 토큰 (헤더=쿠키, HMAC 깨짐) → 403 CsrfTokenInvalid', async () => {
+    // 헤더와 쿠키는 같지만 HMAC 서명이 깨진 토큰 (외부 공격자가 만든 자체 nonce.sig).
+    // 실제 토큰을 만들어 sig 부분만 변조 — length check 우회 + HMAC 비교 실패 유도.
+    const app = createApp({ rateLimitMax: 1000 });
+    const jwt = signJwtForTest({ sub: 'u-nick', email: 'n@x.com', name: 'N' });
+    const real = issueCsrfToken();
+    const [nonce, sig] = real.split('.');
+    // sig 의 첫 글자를 다른 hex char 로 토글 → length 동일, HMAC 비교 실패.
+    const flipped = (sig[0] === '0' ? '1' : '0') + sig.slice(1);
+    const forged = `${nonce}.${flipped}`;
+    const res = await request(app)
+      .patch('/api/me/nickname')
+      .set('Cookie', [`getit_jwt=${jwt}`, `getit_csrf=${forged}`].join('; '))
+      .set('X-CSRF-Token', forged)
+      .send({ nickname: '닉네임' });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('CsrfTokenInvalid');
+  });
+
+  it('#574 protected /api/me/nickname — 헤더+쿠키 일치 시 CSRF 통과 (인증/검증 단계 진입)', async () => {
+    const app = createApp({ rateLimitMax: 1000 });
+    const token = issueCsrfToken();
+    const res = await request(app)
+      .patch('/api/me/nickname')
+      .set('Cookie', `getit_csrf=${token}`)
+      .set('X-CSRF-Token', token)
+      .send({ nickname: '닉네임' });
+    // CSRF 통과 → JWT 없어서 requireAuth 가 401 (CSRF 403 아님).
+    expect(res.status).toBe(401);
+  });
+
   it('/api/logout 은 CSRF 면제 (idempotent)', async () => {
     const app = createApp({ rateLimitMax: 1000 });
     const res = await request(app).post('/api/logout');
