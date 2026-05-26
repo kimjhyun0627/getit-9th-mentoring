@@ -28,7 +28,7 @@ import {
 } from './api.applications.js';
 import { client, refreshAccessToken, setUnauthorizedHandler } from './api.core.js';
 import { assertJsonObject, assertListShape } from './api.helpers.js';
-import { getMe, listMyApplications, listMyPosts } from './api.me.js';
+import { getMe, listMyApplications, listMyPosts, updateStudentId } from './api.me.js';
 import {
   listNotifications,
   markAllNotificationsRead,
@@ -67,4 +67,5 @@ export const api = {
   listMyPosts,
   listMyApplications,
   getMe,
+  updateStudentId,
 };

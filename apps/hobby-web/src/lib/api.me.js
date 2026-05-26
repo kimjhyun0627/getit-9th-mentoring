@@ -31,6 +31,10 @@ const meUserSchema = z
     schoolEmail: z.string().nullish(),
     schoolVerifiedAt: z.string().datetime().nullish(),
     createdAt: z.string().nullish(),
+    // #573 — 8자리 학번 시절 (#568 이전) 인증한 사용자 검출 플래그.
+    // BE 가 true 로 내려주면 hobby 진입 시 blocking 모달로 10자리 재입력 강제.
+    // 키 누락 또는 false → 정상. 구버전 BE 호환을 위해 nullish 허용.
+    studentIdLegacy: z.boolean().nullish(),
   })
   .passthrough();
 
@@ -93,5 +97,21 @@ export const getMe = async () => {
     schoolEmail: user.schoolEmail ?? null,
     schoolVerifiedAt: user.schoolVerifiedAt ?? null,
     createdAt: user.createdAt ?? undefined,
+    studentIdLegacy: user.studentIdLegacy === true,
   };
+};
+
+/**
+ * PATCH (auth-api) /api/me/student-id — legacy 8자리 학번 보유자가
+ * 정확한 10자리 학번으로 재입력. #573.
+ *
+ * - body: `{ studentId: "0123456789" }` (10자리 숫자, BE 가 trim + regex 재검증)
+ * - CSRF: X-CSRF-Token 헤더 자동 첨부 (api.csrf.js interceptor 가 보장)
+ * - 성공 시 BE 가 studentIdLegacy=false 로 마킹 → 호출자가 invalidate(['me']) 로 새로고침
+ *
+ * @param {{ studentId: string }} body
+ * @returns {Promise<void>}
+ */
+export const updateStudentId = async ({ studentId }) => {
+  await authClient.patch('/me/student-id', { studentId });
 };

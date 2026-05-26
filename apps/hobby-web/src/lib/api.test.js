@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { authClient } from './api.core.js';
 import { api, assertJsonObject, assertListShape, client, refreshAccessToken } from './api.js';
 
 /**
@@ -105,5 +106,82 @@ describe('refreshAccessToken — 단일 비행 + 동시 401 흡수', () => {
     const p3 = refreshAccessToken();
     expect(p3).not.toBe(p1);
     await Promise.allSettled([p3]);
+  });
+});
+
+/**
+ * #573 — getMe 가 studentIdLegacy 를 boolean 으로 정규화.
+ *
+ *  - true → true (legacy 8자리 학번 보유자, blocking 모달 트리거)
+ *  - false → false
+ *  - 누락/null/undefined → false (구버전 BE 호환, fail-open)
+ *  - strict equality (`=== true`) — 다른 truthy 값은 false 처리되어 의도치 않은 모달 트리거 차단
+ */
+describe('getMe — studentIdLegacy 정규화 (#573)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const baseResp = (extra) => ({
+    data: {
+      user: {
+        id: 'u-1',
+        email: 'a@get-it.cloud',
+        ...extra,
+      },
+    },
+    headers: { 'content-type': 'application/json' },
+  });
+
+  it('studentIdLegacy=true → true 그대로', async () => {
+    vi.spyOn(authClient, 'get').mockResolvedValue(baseResp({ studentIdLegacy: true }));
+    const me = await api.getMe();
+    expect(me.studentIdLegacy).toBe(true);
+  });
+
+  it('studentIdLegacy=false → false 그대로', async () => {
+    vi.spyOn(authClient, 'get').mockResolvedValue(baseResp({ studentIdLegacy: false }));
+    const me = await api.getMe();
+    expect(me.studentIdLegacy).toBe(false);
+  });
+
+  it('키 누락 → false (구버전 BE 호환, fail-open)', async () => {
+    vi.spyOn(authClient, 'get').mockResolvedValue(baseResp({}));
+    const me = await api.getMe();
+    expect(me.studentIdLegacy).toBe(false);
+  });
+
+  it('null → false', async () => {
+    vi.spyOn(authClient, 'get').mockResolvedValue(baseResp({ studentIdLegacy: null }));
+    const me = await api.getMe();
+    expect(me.studentIdLegacy).toBe(false);
+  });
+});
+
+/**
+ * #573 — updateStudentId 가 PATCH /me/student-id 를 authClient (auth-api) 로 호출.
+ */
+describe('updateStudentId — PATCH 호출 (#573)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('정상: authClient.patch("/me/student-id", { studentId }) 호출', async () => {
+    const spy = vi.spyOn(authClient, 'patch').mockResolvedValue({ data: {} });
+    await api.updateStudentId({ studentId: '2024111234' });
+    expect(spy).toHaveBeenCalledWith('/me/student-id', { studentId: '2024111234' });
+  });
+
+  it('서버 오류 전파: 401/403/500 모두 호출자가 catch 하도록 reject', async () => {
+    const err = /** @type {any} */ (new Error('server'));
+    err.response = { status: 500 };
+    vi.spyOn(authClient, 'patch').mockRejectedValue(err);
+    await expect(api.updateStudentId({ studentId: '2024111234' })).rejects.toBe(err);
   });
 });
