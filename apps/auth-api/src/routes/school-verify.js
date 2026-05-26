@@ -19,19 +19,44 @@
  */
 import crypto from 'node:crypto';
 
-import { requireAuth } from '@getit/auth-utils/server';
+import { requireAuth, verifyJwt } from '@getit/auth-utils/server';
 import { SchoolLinkInput, VerifySchoolInput } from '@getit/schemas/auth';
 import { zodErrorBody } from '@getit/schemas/errors';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 
+import { issueTokensAndCookies } from '../lib/issueTokens.js';
 import { sendSchoolVerifyEmail } from '../lib/mailer.js';
 import { prisma } from '../lib/prisma.js';
-import { generateRefreshToken, readAuthEnv } from '../lib/tokens.js';
+import {
+  ACCESS_COOKIE,
+  generateRefreshToken,
+  hashRefreshToken,
+  readAuthEnv,
+  REFRESH_COOKIE,
+} from '../lib/tokens.js';
 
 import { publicUser } from './userSerialize.js';
 
 const SCHOOL_TOKEN_TTL_MS = 30 * 60 * 1000;
+
+/**
+ * 현재 요청의 refresh 쿠키에 해당하는 활성 refresh token 을 revoke.
+ *
+ * #569: verify-school 직후 새 토큰을 발급하면서 기존 refresh token 을 함께
+ * rotate 하지 않으면 DB 에 활성 토큰이 누적되어 세션 위생이 깨진다.
+ * PATCH /me/nickname (#560) 와 동일한 패턴.
+ *
+ * @param {import('express').Request} req
+ */
+const revokeCurrentRefreshToken = async (req) => {
+  const raw = req.cookies?.[REFRESH_COOKIE];
+  if (!raw) return;
+  await prisma.refreshToken.updateMany({
+    where: { tokenHash: hashRefreshToken(raw), revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+};
 
 /**
  * 학교 메일 마스킹 — 로컬파트 첫 2글자 + `***` + `@knu.ac.kr`.
@@ -178,6 +203,45 @@ export const createSchoolVerifyRouter = (opts = {}) => {
         return res.status(409).json({ error: 'SchoolEmailTaken' });
       }
 
+      // #570 + CR review: Session Overwrite / Login CSRF 방어.
+      // /api/auth/verify-school 은 의도적으로 requireAuth 가 없다 (메일 클릭만으로
+      // 학교 인증 가능 — 토큰 자체에 userId 바인딩). 그래서 user A 로 로그인한
+      // 상태에서 user B 의 verify token 을 검증하면, user B 의 schoolVerifiedAt
+      // 박힌 새 access/refresh 쿠키가 응답에 박혀 user A 의 세션이 user B 로
+      // 강제 전환되는 vector 가 생긴다.
+      //
+      // 정책:
+      // 1) access JWT 가 유효하면 payload.sub 으로 세션 소유자 결정.
+      // 2) JWT invalid/expired 이지만 활성 refresh cookie 가 있으면 그 owner 사용
+      //    (CR #570 2차 review: access 가 만료된 브라우저도 refresh 만으로 다른
+      //    user 세션을 덮어쓸 수 있음 → refresh 도 같이 검사).
+      // 3) 결정된 세션 소유자가 토큰 소유자 (row.userId) 와 다르면 403.
+      // 4) 둘 다 없으면 (로그아웃 / 메일 직접 클릭) 정상 진행.
+      //
+      // 트랜잭션 *전* 에 체크 — 거부된 요청이 토큰 소비 / DB 업데이트하지 않도록.
+      const jwtCookie = req.cookies?.[ACCESS_COOKIE];
+      const refreshCookie = req.cookies?.[REFRESH_COOKIE];
+      let sessionUserId = null;
+      if (jwtCookie) {
+        try {
+          const payload = verifyJwt(jwtCookie, cfg.jwtSecret);
+          sessionUserId = payload?.sub ?? null;
+        } catch {
+          // invalid/expired JWT → access 로는 세션 못 가림, refresh 검사로 fallback.
+        }
+      }
+      if (!sessionUserId && refreshCookie) {
+        const currentRefresh = await prisma.refreshToken.findUnique({
+          where: { tokenHash: hashRefreshToken(refreshCookie) },
+        });
+        if (currentRefresh && !currentRefresh.revokedAt) {
+          sessionUserId = currentRefresh.userId;
+        }
+      }
+      if (sessionUserId && sessionUserId !== row.userId) {
+        return res.status(403).json({ error: 'UserMismatch' });
+      }
+
       // 트랜잭션 — 토큰 1회 소비 보장 + 탈퇴 유저 차단 + User 업데이트.
       // 1) 토큰 consume 를 conditional updateMany 로 먼저 시도 → race-safe (CR #546).
       //    동일 토큰 동시 요청이 둘 다 성공하는 케이스를 막는다.
@@ -206,6 +270,17 @@ export const createSchoolVerifyRouter = (opts = {}) => {
           data: { studentId, schoolEmail: row.email, schoolVerifiedAt: now },
         });
       });
+
+      // #569: stale JWT payload (schoolVerifiedAt 키 없음) 로 hobby/letter
+      // 가드가 access TTL 내내 403 던지는 무한 루프 차단을 위해 새 토큰 발급.
+      // 기존 refresh 도 rotate (CR #560 패턴).
+      // CR 3차 review: same-user 세션 확인된 요청에서만 회전. 비로그인 cross-site
+      // POST 에 무조건 쿠키 발급 시 공격자 verify token 폼이 피해자 브라우저를
+      // 공격자 세션으로 강제 전환 가능 (login CSRF).
+      if (sessionUserId) {
+        await revokeCurrentRefreshToken(req);
+        await issueTokensAndCookies(updated, res);
+      }
 
       return res.status(200).json({ ok: true, user: publicUser(updated) });
     } catch (err) {

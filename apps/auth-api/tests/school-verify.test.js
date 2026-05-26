@@ -217,6 +217,9 @@ describe('school verify routes (#538)', () => {
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('InvalidToken');
     });
+
+    // #569 / #570 회귀 (토큰 회전 + Session Overwrite 방어) 는 별도 파일 분리:
+    //   tests/verify-school-token-refresh.test.js (300-line 가드 + scope 분리).
   });
 
   describe('POST /api/me/school-link/resend', () => {
