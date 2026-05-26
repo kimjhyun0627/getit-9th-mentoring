@@ -126,14 +126,18 @@ describe('#312 CSRF guard', () => {
 
   it('#574 protected /api/me/nickname — 헤더+쿠키 일치 시 CSRF 통과 (인증/검증 단계 진입)', async () => {
     const app = createApp({ rateLimitMax: 1000 });
+    // 유효 JWT 동봉해야 requireAuth 가 단락(short-circuit)되지 않고 csrfGuard 가 실제로
+    // 실행됨. JWT 없으면 requireAuth 가 먼저 401 던져서 CSRF 통과를 입증 못 함 (CR #576).
+    const jwt = signJwtForTest({ sub: 'u-nick', email: 'n@x.com', name: 'N' });
     const token = issueCsrfToken();
     const res = await request(app)
       .patch('/api/me/nickname')
-      .set('Cookie', `getit_csrf=${token}`)
+      .set('Cookie', [`getit_jwt=${jwt}`, `getit_csrf=${token}`].join('; '))
       .set('X-CSRF-Token', token)
       .send({ nickname: '닉네임' });
-    // CSRF 통과 → JWT 없어서 requireAuth 가 401 (CSRF 403 아님).
+    // CSRF + requireAuth 통과 후 라우트 단계에서 DB 사용자 부재로 401 UserNotFound.
     expect(res.status).toBe(401);
+    expect(res.body.error).toBe('UserNotFound');
   });
 
   it('/api/logout 은 CSRF 면제 (idempotent)', async () => {
