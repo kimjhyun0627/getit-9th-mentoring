@@ -48,11 +48,22 @@ async function readManifest(manifestPath) {
   }
 }
 
+async function ensureDir(dir, label) {
+  try {
+    await stat(dir);
+  } catch {
+    throw new Error(
+      `${label} 디렉토리 없음: ${dir} — --root 인자가 monorepo root 가리키는지 확인.`
+    );
+  }
+}
+
 /**
  * @param {{ root: string }} opts
  */
 export async function collectWorkspacePackages({ root }) {
   const pkgsDir = path.join(root, 'packages');
+  await ensureDir(pkgsDir, 'packages/');
   const entries = await readdir(pkgsDir, { withFileTypes: true });
   /** @type {Map<string, string>} pkg name → directory name */
   const nameToDir = new Map();
@@ -72,6 +83,7 @@ export async function collectWorkspacePackages({ root }) {
  */
 export async function collectApps({ root }) {
   const appsDir = path.join(root, 'apps');
+  await ensureDir(appsDir, 'apps/');
   const entries = await readdir(appsDir, { withFileTypes: true });
   /** @type {Array<{ dir: string, manifestPath: string, dockerfilePath: string, name: string, runtimeWorkspaceDeps: string[], allWorkspaceDeps: string[] }>} */
   const apps = [];

@@ -323,6 +323,33 @@ test('non-workspace `@getit/*` (e.g. published) 는 무시 — workspace: prefix
   }
 });
 
+test('packages/ 디렉토리 없으면 명확한 에러 (CodeRabbit #593)', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'docker-drift-nopkgs-'));
+  try {
+    // apps/ 만 있고 packages/ 없는 root.
+    await mkdir(path.join(root, 'apps'), { recursive: true });
+    await assert.rejects(
+      () => checkDockerfileWorkspaceSync({ root }),
+      /packages\/ 디렉토리 없음/
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('apps/ 디렉토리 없으면 명확한 에러 (CodeRabbit #593)', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'docker-drift-noapps-'));
+  try {
+    await mkdir(path.join(root, 'packages'), { recursive: true });
+    await assert.rejects(
+      () => checkDockerfileWorkspaceSync({ root }),
+      /apps\/ 디렉토리 없음/
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('실제 repo state (worktree root) — drift 없음', async () => {
   // 이 테스트 파일이 tools/ci/ 안에 있으므로 두 단계 위가 repo root.
   const here = path.dirname(new URL(import.meta.url).pathname);
