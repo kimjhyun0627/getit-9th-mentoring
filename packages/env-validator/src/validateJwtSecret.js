@@ -62,7 +62,10 @@ const looksLikePlaceholder = (v) => {
  * @throws {Error} production 에서 길이 부족 또는 placeholder.
  */
 export const validateJwtSecret = (value, opts = {}) => {
-  const isProd = opts.env === 'production';
+  // env 비교는 정규화 후 — 'Production' / ' production ' 같은 배포 변수 노이즈가
+  // production 보호를 우회하지 못하도록 (CR #579).
+  const normalizedEnv = typeof opts.env === 'string' ? opts.env.trim().toLowerCase() : '';
+  const isProd = normalizedEnv === 'production';
   /** @type {string[]} */
   const warnings = [];
 

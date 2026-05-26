@@ -66,6 +66,8 @@ describe('validateJwtSecret', () => {
     });
 
     it('에러 메시지에 secret 값이 노출되지 않음', () => {
+      // expect.assertions: validateJwtSecret 가 throw 안 하고 통과하면 거짓 양성 → 강제 실패.
+      expect.assertions(2);
       const secret = 'change-me-min-32-chars-long-aaaaaaaaaaaaa';
       try {
         validateJwtSecret(secret, { env: 'production' });
@@ -74,6 +76,15 @@ describe('validateJwtSecret', () => {
         expect(err.message).not.toContain(secret);
         expect(err.message).not.toContain('change-me');
       }
+    });
+
+    it('env 대소문자/공백 정규화 — "Production" 도 production 보호 발동 (CR #579)', () => {
+      expect(() =>
+        validateJwtSecret('change-me-min-32-chars-long-aaaaaaaaaaaaa', { env: 'Production' }),
+      ).toThrow(/placeholder/);
+      expect(() =>
+        validateJwtSecret('change-me-min-32-chars-long-aaaaaaaaaaaaa', { env: ' PRODUCTION ' }),
+      ).toThrow(/placeholder/);
     });
   });
 

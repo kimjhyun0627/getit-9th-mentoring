@@ -34,7 +34,10 @@ const hasValue = (v) => typeof v === 'string' && v.trim().length > 0;
  * @throws {Error} production + SMTP_HOST 미설정 + \`MAILER_DISABLED_ALLOWED\` 미옵션.
  */
 export const validateSmtpConfig = (smtp, opts = {}) => {
-  const isProd = opts.env === 'production';
+  // env 비교는 정규화 후 — 'Production' / ' production ' 같은 배포 변수 노이즈가
+  // production 보호를 우회하지 못하도록 (CR #579).
+  const normalizedEnv = typeof opts.env === 'string' ? opts.env.trim().toLowerCase() : '';
+  const isProd = normalizedEnv === 'production';
   const allowDisabled = opts.mailerDisabledAllowed === true;
   /** @type {string[]} */
   const warnings = [];

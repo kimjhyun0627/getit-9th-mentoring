@@ -69,12 +69,19 @@ describe('validateSmtpConfig', () => {
     });
 
     it('에러 메시지에 SMTP_PASS 가 노출되지 않음', () => {
+      // expect.assertions: throw 안 나면 거짓 양성 → 강제 실패.
+      expect.assertions(1);
       const pass = 'super-secret-smtp-password-xyz';
       try {
         validateSmtpConfig({ host: '', user: 'u', pass }, { env: 'production' });
       } catch (err) {
         expect(err.message).not.toContain(pass);
       }
+    });
+
+    it('env 대소문자/공백 정규화 — "Production" 도 production 보호 발동 (CR #579)', () => {
+      expect(() => validateSmtpConfig({}, { env: 'Production' })).toThrow(/SMTP_HOST/);
+      expect(() => validateSmtpConfig({}, { env: ' PRODUCTION ' })).toThrow(/SMTP_HOST/);
     });
   });
 
