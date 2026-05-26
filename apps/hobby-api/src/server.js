@@ -5,22 +5,13 @@
  */
 import 'dotenv/config';
 
-import { validateJwtSecret } from '@getit/env-validator';
 import pino from 'pino';
 
 import { createApp } from './app.js';
 import { assertSchoolAuthEnvDeclared } from './lib/assertSchoolAuthEnv.js';
+import { validateEnvOrDie } from './lib/validateEnvOrDie.js';
 
 const log = pino({ name: 'hobby-api' });
-
-/**
- * 운영 secret 검증 — production placeholder/누락 시 throw (Issue #575).
- * hobby-api 는 SMTP 미사용, JWT 만 검사.
- */
-const validateEnvOrDie = () => {
-  const warnings = validateJwtSecret(process.env.JWT_SECRET, { env: process.env.NODE_ENV });
-  for (const w of warnings) log.warn({ env: 'validation' }, w);
-};
 
 // Sentry 는 `optionalDependencies` — 운영 이미지에는 설치되고, 로컬/테스트에는
 // 없어도 부팅됨. SENTRY_DSN 이 비어 있으면 import 자체를 건너뜀.
@@ -38,7 +29,7 @@ const initSentry = async () => {
 const main = async () => {
   // #575: JWT_SECRET placeholder/누락 시 즉시 종료.
   // dev/test 환경은 warn (validator 가 처리). production 위반은 throw → main.catch.
-  validateEnvOrDie();
+  validateEnvOrDie({ log });
 
   // #572: prod 에서 SCHOOL_AUTH_GUARD_ENABLED 미정의/잘못된 값이면 즉시 종료.
   // PRD 정책상 학교 인증 가드는 prod 에서 반드시 켜져 있어야 함 — silent disable 방지.

@@ -14,10 +14,12 @@
  * 비밀값 자체는 메시지/로그에 노출하지 않는다.
  */
 
+import { looksLikeSecretPlaceholder } from './placeholderPatterns.js';
+
 /**
  * \`.env.prod.example\` 에 박혀있는 정확한 placeholder 값 (이 한 줄은 deliberately
- * known — 운영에 새는 걸 잡기 위한 sentinel). 다른 파일에서 갱신될 수 있으므로
- * 패턴 검사 (\`WEAK_PATTERNS\`) 와 병행한다.
+ * known — 운영에 새는 걸 잡기 위한 sentinel). 패턴 검사
+ * (\`looksLikeSecretPlaceholder\`) 와 병행한다.
  */
 const KNOWN_EXAMPLE_VALUES = new Set([
   'change-me-min-32-chars-long-aaaaaaaaaaaaa',
@@ -25,32 +27,14 @@ const KNOWN_EXAMPLE_VALUES = new Set([
 ]);
 
 /**
- * placeholder 휴리스틱. \`.env.example\` 류에서 자주 쓰이는 표현을 통째로 거름.
- *
- * 길이 32+ 라도 본 패턴 중 하나라도 매치되면 placeholder 로 간주.
- */
-const WEAK_PATTERNS = [
-  /change-?me/i,
-  /please-?change/i,
-  /^your-/i,
-  /example/i,
-  /placeholder/i,
-  /replace[-_ ]?with/i,
-  /__REPLACE/i,
-  /^todo$/i,
-  /^dummy$/i,
-  /^xxx+$/i,
-];
-
-/**
- * 값이 명백한 placeholder 인지.
+ * 값이 명백한 placeholder 인지. JWT/SMTP 공통 정책 (`placeholderPatterns.js`) 위임.
  *
  * @param {string} v
  * @returns {boolean}
  */
 const looksLikePlaceholder = (v) => {
   if (KNOWN_EXAMPLE_VALUES.has(v)) return true;
-  return WEAK_PATTERNS.some((re) => re.test(v));
+  return looksLikeSecretPlaceholder(v);
 };
 
 /**

@@ -12,6 +12,8 @@
  * 비밀값 (\`SMTP_PASS\`) 은 절대 메시지/로그에 노출하지 않는다.
  */
 
+import { looksLikeHostPlaceholder } from './placeholderPatterns.js';
+
 /**
  * 의미 있는 값인지 (빈 문자열/공백 제외).
  *
@@ -19,29 +21,6 @@
  * @returns {boolean}
  */
 const hasValue = (v) => typeof v === 'string' && v.trim().length > 0;
-
-/**
- * SMTP_HOST 의 placeholder 휴리스틱 — `.env.prod.example` 의 `__REPLACE_WITH_smtp_host__`
- * 같은 값이 운영에 그대로 새는 사고 차단 (CR #579 round 2). \`hasValue\` 만 보면
- * placeholder 도 통과 → boot fail-fast 가 깨지고 메일 장애가 런타임으로 밀린다.
- */
-const HOST_WEAK_PATTERNS = [
-  /__REPLACE/i,
-  /change-?me/i,
-  /please-?change/i,
-  /^your-/i,
-  /example\.com$/i,
-  /placeholder/i,
-  /replace[-_ ]?with/i,
-];
-
-/**
- * host 값이 명백한 placeholder 인지.
- *
- * @param {string} host — trim 된 값.
- * @returns {boolean}
- */
-const hostLooksLikePlaceholder = (host) => HOST_WEAK_PATTERNS.some((re) => re.test(host));
 
 /**
  * SMTP 설정 검증.
@@ -87,7 +66,7 @@ export const validateSmtpConfig = (smtp, opts = {}) => {
   // SMTP_HOST 가 설정됐어도 placeholder 패턴이면 운영에 새지 못하게 차단 (CR #579 round 2).
   // 의도적으로 disabled 가 아닌데도 (allowDisabled=false) example 값이 흘러들어가면
   // mailer 가 SMTP_HOST 조회만 보고 enabled 모드로 진입, 연결 실패가 런타임 silent 로 묻힘.
-  if (hostLooksLikePlaceholder(hostRaw)) {
+  if (looksLikeHostPlaceholder(hostRaw)) {
     const msg =
       'SMTP_HOST looks like a placeholder/example value (e.g. __REPLACE_WITH_smtp_host__). ' +
       'Replace it with a real SMTP host in .env.prod.';
