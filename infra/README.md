@@ -90,3 +90,13 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 - `acme.json: permission denied` — Traefik 은 권한이 느슨하면 시작을 거부. named volume 은 OK; bind mount 로 바꾸면 `chmod 600`.
 - Cert 가 계속 pending — 80 포트가 공개 인터넷에서 도달 가능해야 함 (GCP 방화벽: `tcp:80,tcp:443` 오픈). Let's Encrypt 가 HTTP-01 로 검증.
 - API 가 DB 못 잡음 — 둘 다 `internal` 네트워크에 있어야 하고, `DATABASE_URL` host 는 `mysql` (localhost X).
+
+## 신규 workspace 패키지 추가 규칙
+
+새 `packages/<name>/` 추가 시, 그 패키지를 의존하는 모든 앱 Dockerfile 에 두 줄을 동기화해야 한다 (manifest 단계 + source 단계). 누락 시 `pnpm install --filter` 가 workspace dep resolve 에 실패하고, 후속 `pnpm deploy --prod` 가 transitive deps 까지 prune 해서 컨테이너 부팅 실패 (45 분 라이브 다운 incident — PR #579 → #584).
+
+CI 가 자동 검증한다 — `tools/ci/check-dockerfile-workspace-sync.mjs` 가 매 PR 마다 `apps/*/package.json` 의 runtime workspace dep 과 `apps/*/Dockerfile` 의 `COPY packages/<dir>/...` 라인을 대조. 누락 시 fail. 로컬 실행:
+
+```bash
+node tools/ci/check-dockerfile-workspace-sync.mjs
+```

@@ -40,6 +40,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Dockerfile workspace COPY drift
+        # 2026-05-26 라이브 다운 (45min) 재발 방지: 신규 workspace 패키지가 추가됐는데
+        # 의존 앱 Dockerfile 에 COPY 라인이 동기화 안 되면 production 부팅 실패.
+        # 가드 스크립트는 표준 Node API 만 사용 — pnpm 설치 의존 없음 (어디서 돌려도 OK).
+        run: node tools/ci/check-dockerfile-workspace-sync.mjs
+
+      - name: Dockerfile workspace COPY drift — guard self-tests
+        run: node --test tools/ci/check-dockerfile-workspace-sync.test.mjs
+
       - name: Format check
         run: pnpm run format:check
 
