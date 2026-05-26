@@ -66,23 +66,54 @@ docker compose -f docker-compose.prod.yml logs -f traefik
 
 ## Database migrations
 
-Prisma 마이그레이션은 컨테이너 시작 시 자동 적용되지 않음 (스키마 변경은 명시적 작업으로 안전 확보). VM 에서 직접:
+`.github/workflows/deploy.yml` 의 ssh-deploy 단계가 `docker compose pull` 직후
+`up -d` 직전에 5 BE 각각에 대해 `prisma migrate deploy` 를 자동 실행한다
+(Issue #587). pending migration 이 없으면 silent OK 라 매 deploy 호출해도
+안전. migrate 가 실패하면 `set -e` 로 deploy 가 abort 되어 이전 컨테이너
+그대로 (rollback).
+
+**비상 시 수동 실행** — 자동 migrate 가 막혔거나 hotfix 가 필요한 경우만:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec auth-api \
-  pnpm prisma migrate deploy --schema=prisma/schema.prisma
-# hobby-api, shelf-api, board-api, letter-api 도 반복
+# mysql 이 떠 있어야 함
+cd /opt/getit/infra
+for svc in auth-api hobby-api shelf-api board-api letter-api; do
+  docker compose --env-file .env.prod -f docker-compose.prod.yml \
+    run --rm --entrypoint /app/node_modules/.bin/prisma "$svc" \
+    migrate deploy --schema=prisma/schema.prisma
+done
 ```
+
+> Note: `prisma` CLI 는 5 BE runtime 이미지에 dependency 로 포함되어 있다
+> (Issue #587). devDependency 였을 때는 `pnpm deploy --prod` 가 prune 해서
+> 위 명령이 실패했음.
 
 ## Updating a deployed stack
 
-GitHub Actions (`.github/workflows/deploy.yml`) 가 11 개 이미지를 GHCR 에 push 한 뒤 SSH 로 `docker compose pull && up -d` 트리거. 수동 흐름:
+GitHub Actions (`.github/workflows/deploy.yml`) 가 11 개 이미지를 GHCR 에 push 한 뒤
+SSH 로 `pull → prisma migrate deploy (5 BE) → up -d` 를 트리거.
+수동 흐름 (드물게 CI 없이 적용해야 할 때):
 
 ```bash
 cd /opt/getit && git pull
 cd infra
 docker compose --env-file .env.prod -f docker-compose.prod.yml pull
-docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+# MySQL 을 띄우고 healthcheck 통과까지 대기 (Compose v2.20+). 옛버전이면 mysqladmin
+# ping 루프로 fallback. migrate 가 connect 실패하면 silent 배포 실패하니까 필수.
+if ! docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --wait mysql 2>/dev/null; then
+  docker compose --env-file .env.prod -f docker-compose.prod.yml up -d mysql
+  for i in $(seq 1 60); do
+    docker compose --env-file .env.prod -f docker-compose.prod.yml \
+      exec -T mysql mysqladmin ping -h 127.0.0.1 --silent >/dev/null 2>&1 && break
+    sleep 2
+  done
+fi
+for svc in auth-api hobby-api shelf-api board-api letter-api; do
+  docker compose --env-file .env.prod -f docker-compose.prod.yml \
+    run --rm --entrypoint /app/node_modules/.bin/prisma "$svc" \
+    migrate deploy --schema=prisma/schema.prisma
+done
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --remove-orphans
 ```
 
 ## Troubleshooting
