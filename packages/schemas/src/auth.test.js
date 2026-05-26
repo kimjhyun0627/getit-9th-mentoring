@@ -9,6 +9,7 @@ import {
   SignupInput,
   UpdateProfileInput,
   VerifyEmailInput,
+  VerifySchoolInput,
 } from './auth.js';
 
 describe('LoginInput', () => {
@@ -212,6 +213,51 @@ describe('JwtPayload', () => {
       iat: 1700000000,
       exp: 1700003600,
     });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe('VerifySchoolInput — KNU 학번 10자리 정책', () => {
+  const TOKEN = 'a'.repeat(32);
+
+  it('10자리 숫자 학번 통과 (예: 2024111234)', () => {
+    const r = VerifySchoolInput.safeParse({ token: TOKEN, studentId: '2024111234' });
+    expect(r.success).toBe(true);
+  });
+
+  it('9자리 학번 거부', () => {
+    const r = VerifySchoolInput.safeParse({ token: TOKEN, studentId: '202411123' });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues[0].message).toBe('학번은 10자리 숫자입니다');
+    }
+  });
+
+  it('11자리 학번 거부', () => {
+    const r = VerifySchoolInput.safeParse({ token: TOKEN, studentId: '20241112345' });
+    expect(r.success).toBe(false);
+  });
+
+  it('8자리 학번 거부 (구 정책 회귀 방지)', () => {
+    const r = VerifySchoolInput.safeParse({ token: TOKEN, studentId: '20241234' });
+    expect(r.success).toBe(false);
+  });
+
+  it('숫자 아닌 문자 포함 거부', () => {
+    const r = VerifySchoolInput.safeParse({ token: TOKEN, studentId: '202411123a' });
+    expect(r.success).toBe(false);
+  });
+
+  it('앞뒤 공백은 trim 후 통과 (Gemini #568)', () => {
+    const r = VerifySchoolInput.safeParse({ token: TOKEN, studentId: '  2024111234  ' });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.studentId).toBe('2024111234');
+    }
+  });
+
+  it('토큰 32자 미만 거부', () => {
+    const r = VerifySchoolInput.safeParse({ token: 'short', studentId: '2024111234' });
     expect(r.success).toBe(false);
   });
 });

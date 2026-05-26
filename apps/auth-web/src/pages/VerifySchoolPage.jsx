@@ -14,7 +14,7 @@ import { api } from '../lib/api.js';
  *
  * 흐름:
  *  - URL `?token=...` 받음. 토큰이 없거나 너무 짧으면 즉시 안내.
- *  - 학번 8자리 입력 폼 노출 → 제출 시 POST /api/auth/verify-school.
+ *  - 학번 10자리 입력 폼 노출 → 제출 시 POST /api/auth/verify-school.
  *  - 응답 처리:
  *    - 200: "학교 인증 완료" 토스트 → /me redirect
  *    - 400 InvalidToken: 토큰 만료/사용/없음 안내 + 마이페이지 링크 (재발송 유도)
@@ -64,7 +64,8 @@ export const VerifySchoolPage = () => {
         // BE ValidationError (zodErrorBody) → studentId 인라인 매핑.
         setError('studentId', {
           type: 'server',
-          message: '학번이 올바르지 않아요 · 8자리 숫자로 입력해주세요',
+          // schema 메시지와 통일 — 사용자에게 일관된 피드백 (Gemini #568).
+          message: '학번은 10자리 숫자입니다',
         });
         return;
       }
@@ -87,7 +88,7 @@ export const VerifySchoolPage = () => {
           학교 인증
         </h1>
         <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-          학번 8자리를 입력하면 학교 인증이 완료돼요
+          학번 10자리를 입력하면 학교 인증이 완료돼요
         </p>
       </header>
 
@@ -104,12 +105,13 @@ export const VerifySchoolPage = () => {
         >
           <input type="hidden" {...register('token')} />
           <FormField
-            label="학번 (8자리)"
+            label="학번 (10자리)"
             type="text"
             inputMode="numeric"
             autoComplete="off"
-            maxLength={8}
-            placeholder="20241234"
+            // Gemini #568: paste 시 앞뒤 공백 잘림 방지 — schema 가 trim 처리.
+            maxLength={12}
+            placeholder="2024111234"
             error={errors.studentId?.message}
             {...register('studentId')}
           />

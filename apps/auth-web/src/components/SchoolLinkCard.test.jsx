@@ -21,7 +21,7 @@ const unverifiedUser = {
 
 const verifiedUser = {
   schoolEmail: 'foo@knu.ac.kr',
-  studentId: '20241234',
+  studentId: '2024111234',
   schoolVerifiedAt: '2026-05-21T10:00:00Z',
 };
 
@@ -50,7 +50,7 @@ describe('SchoolLinkCard', () => {
   it('인증 완료 상태: 학교 메일 + 학번 + 다시 인증하기 버튼을 보여준다', () => {
     render(wrap(<SchoolLinkCard user={verifiedUser} />));
     expect(screen.getByText(/학교 인증됨/)).toBeInTheDocument();
-    expect(screen.getByText(/학번 20241234/)).toBeInTheDocument();
+    expect(screen.getByText(/학번 2024111234/)).toBeInTheDocument();
     expect(screen.getByText(/foo@knu\.ac\.kr/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /학교 인증 다시 받기/ })).toBeInTheDocument();
   });

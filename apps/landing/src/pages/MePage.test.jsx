@@ -191,20 +191,20 @@ describe('MePage 학교 인증 상태', () => {
     vi.restoreAllMocks();
   });
 
-  it('인증됨이면 "학교 인증 완료" + 학번 8자리를 노출한다', async () => {
+  it('인증됨이면 "학교 인증 완료" + 학번 10자리를 노출한다', async () => {
     mockFetchMe(200, {
       user: {
         sub: 'u1',
         nickname: '길동이',
         schoolVerifiedAt: '2026-05-21T10:00:00Z',
-        studentId: '20241234',
+        studentId: '2024111234',
         createdAt: '2026-05-01T09:00:00Z',
       },
     });
     renderMe();
     const status = await screen.findByTestId('me-school-status');
     expect(status.textContent).toContain('학교 인증 완료');
-    expect(status.textContent).toContain('20241234');
+    expect(status.textContent).toContain('2024111234');
     // 인증된 사용자는 "학교 인증하기" 버튼이 보이지 않는다.
     expect(screen.queryByRole('link', { name: /학교 인증하기/ })).toBeNull();
   });

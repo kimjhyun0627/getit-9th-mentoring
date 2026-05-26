@@ -91,7 +91,7 @@ describe('useSession (#343 / #246)', () => {
         user: {
           sub: 'u1',
           nickname: '  abc  ',
-          studentId: ' 20241234 ',
+          studentId: ' 2024111234 ',
           schoolEmail: ' user@knu.ac.kr ',
         },
       }),
@@ -101,7 +101,7 @@ describe('useSession (#343 / #246)', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.user?.nickname).toBe('abc');
-    expect(result.current.user?.studentId).toBe('20241234');
+    expect(result.current.user?.studentId).toBe('2024111234');
     expect(result.current.user?.schoolEmail).toBe('user@knu.ac.kr');
   });
 
@@ -137,7 +137,7 @@ describe('useSession (#343 / #246)', () => {
           email: 'a@b.com',
           name: '홍길동',
           nickname: '길동이',
-          studentId: '20241234',
+          studentId: '2024111234',
           schoolEmail: 'user@knu.ac.kr',
           schoolVerifiedAt: '2026-05-21T10:00:00Z',
           createdAt: '2026-05-01T09:00:00Z',
@@ -153,7 +153,7 @@ describe('useSession (#343 / #246)', () => {
       email: 'a@b.com',
       name: '홍길동',
       nickname: '길동이',
-      studentId: '20241234',
+      studentId: '2024111234',
       schoolEmail: 'user@knu.ac.kr',
       schoolVerifiedAt: '2026-05-21T10:00:00Z',
       createdAt: '2026-05-01T09:00:00Z',

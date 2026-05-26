@@ -203,12 +203,17 @@ export const SchoolLinkInput = z.object({
 /**
  * 학교 메일 인증 확정 — 토큰 + 학번 (Issue #538).
  *
- * - studentId: 정확히 8자리 숫자.
+ * - studentId: 정확히 10자리 숫자 (KNU 학번 형식).
  */
 // VerifyEmailInput 과 일관성 — generateRefreshToken 은 32+ hex 를 만든다.
 export const VerifySchoolInput = z.object({
   token: z.string().min(32, '유효하지 않은 토큰입니다'),
-  studentId: z.string().regex(/^\d{8}$/, '학번은 8자리 숫자입니다'),
+  // Gemini #568: 다른 필드(nickname/email) 와 일관되게 trim 후 검증.
+  // FE maxLength 가 약간 여유 있어서 (12) paste 앞뒤 공백도 처리.
+  studentId: z
+    .string()
+    .transform((v) => v.trim())
+    .pipe(z.string().regex(/^\d{10}$/, '학번은 10자리 숫자입니다')),
 });
 
 /**
