@@ -135,7 +135,30 @@ jobs:
             # `run --rm` = 1회 실행 후 자동 정리. pending migration 없으면
             # `prisma migrate deploy` 는 silent OK (no-op).
             # migrate 실패 시 `set -e` 로 abort → 이전 컨테이너 그대로 (rollback).
-            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d mysql
+            #
+            # MySQL readiness: docker-compose.prod.yml 의 mysql healthcheck 기반.
+            # 1차) `up -d --wait` 로 healthy 될 때까지 Compose 가 대기 (v2.20+).
+            # 2차) Compose 가 너무 옛버전이거나 --wait 미지원이면 mysqladmin ping
+            #      루프로 fallback (최대 120s, 2s 간격). 둘 다 실패하면 abort.
+            if ! docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --wait mysql 2>/dev/null; then
+              echo "compose --wait unsupported or failed; falling back to mysqladmin ping loop"
+              docker compose --env-file .env.prod -f docker-compose.prod.yml up -d mysql
+              ready=0
+              for i in $(seq 1 60); do
+                if docker compose --env-file .env.prod -f docker-compose.prod.yml \
+                    exec -T mysql mysqladmin ping -h 127.0.0.1 --silent >/dev/null 2>&1; then
+                  echo "mysql ready after $((i*2))s"
+                  ready=1
+                  break
+                fi
+                sleep 2
+              done
+              if [ "$ready" != "1" ]; then
+                echo "❌ mysql not ready after 120s — aborting deploy"
+                docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=80 mysql || true
+                exit 1
+              fi
+            fi
             for svc in auth-api hobby-api shelf-api board-api letter-api; do
               echo "── prisma migrate deploy: $svc ──"
               docker compose --env-file .env.prod -f docker-compose.prod.yml \

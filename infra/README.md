@@ -98,7 +98,16 @@ SSH 로 `pull → prisma migrate deploy (5 BE) → up -d` 를 트리거.
 cd /opt/getit && git pull
 cd infra
 docker compose --env-file .env.prod -f docker-compose.prod.yml pull
-docker compose --env-file .env.prod -f docker-compose.prod.yml up -d mysql
+# MySQL 을 띄우고 healthcheck 통과까지 대기 (Compose v2.20+). 옛버전이면 mysqladmin
+# ping 루프로 fallback. migrate 가 connect 실패하면 silent 배포 실패하니까 필수.
+if ! docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --wait mysql 2>/dev/null; then
+  docker compose --env-file .env.prod -f docker-compose.prod.yml up -d mysql
+  for i in $(seq 1 60); do
+    docker compose --env-file .env.prod -f docker-compose.prod.yml \
+      exec -T mysql mysqladmin ping -h 127.0.0.1 --silent >/dev/null 2>&1 && break
+    sleep 2
+  done
+fi
 for svc in auth-api hobby-api shelf-api board-api letter-api; do
   docker compose --env-file .env.prod -f docker-compose.prod.yml \
     run --rm --entrypoint /app/node_modules/.bin/prisma "$svc" \
