@@ -21,6 +21,29 @@
 const hasValue = (v) => typeof v === 'string' && v.trim().length > 0;
 
 /**
+ * SMTP_HOST 의 placeholder 휴리스틱 — `.env.prod.example` 의 `__REPLACE_WITH_smtp_host__`
+ * 같은 값이 운영에 그대로 새는 사고 차단 (CR #579 round 2). \`hasValue\` 만 보면
+ * placeholder 도 통과 → boot fail-fast 가 깨지고 메일 장애가 런타임으로 밀린다.
+ */
+const HOST_WEAK_PATTERNS = [
+  /__REPLACE/i,
+  /change-?me/i,
+  /please-?change/i,
+  /^your-/i,
+  /example\.com$/i,
+  /placeholder/i,
+  /replace[-_ ]?with/i,
+];
+
+/**
+ * host 값이 명백한 placeholder 인지.
+ *
+ * @param {string} host — trim 된 값.
+ * @returns {boolean}
+ */
+const hostLooksLikePlaceholder = (host) => HOST_WEAK_PATTERNS.some((re) => re.test(host));
+
+/**
  * SMTP 설정 검증.
  *
  * - \`host\` 미설정 + production + \`mailerDisabledAllowed=false\` → throw.
@@ -42,7 +65,8 @@ export const validateSmtpConfig = (smtp, opts = {}) => {
   /** @type {string[]} */
   const warnings = [];
 
-  const hostSet = hasValue(smtp?.host);
+  const hostRaw = typeof smtp?.host === 'string' ? smtp.host.trim() : '';
+  const hostSet = hostRaw.length > 0;
   const userSet = hasValue(smtp?.user);
   const passSet = hasValue(smtp?.pass);
 
@@ -58,6 +82,17 @@ export const validateSmtpConfig = (smtp, opts = {}) => {
     warnings.push(msg);
     // host 가 없으면 user/pass 단독 검사는 무의미.
     return warnings;
+  }
+
+  // SMTP_HOST 가 설정됐어도 placeholder 패턴이면 운영에 새지 못하게 차단 (CR #579 round 2).
+  // 의도적으로 disabled 가 아닌데도 (allowDisabled=false) example 값이 흘러들어가면
+  // mailer 가 SMTP_HOST 조회만 보고 enabled 모드로 진입, 연결 실패가 런타임 silent 로 묻힘.
+  if (hostLooksLikePlaceholder(hostRaw)) {
+    const msg =
+      'SMTP_HOST looks like a placeholder/example value (e.g. __REPLACE_WITH_smtp_host__). ' +
+      'Replace it with a real SMTP host in .env.prod.';
+    if (isProd && !allowDisabled) throw new Error(msg);
+    warnings.push(msg);
   }
 
   // host 설정됐는데 user/pass 한 쪽만 있는 경우 운영 실수 가능성이 높다.

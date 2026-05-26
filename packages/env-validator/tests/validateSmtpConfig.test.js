@@ -36,7 +36,7 @@ describe('validateSmtpConfig', () => {
     it('host 설정 + user/pass 둘 다 설정 → pass', () => {
       expect(() =>
         validateSmtpConfig(
-          { host: 'smtp.example.com', user: 'noreply', pass: 'real-pass' },
+          { host: 'smtp.postmark.io', user: 'noreply', pass: 'real-pass' },
           { env: 'production' },
         ),
       ).not.toThrow();
@@ -50,7 +50,7 @@ describe('validateSmtpConfig', () => {
 
     it('host 설정 + user 만 설정 → warn', () => {
       const warnings = validateSmtpConfig(
-        { host: 'smtp.example.com', user: 'noreply' },
+        { host: 'smtp.postmark.io', user: 'noreply' },
         { env: 'production' },
       );
       expect(warnings).toEqual(
@@ -60,7 +60,7 @@ describe('validateSmtpConfig', () => {
 
     it('host 설정 + pass 만 설정 → warn', () => {
       const warnings = validateSmtpConfig(
-        { host: 'smtp.example.com', pass: 'real-pass' },
+        { host: 'smtp.postmark.io', pass: 'real-pass' },
         { env: 'production' },
       );
       expect(warnings).toEqual(
@@ -82,6 +82,37 @@ describe('validateSmtpConfig', () => {
     it('env 대소문자/공백 정규화 — "Production" 도 production 보호 발동 (CR #579)', () => {
       expect(() => validateSmtpConfig({}, { env: 'Production' })).toThrow(/SMTP_HOST/);
       expect(() => validateSmtpConfig({}, { env: ' PRODUCTION ' })).toThrow(/SMTP_HOST/);
+    });
+
+    it('host 가 .env.example placeholder (__REPLACE_WITH_...) → throw (CR #579 round 2)', () => {
+      expect(() =>
+        validateSmtpConfig({ host: '__REPLACE_WITH_smtp_host__' }, { env: 'production' }),
+      ).toThrow(/placeholder/);
+    });
+
+    it('host 가 weak pattern "change-me-..." → throw', () => {
+      expect(() =>
+        validateSmtpConfig({ host: 'change-me-smtp.local' }, { env: 'production' }),
+      ).toThrow(/placeholder/);
+    });
+
+    it('host 가 RFC 2606 example.com 도메인 → throw (운영에서 mail 발송 불가)', () => {
+      expect(() => validateSmtpConfig({ host: 'smtp.example.com' }, { env: 'production' })).toThrow(
+        /placeholder/,
+      );
+    });
+
+    it('host 가 placeholder + MAILER_DISABLED_ALLOWED=true → warn (의도적 disable)', () => {
+      const warnings = validateSmtpConfig(
+        { host: '__REPLACE_WITH_smtp_host__' },
+        { env: 'production', mailerDisabledAllowed: true },
+      );
+      expect(warnings).toEqual(expect.arrayContaining([expect.stringMatching(/placeholder/)]));
+    });
+
+    it('host 가 placeholder + dev/test → warn (throw 안 함)', () => {
+      const warnings = validateSmtpConfig({ host: '__REPLACE_WITH_smtp_host__' }, { env: 'test' });
+      expect(warnings).toEqual(expect.arrayContaining([expect.stringMatching(/placeholder/)]));
     });
   });
 
