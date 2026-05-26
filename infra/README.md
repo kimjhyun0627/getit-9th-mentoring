@@ -88,6 +88,18 @@ done
 > (Issue #587). devDependency 였을 때는 `pnpm deploy --prod` 가 prune 해서
 > 위 명령이 실패했음.
 
+## Adding a new `VITE_*` env (6 web)
+
+새 `VITE_*` 를 web src 에서 쓰려면 **3 곳** 에 동시 동기화. 한쪽만 깜박하면
+incident #585 (hobby-web 학번 모달 PATCH 404) 패턴 재발.
+
+- `apps/<web>/src/**/*.js` — `import.meta.env.VITE_*` 사용 지점
+- `apps/<web>/Dockerfile` — `ARG VITE_*` + `ENV VITE_*` (Vite 빌드 타임 주입, prod default 박기 권장)
+- `.github/workflows/deploy.yml` — `build-args` (prod override, `vars.*` 또는 인라인 디폴트)
+
+CI 가 `tools/ci/check-vite-build-args.mjs` 로 매 PR 마다 drift 자동 검사. 상세 →
+[`../tools/ci/README.md`](../tools/ci/README.md).
+
 ## Updating a deployed stack
 
 GitHub Actions (`.github/workflows/deploy.yml`) 가 11 개 이미지를 GHCR 에 push 한 뒤
