@@ -5,11 +5,36 @@
  */
 import 'dotenv/config';
 
+import { validateJwtSecret, validateSmtpConfig } from '@getit/env-validator';
 import pino from 'pino';
 
 import { createApp } from './app.js';
 
 const log = pino({ name: 'auth-api' });
+
+/**
+ * 운영 secret 검증 — production 누락/placeholder 면 throw → 컨테이너 즉시 종료
+ * (Issue #575). dev/test 에선 warning 만 흘림.
+ *
+ * 비-throw 경로의 secret 값 자체는 메시지에 노출되지 않는다 (validator 책임).
+ */
+const validateEnvOrDie = () => {
+  const env = process.env.NODE_ENV;
+  // auth-api 만 SMTP 발송 책임 — 비번 재설정 / 이메일 인증 / 학교 인증 메일.
+  const allowDisabled = process.env.MAILER_DISABLED_ALLOWED === 'true';
+  const warnings = [
+    ...validateJwtSecret(process.env.JWT_SECRET, { env }),
+    ...validateSmtpConfig(
+      {
+        host: process.env.SMTP_HOST,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      { env, mailerDisabledAllowed: allowDisabled },
+    ),
+  ];
+  for (const w of warnings) log.warn({ env: 'validation' }, w);
+};
 
 const initSentry = async () => {
   if (!process.env.SENTRY_DSN) return;
@@ -23,6 +48,9 @@ const initSentry = async () => {
 };
 
 const main = async () => {
+  // boot 시점 1회 — production 위반은 여기서 throw → main().catch 로 fatal 처리.
+  validateEnvOrDie();
+
   await initSentry();
 
   const app = createApp();

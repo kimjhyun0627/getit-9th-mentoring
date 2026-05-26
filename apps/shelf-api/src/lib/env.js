@@ -8,9 +8,13 @@
  * 키 없이도 검색 라우터의 503 분기를 dogfood 할 수 있어야 함.
  *
  * 비밀값 자체는 절대 메시지/로그에 노출하지 않는다. "이름"과 "결손 사유" 만 흘림.
+ *
+ * Issue #575: JWT_SECRET 부분은 `@getit/env-validator` 의 공통 validator 로 위임 —
+ * 5 BE 가 동일 placeholder 정책을 공유. shelf 만의 KAKAO_BOOK_API_KEY 검사는 유지.
  */
+import { validateJwtSecret } from '@getit/env-validator';
 
-/** dummy placeholder 패턴 — `.env.example` 의 빈 슬롯이 그대로 운영에 새는 경우 차단. */
+/** dummy placeholder 패턴 — KAKAO 키 검사 전용 (JWT 는 공통 validator 가 처리). */
 const DUMMY_PATTERNS = [/^change-me/i, /^your-/i, /^xxx+$/i, /^todo$/i, /^dummy$/i];
 
 /**
@@ -40,28 +44,19 @@ const isUsableSecret = (v) => {
 export const validateEnv = (env) => {
   const isProd = env.NODE_ENV === 'production';
   /** @type {string[]} */
-  const errors = [];
-  /** @type {string[]} */
   const warnings = [];
 
-  // JWT_SECRET — 5개 API 가 공유. 32자 미만이면 brute-force 위협.
-  if (!isUsableSecret(env.JWT_SECRET)) {
-    errors.push('JWT_SECRET is required (non-empty, not a placeholder).');
-  } else if ((env.JWT_SECRET ?? '').trim().length < 32) {
-    errors.push('JWT_SECRET must be at least 32 characters.');
-  }
+  // JWT_SECRET — 공통 validator 로 위임. production placeholder/누락 시 여기서 throw.
+  warnings.push(...validateJwtSecret(env.JWT_SECRET, { env: env.NODE_ENV }));
 
   // KAKAO_BOOK_API_KEY — 운영에선 필수. 없으면 검색 라우터 503 만 뱉음.
   if (!isUsableSecret(env.KAKAO_BOOK_API_KEY)) {
     const msg = 'KAKAO_BOOK_API_KEY is missing or placeholder — set in infra/.env.prod';
-    if (isProd) errors.push(msg);
-    else warnings.push(msg);
+    if (isProd) {
+      throw new Error(`env validation failed:\n  - ${msg}`);
+    }
+    warnings.push(msg);
   }
 
-  if (isProd && errors.length > 0) {
-    throw new Error(`env validation failed:\n  - ${errors.join('\n  - ')}`);
-  }
-
-  // 비-운영에선 errors 도 warning 으로 합쳐서 반환 (caller 가 log.warn)
-  return [...warnings, ...errors];
+  return warnings;
 };

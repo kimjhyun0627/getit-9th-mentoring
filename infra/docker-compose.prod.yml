@@ -22,13 +22,15 @@ x-api-env: &api-env
   COOKIE_SECURE: ${COOKIE_SECURE:-true}
   TRUST_PROXY: "1"
   SENTRY_DSN: ${SENTRY_DSN:-}
-  # SMTP (auth-api 비번 재설정/이메일 인증 — PR #349 mailer). 미설정 시
-  # console fallback. 다른 API 도 향후 알림 발송 시 재사용 가능.
+  # SMTP (auth-api 비번 재설정/이메일 인증 — PR #349 mailer).
+  # Issue #575 — SMTP_HOST 빈 채로 boot 하면 @getit/env-validator 가 throw (production).
+  # 의도적으로 메일 채널을 끄려면 MAILER_DISABLED_ALLOWED=true 로 warn 격하.
   SMTP_HOST: ${SMTP_HOST:-}
   SMTP_PORT: ${SMTP_PORT:-587}
   SMTP_USER: ${SMTP_USER:-}
   SMTP_PASS: ${SMTP_PASS:-}
   SMTP_FROM: ${SMTP_FROM:-GETIT/9 <noreply@get-it.cloud>}
+  MAILER_DISABLED_ALLOWED: ${MAILER_DISABLED_ALLOWED:-}
 
 x-restart: &restart
   restart: unless-stopped

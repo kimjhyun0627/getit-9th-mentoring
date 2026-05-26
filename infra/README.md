@@ -46,6 +46,12 @@ git clone https://github.com/kimjhyun0627/getit-9th-mentoring.git /opt/getit
 cd /opt/getit/infra
 cp .env.prod.example .env.prod
 $EDITOR .env.prod        # 실제 값 채우고 저장
+# CRITICAL — JWT_SECRET / SMTP_HOST 는 반드시 example 값에서 교체.
+#   - JWT_SECRET: openssl rand -base64 48 결과로 교체.
+#   - SMTP_HOST/USER/PASS: 실 운영 SMTP (Postmark/SES/등) 채워야 비번 재설정·
+#     학교 인증 메일이 발송됨. 미설정/example 값이면 @getit/env-validator 가
+#     boot 단계에서 throw — 컨테이너가 즉시 종료 (fail-fast, Issue #575).
+#   - 메일 채널을 의도적으로 끄려면 MAILER_DISABLED_ALLOWED=true.
 
 # 4. login to GHCR (PAT with read:packages)
 echo "$GHCR_PAT" | docker login ghcr.io -u <gh-username> --password-stdin

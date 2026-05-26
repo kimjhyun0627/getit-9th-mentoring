@@ -5,11 +5,21 @@
  */
 import 'dotenv/config';
 
+import { validateJwtSecret } from '@getit/env-validator';
 import pino from 'pino';
 
 import { createApp } from './app.js';
 
 const log = pino({ name: 'board-api' });
+
+/**
+ * 운영 secret 검증 — production placeholder/누락 시 throw (Issue #575).
+ * board-api 는 SMTP 미사용, JWT 만 검사.
+ */
+const validateEnvOrDie = () => {
+  const warnings = validateJwtSecret(process.env.JWT_SECRET, { env: process.env.NODE_ENV });
+  for (const w of warnings) log.warn({ env: 'validation' }, w);
+};
 
 const initSentry = async () => {
   if (!process.env.SENTRY_DSN) return;
@@ -23,6 +33,8 @@ const initSentry = async () => {
 };
 
 const main = async () => {
+  validateEnvOrDie();
+
   await initSentry();
 
   const app = createApp();
