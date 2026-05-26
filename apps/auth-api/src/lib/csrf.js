@@ -35,6 +35,9 @@ const CSRF_PROTECTED_PATHS = [
   // #538: 학교 인증 link / resend 도 인증된 유저 상태변경.
   // verify-school 은 토큰 기반 (auth 미적용) — CSRF 면제 (signup/verify-email 과 동일 그룹).
   '/api/me/school-link',
+  // #571: 학번 정정 (8 → 10자리 마이그레이션). 인증된 유저 상태 변경 + 새 토큰 발급
+  // 부수효과까지 동반 → cross-site forge 차단 필수.
+  '/api/me/student-id',
 ];
 
 /**

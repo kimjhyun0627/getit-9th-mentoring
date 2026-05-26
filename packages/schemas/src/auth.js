@@ -108,6 +108,13 @@ export const SignupInput = z
  *    가 무한 루프에 빠지지 않는다.
  *  - schoolVerifiedAt 과 동일한 정책: 없으면 키 누락, 빈 닉네임은 null.
  *  - access TTL 동안 stale 가능 — PATCH /api/me/nickname 이 즉시 새 토큰 발급해서 보완.
+ *
+ * #571 (8자리 → 10자리 학번 마이그레이션): `studentIdLegacy` 옵션 필드 추가.
+ *  - DB studentId 가 정확히 8자리이면 true, 그 외 (10자리/null) 는 false 또는 키 누락.
+ *  - hobby/letter BE 가 자체 User 테이블 없어 JWT echo 로만 알 수 있음 (nickname/
+ *    schoolVerifiedAt 와 동일 패턴).
+ *  - PATCH /api/me/student-id 가 성공하면 새 토큰에 false 로 박힘 → 다음 가드 요청부터
+ *    블로킹 해제.
  */
 export const JwtPayload = z.object({
   sub: z.string(),
@@ -115,6 +122,7 @@ export const JwtPayload = z.object({
   name: z.string(),
   nickname: z.string().nullish(),
   schoolVerifiedAt: z.string().datetime().nullish(),
+  studentIdLegacy: z.boolean().nullish(),
   iat: z.number(),
   exp: z.number(),
 });
@@ -217,6 +225,25 @@ export const VerifySchoolInput = z.object({
 });
 
 /**
+ * 학번 단독 정정 입력 (#571, 8자리 → 10자리 마이그레이션).
+ *
+ * 배경:
+ *  - #568 로 zod 학번이 8자리 → 10자리로 정정됐지만, 그 전에 verify-school 통과한
+ *    사용자 중 8자리 studentId 가 DB 에 남아 있을 수 있음.
+ *  - hobby 진입 시 FE 가 blocking 모달로 10자리 재입력받음 → BE 라우트
+ *    PATCH /api/me/student-id 가 검증 + DB 업데이트 + 새 토큰 발급.
+ *  - 학교 인증 자체는 그대로 유지 (schoolEmail / schoolVerifiedAt 그대로), 학번만 정정.
+ *
+ * VerifySchoolInput.studentId 와 동일 규칙 — trim → 정확히 10자리 숫자.
+ */
+export const UpdateStudentIdInput = z.object({
+  studentId: z
+    .string()
+    .transform((v) => v.trim())
+    .pipe(z.string().regex(/^\d{10}$/, '학번은 10자리 숫자입니다')),
+});
+
+/**
  * @typedef {z.infer<typeof LoginInput>} LoginInputT
  * @typedef {z.infer<typeof SignupInput>} SignupInputT
  * @typedef {z.infer<typeof JwtPayload>} JwtPayloadT
@@ -227,4 +254,5 @@ export const VerifySchoolInput = z.object({
  * @typedef {z.infer<typeof VerifyEmailInput>} VerifyEmailInputT
  * @typedef {z.infer<typeof SchoolLinkInput>} SchoolLinkInputT
  * @typedef {z.infer<typeof VerifySchoolInput>} VerifySchoolInputT
+ * @typedef {z.infer<typeof UpdateStudentIdInput>} UpdateStudentIdInputT
  */

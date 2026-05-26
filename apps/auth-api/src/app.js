@@ -29,6 +29,7 @@ import { readAuthEnv } from './lib/tokens.js';
 import { buildOpenApiDoc } from './openapi.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createMeRouter } from './routes/me.js';
+import { createMeStudentIdRouter } from './routes/me.student-id.js';
 import { createPasswordResetRouter } from './routes/password-reset.js';
 import { createSchoolVerifyRouter } from './routes/school-verify.js';
 import { createVerifyEmailRouter } from './routes/verify-email.js';
@@ -170,6 +171,9 @@ export const createApp = (opts = {}) => {
   app.use('/api', createPasswordResetRouter({ resetLimiter }));
   app.use('/api', createVerifyEmailRouter({ verifyLimiter }));
   app.use('/api', createMeRouter());
+  // #571: 학번 정정 (PATCH /api/me/student-id). 8자리 → 10자리 마이그레이션 전용.
+  // me.js 가 이미 300줄 가드에 걸려 별도 라우터 분리.
+  app.use('/api', createMeStudentIdRouter());
   // #538: 학교 인증 — link / verify-school / resend. 자체 rate-limit 적용.
   app.use(
     '/api',

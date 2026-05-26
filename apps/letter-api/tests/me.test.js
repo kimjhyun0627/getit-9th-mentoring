@@ -83,6 +83,22 @@ describe('letter-api GET /api/me', () => {
     expect(res.body.user.schoolVerifiedAt).toBe(iso);
   });
 
+  // #571: studentIdLegacy 가 JWT 에 박혀 있으면 응답에도 그대로 echo.
+  // FE 의 hobby/letter 진입 가드가 이 플래그로 blocking 모달 노출 여부 판단.
+  it('#571 JWT 에 studentIdLegacy=true → 응답에 그대로 echo', async () => {
+    const token = tokenFor('user-6', 'u6@get-it.cloud', 'U6', { studentIdLegacy: true });
+    const res = await request(app).get('/api/me').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.studentIdLegacy).toBe(true);
+  });
+
+  it('#571 JWT 에 studentIdLegacy 없음 → 응답은 false (명시적 boolean)', async () => {
+    const token = tokenFor('user-7');
+    const res = await request(app).get('/api/me').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.studentIdLegacy).toBe(false);
+  });
+
   it('응답 모양 — user 외 추가 top-level 키 없음', async () => {
     const token = tokenFor('user-2');
     const res = await request(app).get('/api/me').set('Authorization', `Bearer ${token}`);

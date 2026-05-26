@@ -15,6 +15,11 @@
 /**
  * Prisma User row → API 응답 user 객체.
  *
+ * #571: `studentIdLegacy` 도 같이 응답. DB studentId 가 정확히 8자리면 true
+ * (8 → 10자리 마이그레이션 필요), 그 외 (10자리 / null) 는 false.
+ *  - auth-api `/me` 는 DB 진실로 직접 계산.
+ *  - hobby/letter `/me` 는 자체 User 없어 JWT payload echo (buildAccessTokenPayload).
+ *
  * @param {{
  *   id: string,
  *   email: string,
@@ -32,6 +37,7 @@
  *   name: string,
  *   nickname: string | null,
  *   studentId: string | null,
+ *   studentIdLegacy: boolean,
  *   schoolEmail: string | null,
  *   schoolVerifiedAt: Date | null,
  *   emailVerifiedAt: Date | null,
@@ -44,6 +50,7 @@ export const publicUser = (u) => ({
   name: u.name,
   nickname: u.nickname ?? null,
   studentId: u.studentId ?? null,
+  studentIdLegacy: typeof u.studentId === 'string' && u.studentId.length === 8,
   schoolEmail: u.schoolEmail ?? null,
   schoolVerifiedAt: u.schoolVerifiedAt ?? null,
   emailVerifiedAt: u.emailVerifiedAt ?? null,

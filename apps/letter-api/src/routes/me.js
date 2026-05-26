@@ -38,8 +38,12 @@ export const createMeRouter = ({ jwtSecret }) => {
   // JWT 표준 메타데이터(iat, exp 등) 가 외부로 누출되지 않도록 명시적 화이트리스트.
   // nickname/schoolVerifiedAt 는 JWT payload 에 있을 때만 키 동봉, 없으면 null 로
   // 일관성 확보 (FE auth-utils 의 shouldEnforceNicknameOnboarding 와 컨트랙트 일치).
+  //
+  // #571: studentIdLegacy 도 echo. JWT payload 에 박혀 있으면 (DB studentId 8자리)
+  // true. 없거나 false 면 false 로 명시. FE 의 hobby/letter 가드가 이 플래그로
+  // blocking 모달 노출 여부 판단 — 명시적 boolean 으로 일관성 확보.
   router.get('/me', auth, (req, res) => {
-    const { sub, email, name, nickname, schoolVerifiedAt } = req.user;
+    const { sub, email, name, nickname, schoolVerifiedAt, studentIdLegacy } = req.user;
     return res.status(200).json({
       user: {
         sub,
@@ -47,6 +51,7 @@ export const createMeRouter = ({ jwtSecret }) => {
         name,
         nickname: nickname ?? null,
         schoolVerifiedAt: schoolVerifiedAt ?? null,
+        studentIdLegacy: studentIdLegacy === true,
       },
     });
   });
