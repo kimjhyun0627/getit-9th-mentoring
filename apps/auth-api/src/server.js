@@ -3,7 +3,20 @@
  *
  * 실 미들웨어/라우터 와이어링은 `app.js` 에서. 테스트는 `createApp()` 만 import.
  */
-import 'dotenv/config';
+// dev 환경 .env 로컬 파일 로드 — production 은 docker compose env_file 이
+// 컨테이너 env 를 직접 주입하므로 dotenv 호출 자체가 불필요. prod image 의
+// node_modules 에는 dotenv 가 prune 될 수 있으니 try/await 로 swallow.
+try {
+  if (process.env.NODE_ENV !== 'production') {
+    await import('dotenv/config');
+  }
+} catch (err) {
+  // ERR_MODULE_NOT_FOUND (dotenv 미설치 — prod image 등) 만 swallow.
+  // 그 외 (모듈 평가 에러 등) 는 부팅 실패로 표면화시켜야 안전.
+  const isMissingDotenv =
+    err?.code === 'ERR_MODULE_NOT_FOUND' && String(err?.message ?? '').includes('dotenv');
+  if (!isMissingDotenv) throw err;
+}
 
 import pino from 'pino';
 
