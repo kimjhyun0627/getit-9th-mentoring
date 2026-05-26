@@ -163,6 +163,9 @@ services:
       DATABASE_URL: "mysql://${MYSQL_APP_USER}:${MYSQL_APP_PASSWORD}@mysql:3306/hobby"
       CORS_ORIGINS: "https://hobby.get-it.cloud"
       KAKAO_API_KEY: ${KAKAO_API_KEY:-}
+      # #572: 학교 인증 가드 prod 강제. .env.prod 에서 명시적으로 끄지 않는 한 켜짐.
+      # 미정의/`'true'` 외 값 → app.js fail-fast → 컨테이너 즉시 죽음 (silent disable 방지).
+      SCHOOL_AUTH_GUARD_ENABLED: "${SCHOOL_AUTH_GUARD_ENABLED:-true}"
     depends_on:
       mysql: { condition: service_healthy }
     networks: [edge, internal]
