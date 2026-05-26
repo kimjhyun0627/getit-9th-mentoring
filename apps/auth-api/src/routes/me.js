@@ -183,6 +183,7 @@ export const createMeRouter = () => {
   // PATCH /api/me/nickname — 닉네임만 변경 (#555 onboarding 흐름 전용).
   // /profile 라우트와 달리 currentPassword 재인증 X — auth + CSRF + DB unique 검증만.
   // 비밀번호 / 이메일 / 이름 변경은 여전히 /me/profile 에서 재인증 필요.
+  // CSRF: lib/csrf.js 의 CSRF_PROTECTED_PATHS 에 등록 (#574).
   //
   // letter 무한 redirect fix: 새 nickname 이 박힌 access token 을 즉시 재발급한다.
   // stale JWT 에 nickname 누락이면 다른 BE (letter-api/hobby-api) 의 `/api/me` 가
