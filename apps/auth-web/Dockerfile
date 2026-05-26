@@ -37,6 +37,21 @@ COPY packages/config-tailwind  packages/config-tailwind
 COPY packages/config-eslint    packages/config-eslint
 COPY apps/auth-web             apps/auth-web
 
+# Vite 빌드 타임 env — 누락 시 `/api` fallback 으로 현재 origin 을 친다.
+# (#585) 학번 모달 PATCH 404 사고와 동일 패턴. 6 web Dockerfile 통일.
+# ARG default 박는 이유: build-arg 미전달 시 ENV 가 `""` 로 정의돼 코드의
+# `?? '/api'` fallback 을 못 탐 (Gemini #586). default 박으면 안전.
+ARG VITE_AUTH_API_URL=https://auth.get-it.cloud/api
+ARG VITE_AUTH_URL=https://auth.get-it.cloud
+ARG VITE_AUTH_ORIGIN=https://auth.get-it.cloud
+ARG VITE_API_URL=/api
+ARG VITE_NICKNAME_ONBOARDING_ENFORCED=
+ENV VITE_AUTH_API_URL=${VITE_AUTH_API_URL} \
+    VITE_AUTH_URL=${VITE_AUTH_URL} \
+    VITE_AUTH_ORIGIN=${VITE_AUTH_ORIGIN} \
+    VITE_API_URL=${VITE_API_URL} \
+    VITE_NICKNAME_ONBOARDING_ENFORCED=${VITE_NICKNAME_ONBOARDING_ENFORCED}
+
 RUN pnpm --filter @getit/auth-web build
 
 # ---------- runner ----------

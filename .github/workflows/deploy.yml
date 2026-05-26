@@ -84,6 +84,15 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,scope=${{ matrix.app }},mode=max
           provenance: false
+          # 6 web 의 Vite 빌드 타임 env (#585). 누락 시 `/api` fallback 으로
+          # 현재 origin 을 친다 → 학번 모달 PATCH 404. API 이미지는 ARG 미정의
+          # → docker 가 무시. URL 은 시크릿 X — vars 또는 인라인 디폴트 OK.
+          build-args: |
+            VITE_AUTH_API_URL=${{ vars.VITE_AUTH_API_URL || 'https://auth.get-it.cloud/api' }}
+            VITE_AUTH_URL=${{ vars.VITE_AUTH_URL || 'https://auth.get-it.cloud' }}
+            VITE_AUTH_ORIGIN=${{ vars.VITE_AUTH_ORIGIN || 'https://auth.get-it.cloud' }}
+            VITE_API_URL=${{ vars.VITE_API_URL || '/api' }}
+            VITE_NICKNAME_ONBOARDING_ENFORCED=${{ vars.VITE_NICKNAME_ONBOARDING_ENFORCED }}
 
   # ────────────────── 2. SSH to VM and roll the stack ──────────────────
   deploy:
