@@ -23,6 +23,7 @@ RUN node -e "const f='package.json';const p=require('./'+f);delete p.scripts.pre
 
 COPY packages/auth-utils/package.json    packages/auth-utils/package.json
 COPY packages/schemas/package.json       packages/schemas/package.json
+COPY packages/env-validator/package.json packages/env-validator/package.json
 COPY packages/config-eslint/package.json packages/config-eslint/package.json
 COPY apps/shelf-api/package.json         apps/shelf-api/package.json
 
@@ -33,6 +34,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 COPY packages/auth-utils  packages/auth-utils
 COPY packages/schemas     packages/schemas
+COPY packages/env-validator packages/env-validator
 COPY apps/shelf-api       apps/shelf-api
 
 RUN pnpm --filter @getit/shelf-api exec prisma generate
