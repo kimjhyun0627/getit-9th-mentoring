@@ -8,10 +8,13 @@ import 'dotenv/config';
 import pino from 'pino';
 
 import { createApp } from './app.js';
+import { validateEnvOrDie } from './lib/validateEnvOrDie.js';
 
 const log = pino({ name: 'letter-api' });
 
 const main = async () => {
+  validateEnvOrDie({ log });
+
   const app = createApp();
   const port = Number.parseInt(process.env.PORT ?? '3005', 10);
   const server = app.listen(port, () => {

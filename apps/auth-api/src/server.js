@@ -8,6 +8,7 @@ import 'dotenv/config';
 import pino from 'pino';
 
 import { createApp } from './app.js';
+import { validateEnvOrDie } from './lib/validateEnvOrDie.js';
 
 const log = pino({ name: 'auth-api' });
 
@@ -23,6 +24,9 @@ const initSentry = async () => {
 };
 
 const main = async () => {
+  // boot 시점 1회 — production 위반은 여기서 throw → main().catch 로 fatal 처리.
+  validateEnvOrDie({ log });
+
   await initSentry();
 
   const app = createApp();

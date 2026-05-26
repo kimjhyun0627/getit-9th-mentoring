@@ -8,6 +8,7 @@ import 'dotenv/config';
 import pino from 'pino';
 
 import { createApp } from './app.js';
+import { validateEnvOrDie } from './lib/validateEnvOrDie.js';
 
 const log = pino({ name: 'board-api' });
 
@@ -23,6 +24,8 @@ const initSentry = async () => {
 };
 
 const main = async () => {
+  validateEnvOrDie({ log });
+
   await initSentry();
 
   const app = createApp();

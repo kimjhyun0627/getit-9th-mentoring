@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@getit/auth-utils": "workspace:*",
+    "@getit/env-validator": "workspace:*",
     "@getit/schemas": "workspace:*",
     "@prisma/client": "6.19.3",
     "bcrypt": "^5.1.1",

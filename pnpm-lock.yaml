@@ -32,6 +32,9 @@ importers:
       '@getit/auth-utils':
         specifier: workspace:*
         version: link:../../packages/auth-utils
+      '@getit/env-validator':
+        specifier: workspace:*
+        version: link:../../packages/env-validator
       '@getit/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -190,6 +193,9 @@ importers:
       '@getit/auth-utils':
         specifier: workspace:*
         version: link:../../packages/auth-utils
+      '@getit/env-validator':
+        specifier: workspace:*
+        version: link:../../packages/env-validator
       '@getit/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -345,6 +351,9 @@ importers:
       '@getit/auth-utils':
         specifier: workspace:*
         version: link:../../packages/auth-utils
+      '@getit/env-validator':
+        specifier: workspace:*
+        version: link:../../packages/env-validator
       '@getit/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -562,6 +571,9 @@ importers:
       '@getit/auth-utils':
         specifier: workspace:*
         version: link:../../packages/auth-utils
+      '@getit/env-validator':
+        specifier: workspace:*
+        version: link:../../packages/env-validator
       '@getit/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -702,6 +714,9 @@ importers:
       '@getit/auth-utils':
         specifier: workspace:*
         version: link:../../packages/auth-utils
+      '@getit/env-validator':
+        specifier: workspace:*
+        version: link:../../packages/env-validator
       '@getit/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -913,6 +928,18 @@ importers:
       tailwindcss:
         specifier: ^3.4.0
         version: 3.4.19(yaml@2.9.0)
+
+  packages/env-validator:
+    devDependencies:
+      '@getit/config-eslint':
+        specifier: workspace:*
+        version: link:../config-eslint
+      eslint:
+        specifier: ^9.18.0
+        version: 9.39.4(jiti@2.7.0)
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@25.9.1)(jsdom@25.0.1)
 
   packages/schemas:
     dependencies:

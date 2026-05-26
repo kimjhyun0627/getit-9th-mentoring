@@ -9,6 +9,7 @@ import pino from 'pino';
 
 import { createApp } from './app.js';
 import { assertSchoolAuthEnvDeclared } from './lib/assertSchoolAuthEnv.js';
+import { validateEnvOrDie } from './lib/validateEnvOrDie.js';
 
 const log = pino({ name: 'hobby-api' });
 
@@ -26,6 +27,10 @@ const initSentry = async () => {
 };
 
 const main = async () => {
+  // #575: JWT_SECRET placeholder/누락 시 즉시 종료.
+  // dev/test 환경은 warn (validator 가 처리). production 위반은 throw → main.catch.
+  validateEnvOrDie({ log });
+
   // #572: prod 에서 SCHOOL_AUTH_GUARD_ENABLED 미정의/잘못된 값이면 즉시 종료.
   // PRD 정책상 학교 인증 가드는 prod 에서 반드시 켜져 있어야 함 — silent disable 방지.
   // dev/test 환경은 통과 (createApp 직접 호출하는 테스트도 영향 없음).

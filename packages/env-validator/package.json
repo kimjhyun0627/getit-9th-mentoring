@@ -1,0 +1,20 @@
+{
+  "name": "@getit/env-validator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "운영 secret (JWT_SECRET / SMTP) startup fail-fast validator — 5 BE 공통 (Issue #575)",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "lint": "eslint src tests",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@getit/config-eslint": "workspace:*",
+    "eslint": "^9.18.0",
+    "vitest": "^2.1.8"
+  }
+}
