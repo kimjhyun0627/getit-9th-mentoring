@@ -218,6 +218,35 @@ describe('StudentIdMigrationModal (#573)', () => {
     expect(input).toHaveFocus();
   });
 
+  it('busy 중 input 은 readOnly (disabled X) — Tab 탈출 방지 (CR #580 minor)', async () => {
+    const user = userEvent.setup();
+    let resolveFn;
+    const onSubmit = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveFn = resolve;
+        }),
+    );
+    render(
+      <ThemeProvider>
+        <StudentIdMigrationModal onSubmit={onSubmit} />
+      </ThemeProvider>,
+    );
+    const input = screen.getByLabelText(/학번 \(10자리\)/);
+    await user.type(input, '2024111234');
+    const submit = screen.getByRole('button', { name: /저장/ });
+    await user.click(submit);
+    // busy 상태 진입
+    await waitFor(() => expect(submit).toBeDisabled());
+    // input 은 readOnly 여야 함 (disabled 가 아니라) — focus trap 의 input.focus() 가 성공
+    expect(input).not.toBeDisabled();
+    expect(input).toHaveAttribute('readonly');
+    // submit 이 disabled 이므로 Tab 키 → input 으로 강제 복귀
+    await user.tab();
+    expect(input).toHaveFocus();
+    resolveFn?.();
+  });
+
   it('focus trap: 10자리 입력 후 submit enabled — 정상 순환', async () => {
     const user = userEvent.setup();
     renderModal();

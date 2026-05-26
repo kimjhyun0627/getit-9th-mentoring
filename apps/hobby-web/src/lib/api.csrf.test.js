@@ -87,6 +87,26 @@ describe('api.csrf', () => {
       expect(b).toBeNull();
       expect(instance.get).toHaveBeenCalledTimes(2);
     });
+
+    it('clearCsrfTokenCache 가 진행 중 in-flight 를 깨지 않는다 (CR #580 major)', async () => {
+      // GET /csrf 가 settle 되기 전에 clearCsrfTokenCache 호출되어도 같은 promise 가
+      // 끝까지 살아남아야 함. 그래야 동시 in-flight 호출자들이 새 GET 을 발사하지 않는다.
+      let resolveGet;
+      const instance = mkInstance(
+        () =>
+          new Promise((resolve) => {
+            resolveGet = () => resolve({ data: { token: 'tok-inflight' } });
+          }),
+      );
+      const p1 = ensureCsrfToken(instance);
+      // settle 전 캐시 무효화 — token 만 비우고 promise 는 보존되어야 함
+      clearCsrfTokenCache();
+      const p2 = ensureCsrfToken(instance);
+      expect(p2).toBe(p1); // 같은 in-flight 공유
+      resolveGet();
+      await Promise.all([p1, p2]);
+      expect(instance.get).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('makeCsrfRequestInterceptor', () => {

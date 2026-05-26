@@ -201,7 +201,11 @@ export const StudentIdMigrationModal = ({ onSubmit }) => {
             maxLength={10}
             value={value}
             onChange={handleChange}
-            disabled={busy}
+            // CR #580 (minor): busy 중에도 input 은 readOnly 로만 잠그고 focus 는
+            // 받을 수 있게 둔다. disabled 면 input/submit 둘 다 disabled 가 되어
+            // focus trap 의 `input.focus()` 가 실패 → Tab 탈출 여지. readOnly 는
+            // 값 수정만 막고 포커스는 유지 — blocking 모달 본질 보존.
+            readOnly={busy}
             aria-invalid={showLengthHint ? true : undefined}
             aria-describedby={error ? errorId : undefined}
             placeholder="2024111234"

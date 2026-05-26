@@ -35,10 +35,13 @@ let csrfPromise = null;
 
 /**
  * 캐시 무효화 — 다음 요청에서 강제 재발급. 403 CsrfTokenMismatch/Invalid 응답 시 호출.
+ *
+ * CR #580 (major): in-flight `csrfPromise` 는 건드리지 않는다. 진행 중인 GET /csrf
+ * 가 있는데 이를 nullify 하면 동시 in-flight 호출자들이 새 GET 을 발사 → race.
+ * promise 자체는 ensureCsrfToken 의 finally 가 정리하므로 여기서는 token 만 비운다.
  */
 export const clearCsrfTokenCache = () => {
   csrfToken = null;
-  csrfPromise = null;
 };
 
 /**
