@@ -31,6 +31,24 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
+ * JSON.parse 결과가 plain object 가 아닐 수도 있다 (null, 배열, 문자열, …).
+ * package.json 으로서 의미 있는 값만 허용 — Gemini #593.
+ */
+function isPlainManifest(value) {
+  return value != null && typeof value === 'object' && !Array.isArray(value);
+}
+
+async function readManifest(manifestPath) {
+  try {
+    const parsed = JSON.parse(await readFile(manifestPath, 'utf8'));
+    if (!isPlainManifest(parsed)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {{ root: string }} opts
  */
 export async function collectWorkspacePackages({ root }) {
@@ -40,14 +58,10 @@ export async function collectWorkspacePackages({ root }) {
   const nameToDir = new Map();
   for (const e of entries) {
     if (!e.isDirectory()) continue;
-    const manifestPath = path.join(pkgsDir, e.name, 'package.json');
-    let manifest;
-    try {
-      manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-    } catch {
-      continue;
-    }
-    if (!manifest.name) continue;
+    const manifest = await readManifest(
+      path.join(pkgsDir, e.name, 'package.json')
+    );
+    if (!manifest || !manifest.name) continue;
     nameToDir.set(manifest.name, e.name);
   }
   return nameToDir;
@@ -59,35 +73,38 @@ export async function collectWorkspacePackages({ root }) {
 export async function collectApps({ root }) {
   const appsDir = path.join(root, 'apps');
   const entries = await readdir(appsDir, { withFileTypes: true });
-  /** @type {Array<{ dir: string, manifestPath: string, dockerfilePath: string, name: string, runtimeWorkspaceDeps: string[] }>} */
+  /** @type {Array<{ dir: string, manifestPath: string, dockerfilePath: string, name: string, runtimeWorkspaceDeps: string[], allWorkspaceDeps: string[] }>} */
   const apps = [];
   for (const e of entries) {
     if (!e.isDirectory()) continue;
     const appDir = path.join(appsDir, e.name);
     const manifestPath = path.join(appDir, 'package.json');
     const dockerfilePath = path.join(appDir, 'Dockerfile');
-    let manifest;
-    try {
-      manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-    } catch {
-      continue;
-    }
+    const manifest = await readManifest(manifestPath);
+    if (!manifest) continue;
     try {
       await stat(dockerfilePath);
     } catch {
       // Dockerfile 없는 앱은 스킵 (현재 모두 있긴 함).
       continue;
     }
-    const runtimeWorkspaceDeps = Object.entries(manifest.dependencies ?? {})
-      .filter(([, v]) => typeof v === 'string' && v.startsWith('workspace:'))
-      .map(([k]) => k)
-      .filter((k) => k.startsWith('@getit/'));
+    const filterWorkspace = (block) =>
+      Object.entries(block ?? {})
+        .filter(([, v]) => typeof v === 'string' && v.startsWith('workspace:'))
+        .map(([k]) => k)
+        .filter((k) => k.startsWith('@getit/'));
+    const runtimeWorkspaceDeps = filterWorkspace(manifest.dependencies);
+    const devWorkspaceDeps = filterWorkspace(manifest.devDependencies);
     apps.push({
       dir: e.name,
       manifestPath,
       dockerfilePath,
       name: manifest.name ?? e.name,
       runtimeWorkspaceDeps,
+      // 중복 제거 union — extra-COPY warning 산정 시에만 사용.
+      allWorkspaceDeps: [
+        ...new Set([...runtimeWorkspaceDeps, ...devWorkspaceDeps]),
+      ],
     });
   }
   return apps;
@@ -95,7 +112,15 @@ export async function collectApps({ root }) {
 
 /**
  * Dockerfile 에서 `COPY packages/<dir>/package.json ...` 와 `COPY packages/<dir> ...`
- * 라인을 추출. 정규식 한 줄 매칭 — multi-stage `--from=` COPY 는 무시.
+ * 라인을 추출.
+ *
+ * 견고한 파서 (Gemini #593):
+ *  - whitespace 로 split 한 뒤 첫 토큰이 `COPY` 인지 확인.
+ *  - 이어지는 `--<flag>...` 옵션 토큰 (--chown, --chmod, --link 등) 은 스킵.
+ *  - `--from=...` 가 있으면 build context 가 아니라 다른 stage 에서 가져오는
+ *    것이므로 이 검사에서 제외.
+ *  - 마지막 토큰은 destination, 그 앞의 모든 토큰은 source — 여러 source 가
+ *    있는 멀티-src COPY 도 처리.
  *
  * @param {string} content Dockerfile 내용
  */
@@ -105,25 +130,34 @@ export function parseDockerfileCopies(content) {
   const manifestCopies = new Set();
   /** @type {Set<string>} */
   const sourceCopies = new Set();
-  // COPY [--from=...] [--chown=...] <src> <dst>
-  // 우리는 build context → image 의 COPY 만 본다 (--from= 무시).
-  const copyRe = /^\s*COPY\s+(?!--from=)(?:--chown=\S+\s+)?(\S+)\s+(\S+)\s*$/;
+
   for (const raw of lines) {
-    // 주석 제거.
-    const line = raw.replace(/#.*$/, '');
-    const m = line.match(copyRe);
-    if (!m) continue;
-    const src = m[1];
-    // `packages/<dir>/package.json` (manifest)
-    const manifestMatch = src.match(/^packages\/([^/]+)\/package\.json$/);
-    if (manifestMatch) {
-      manifestCopies.add(manifestMatch[1]);
-      continue;
+    // 주석 제거 → 토큰화.
+    const stripped = raw.replace(/#.*$/, '').trim();
+    if (!stripped) continue;
+    const tokens = stripped.split(/\s+/);
+    if (tokens[0] !== 'COPY') continue;
+    // 옵션 토큰 (--flag / --flag=value) 처리.
+    let i = 1;
+    let fromStage = false;
+    while (i < tokens.length && tokens[i].startsWith('--')) {
+      if (tokens[i].startsWith('--from=')) fromStage = true;
+      i += 1;
     }
-    // `packages/<dir>` (source — trailing slash 허용 안 함; 패키지 dir 정확 매칭)
-    const sourceMatch = src.match(/^packages\/([^/]+)\/?$/);
-    if (sourceMatch) {
-      sourceCopies.add(sourceMatch[1]);
+    if (fromStage) continue; // 다른 stage 에서 복사 — 검사 대상 아님.
+    // 남은 토큰: <src...> <dst>. 마지막 토큰 제외 = sources.
+    const sources = tokens.slice(i, -1);
+    if (sources.length === 0) continue;
+    for (const src of sources) {
+      const manifestMatch = src.match(/^packages\/([^/]+)\/package\.json$/);
+      if (manifestMatch) {
+        manifestCopies.add(manifestMatch[1]);
+        continue;
+      }
+      const sourceMatch = src.match(/^packages\/([^/]+)\/?$/);
+      if (sourceMatch) {
+        sourceCopies.add(sourceMatch[1]);
+      }
     }
   }
   return { manifestCopies, sourceCopies };
@@ -172,28 +206,15 @@ export async function checkDockerfileWorkspaceSync({ root }) {
     }
 
     // 사용 안 하는 COPY (의존성에 없음) — warning.
-    const declaredDirs = new Set(
-      app.runtimeWorkspaceDeps
-        .map((n) => nameToDir.get(n))
-        .filter(Boolean)
-    );
-    // devDependencies 의 workspace 패키지도 사용 안 하는 COPY 검출 시 제외 (config-eslint 등).
-    // app.manifest 재읽기 비용 아끼려고 dep 셋 확장:
-    const manifest = JSON.parse(await readFile(app.manifestPath, 'utf8'));
-    const allWorkspaceDeps = new Set(
-      [
-        ...Object.entries(manifest.dependencies ?? {}),
-        ...Object.entries(manifest.devDependencies ?? {}),
-      ]
-        .filter(([, v]) => typeof v === 'string' && v.startsWith('workspace:'))
-        .map(([k]) => nameToDir.get(k))
-        .filter(Boolean)
+    // collectApps 에서 이미 모은 union 사용 — manifest 재읽기 제거 (Gemini #593).
+    const knownDirs = new Set(
+      app.allWorkspaceDeps.map((n) => nameToDir.get(n)).filter(Boolean)
     );
 
     /** @type {string[]} */
     const extraCopies = [];
     for (const copied of new Set([...manifestCopies, ...sourceCopies])) {
-      if (!allWorkspaceDeps.has(copied)) {
+      if (!knownDirs.has(copied)) {
         extraCopies.push(copied);
       }
     }

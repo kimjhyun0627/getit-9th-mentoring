@@ -73,6 +73,32 @@ test('parseDockerfileCopies: --chown 플래그 허용', () => {
   assert.deepEqual([...sourceCopies], ['foo']);
 });
 
+test('parseDockerfileCopies: --chmod / --link 등 임의 플래그 조합 허용 (Gemini #593)', () => {
+  const content = [
+    `COPY --link --chmod=0644 packages/foo/package.json packages/foo/package.json`,
+    `COPY --chown=app:app --link packages/bar packages/bar`,
+  ].join('\n');
+  const { manifestCopies, sourceCopies } = parseDockerfileCopies(content);
+  assert.deepEqual([...manifestCopies], ['foo']);
+  assert.deepEqual([...sourceCopies], ['bar']);
+});
+
+test('parseDockerfileCopies: 멀티 src COPY — 마지막 토큰만 destination (Gemini #593)', () => {
+  // `COPY src1 src2 dest/` 처럼 한 줄에 여러 source 가 있는 경우.
+  const content = `COPY packages/foo packages/bar /out/\n`;
+  const { sourceCopies } = parseDockerfileCopies(content);
+  assert.deepEqual([...sourceCopies].sort(), ['bar', 'foo']);
+});
+
+test('parseDockerfileCopies: 빈 줄 / 들여쓰기 / 트레일링 공백 무관', () => {
+  const content = `
+    COPY packages/foo packages/foo
+\tCOPY packages/bar packages/bar
+`;
+  const { sourceCopies } = parseDockerfileCopies(content);
+  assert.deepEqual([...sourceCopies].sort(), ['bar', 'foo']);
+});
+
 test('drift 없음 → ok=true, errors 비어있음', async () => {
   const root = await makeFixtureRoot();
   try {
@@ -244,6 +270,39 @@ test('Dockerfile 없는 앱은 스킵 (pure JS 패키지 등)', async () => {
     const result = await checkDockerfileWorkspaceSync({ root });
     assert.equal(result.ok, true);
     assert.equal(result.apps.length, 0);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('package.json 이 null/array/empty 여도 크래시 안 함 (Gemini #593 defensive)', async () => {
+  const root = await makeFixtureRoot();
+  try {
+    // 정상 패키지 + manifest 가 null 인 비정상 패키지 공존.
+    await writePkg(root, 'auth-utils', '@getit/auth-utils');
+    await mkdir(path.join(root, 'packages', 'broken-null'), { recursive: true });
+    await writeFile(
+      path.join(root, 'packages', 'broken-null', 'package.json'),
+      'null'
+    );
+    await mkdir(path.join(root, 'packages', 'broken-array'), { recursive: true });
+    await writeFile(
+      path.join(root, 'packages', 'broken-array', 'package.json'),
+      '[]'
+    );
+    await mkdir(path.join(root, 'packages', 'broken-empty'), { recursive: true });
+    await writeFile(path.join(root, 'packages', 'broken-empty', 'package.json'), '');
+    await writePkg(root, 'web', '@getit/web', {
+      app: true,
+      dependencies: { '@getit/auth-utils': 'workspace:*' },
+      dockerfile: [
+        'COPY packages/auth-utils/package.json packages/auth-utils/package.json',
+        'COPY packages/auth-utils packages/auth-utils',
+      ].join('\n'),
+    });
+    // 크래시 없이 정상 동작해야 함. 깨진 패키지는 무시.
+    const result = await checkDockerfileWorkspaceSync({ root });
+    assert.equal(result.ok, true, JSON.stringify(result, null, 2));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
