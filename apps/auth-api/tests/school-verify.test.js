@@ -258,6 +258,7 @@ describe('school verify routes (#538)', () => {
       const b = await signup({ email: 'bb@get-it.cloud' });
 
       const { token: bToken } = await linkAndExtractToken(b.jwt, 'bb@knu.ac.kr');
+      const bId = [...memDb.users.values()].find((x) => x.email === 'bb@get-it.cloud').id;
 
       const res = await request(app)
         .post('/api/auth/verify-school')
@@ -267,8 +268,21 @@ describe('school verify routes (#538)', () => {
       expect(res.status).toBe(403);
       expect(res.body.error).toBe('UserMismatch');
 
-      // user B 의 schoolVerifiedAt 은 박히지 않아야 한다 (트랜잭션 자체는 통과해 토큰만 소비됨 — 회귀 X).
-      // 토큰 소비된 상태는 OK (기존 idempotent 정책 — 재사용 차단됨).
+      // CR #570 nitpick: DB 부작용 0 검증. 트랜잭션 *전* 에 거부되므로
+      //   - B 의 schoolVerifiedAt 는 그대로 null
+      //   - verify token 은 미사용 상태 (재시도 가능)
+      const bRow = memDb.users.get(bId);
+      expect(bRow.schoolVerifiedAt ?? null).toBe(null);
+      expect(bRow.studentId ?? null).toBe(null);
+
+      // 같은 token 을 쿠키 없이 재시도하면 정상 200 + B 의 schoolVerifiedAt 박힘.
+      const retry = await request(app)
+        .post('/api/auth/verify-school')
+        .send({ token: bToken, studentId: '2024111234' });
+      expect(retry.status).toBe(200);
+      const bRowAfter = memDb.users.get(bId);
+      expect(bRowAfter.schoolVerifiedAt).toBeInstanceOf(Date);
+      expect(bRowAfter.studentId).toBe('2024111234');
     });
 
     it('비로그인 상태 (쿠키 없음) verify-school → 200 + 자동 로그인 (#570)', async () => {
