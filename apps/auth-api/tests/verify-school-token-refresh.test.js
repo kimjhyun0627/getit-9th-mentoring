@@ -133,12 +133,14 @@ describe('verify-school token refresh + Session Overwrite 방어 (#569 / #570)',
     expect(bRow.schoolVerifiedAt ?? null).toBe(null);
     expect(bRow.studentId ?? null).toBe(null);
 
-    // 같은 token 쿠키 없이 재시도 → 200 + B 의 schoolVerifiedAt 박힘.
+    // 같은 token 쿠키 없이 재시도 → 200 + B 의 schoolVerifiedAt 박힘 + 쿠키 발급 X (login CSRF 방어).
     const retry = await request(app)
       .post('/api/auth/verify-school')
       .send({ token: bToken, studentId: '2024111234' });
     expect(retry.status).toBe(200);
     expect(memDb.users.get(bId).schoolVerifiedAt).toBeInstanceOf(Date);
+    // CR 3차 review: 비로그인 verify 는 쿠키 발급 X.
+    expect(cookie(retry.headers['set-cookie'], 'getit_jwt')).toBeFalsy();
   });
 
   // CR 2차 review — access JWT 가 invalid/expired 라도 refresh cookie 가 다른 user
@@ -159,7 +161,11 @@ describe('verify-school token refresh + Session Overwrite 방어 (#569 / #570)',
     expect(res.body.error).toBe('UserMismatch');
   });
 
-  it('비로그인 (쿠키 X) verify-school → 200 + 자동 로그인 (#570)', async () => {
+  // CR 3차 review: 비로그인 (쿠키 X) verify 는 200 + DB 인증 박힘 BUT 쿠키 발급 X.
+  // 무조건 쿠키 발급 시 cross-site POST 가 공격자 세션을 피해자 브라우저에 박는
+  // login CSRF 가능 → 사용자는 인증 후 직접 로그인 (그 시점부터 schoolVerifiedAt
+  // 박힌 access token 발급).
+  it('비로그인 (쿠키 X) verify-school → 200 + DB 인증 박힘 + 쿠키 발급 X (login CSRF 방어, #570)', async () => {
     const { jwt } = await signup({ email: 'logout@get-it.cloud' });
     const { token } = await linkAndExtractToken(jwt);
     const res = await request(app)
@@ -167,7 +173,10 @@ describe('verify-school token refresh + Session Overwrite 방어 (#569 / #570)',
       .send({ token, studentId: '2024111234' });
     expect(res.status).toBe(200);
     const setCookies = res.headers['set-cookie'] ?? [];
-    expect(cookie(setCookies, 'getit_jwt')).toBeTruthy();
-    expect(cookie(setCookies, 'getit_refresh')).toBeTruthy();
+    expect(cookie(setCookies, 'getit_jwt')).toBeFalsy();
+    expect(cookie(setCookies, 'getit_refresh')).toBeFalsy();
+    // DB 인증은 정상 박혀야 함.
+    const u = [...memDb.users.values()].find((x) => x.email === 'logout@get-it.cloud');
+    expect(u.schoolVerifiedAt).toBeInstanceOf(Date);
   });
 });

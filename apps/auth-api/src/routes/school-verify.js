@@ -271,14 +271,16 @@ export const createSchoolVerifyRouter = (opts = {}) => {
         });
       });
 
-      // #569: 학교 인증 직후 새 access/refresh 토큰 즉시 발급.
-      // 기존 JWT payload 엔 `schoolVerifiedAt` 키 자체가 없으므로,
-      // 인증 완료 후에도 access TTL (기본 15분) 동안 hobby/letter 가드가
-      // stale payload 만 보고 403 을 던져 "재인증 필요" 무한 루프 발생.
-      // 트랜잭션 끝난 후 새 토큰을 박아 다음 요청부터 바로 통과시킨다.
-      // 기존 refresh token 도 rotate — 누적 방지 (CR/Gemini #560 와 동일 패턴).
-      await revokeCurrentRefreshToken(req);
-      await issueTokensAndCookies(updated, res);
+      // #569: stale JWT payload (schoolVerifiedAt 키 없음) 로 hobby/letter
+      // 가드가 access TTL 내내 403 던지는 무한 루프 차단을 위해 새 토큰 발급.
+      // 기존 refresh 도 rotate (CR #560 패턴).
+      // CR 3차 review: same-user 세션 확인된 요청에서만 회전. 비로그인 cross-site
+      // POST 에 무조건 쿠키 발급 시 공격자 verify token 폼이 피해자 브라우저를
+      // 공격자 세션으로 강제 전환 가능 (login CSRF).
+      if (sessionUserId) {
+        await revokeCurrentRefreshToken(req);
+        await issueTokensAndCookies(updated, res);
+      }
 
       return res.status(200).json({ ok: true, user: publicUser(updated) });
     } catch (err) {
