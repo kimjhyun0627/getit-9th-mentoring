@@ -19,7 +19,7 @@
  */
 import crypto from 'node:crypto';
 
-import { requireAuth } from '@getit/auth-utils/server';
+import { requireAuth, verifyJwt } from '@getit/auth-utils/server';
 import { SchoolLinkInput, VerifySchoolInput } from '@getit/schemas/auth';
 import { zodErrorBody } from '@getit/schemas/errors';
 import { Router } from 'express';
@@ -29,6 +29,7 @@ import { issueTokensAndCookies } from '../lib/issueTokens.js';
 import { sendSchoolVerifyEmail } from '../lib/mailer.js';
 import { prisma } from '../lib/prisma.js';
 import {
+  ACCESS_COOKIE,
   generateRefreshToken,
   hashRefreshToken,
   readAuthEnv,
@@ -230,6 +231,26 @@ export const createSchoolVerifyRouter = (opts = {}) => {
           data: { studentId, schoolEmail: row.email, schoolVerifiedAt: now },
         });
       });
+
+      // #569 + Gemini security review: Session Overwrite / Login CSRF 방어.
+      // /api/auth/verify-school 은 의도적으로 requireAuth 가 없다 (메일 클릭만으로
+      // 학교 인증 가능 — 토큰 자체에 userId 바인딩). 그래서 user A 로 로그인한
+      // 상태에서 user B 의 verify token 을 검증하면, user B 의 schoolVerifiedAt
+      // 박힌 새 access/refresh 쿠키가 응답에 박혀 user A 의 세션이 user B 로
+      // 강제 전환되는 vector 가 생긴다.
+      // → 요청에 로그인 쿠키가 있고 그 sub 이 토큰 소유자와 다르면 403.
+      //   쿠키 없거나 invalid 면 정상 진행 (메일 링크 직접 클릭 — 기존 흐름).
+      const jwtCookie = req.cookies?.[ACCESS_COOKIE];
+      if (jwtCookie) {
+        try {
+          const payload = verifyJwt(jwtCookie, cfg.jwtSecret);
+          if (payload && payload.sub !== row.userId) {
+            return res.status(403).json({ error: 'UserMismatch' });
+          }
+        } catch {
+          // invalid/expired JWT → 로그아웃 상태로 간주, 계속 진행.
+        }
+      }
 
       // #569: 학교 인증 직후 새 access/refresh 토큰 즉시 발급.
       // 기존 JWT payload 엔 `schoolVerifiedAt` 키 자체가 없으므로,

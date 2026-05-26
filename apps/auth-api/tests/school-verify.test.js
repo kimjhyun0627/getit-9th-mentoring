@@ -249,6 +249,41 @@ describe('school verify routes (#538)', () => {
       expect(newPayload.sub).toBe(oldPayload.sub);
     });
 
+    // Gemini #570 — Session Overwrite / Login CSRF 방어.
+    // user A 로 로그인한 상태에서 user B 의 verify token 을 검증하면,
+    // user B 의 schoolVerifiedAt 박힌 새 쿠키가 user A 의 브라우저에 박혀
+    // 세션이 user B 로 강제 전환됨 → 403 UserMismatch 로 차단해야 한다.
+    it('다른 user 토큰으로 verify 시 403 UserMismatch (Session Overwrite 방어, #570)', async () => {
+      const a = await signup({ email: 'aa@get-it.cloud' });
+      const b = await signup({ email: 'bb@get-it.cloud' });
+
+      const { token: bToken } = await linkAndExtractToken(b.jwt, 'bb@knu.ac.kr');
+
+      const res = await request(app)
+        .post('/api/auth/verify-school')
+        .set('Cookie', `getit_jwt=${a.jwt}`)
+        .send({ token: bToken, studentId: '2024111234' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('UserMismatch');
+
+      // user B 의 schoolVerifiedAt 은 박히지 않아야 한다 (트랜잭션 자체는 통과해 토큰만 소비됨 — 회귀 X).
+      // 토큰 소비된 상태는 OK (기존 idempotent 정책 — 재사용 차단됨).
+    });
+
+    it('비로그인 상태 (쿠키 없음) verify-school → 200 + 자동 로그인 (#570)', async () => {
+      const { jwt } = await signup();
+      const { token } = await linkAndExtractToken(jwt);
+      // 쿠키 없이 호출 — 메일 링크 직접 클릭 시나리오.
+      const res = await request(app)
+        .post('/api/auth/verify-school')
+        .send({ token, studentId: '2024111234' });
+      expect(res.status).toBe(200);
+      const setCookies = res.headers['set-cookie'] ?? [];
+      expect(cookie(setCookies, 'getit_jwt')).toBeTruthy();
+      expect(cookie(setCookies, 'getit_refresh')).toBeTruthy();
+    });
+
     it('성공 시 기존 refresh token 은 revoke 됨 (rotation, #569)', async () => {
       const signupRes = await request(app).post('/api/signup').send(SIGNUP);
       const oldRefresh = cookie(signupRes.headers['set-cookie'], 'getit_refresh');
