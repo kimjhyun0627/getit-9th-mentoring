@@ -57,6 +57,36 @@ describe('api.csrf', () => {
       await ensureCsrfToken(instance);
       expect(instance.get).toHaveBeenCalledTimes(2);
     });
+
+    it('동시 호출 (single-flight) — 첫 호출만 GET /csrf, 나머지는 같은 promise (#580 Gemini)', async () => {
+      let resolveGet;
+      const instance = mkInstance(
+        () =>
+          new Promise((resolve) => {
+            resolveGet = () => resolve({ data: { token: 'tok-single' } });
+          }),
+      );
+      // 첫 호출이 settle 되기 전 두 번째/세 번째 동시 발사
+      const p1 = ensureCsrfToken(instance);
+      const p2 = ensureCsrfToken(instance);
+      const p3 = ensureCsrfToken(instance);
+      // 셋 다 동일 in-flight promise — race condition 방지
+      expect(p2).toBe(p1);
+      expect(p3).toBe(p1);
+      resolveGet();
+      await Promise.all([p1, p2, p3]);
+      expect(instance.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('실패 후엔 in-flight 해제 — 다음 호출이 즉시 재시도', async () => {
+      const instance = mkInstance(() => Promise.reject(new Error('boom')));
+      const a = await ensureCsrfToken(instance);
+      expect(a).toBeNull();
+      // 두 번째 호출은 첫 실패 후의 새 GET — promise 가 해제됐어야 시도됨
+      const b = await ensureCsrfToken(instance);
+      expect(b).toBeNull();
+      expect(instance.get).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('makeCsrfRequestInterceptor', () => {

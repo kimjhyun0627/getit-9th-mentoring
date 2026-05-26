@@ -116,13 +116,25 @@ export const StudentIdMigrationModal = ({ onSubmit }) => {
     }
   };
 
-  // 포커스 트랩 — Tab/Shift+Tab 이 input ↔ submit 만 순환
+  // 포커스 트랩 — Tab/Shift+Tab 이 input ↔ submit 만 순환.
+  //
+  // Gemini #580 (high a11y): submit 이 disabled 일 때 (검증 실패 or busy) HTML
+  // 표준상 포커스를 받을 수 없어, Tab 키가 모달 밖으로 탈출한다. 이 경우 강제로
+  // input 에 포커스 유지 — blocking 모달의 본질을 깨지 않는다.
   /** @param {React.KeyboardEvent<HTMLDivElement>} e */
   const handleKeyDown = (e) => {
     if (e.key !== 'Tab') return;
     const input = inputRef.current;
     const submit = submitRef.current;
     if (!input || !submit) return;
+
+    // submit 이 disabled 면 포커스 가능한 요소는 input 뿐 — Tab/Shift+Tab 모두 input 고정.
+    if (submit.disabled) {
+      e.preventDefault();
+      input.focus();
+      return;
+    }
+
     const active = document.activeElement;
     if (e.shiftKey) {
       if (active === input) {

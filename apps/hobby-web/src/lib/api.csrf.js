@@ -22,28 +22,50 @@
 let csrfToken = null;
 
 /**
+ * Single-flight in-flight promise — 동시 첫 요청이 GET /csrf 를 한 번만 보낸다.
+ *
+ * 배경 (Gemini #580 medium): 첫 PATCH/DELETE 가 동시에 여러 발사되면 각각이
+ * `ensureCsrfToken` 을 호출 → 동시 GET /csrf → BE 가 매 요청마다 새 토큰 발급 시
+ * 마지막 토큰만 쿠키에 남고 나머지 요청은 mismatch 로 403. 단일 비행 promise 를
+ * 공유해 한 번만 발사 (api.refresh.js 의 refreshInFlight 패턴과 동일 원리).
+ *
+ * @type {Promise<string | null> | null}
+ */
+let csrfPromise = null;
+
+/**
  * 캐시 무효화 — 다음 요청에서 강제 재발급. 403 CsrfTokenMismatch/Invalid 응답 시 호출.
  */
 export const clearCsrfTokenCache = () => {
   csrfToken = null;
+  csrfPromise = null;
 };
 
 /**
  * `GET /api/csrf` 1회 호출 → 토큰 캐시. 실패해도 swallow — null 반환 시 호출자가
  * 헤더 없이 요청을 보내고 BE 가 403 으로 거부하게 둔다 (조용한 실패 방지).
  *
+ * 동시 호출 시: 첫 호출만 실제 GET, 나머지는 동일 promise 를 await — single-flight.
+ *
  * @param {import('axios').AxiosInstance} instance - auth-api 도메인 axios
  * @returns {Promise<string | null>}
  */
-export const ensureCsrfToken = async (instance) => {
-  if (csrfToken) return csrfToken;
-  try {
-    const { data } = await instance.get('/csrf');
-    csrfToken = typeof data?.token === 'string' && data.token.length > 0 ? data.token : null;
-    return csrfToken;
-  } catch {
-    return null;
-  }
+export const ensureCsrfToken = (instance) => {
+  if (csrfToken) return Promise.resolve(csrfToken);
+  if (csrfPromise) return csrfPromise;
+  csrfPromise = (async () => {
+    try {
+      const { data } = await instance.get('/csrf');
+      csrfToken = typeof data?.token === 'string' && data.token.length > 0 ? data.token : null;
+      return csrfToken;
+    } catch {
+      return null;
+    } finally {
+      // 성공/실패 무관하게 in-flight 해제. 실패 시 다음 호출이 즉시 재시도 가능.
+      csrfPromise = null;
+    }
+  })();
+  return csrfPromise;
 };
 
 /**
@@ -86,8 +108,9 @@ export const onCsrfError = (err) => {
 };
 
 /**
- * 테스트 전용 — 모듈 캐시 상태 초기화.
+ * 테스트 전용 — 모듈 캐시 상태 완전 초기화 (token + in-flight promise).
  */
 export const __resetCsrfForTest = () => {
   csrfToken = null;
+  csrfPromise = null;
 };

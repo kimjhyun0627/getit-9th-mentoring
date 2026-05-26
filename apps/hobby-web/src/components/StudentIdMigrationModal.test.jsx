@@ -201,4 +201,36 @@ describe('StudentIdMigrationModal (#573)', () => {
       expect(screen.getByLabelText(/학번 \(10자리\)/)).toHaveFocus();
     });
   });
+
+  it('focus trap: submit 이 disabled (검증 실패) 일 때도 Tab 이 input 에 고정 (Gemini #580 a11y)', async () => {
+    const user = userEvent.setup();
+    renderModal();
+    const input = screen.getByLabelText(/학번 \(10자리\)/);
+    const submit = screen.getByRole('button', { name: /저장/ });
+    // 초기 상태: input 빈값 → submit disabled
+    expect(submit).toBeDisabled();
+    expect(input).toHaveFocus();
+    // Tab → submit 이 disabled 라 브라우저가 모달 밖으로 탈출 시도 → 우리가 막아 input 고정
+    await user.tab();
+    expect(input).toHaveFocus();
+    // Shift+Tab 도 동일하게 input 고정
+    await user.tab({ shift: true });
+    expect(input).toHaveFocus();
+  });
+
+  it('focus trap: 10자리 입력 후 submit enabled — 정상 순환', async () => {
+    const user = userEvent.setup();
+    renderModal();
+    const input = screen.getByLabelText(/학번 \(10자리\)/);
+    await user.type(input, '2024111234');
+    const submit = screen.getByRole('button', { name: /저장/ });
+    expect(submit).not.toBeDisabled();
+    // input → Tab → submit
+    input.focus();
+    await user.tab();
+    expect(submit).toHaveFocus();
+    // submit → Tab → input (wrap around)
+    await user.tab();
+    expect(input).toHaveFocus();
+  });
 });
