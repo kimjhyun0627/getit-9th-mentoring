@@ -9,6 +9,7 @@
  */
 import axios from 'axios';
 
+import { makeCsrfRequestInterceptor, onCsrfError } from './api.csrf.js';
 import { onSuccess } from './api.helpers.js';
 import { makeOnError, refreshAccessToken } from './api.refresh.js';
 
@@ -63,4 +64,13 @@ export const authClient = axios.create({
 
 // `client` 와 동일 interceptor 적용 — getMe 등 auth 요청도 BE-down 시 fail-soft
 // + 401 시 refresh + 재시도. 단 instance 가 다르므로 makeOnError 로 새로 만든다.
+//
+// #573: auth-api 도메인은 csrfGuard 적용 대상 (`/api/me/*`). PATCH/DELETE 발사
+// 직전에 `X-CSRF-Token` 헤더 자동 첨부 + 403 Csrf* 응답이면 캐시 무효화.
+// 응답 onCsrfError 는 makeOnError 보다 먼저 등록해야 (axios는 LIFO) 401-refresh
+// 흐름과 충돌하지 않고 403 만 가로챈다.
+authClient.interceptors.request.use(makeCsrfRequestInterceptor(authClient));
+// 두 response interceptor 분리 — 403 Csrf* 캐시 무효화는 항상 먼저 처리되고
+// reject 가 pass-through 되어 makeOnError 의 401-refresh 로직과 독립적으로 동작.
+authClient.interceptors.response.use(undefined, onCsrfError);
 authClient.interceptors.response.use(onSuccess, makeOnError(authClient, handlers));

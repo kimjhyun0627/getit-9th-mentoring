@@ -69,6 +69,7 @@
  * @property {string | null} [schoolEmail] - 학교 메일 (학교 인증 전 null)
  * @property {string | null} [schoolVerifiedAt] - 학교 인증 시각 (ISO 8601, 미인증 시 null). (#541)
  * @property {string} [createdAt] - 가입일 (ISO 8601)
+ * @property {boolean} [studentIdLegacy] - 8자리 학번 시절 인증자 검출 (#573, true 면 hobby 진입 시 blocking 모달)
  */
 
 export {};
