@@ -104,6 +104,12 @@ jobs:
       contents: read
       packages: read
     steps:
+      # Probe script (tools/ci/post-deploy-health.sh) 가 워크스페이스에 있어야 하므로
+      # ssh-deploy 직전에 repo 를 checkout. ssh step 은 어차피 VM 에서 git pull 하므로
+      # runner-side 작업 디렉토리에 영향 없음.
+      - name: Checkout (for health probe script)
+        uses: actions/checkout@v4
+
       - name: Deploy on VM
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -124,15 +130,14 @@ jobs:
             docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
 
-      - name: Health check (landing)
+      # Post-deploy health probe — 5 BE API + 6 web (#587).
+      # 배경: 2026-05-26 run 26473512779 은 ssh-deploy success 였지만 5 BE 컨테이너가
+      # dotenv ERR_MODULE_NOT_FOUND 로 boot 실패. `docker compose up -d` 만으로는
+      # 컨테이너 crash 를 감지 못 함 → silent 45분 다운. 11/11 endpoint 통과 강제로
+      # 차단. 컨테이너 ready 까지 시차 허용: 5s × 12 retry = 60s. 실패 시 stderr 에
+      # 어느 endpoint / HTTP code / retry 횟수 명시 후 exit 1 → workflow 실패 알림.
+      - name: Post-deploy health probe (5 API + 6 web)
         if: success()
         run: |
-          set -euo pipefail
-          for i in {1..10}; do
-            if curl -fsS --max-time 5 "https://get-it.cloud/healthz" >/dev/null; then
-              echo "landing healthy"; exit 0
-            fi
-            echo "attempt $i: waiting for landing…"; sleep 10
-          done
-          echo "landing did not become healthy" >&2
-          exit 1
+          chmod +x tools/ci/post-deploy-health.sh
+          tools/ci/post-deploy-health.sh
