@@ -23,11 +23,17 @@ import path from 'node:path';
 /** `import.meta.env.VITE_FOO` / `import.meta.env?.VITE_FOO` 둘 다 잡는다. */
 export const SRC_VITE_RE = /import\.meta\.env\??\.(VITE_[A-Z0-9_]+)/g;
 
-/** Dockerfile 의 `ARG VITE_FOO[=default]` 라인. 줄 단위 매칭. */
-export const DOCKERFILE_ARG_RE = /^\s*ARG\s+(VITE_[A-Z0-9_]+)(?:=.*)?\s*$/;
+/**
+ * Dockerfile 의 `ARG VITE_FOO[=default]` 라인. 줄 단위 매칭.
+ * 뒤따르는 inline 주석 (`# ...`) 도 허용 (Gemini #596).
+ */
+export const DOCKERFILE_ARG_RE = /^\s*ARG\s+(VITE_[A-Z0-9_]+)(?:\s*=[^#]*)?\s*(?:#.*)?$/;
 
 /** deploy.yml 의 build-args 항목 `VITE_FOO=...`. 들여쓰기 + 값 허용. */
 export const DEPLOY_BUILD_ARG_RE = /^\s+(VITE_[A-Z0-9_]+)\s*=/;
+
+/** deploy.yml 의 `build-args:` 키 라인. literal block scalar (`|` / `>`) 모두 허용. */
+export const DEPLOY_BUILD_ARGS_KEY_RE = /^(\s*)build-args:\s*[|>][+-]?\s*$/;
 
 // ─────────────────────────── 어댑터 ───────────────────────────
 
@@ -63,7 +69,8 @@ export function collectSrcViteVars(dir, fs) {
   /** @param {string} d */
   const walk = (d) => {
     for (const entry of fs.readdir(d)) {
-      if (entry.name.startsWith('.') && entry.name !== '.') continue;
+      // 숨김 + `.` / `..` 모두 스킵 (Gemini #596 — `.` 가 들어오면 무한 재귀 위험).
+      if (entry.name.startsWith('.')) continue;
       if (SKIP.has(entry.name)) continue;
       const full = path.join(d, entry.name);
       if (entry.isDirectory()) {
@@ -93,17 +100,65 @@ export function collectDockerfileViteArgs(text) {
 }
 
 /**
- * deploy.yml 텍스트에서 build-args 블록 안의 VITE_* 이름만 추출.
- * 단순 행 매칭 — `build-args: |` 블록 안이든 밖이든 `<들여쓰기>VITE_FOO=...`
- * 패턴은 deploy.yml 에서 build-args 외엔 등장 안 함 (관용적 안전 가정).
+ * deploy.yml 텍스트에서 `build-args:` literal block 안의 VITE_* 이름만 추출.
+ *
+ * 이전엔 파일 전체에서 `<들여쓰기>VITE_FOO=...` 행을 다 잡았지만, build-args
+ * 밖의 env / shell 라인이 오인식될 수 있어서 (CodeRabbit #596) 블록 안만
+ * 보도록 좁혔다. 블록은 `build-args: |` (또는 `|+` / `|-` / `>`) 키 라인
+ * 다음에 시작하고, 들여쓰기가 키 행 들여쓰기보다 작아지거나 같아지면 종료.
+ *
+ * 동일 step 안에 build-args 가 여러 번 나오는 일은 없지만, 여러 step 에
+ * build-args 가 있는 경우는 누적 수집.
  *
  * @param {string} text
  * @returns {Set<string>}
  */
 export function collectDeployViteBuildArgs(text) {
   const out = new Set();
-  for (const line of text.split(/\r?\n/)) {
-    const m = line.match(DEPLOY_BUILD_ARG_RE);
+  const lines = text.split(/\r?\n/);
+
+  let inside = false;
+  let keyIndent = -1; // build-args: 키 라인 자체의 들여쓰기
+  let blockIndent = -1; // 첫 컨텐츠 행을 보고 결정
+
+  for (const raw of lines) {
+    if (!inside) {
+      const m = raw.match(DEPLOY_BUILD_ARGS_KEY_RE);
+      if (m) {
+        inside = true;
+        keyIndent = m[1].length;
+        blockIndent = -1;
+      }
+      continue;
+    }
+
+    // 공백/주석 라인은 블록 종료 판단에서 제외 — YAML literal block 관용.
+    if (raw.trim() === '' || /^\s*#/.test(raw)) continue;
+
+    const indent = raw.match(/^\s*/)[0].length;
+
+    // 첫 컨텐츠 행 들여쓰기를 블록 들여쓰기로 고정.
+    if (blockIndent === -1) {
+      if (indent <= keyIndent) {
+        // 빈 블록 — 즉시 종료.
+        inside = false;
+        continue;
+      }
+      blockIndent = indent;
+    } else if (indent <= keyIndent) {
+      // 블록 종료 — 같은 레벨 또는 dedent.
+      inside = false;
+      // 이 라인 자체도 다시 키 라인일 수 있으니 매칭 시도.
+      const m = raw.match(DEPLOY_BUILD_ARGS_KEY_RE);
+      if (m) {
+        inside = true;
+        keyIndent = m[1].length;
+        blockIndent = -1;
+      }
+      continue;
+    }
+
+    const m = raw.match(DEPLOY_BUILD_ARG_RE);
     if (m) out.add(m[1]);
   }
   return out;

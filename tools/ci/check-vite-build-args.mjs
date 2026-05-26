@@ -28,7 +28,16 @@ const WEB_APPS = ['landing', 'auth-web', 'hobby-web', 'shelf-web', 'letter-web',
 function parseArgs(argv) {
   let root = null;
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--root') root = argv[++i];
+    if (argv[i] === '--root') {
+      // 값 누락은 디폴트로 떨어뜨리지 말고 즉시 실패 — 설정 실수를 숨기지 않기 위해 (CodeRabbit #596).
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith('--')) {
+        process.stderr.write('Error: --root 옵션에 경로 값이 필요합니다.\n');
+        process.exit(2);
+      }
+      root = next;
+      i++;
+    }
   }
   return { root };
 }

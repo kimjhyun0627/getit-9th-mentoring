@@ -15,7 +15,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { analyzeDrift, collectSrcViteVars, formatReport } from './lib.mjs';
+import {
+  analyzeDrift,
+  collectDeployViteBuildArgs,
+  collectDockerfileViteArgs,
+  collectSrcViteVars,
+  formatReport,
+} from './lib.mjs';
 
 // ─────────────────── 인메모리 fs 어댑터 ───────────────────
 
@@ -257,6 +263,86 @@ describe('collectSrcViteVars', () => {
     });
     const got = collectSrcViteVars('/app', fs);
     assert.deepEqual([...got].sort(), ['VITE_DIRECT', 'VITE_OPT']);
+  });
+});
+
+// ─────────────────── 케이스 R1: Dockerfile ARG 인라인 주석 허용 (Gemini #596) ───────────────────
+describe('collectDockerfileViteArgs — 인라인 주석', () => {
+  it('`ARG VITE_FOO # 주석` 도 매칭', () => {
+    const text = `ARG VITE_FOO  # 인라인 주석
+ARG VITE_BAR=default  # 디폴트 + 주석
+ARG VITE_BAZ`;
+    const got = collectDockerfileViteArgs(text);
+    assert.deepEqual([...got].sort(), ['VITE_BAR', 'VITE_BAZ', 'VITE_FOO']);
+  });
+});
+
+// ─────────────────── 케이스 R2: src walker `.` 무한재귀 방어 (Gemini #596) ───────────────────
+describe('collectSrcViteVars — `.` 이름 엔트리는 스킵', () => {
+  it('`entry.name === "."` 이어도 무한 재귀하지 않음', () => {
+    // memFs 는 자연스럽게 . 을 생성 안 하지만 방어적 readdir 시뮬레이션.
+    const fs = {
+      exists: () => true,
+      readFile: () => '',
+      readdir: (p) => {
+        if (p === '/app') {
+          return [
+            { name: '.', isDirectory: () => true, isFile: () => false },
+            { name: 'real.js', isDirectory: () => false, isFile: () => true },
+          ];
+        }
+        // `.` 로 들어왔다면 무한 재귀 트리거. 절대 호출되면 안 됨.
+        throw new Error('regression: walker recursed into "." entry');
+      },
+    };
+    fs.readFile = () => 'import.meta.env.VITE_X';
+    const got = collectSrcViteVars('/app', fs);
+    assert.deepEqual([...got], ['VITE_X']);
+  });
+});
+
+// ─────────────────── 케이스 R3: deploy.yml build-args 블록 범위 (CodeRabbit #596) ───────────────────
+describe('collectDeployViteBuildArgs — build-args 블록 안만 본다', () => {
+  it('build-args 밖의 `VITE_FOO=...` 라인은 무시', () => {
+    const text = `jobs:
+  build:
+    steps:
+      - name: Build
+        env:
+          VITE_LEAKED=should-not-count
+        with:
+          build-args: |
+            VITE_REAL_A=https://x
+            VITE_REAL_B=
+      - name: Other
+        run: |
+          export VITE_SHELL_VAR=nope
+`;
+    const got = collectDeployViteBuildArgs(text);
+    assert.deepEqual([...got].sort(), ['VITE_REAL_A', 'VITE_REAL_B']);
+  });
+
+  it('여러 build-args 블록도 누적 수집', () => {
+    const text = `steps:
+  - with:
+      build-args: |
+        VITE_A=1
+  - with:
+      build-args: |
+        VITE_B=2
+`;
+    const got = collectDeployViteBuildArgs(text);
+    assert.deepEqual([...got].sort(), ['VITE_A', 'VITE_B']);
+  });
+
+  it('`build-args:` 없는 파일에선 빈 set', () => {
+    const text = `jobs:
+  x:
+    steps:
+      - run: VITE_NOT_IN_BLOCK=foo
+`;
+    const got = collectDeployViteBuildArgs(text);
+    assert.equal(got.size, 0);
   });
 });
 
