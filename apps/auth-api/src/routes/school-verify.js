@@ -209,20 +209,37 @@ export const createSchoolVerifyRouter = (opts = {}) => {
       // 상태에서 user B 의 verify token 을 검증하면, user B 의 schoolVerifiedAt
       // 박힌 새 access/refresh 쿠키가 응답에 박혀 user A 의 세션이 user B 로
       // 강제 전환되는 vector 가 생긴다.
-      // → 요청에 로그인 쿠키가 있고 그 sub 이 토큰 소유자와 다르면 403.
-      //   쿠키 없거나 invalid 면 정상 진행 (메일 링크 직접 클릭 — 기존 흐름).
-      // 트랜잭션 *전* 에 체크 — 거부된 요청이 토큰 소비 / DB 업데이트하지 않도록
-      // (CR #570: row.userId 만 있으면 가능하니 트랜잭션 앞으로).
+      //
+      // 정책:
+      // 1) access JWT 가 유효하면 payload.sub 으로 세션 소유자 결정.
+      // 2) JWT invalid/expired 이지만 활성 refresh cookie 가 있으면 그 owner 사용
+      //    (CR #570 2차 review: access 가 만료된 브라우저도 refresh 만으로 다른
+      //    user 세션을 덮어쓸 수 있음 → refresh 도 같이 검사).
+      // 3) 결정된 세션 소유자가 토큰 소유자 (row.userId) 와 다르면 403.
+      // 4) 둘 다 없으면 (로그아웃 / 메일 직접 클릭) 정상 진행.
+      //
+      // 트랜잭션 *전* 에 체크 — 거부된 요청이 토큰 소비 / DB 업데이트하지 않도록.
       const jwtCookie = req.cookies?.[ACCESS_COOKIE];
+      const refreshCookie = req.cookies?.[REFRESH_COOKIE];
+      let sessionUserId = null;
       if (jwtCookie) {
         try {
           const payload = verifyJwt(jwtCookie, cfg.jwtSecret);
-          if (payload && payload.sub !== row.userId) {
-            return res.status(403).json({ error: 'UserMismatch' });
-          }
+          sessionUserId = payload?.sub ?? null;
         } catch {
-          // invalid/expired JWT → 로그아웃 상태로 간주, 계속 진행.
+          // invalid/expired JWT → access 로는 세션 못 가림, refresh 검사로 fallback.
         }
+      }
+      if (!sessionUserId && refreshCookie) {
+        const currentRefresh = await prisma.refreshToken.findUnique({
+          where: { tokenHash: hashRefreshToken(refreshCookie) },
+        });
+        if (currentRefresh && !currentRefresh.revokedAt) {
+          sessionUserId = currentRefresh.userId;
+        }
+      }
+      if (sessionUserId && sessionUserId !== row.userId) {
+        return res.status(403).json({ error: 'UserMismatch' });
       }
 
       // 트랜잭션 — 토큰 1회 소비 보장 + 탈퇴 유저 차단 + User 업데이트.
