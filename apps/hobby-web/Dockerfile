@@ -37,6 +37,20 @@ COPY packages/config-tailwind  packages/config-tailwind
 COPY packages/config-eslint    packages/config-eslint
 COPY apps/hobby-web            apps/hobby-web
 
+# Vite 빌드 타임 env — 누락 시 `/api` fallback 으로 현재 origin (hobby.get-it.cloud)
+# 을 친다. PATCH `/api/me/student-id` 가 hobby-api 로 404 나는 사고 (#585) 의
+# 정확한 원인. build-args 로 반드시 주입. 6 web Dockerfile 통일.
+ARG VITE_AUTH_API_URL
+ARG VITE_AUTH_URL
+ARG VITE_AUTH_ORIGIN
+ARG VITE_API_URL
+ARG VITE_NICKNAME_ONBOARDING_ENFORCED
+ENV VITE_AUTH_API_URL=${VITE_AUTH_API_URL} \
+    VITE_AUTH_URL=${VITE_AUTH_URL} \
+    VITE_AUTH_ORIGIN=${VITE_AUTH_ORIGIN} \
+    VITE_API_URL=${VITE_API_URL} \
+    VITE_NICKNAME_ONBOARDING_ENFORCED=${VITE_NICKNAME_ONBOARDING_ENFORCED}
+
 RUN pnpm --filter @getit/hobby-web build
 
 # ---------- runner ----------

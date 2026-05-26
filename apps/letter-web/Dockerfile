@@ -37,6 +37,19 @@ COPY packages/config-tailwind  packages/config-tailwind
 COPY packages/config-eslint    packages/config-eslint
 COPY apps/letter-web           apps/letter-web
 
+# Vite 빌드 타임 env — 누락 시 `/api` fallback 으로 현재 origin 을 친다.
+# (#585) 학번 모달 PATCH 404 사고와 동일 패턴. 6 web Dockerfile 통일.
+ARG VITE_AUTH_API_URL
+ARG VITE_AUTH_URL
+ARG VITE_AUTH_ORIGIN
+ARG VITE_API_URL
+ARG VITE_NICKNAME_ONBOARDING_ENFORCED
+ENV VITE_AUTH_API_URL=${VITE_AUTH_API_URL} \
+    VITE_AUTH_URL=${VITE_AUTH_URL} \
+    VITE_AUTH_ORIGIN=${VITE_AUTH_ORIGIN} \
+    VITE_API_URL=${VITE_API_URL} \
+    VITE_NICKNAME_ONBOARDING_ENFORCED=${VITE_NICKNAME_ONBOARDING_ENFORCED}
+
 RUN pnpm --filter @getit/letter-web build
 
 # ---------- runner ----------
