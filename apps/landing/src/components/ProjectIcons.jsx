@@ -89,44 +89,32 @@ export const ShelfIcon = ({ className = 'size-6' }) => (
  * 둥근 박스 (favicon 의 bg) + 카드 4개 (opacity ladder 1.0 / 0.7 / 0.5 / 0.3).
  *
  * favicon 은 dark box + light card 컨트라스트. landing 카드는 wrapper 가 액센트
- * 색을 입히므로 box=액센트(currentColor), card=wrapper 배경색(`zinc-50` / `ink-850`)
- * 으로 동일 컨트라스트 유지.
+ * 색을 입히므로 box=액센트(currentColor), card 영역은 SVG `mask` 로 cutout
+ * 처리해서 wrapper 배경색이 자연스럽게 비치게 함 (#598 Gemini 리뷰).
+ *
+ * mask cutout 방식의 장점:
+ *   - wrapper 배경색에 하드코딩 의존 없음. wrapper 가 `zinc-50` 이든 `ink-850` 이든
+ *     glass-bg 든 카드 자리가 자동으로 wrapper 색이 됨.
+ *   - opacity ladder (0.7 / 0.5 / 0.3) 는 mask 의 `fill-opacity` 로 표현 —
+ *     0.3 fill 은 70% 가 mask 통과(액센트), 30% 가 cutout(wrapper 배경) → 옅은 카드.
  *
  * @param {{ className?: string }} props
  */
 export const BoardIcon = ({ className = 'size-6' }) => (
   <svg viewBox="0 0 28 28" aria-hidden="true" className={`fill-current ${className}`}>
-    {/* 외곽 박스 — favicon 의 dark bg = wrapper 액센트 색 */}
-    <rect x="2" y="2" width="24" height="24" rx="6" />
-    {/* 카드 4개 — favicon 의 light card 컨트라스트는 wrapper 배경색으로 */}
-    <rect x="6" y="7" width="4.5" height="3" rx="0.6" className="fill-zinc-50 dark:fill-ink-850" />
-    <rect
-      x="11.75"
-      y="7"
-      width="4.5"
-      height="3"
-      rx="0.6"
-      className="fill-zinc-50 dark:fill-ink-850"
-      fillOpacity="0.7"
-    />
-    <rect
-      x="11.75"
-      y="11.5"
-      width="4.5"
-      height="3"
-      rx="0.6"
-      className="fill-zinc-50 dark:fill-ink-850"
-      fillOpacity="0.5"
-    />
-    <rect
-      x="17.5"
-      y="7"
-      width="4.5"
-      height="3"
-      rx="0.6"
-      className="fill-zinc-50 dark:fill-ink-850"
-      fillOpacity="0.3"
-    />
+    <defs>
+      <mask id="board-icon-mask">
+        {/* mask 배경 = white = 액센트 색 표시 */}
+        <rect x="0" y="0" width="28" height="28" fill="white" />
+        {/* 카드 4개 = black = cutout (wrapper 배경 노출). fill-opacity 로 ladder */}
+        <rect x="6" y="7" width="4.5" height="3" rx="0.6" fill="black" />
+        <rect x="11.75" y="7" width="4.5" height="3" rx="0.6" fill="black" fillOpacity="0.7" />
+        <rect x="11.75" y="11.5" width="4.5" height="3" rx="0.6" fill="black" fillOpacity="0.5" />
+        <rect x="17.5" y="7" width="4.5" height="3" rx="0.6" fill="black" fillOpacity="0.3" />
+      </mask>
+    </defs>
+    {/* 외곽 박스 — favicon 의 dark bg = wrapper 액센트 색. mask 로 카드 영역 cutout */}
+    <rect x="2" y="2" width="24" height="24" rx="6" mask="url(#board-icon-mask)" />
   </svg>
 );
 

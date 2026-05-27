@@ -97,11 +97,11 @@ describe('ProjectIcons — favicon 모티프 통일 (#597)', () => {
     });
   }
 
-  describe('BoardIcon — favicon 의 4 카드 opacity ladder', () => {
-    it('카드 4개 + 외곽 박스 rect 5개를 가진다 (favicon 의 box + 4 cards)', () => {
+  describe('BoardIcon — favicon 의 4 카드 opacity ladder + SVG mask cutout (#598 Gemini)', () => {
+    it('외곽 박스 + mask 배경 + 카드 4개로 총 rect 6개를 가진다', () => {
       const { container } = render(<BoardIcon />);
       const rects = container.querySelectorAll('rect');
-      expect(rects.length).toBe(5);
+      expect(rects.length).toBe(6);
     });
 
     it('카드 3개에 favicon 과 동일한 fill-opacity (0.7 / 0.5 / 0.3) 가 적용된다', () => {
@@ -110,6 +110,19 @@ describe('ProjectIcons — favicon 모티프 통일 (#597)', () => {
         .map((r) => r.getAttribute('fill-opacity'))
         .filter(Boolean);
       expect(opacities).toEqual(expect.arrayContaining(['0.7', '0.5', '0.3']));
+    });
+
+    it('외곽 박스가 mask=url(#board-icon-mask) 로 cutout 처리된다', () => {
+      const { container } = render(<BoardIcon />);
+      const masked = container.querySelector('rect[mask]');
+      expect(masked).not.toBeNull();
+      expect(masked.getAttribute('mask')).toBe('url(#board-icon-mask)');
+    });
+
+    it('mask 가 정의되어 있다', () => {
+      const { container } = render(<BoardIcon />);
+      const mask = container.querySelector('mask#board-icon-mask');
+      expect(mask).not.toBeNull();
     });
   });
 
